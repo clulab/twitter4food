@@ -1,0 +1,17 @@
+obesity rates found at:
+http://kff.org/other/state-indicator/adult-overweightobesity-rate/#
+2012
+
+U.S. total includes territories. Data represent adults who reported having a body mass index (BMI) greater than or equal to 25.0 kg/meters squared. Percentages are weighted to reflect population characteristics.
+
+Data based on the Behavioral Risk Factor Surveillance System, an ongoing, state-based, random-digit-dialed telephone survey of non-institutionalized civilian adults aged 18 years and older. Information about the BRFSS is available at http://www.cdc.gov/brfss/index.htm.
+
+diabetes at:
+ "percent of adults who have ever been told by a doctor that they have diabetes"
+includes pregnancies
+2012
+
+http://kff.org/other/state-indicator/adults-with-diabetes/
+U.S. total includes territories. Data represent adults who report ever being told by a doctor that they have diabetes. Percentages are weighted to reflect population characteristics.
+
+Data based on the Behavioral Risk Factor Surveillance System, an ongoing, state-based, random-digit-dialed telephone survey of non-institutionalized civilian adults aged 18 years and older. Information about the BRFSS is available at http://www.cdc.gov/brfss/index.htm.
