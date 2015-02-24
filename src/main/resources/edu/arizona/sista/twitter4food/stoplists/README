@@ -1,0 +1,5 @@
+English stoplist is the standard Mallet stoplist.
+
+German, French, Finnish are borrowed from http://www.ranks.nl.
+
+stopwordsfortwitter.txt is taken from https://docs.google.com/document/d/1XgPwsJ-uTObkbcxIECDybB4uvDWsNJ1L7mZ-xxYrLy0/edit

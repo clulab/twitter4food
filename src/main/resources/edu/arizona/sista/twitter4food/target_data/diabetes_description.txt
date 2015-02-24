@@ -1,0 +1,56 @@
+taken from http://apps.nccd.cdc.gov/DDT_STRS2/DataUsers.htm
+Data Dictionary
+
+
+ 
+Variable Name   Definition
+STATE NAME  Name of state
+COUNTY NAME Name of county
+STATE FIPS  State FIPS code
+COUNTY FIPS County FIPS code
+PERCENT Estimated percentage of adults with diagnosed diabetes or risk factor in the county
+PERSD    Standard deviation of the estimated percentage of adults with diagnosed diabetes or risk factor in the county
+PER95L  Lower bound for the 95% Bayesian confidence interval for the percentage of adults with diagnosed diabetes or risk factor in the county
+PER95U  Upper bound for the 95% Bayesian confidence interval for the percentage of adults with diagnosed diabetes or risk factor in the county
+ADJPERCENT  Estimated percentage adults with diagnosed diabetes or risk factor in the county after adjusting for age
+ADJPERSD    Standard deviation of the estimated percentage of adults with diagnosed diabetes or risk factor in the county after adjusting for age
+ADJPER95L   Lower bound for the 95% Bayesian confidence interval for the percentage of adults with diagnosed diabetes or risk factor in the county after adjusting for age
+ADJPER95U   Upper bound for the 95% Bayesian confidence interval for the percentage of adults with diagnosed diabetes or risk factor in the county after adjusting for age
+TOTAL   Estimated number of adults with diagnosed diabetes or risk factor in the county
+TOTALSD Standard deviation of the estimated number of adults with diagnosed diabetes or risk factor in the county
+TOT95L   Lower bound for the 95% Bayesian confidence interval for the number of adults with diagnosed diabetes or risk factor in the county
+TOT95U  Upper bound for the 95% Bayesian confidence interval for the number of adults with diagnosed diabetes or risk factor in the county
+FIVE_RANK   5th percentile for county rank
+FIFTY_RANK  50th percentile for county rank
+NINETYFIVE_RANK 95th percentile for county rank
+COMBINED:
+PERTOT[Year]     Gradation of percentage of adults with diagnosed diabetes by total number of adults with diabetes in [year].
+1 = 0 to 7.6% and 0 to 23280 adults
+2 = 7.7 to 9.9% and 0 to 23280 adults
+3 = ≥10.0% and 0 to 23280 adults
+4 = 0 to 7.6% and 23281 to 101500 adults
+5 = 7.7 to 9.9% and 23281 to 101500 adults
+6 = ≥10.0% and 23281 to 101500 adults
+7 = 0 to 7.6% and ≥101501 adults
+8 = 7.7 to 9.9% and ≥ 101501 adults
+9 = ≥10.0% and ≥ 101501 adults
+OBPERTOT[year]   Gradation of percentage of obese adults by total number of obese adults in [year].
+1 = 0 to 22.9% and 0 to 67880 adults
+2 = 23.0 to 27.9% and 0 to 67880 adults
+3 = ≥ 28.0% and 0 to 67880 adults
+4 = 0 to 22.9% and 67881 to 325200 adults
+5 = 23.0 to 27.9% and 67881 to 325200 adults
+6 = ≥ 28.0% and 67881 to 325200 adults
+7 = 0 to 22.9% and ≥325201 adults
+8 = 23.0 to 27.9% and ≥ 325201 adults
+9 = ≥ 28.0% and ≥ 325201 adults
+LIPERTOT[year]   Gradation of percentage of physically inactive adults by total number of physically inactive adults in [year].
+1 = 0 to 22.4% and 0 to 70310 adults
+2 = 22.5 to 29.4% and 0 to 70310 adults
+3 = ≥ 29.5% and 0 to 70310 adults
+4 = 0 to 22.4% and 70311 to 329000 adults
+5 = 22.5 to 29.4% and 70311 to 329000 adults
+6 = ≥ 29.5% and 70311 to 329000 adults
+7 = 0 to 22.4% and ≥329001 adults
+8 = 22.5 to 29.4% and ≥ 329001 adults
+9 = ≥ 29.5% and ≥ 329001 adults
