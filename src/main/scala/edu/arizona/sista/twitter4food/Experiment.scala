@@ -517,7 +517,7 @@ object Experiment {
         useBias = false
         // use regions as features?
         regionType = NoRegions
-        classifierType = SVM_L2
+        classifierType = RandomForest
 
         // Some(k) to use k classifiers bagged, or None to not do bagging
         baggingNClassifiers <- List(None)
