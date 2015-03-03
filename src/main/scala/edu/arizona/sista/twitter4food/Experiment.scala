@@ -512,7 +512,7 @@ object Experiment {
         // only keep ngrams occurring this many times or more
         ngramThreshold = Some(2)
         // split feature values into this number of quantiles
-        numFeatureBins = Some(5)
+        numFeatureBins = Some(3)
         // use a bias in the SVM?
         useBias = false
         // use regions as features?
