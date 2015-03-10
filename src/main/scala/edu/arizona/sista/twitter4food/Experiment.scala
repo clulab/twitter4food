@@ -232,7 +232,7 @@ class Experiment(val parameters: ExperimentParameters,
       clf: Classifier[L, String] = trainedClassifier(trainingData)
       _ = { // this funky notation just allows us to do side effects in the for comprehension,
       // specifically updating the feature weights
-        println(clf.toString)
+        if (parameters.classifierType == RandomForest) println(clf.asInstanceOf[RandomForestClassifier[L,String]].toString)
         if (featureSelector != None)
           println(featureSelector.get.featureScores.toSeq.sortBy(_._2).reverse.take(20))
         if (parameters.classifierType == SVM_L1 || parameters.classifierType == SVM_L2) {
