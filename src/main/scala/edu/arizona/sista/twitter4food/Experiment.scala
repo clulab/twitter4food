@@ -190,8 +190,9 @@ class Experiment(val parameters: ExperimentParameters,
     val predictedLabels: Map[String, L] = (for {
       // iterate over the loocv sets. heldOutState will iterate over each state, and trainingFeatures will contain
       // the remaining states along with their associated features
-      (heldOutState: String, trainingFeatures: Map[String, Counter[String]])  <- loocvSets(1234)(stateFeatures)
-
+      //(heldOutState: String, trainingFeatures: Map[String, Counter[String]])  <- loocvSets(1234)(stateFeatures)
+      trainingFeatures: Map[String,Counter[String]] <- List(stateFeatures)
+      heldOutState: String = "AZ"
       // create a featureProcessor to normalize the features in the training set
       featureProcessor: CounterProcessor[String] = new CounterProcessor[String](trainingFeatures.values.toSeq,
         parameters.lexicalParameters.normalization, None, None)
@@ -232,7 +233,11 @@ class Experiment(val parameters: ExperimentParameters,
       clf: Classifier[L, String] = trainedClassifier(trainingData)
       _ = { // this funky notation just allows us to do side effects in the for comprehension,
       // specifically updating the feature weights
-        if (parameters.classifierType == RandomForest) println(clf.asInstanceOf[RandomForestClassifier[L,String]].toString)
+        if (parameters.classifierType == RandomForest) {
+          println("Tokens: " + parameters.lexicalParameters.tokenTypes)
+          println("Annotators: " + parameters.lexicalParameters.annotators)
+          println(clf.asInstanceOf[RandomForestClassifier[L, String]].toString)
+        }
         if (featureSelector != None)
           println(featureSelector.get.featureScores.toSeq.sortBy(_._2).reverse.take(20))
         if (parameters.classifierType == SVM_L1 || parameters.classifierType == SVM_L2) {
@@ -341,6 +346,7 @@ class Experiment(val parameters: ExperimentParameters,
     // make features by aggregating all tweets for a state
     val predictionsAndWeights = (for {
       (name, labels) <- sets.toList
+      tmp = println(name) // hack to print out dataset label with trees
     } yield (name -> runSet(stateFeatures, labels))).toMap
 
     predictionsAndWeights
