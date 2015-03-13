@@ -138,7 +138,7 @@ class Experiment(val parameters: ExperimentParameters,
       case RBF_SVM => () => new LibSVMClassifier[L, String](RBFKernel, C=1.0)
       case Linear_SVM => () => new LibSVMClassifier[L, String](LinearKernel)
       case RandomForest => () => new RandomForestClassifier[L,String](
-        numTrees = 7,
+        numTrees = 5,
         featureSampleRatio = -1.0,
         // featuresToForce=featuresToForce,
         maxTreeDepth=parameters.maxTreeDepth.getOrElse(0))
@@ -188,19 +188,19 @@ class Experiment(val parameters: ExperimentParameters,
 
     // predict the labels for each state using LOOCV
     val predictedLabels: Map[String, L] = (for {
-      // iterate over the loocv sets. heldOutState will iterate over each state, and trainingFeatures will contain
-      // the remaining states along with their associated features
-      //(heldOutState: String, trainingFeatures: Map[String, Counter[String]])  <- loocvSets(1234)(stateFeatures)
-      trainingFeatures: Map[String,Counter[String]] <- List(stateFeatures)
-      heldOutState: String = "AZ"
+    // iterate over the loocv sets. heldOutState will iterate over each state, and trainingFeatures will contain
+    // the remaining states along with their associated features
+      (heldOutState: String, trainingFeatures: Map[String, Counter[String]])  <- loocvSets(1234)(stateFeatures)
+      //trainingFeatures: Map[String,Counter[String]] <- List(stateFeatures)
+      //heldOutState: String = "AZ"
       // create a featureProcessor to normalize the features in the training set
       featureProcessor: CounterProcessor[String] = new CounterProcessor[String](trainingFeatures.values.toSeq,
         parameters.lexicalParameters.normalization, None, None)
 
-     // normalize all features in the training set using the featureProcessor
+      // normalize all features in the training set using the featureProcessor
       normedFeatures: Map[String, Counter[String]] = trainingFeatures.mapValues(featureProcessor.apply)
 
-     // if we've set a mutual information feature count threshold, only take those features with high MI
+      // if we've set a mutual information feature count threshold, only take those features with high MI
       featureSelector: Option[MutualInformation[L, String]] = parameters.miNumToKeep.map(k =>
         new MutualInformation[L, String](
           normedFeatures.toSeq.map(_._2),
@@ -212,11 +212,11 @@ class Experiment(val parameters: ExperimentParameters,
       selectedFeatures: Map[String, Counter[String]] = featureSelector.map(fs => normedFeatures.mapValues(fs.apply)).getOrElse(normedFeatures)
 
       // bin feature values into number of quantiles specified in lexical parameters
-      //binnedFeatures: Map[String, Counter[String]] = binVals(parameters.lexicalParameters.numFeatureBins.getOrElse(0))(selectedFeatures)
+      (binnedFeatures, splits) = binVals(parameters.lexicalParameters.numFeatureBins.getOrElse(0))(selectedFeatures)
 
       // convert the map of states to features (selectedFeatures) into a dataset
-      //trainingData: RVFDataset[L, String] = mkDataset({state: String => actualLabels.get(state)}, binnedFeatures)
-      trainingData: RVFDataset[L, String] = mkDataset({state: String => actualLabels.get(state)}, selectedFeatures)
+      trainingData: RVFDataset[L, String] = mkDataset({state: String => actualLabels.get(state)}, binnedFeatures)
+      //trainingData: RVFDataset[L, String] = mkDataset({state: String => actualLabels.get(state)}, selectedFeatures)
 
       // get returns an option, so use the arrow notation to assign the label inside the option to stateLabel
       stateLabel <- actualLabels.get(heldOutState)
@@ -228,16 +228,32 @@ class Experiment(val parameters: ExperimentParameters,
         featureSelector.map(fs => fs(normed)).getOrElse(normed)
       }
 
+      heldOutFeatures = procFeats(stateFeatures(heldOutState))
+      binnedHeldOutFeatures = {
+        if (splits.isEmpty) heldOutFeatures
+        else {
+          val counter = new Counter[String]
+          heldOutFeatures.keySet.map({
+            case (k) => if (splits.get.contains(k)) counter.setCount(k, insertionLocation(heldOutFeatures.getCount(k).toFloat, splits.get(k)).toDouble)
+          })
+          counter
+        }
+      }
+
+//      println("Training features before and after binning: " + selectedFeatures("AZ").size + " "
+//        + binnedFeatures("AZ").size + "\n" + "Prediction features before and after binning" + heldOutFeatures.size
+//        + " " + binnedHeldOutFeatures.size)
+
       // make a datum for the state we're testing on (stateLabel will not be used!)
-      testingDatum = mkDatum(stateLabel, procFeats(stateFeatures(heldOutState)))
+      testingDatum = mkDatum(stateLabel, binnedHeldOutFeatures)
       clf: Classifier[L, String] = trainedClassifier(trainingData)
       _ = { // this funky notation just allows us to do side effects in the for comprehension,
       // specifically updating the feature weights
-        if (parameters.classifierType == RandomForest) {
-          println("Tokens: " + parameters.lexicalParameters.tokenTypes)
-          println("Annotators: " + parameters.lexicalParameters.annotators)
-          println(clf.asInstanceOf[RandomForestClassifier[L, String]].toString)
-        }
+        //if (parameters.classifierType == RandomForest) {
+        //  println("Tokens: " + parameters.lexicalParameters.tokenTypes)
+        //  println("Annotators: " + parameters.lexicalParameters.annotators)
+        //  println(clf.asInstanceOf[RandomForestClassifier[L, String]].toString)
+        //}
         if (featureSelector != None)
           println(featureSelector.get.featureScores.toSeq.sortBy(_._2).reverse.take(20))
         if (parameters.classifierType == SVM_L1 || parameters.classifierType == SVM_L2) {
@@ -346,7 +362,6 @@ class Experiment(val parameters: ExperimentParameters,
     // make features by aggregating all tweets for a state
     val predictionsAndWeights = (for {
       (name, labels) <- sets.toList
-      tmp = println(name) // hack to print out dataset label with trees
     } yield (name -> runSet(stateFeatures, labels))).toMap
 
     predictionsAndWeights
@@ -422,10 +437,9 @@ object Experiment {
     threshold(m, splits, removeMarginals)
   }
 
-  def binVals(numberOfBins: Int)(m: Map[String, Counter[String]]): Map[String, Counter[String]] = {
+  def binVals(numberOfBins: Int)(m: Map[String, Counter[String]]): (Map[String, Counter[String]], Option[Map[String, Seq[Float]]]) = {
     numberOfBins match {
-      case noBinning if numberOfBins == 0 => m
-      case error if numberOfBins < 0 => m
+      case noBinning if numberOfBins < 2 => (m, None)
       case _ =>
         val splits = (for {
           feat <- (for (c <- m.values) yield c.keySet).toSeq.flatten
@@ -435,10 +449,9 @@ object Experiment {
           (key, count) <- m
           c = new Counter[String]
           dummy = for (feat <- count.keySet) c.setCount(feat, insertionLocation(count.getCount(feat).toFloat, splits(feat)))
-
         } yield key -> c).toMap
 
-        binned
+        (binned, Some(splits))
     }
   }
 
@@ -516,7 +529,7 @@ object Experiment {
         // this has been supplanted by our normalization by the number of tweets for each state
         normalization = NoNorm
         // only keep ngrams occurring this many times or more
-        ngramThreshold = Some(2)
+        ngramThreshold = Some(10)
         // split feature values into this number of quantiles
         numFeatureBins = Some(3)
         // use a bias in the SVM?
