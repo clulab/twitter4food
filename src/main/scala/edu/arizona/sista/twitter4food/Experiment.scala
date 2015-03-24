@@ -49,7 +49,8 @@ case class ExperimentParameters(lexicalParameters: LexicalParameters = LexicalPa
                                 maxTreeDepth: Option[Int] = None,
                                 //reduceLexicalK: Option[Int] = None,
                                 //reduceLdaK: Option[Int] = None,
-                                removeMarginals: Option[Int] = None) {
+                                removeMarginals: Option[Int] = None,
+				numTrees: Int = 1000) {
   override def toString = s"""tokenTypes: ${lexicalParameters.tokenTypes}
 annotators: ${lexicalParameters.annotators}
 regionType: ${regionType}"""
@@ -138,7 +139,7 @@ class Experiment(val parameters: ExperimentParameters,
       case RBF_SVM => () => new LibSVMClassifier[L, String](RBFKernel, C=1.0)
       case Linear_SVM => () => new LibSVMClassifier[L, String](LinearKernel)
       case RandomForest => () => new RandomForestClassifier[L,String](
-        numTrees = 5,
+        numTrees = parameters.numTrees,
         featureSampleRatio = -1.0,
         // featuresToForce=featuresToForce,
         maxTreeDepth=parameters.maxTreeDepth.getOrElse(0))
@@ -249,11 +250,11 @@ class Experiment(val parameters: ExperimentParameters,
       clf: Classifier[L, String] = trainedClassifier(trainingData)
       _ = { // this funky notation just allows us to do side effects in the for comprehension,
       // specifically updating the feature weights
-        //if (parameters.classifierType == RandomForest) {
-        //  println("Tokens: " + parameters.lexicalParameters.tokenTypes)
-        //  println("Annotators: " + parameters.lexicalParameters.annotators)
-        //  println(clf.asInstanceOf[RandomForestClassifier[L, String]].toString)
-        //}
+        if (parameters.classifierType == RandomForest) {
+          println("Tokens: " + parameters.lexicalParameters.tokenTypes)
+          println("Annotators: " + parameters.lexicalParameters.annotators)
+          println(clf.asInstanceOf[RandomForestClassifier[L, String]].toString)
+        }
         if (featureSelector != None)
           println(featureSelector.get.featureScores.toSeq.sortBy(_._2).reverse.take(20))
         if (parameters.classifierType == SVM_L1 || parameters.classifierType == SVM_L2) {
@@ -278,9 +279,9 @@ class Experiment(val parameters: ExperimentParameters,
   def run(tweets: Seq[Tweet]): Map[String, ExperimentResults[Int]] = {
     val geotagger = new GeoTagger
 
-    val diabetes = Datasets.diabetes
-    val diabetesLabels: Map[String, Int] = bin(parameters.numClasses)(normLocationsInMap(diabetes, geotagger),
-      parameters.removeMarginals)
+    // val diabetes = Datasets.diabetes
+    // val diabetesLabels: Map[String, Int] = bin(parameters.numClasses)(normLocationsInMap(diabetes, geotagger),
+    //   parameters.removeMarginals)
 
     val overweight = Datasets.overweight
     val overweightLabels: Map[String, Int] = bin(parameters.numClasses)(normLocationsInMap(overweight, geotagger),
@@ -289,13 +290,13 @@ class Experiment(val parameters: ExperimentParameters,
     // val illiteracy = Datasets.illiteracy
     // val illiteracyLabels: Map[String, Int] = bin(parameters.numClasses)(normLocationsInMap(illiteracy, geotagger), parameters.removeMarginals)
 
-    val political = Datasets.political
-    val politicalLabels: Map[String, Int] = bin(parameters.numClasses)(political, parameters.removeMarginals)
+    // val political = Datasets.political
+    // val politicalLabels: Map[String, Int] = bin(parameters.numClasses)(political, parameters.removeMarginals)
 
     val sets = Map(
       "overweight" ->  overweightLabels,
-      "diabetes" ->  diabetesLabels,
-      "political" ->  politicalLabels
+      //"diabetes" ->  diabetesLabels,
+      //"political" ->  politicalLabels
       //"illiteracy" -> illiteracyLabels
     )
 
@@ -523,13 +524,14 @@ object Experiment {
         annotators <- List(
           //List(LDAAnnotator(tokenTypes), SentimentAnnotator),
           //List(SentimentAnnotator),
-          List(LDAAnnotator(tokenTypes)),
-          List())
+          //List(LDAAnnotator(tokenTypes)),
+          //List())
+	  List(LDAAnnotator(tokenTypes)))
         // type of normalization to perform: normalize across a feature, across a state, or not at all
         // this has been supplanted by our normalization by the number of tweets for each state
         normalization = NoNorm
         // only keep ngrams occurring this many times or more
-        ngramThreshold = Some(10)
+        ngramThreshold <- List(Some(2),Some(3),Some(4),Some(5),Some(6),Some(7),Some(8),Some(9),Some(10))
         // split feature values into this number of quantiles
         numFeatureBins = Some(3)
         // use a bias in the SVM?
@@ -547,24 +549,31 @@ object Experiment {
         // Some(k) to keep k features ranked by mutual information, or None to not do this
         miNumToKeep: Option[Int] = None
         // Some(k) to limit random forest tree depth to k levels, or None to not do this
-        maxTreeDepth: Option[Int] = Some(3)
+        maxTreeDepth: Option[Int] <- List(Some(2), Some(3), Some(4), Some(5))
         // these were from failed experiments to use NNMF to reduce the feature space
         //reduceLexicalK: Option[Int] = None
         //reduceLdaK: Option[Int] = None
         // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
         // or None to use all states
         removeMarginals: Option[Int] = None
+	numTrees: Int <- List(4,5,6,7,8,9,10)
 
         params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
           classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
-          miNumToKeep, maxTreeDepth, removeMarginals)
+          miNumToKeep, maxTreeDepth, removeMarginals, numTrees)
       // Try is an object that contains either the results of the method inside or an error if it failed
       } yield params -> Try(new Experiment(params, pw).run(tweets))).seq
 
+
+    pw.println(f"Number of trees: ${param.numTrees}")
+    pw.println(f"Max tree depth: ${param.maxTreeDepth.get}")
+    pw.println(f"Ngram cutoff: ${param.ngramThreshold.get}")
+    pw.println(f"Number of bins for features: ${param.numFeatureBins.get}")
     // print the results and statistical significances for each parameter set
     for ((tokenType, group) <- predictionsAndWeights.groupBy({ case (params,  _) => params.lexicalParameters.tokenTypes })) {
       pw.println(s"tokenType: ${tokenType}")
       val (baselineParams, Success(baselineModel)) = group.filter({ case (params,  _) => params.lexicalParameters.annotators.isEmpty }).head
+      
       for ((params, Success(treatment)) <- group) {
         pw.println("\tannotators: " + params.lexicalParameters.annotators.map(_.toString).mkString("+"))
 
@@ -596,11 +605,11 @@ object Experiment {
     }
 
     pw.println
-    pw.println("feature weights")
+    //pw.println("feature weights")
 
-    for ((params, Success(resultsByDataset)) <- predictionsAndWeights.sortBy(_._1.toString)) {
-      printWeights(pw)(params, resultsByDataset.mapValues(_.featureWeightsPerClass))
-    }
+    //for ((params, Success(resultsByDataset)) <- predictionsAndWeights.sortBy(_._1.toString)) {
+    //  printWeights(pw)(params, resultsByDataset.mapValues(_.featureWeightsPerClass))
+    //}
 
     if (outFile != null) {
       try {
