@@ -176,6 +176,7 @@ class LocationClassifier(var classifier: RandomForestClassifier[String, String],
     // val normalizedFeatures = featuresByClass.mapValues(_.map(counter => featureNormalizer.get.apply(counter)))
     println("training classifier")
     classifier = train(dataset(data(bins._1)), numTrees, maxTreeDepth)
+    println(classifier.asInstanceOf[RandomForestClassifier[String, String]].toString)
   }
 
   def saveTo(fileName: String) = classifier.saveTo(fileName)
@@ -278,13 +279,17 @@ object LocationClassifier {
 
     if (DO_ABLATION) {
       val predictionsAndWeights: List[((TokenType, Int, Int, Option[Int]), (Map[String, String], Option[Map[String, Counter[String]]]))] = for {
-        tokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens)
+        // tokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens)
+        tokenType <- List(AllTokens, HashtagTokens, FoodTokens)
         annotators <- List(List(LDAAnnotator(tokenType)))//, List())
         trainingTweets = makeTraining(1.0)
         testingTweets = makeTesting(1.0)
-        numTrees <- List(4,5,6,7,8,9,10)
-        maxTreeDepth <- List(2,3,4,5)
-        ngramThreshold <- List(Some(4),Some(5),Some(6),Some(7),Some(8),Some(9),Some(10))
+        // numTrees <- List(4,5,6,7,8,9,10)
+        numTrees <- List(5,8,9)
+        // maxTreeDepth <- List(2,3,4,5)
+        maxTreeDepth <- List(3,4,5)
+        // ngramThreshold <- List(Some(4),Some(5),Some(6),Some(7),Some(8),Some(9),Some(10))
+        ngramThreshold <- List(Some(4),Some(7))
       } yield (tokenType, numTrees, maxTreeDepth, ngramThreshold) -> classifySet(trainingTweets, testingTweets, annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
 
       val byTokenType = predictionsAndWeights.groupBy({case ((tt, _, _, _), _ ) => tt})
