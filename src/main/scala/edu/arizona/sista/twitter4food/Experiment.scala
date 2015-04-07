@@ -294,7 +294,7 @@ class Experiment(val parameters: ExperimentParameters,
     // val politicalLabels: Map[String, Int] = bin(parameters.numClasses)(political, parameters.removeMarginals)
 
     val sets = Map(
-      "overweight" ->  overweightLabels,
+      "overweight" ->  overweightLabels
       //"diabetes" ->  diabetesLabels,
       //"political" ->  politicalLabels
       //"illiteracy" -> illiteracyLabels
