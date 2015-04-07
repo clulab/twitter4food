@@ -86,6 +86,7 @@ class NycLaClassifier(tweetsByLocation: Map[String, Seq[Seq[String]]],
 
 //class LocationClassifier(var classifier: LinearSVMClassifier[String, String],
 class LocationClassifier(var classifier: RandomForestClassifier[String, String],
+                         var splits: Option[Map[String, Seq[Float]]],
                          val properties: TCProperties,
                          val annotators: Seq[Annotator],
                          val tokenType: TokenType,
@@ -163,16 +164,18 @@ class LocationClassifier(var classifier: RandomForestClassifier[String, String],
            annotators: Seq[Annotator] = List(), tokenType: TokenType = AllTokens, numTrees: Int = 1000, maxTreeDepth: Int = 0,
            ngramThreshold: Option[Int] = None) = {
     // this(null:LinearSVMClassifier[String,String], properties, annotators, tokenType)
-    this(null:RandomForestClassifier[String,String], properties, annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
+    this(null:RandomForestClassifier[String,String], None, properties, annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
     println("extracting features")
     // val featuresByClass: Map[String, Counter[String]] = documentsByClass.mapValues(features).map(identity)
     val featuresByClass: Map[String, Counter[String]] = documentsByClass.mapValues(mkViewFeatures(ngramThreshold)).map(identity)
+    val bins = binVals(3)(featuresByClass)
+    splits = bins._2
     // println("creating feature normalizer")
     // featureNormalizer = Some(new CounterProcessor(featuresByClass.values.flatten.toSeq, properties.normalization, None, None))
     // println("normalizing features")
     // val normalizedFeatures = featuresByClass.mapValues(_.map(counter => featureNormalizer.get.apply(counter)))
     println("training classifier")
-    classifier = train(dataset(data(featuresByClass)), numTrees, maxTreeDepth)
+    classifier = train(dataset(data(bins._1)), numTrees, maxTreeDepth)
   }
 
   def saveTo(fileName: String) = classifier.saveTo(fileName)
@@ -192,8 +195,20 @@ class LocationClassifier(var classifier: RandomForestClassifier[String, String],
 
   def predict(datum: Datum[String, String]): String = classifier.classOf(datum)
 
-  def predict(default:String, tweets: Seq[Tweet]): String =
-    classifier.classOf(labelledDatum(default, features(tweets)))
+  def predict(default:String, tweets: Seq[Tweet]): String = {
+    val heldOutFeatures = features(tweets)
+    val binnedHeldOutFeatures = {
+      if (this.splits.isEmpty) heldOutFeatures
+      else {
+        val counter = new Counter[String]
+        heldOutFeatures.keySet.map({
+          case (k) => if (splits.get.contains(k)) counter.setCount(k, insertionLocation(heldOutFeatures.getCount(k).toFloat, splits.get(k)).toDouble)
+        })
+        counter
+      }
+    }
+    classifier.classOf(labelledDatum(default, binnedHeldOutFeatures))
+  }
 
 
   //def weights: Option[Map[String, Counter[String]]] = Some(classifier.getWeights(verbose = false))
@@ -262,7 +277,7 @@ object LocationClassifier {
     } yield name -> tweets.drop(numTraining(name)).take(toTake)
 
     if (DO_ABLATION) {
-      val predictionsAndWeights: List[((TokenType, Int, Int), (Map[String, String], Option[Map[String, Counter[String]]]))] = for {
+      val predictionsAndWeights: List[((TokenType, Int, Int, Option[Int]), (Map[String, String], Option[Map[String, Counter[String]]]))] = for {
         tokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens)
         annotators <- List(List(LDAAnnotator(tokenType)))//, List())
         trainingTweets = makeTraining(1.0)
@@ -270,13 +285,13 @@ object LocationClassifier {
         numTrees <- List(4,5,6,7,8,9,10)
         maxTreeDepth <- List(2,3,4,5)
         ngramThreshold <- List(Some(4),Some(5),Some(6),Some(7),Some(8),Some(9),Some(10))
-      } yield (tokenType, numTrees, maxTreeDepth) -> classifySet(trainingTweets, testingTweets, annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
+      } yield (tokenType, numTrees, maxTreeDepth, ngramThreshold) -> classifySet(trainingTweets, testingTweets, annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
 
-      val byTokenType = predictionsAndWeights.groupBy({case ((tt, _, _), _ ) => tt})
+      val byTokenType = predictionsAndWeights.groupBy({case ((tt, _, _, _), _ ) => tt})
 
       for ((tokenType, subPredsAndWeights) <- byTokenType) {
         pw.println(s"tokenType: s$tokenType")
-        val (unigramPredictions, _) = predictionsAndWeights.filter({ case ((tt, _, _), _) => tt == tokenType; case _ => false}).head._2
+        val (unigramPredictions, _) = predictionsAndWeights.filter({ case ((tt, _, _, _), _) => tt == tokenType; case _ => false}).head._2
 
         //scala.util.Random.setSeed(0L)
         // just get the state names from something we've already calculated
@@ -288,8 +303,8 @@ object LocationClassifier {
         pw.println(f"\t\t$shuffledAcc%2.2f")
 
         // now iterate over the different annotator models for this token type
-        for (((_, numTrees, maxTreeDepth), (predictions, weights)) <- subPredsAndWeights) {
-          pw.println("\t" + "number of trees: " + numTrees + ", maximum depth: " + maxTreeDepth)
+        for (((_, numTrees, maxTreeDepth, ngramThreshold), (predictions, weights)) <- subPredsAndWeights) {
+          pw.println("\t" + "number of trees: " + numTrees + ", maximum depth: " + maxTreeDepth + ", ngram threshold: " + ngramThreshold.get)
           val (actual, predicted) = predictions.toSeq.unzip
           // if we're using the unannotated version, then use a random permutation of the states as the baseline
           val baseline = actual.map(unigramPredictions)
