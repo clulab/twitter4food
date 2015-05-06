@@ -18,7 +18,7 @@ import edu.arizona.sista.utils.EvaluationStatistics
 /**
  * Created by dfried on 1/14/14.
  */
-class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
+class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out), randomSeed: Int = 1234)
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
 
@@ -61,9 +61,11 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
     val predictedLabels: Map[String, L] = (for {
     // iterate over the loocv sets. heldOutState will iterate over each state, and trainingFeatures will contain
     // the remaining states along with their associated features
-      (heldOutState: String, trainingFeatures: Map[String, Counter[String]])  <- loocvSets(1234)(stateFeatures)
-
-      (clf, procFeats, featureSelector) = trainFromFeatures(trainingFeatures, actualLabels)
+      (heldOutState: String, trainingFeatures: Map[String, Counter[String]])  <- loocvSets(randomSeed)(stateFeatures)
+      (orderedFeats, orderedLabels) = (for {
+        (state, features) <- trainingFeatures.toSeq
+      } yield (features, actualLabels(state))).unzip
+      (clf, procFeats, featureSelector) = trainFromFeatures(orderedFeats, orderedLabels)
 
       // get returns an option, so use the arrow notation to assign the label inside the option to stateLabel
       stateLabel <- actualLabels.get(heldOutState)
@@ -97,25 +99,14 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
   def run(tweets: Seq[Tweet]): Map[String, ExperimentResults[Int]] = {
     val geotagger = new GeoTagger
 
-    val diabetes = Datasets.diabetes
-    val diabetesLabels: Map[String, Int] = bin(parameters.numClasses)(normLocationsInMap(diabetes, geotagger),
-      parameters.removeMarginals)
-
-    val overweight = Datasets.overweight
-    val overweightLabels: Map[String, Int] = bin(parameters.numClasses)(normLocationsInMap(overweight, geotagger),
-      parameters.removeMarginals)
-
-    // val illiteracy = Datasets.illiteracy
-    // val illiteracyLabels: Map[String, Int] = bin(parameters.numClasses)(normLocationsInMap(illiteracy, geotagger), parameters.removeMarginals)
-
-    val political = Datasets.political
-    val politicalLabels: Map[String, Int] = bin(parameters.numClasses)(political, parameters.removeMarginals)
+    val diabetesLabels = Experiment.makeLabels(Datasets.diabetes, parameters.numClasses, parameters.removeMarginals)
+    val overweightLabels = Experiment.makeLabels(Datasets.overweight, parameters.numClasses, parameters.removeMarginals)
+    val politicalLabels = Experiment.makeLabels(Datasets.political, parameters.numClasses, parameters.removeMarginals)
 
     val sets = Map(
       "overweight" ->  overweightLabels,
       "diabetes" ->  diabetesLabels,
       "political" ->  politicalLabels
-      //"illiteracy" -> illiteracyLabels
     )
 
     // val regionsCoarseBaseline = sets mapValues predictMajorityGrouped(Datasets.regionsCoarse)
@@ -188,142 +179,7 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
 }
 
 object StateExperiment {
-
-  def geotaggedTweets(tweets: Iterable[Tweet]): Iterable[Tweet] =
-    tweets filter { tweet => tweet.normalizedLocation != None }
-
-  def normLocationsInMap(map: Map[String, Float], geotagger: GeoTagger): Map[String, Float] = for {
-    (state, value) <- map
-    // will ignore any states that can't be normalized to state abbreviations by the geotagger
-    abbreviation <- geotagger.normalizeLocation(state, null)
-  } yield (abbreviation, value)
-
-  def mean(map: Map[_, Float]): Float = {
-    map.values.sum / map.values.size
-  }
-
-  def insertionLocation(x: Float, ys: Seq[Float]): Int = {
-    for ((y, i) <- ys.zipWithIndex) if (y >= x) return i
-    return ys.length
-  }
-
-  def threshold[A](map: Map[A,Float], splitPoints: Seq[Float], removeMarginals: Option[Int] = None): Map[A,  Int] = {
-    // remove marginals: if an int k, drops the k closest datapoints to each boundary, on each side of the boundary
-    val insertPoints =  for {
-      (key, value) <- map
-    } yield (key, insertionLocation(value, splitPoints))
-    removeMarginals match {
-      case None => insertPoints
-      case Some(toDrop) => {
-        val grouped: Map[Int, Map[A, Float]] = map.groupBy(pair => insertPoints(pair._1))
-        val toKeep = (for {
-          (k, vals) <- grouped
-          sorted = vals.toSeq.sortBy(_._2).map(_._1)
-          maybeDropHead = (if (k != 0) sorted.drop(toDrop) else sorted).reverse
-          maybeDropTail = (if (k != splitPoints.size) maybeDropHead.drop(toDrop) else maybeDropHead)
-        } yield maybeDropTail).flatten.toSet
-        insertPoints.filterKeys(toKeep.contains(_))
-      }
-    }
-  }
-
-  def zipMaps[K, V1, V2](m1: Map[K, V1], m2: Map[K, V2]): Map[K, (V1, V2)] = (for {
-    key <- m1.keySet.intersect(m2.keySet)
-  } yield key -> (m1(key), m2(key))).toMap
-
-  def accuracy[K, V](predicted: Map[K, V], actual: Map[K, V]): Float = {
-    val zipped = zipMaps(predicted, actual)
-    val matchCount = zipped.values.count({case ((v1, v2)) => v1 == v2})
-    assert(zipped.size == predicted.size)
-    assert(zipped.size == actual.size)
-    matchCount.toFloat / zipped.size
-  }
-
-  def quantiles(q: Int)(values: Seq[Float]): Seq[Float] = {
-    // R-2, SAS-5, http://en.wikipedia.org/wiki/Quantile#Estimating_the_quantiles_of_a_population
-    val sortedValues = values.sorted
-    val N = values.length
-    for {
-      p <- 1 until q
-      h = p.toFloat * N / q + 0.5
-      lower = sortedValues(Math.ceil(h - 0.5).toInt - 1)
-      upper = sortedValues(Math.floor(h + 0.5).toInt - 1)
-    } yield (lower + upper) / 2
-  }
-
-  def bin[K](numberOfBins: Int)(m: Map[K, Float], removeMarginals: Option[Int] = None) = {
-    val splits = quantiles(numberOfBins)(m.values.toSeq)
-    threshold(m, splits, removeMarginals)
-  }
-
-  def binVals(numberOfBins: Int)(m: Map[String, Counter[String]]): Map[String, Counter[String]] = {
-    numberOfBins match {
-      case noBinning if numberOfBins == 0 => m
-      case error if numberOfBins < 0 => m
-      case _ =>
-        val splits = (for {
-          feat <- (for (c <- m.values) yield c.keySet).toSeq.flatten
-        } yield (feat, quantiles(numberOfBins)((for (c <- m.values) yield c.getCount(feat).toFloat).toSeq))).toMap
-
-        val binned = (for {
-          (key, count) <- m
-          c = new Counter[String]
-          dummy = for (feat <- count.keySet) c.setCount(feat, insertionLocation(count.getCount(feat).toFloat, splits(feat)))
-
-        } yield key -> c).toMap
-
-        binned
-    }
-  }
-
-  def loocvSets[K, L, F](featureMap: Map[K, F]): Map[K, Map[K, F]] = {
-    for {
-      (heldOutKey, _) <- featureMap
-      trainingFeatures = featureMap.filterKeys(_ != heldOutKey)
-    } yield heldOutKey -> trainingFeatures
-  }
-
-  def predictMajority[K, L](m: Map[K, L]): Map[K, L] = for {
-      (heldout, trainingFold) <- loocvSets(m)
-      majorityClass = (new Counter(trainingFold.values)).toSeq.maxBy(_._2)._1
-    } yield (heldout -> majorityClass)
-
-  def predictMajorityNoCV[K, L](m: Map[K, L]): Map[K, L] = {
-    val majorityClass = (new Counter(m.values)).toSeq.maxBy(_._2)._1
-    m.mapValues(_ => majorityClass)
-  }
-
-  def predictMajorityGrouped[K, G, L](groups: Map[K, G])(m: Map[K, L]): Map[K, L] =
-  // m is a dictionary that maps keys to binary classifications. This function takes a mapping of the same keys to
-  // groups, and then returns a new map where each key is mapped to the majority class within its own group
-    m.groupBy({ case (k, v) => groups(k) }).mapValues(map => predictMajority(map)).values.reduce(_ ++ _)
-
-  def predictMajorityWithinGroupAccuracy[K, G, L](groups: Map[K, G])(m: Map[K, L]): Map[G, Float] =  {
-    val predictions = predictMajorityGrouped(groups)(m)
-    m.groupBy({ case (k, v) => groups(k) }).zipWith(accuracy)(predictions.groupBy({case (k, v) => groups(k) }))
-  }
-
-  def printWeights(p: java.io.PrintWriter)(params: ExperimentParameters, counterMap: Map[String, Map[Int, Counter[String]]]) : Unit = {
-    if (params.classifierType == SVM_L2 || params.classifierType == SVM_L1)  {
-      p.println(params)
-
-      for ((name, weightsByLabel) <- counterMap) {
-        p.println(name.toUpperCase)
-        for ((label, weights) <- weightsByLabel) {
-          p.println(label)
-          def rep(list: Seq[(String, Double)]): Seq[String] =
-            list.map({case (feature, weight) => "%s %.4f".format(feature, weight)})
-
-          val sortedWeights = weights.sorted
-          p.println("+\t-")
-          p.println(rep(sortedWeights.take(20)).zip(rep(sortedWeights.reverse.take(20))).map({ case (s1, s2) => "%s\t%s".format(s1, s2) }).mkString("\n"))
-          p.println
-        }
-        p.println
-      }
-      p.println
-    }
-  }
+  import Experiment._
 
   def main(args: Array[String]) = {
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
