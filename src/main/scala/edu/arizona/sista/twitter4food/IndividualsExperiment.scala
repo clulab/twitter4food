@@ -21,7 +21,7 @@ import edu.arizona.sista.utils.EvaluationStatistics
 class IndividualsExperiment(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
-  def run(individualsCorpus: IndividualsCorpus, testingCorpus: Option[Seq[(Seq[Tweet], Int)]]) = {
+  def run(individualsCorpus: IndividualsCorpus, testingCorpus: Option[Seq[(Seq[Tweet], Int)]] = None) = {
     // maps from state abbreviations to integer labels
     val stateLabels = Experiment.makeLabels(Datasets.overweight, parameters.numClasses, parameters.removeMarginals)
 
@@ -94,4 +94,94 @@ class IndividualsExperiment(parameters: ExperimentParameters, printWriter: Print
 
     (testingLabels, predictedLabels, weights)
   }
+
+}
+
+object IndividualsExperiment {
+  import Experiment._
+
+  def main(args: Array[String]) {
+    println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
+
+    val outFile = if (args.size > 0) args(0) else null
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501")
+
+    val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
+
+    // create many possible variants of the experiment parameters, and for each map to results of running the
+    // experiment
+    // notation: = assigns a parameter to a single value
+    //           <- means the parameter will take on all of the values in the list in turn
+    val predictionsAndWeights = (for {
+    // which base tokens to use? e.g. food words, hashtags, all words
+      tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
+      // which annotators to use in addition to tokens?
+      annotators <- List(
+        //List(LDAAnnotator(tokenTypes), SentimentAnnotator),
+        //List(SentimentAnnotator),
+        List(LDAAnnotator(tokenTypes)),
+        List())
+      // type of normalization to perform: normalize across a feature, across a state, or not at all
+      // this has been supplanted by our normalization by the number of tweets for each state
+      normalization = NoNorm
+      // only keep ngrams occurring this many times or more
+      ngramThreshold = Some(2)
+      // split feature values into this number of quantiles
+      numFeatureBins = Some(3)
+      // use a bias in the SVM?
+      useBias = false
+      // use regions as features?
+      regionType = NoRegions
+      classifierType = RandomForest
+
+      // Some(k) to use k classifiers bagged, or None to not do bagging
+      baggingNClassifiers <- List(None)
+      // force use of features that we think will be informative in random forests?
+      forceFeatures = true
+      // how many classes should we bin the numerical data into for classification?
+      numClasses = 2
+      // Some(k) to keep k features ranked by mutual information, or None to not do this
+      miNumToKeep: Option[Int] = None
+      // Some(k) to limit random forest tree depth to k levels, or None to not do this
+      maxTreeDepth: Option[Int] = Some(3)
+      // these were from failed experiments to use NNMF to reduce the feature space
+      //reduceLexicalK: Option[Int] = None
+      //reduceLdaK: Option[Int] = None
+      // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
+      // or None to use all states
+      removeMarginals: Option[Int] = None
+
+      params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
+        classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
+        miNumToKeep, maxTreeDepth, removeMarginals)
+    // Try is an object that contains either the results of the method inside or an error if it failed
+    } yield params -> Try(new IndividualsExperiment(params, pw).run(individualsCorpus))).seq
+
+    def indexedMap[L](xs: Seq[L]) = (for {
+      (x, i) <- xs.zipWithIndex
+    } yield i -> x).toMap
+
+    for ((params, Success(resultsByDataset)) <- predictionsAndWeights.sortBy(_._1.toString)) {
+      pw.println(params)
+      val actual = indexedMap(resultsByDataset._1)
+      val predicted = indexedMap(resultsByDataset._2)
+      pw.println(accuracy(actual, predicted))
+    }
+
+
+    pw.println
+    pw.println("feature weights")
+
+    for ((params, Success(resultsByDataset)) <- predictionsAndWeights.sortBy(_._1.toString)) {
+      printWeights(pw, resultsByDataset._3.toMap)
+    }
+
+    if (outFile != null) {
+      try {
+      } finally { pw.close() }
+    } else {
+      pw.flush()
+    }
+  }
+
 }

@@ -311,22 +311,26 @@ object Experiment {
     m.groupBy({ case (k, v) => groups(k) }).zipWith(accuracy)(predictions.groupBy({case (k, v) => groups(k) }))
   }
 
-  def printWeights(p: java.io.PrintWriter)(params: ExperimentParameters, counterMap: Map[String, Map[Int, Counter[String]]]) : Unit = {
+  def printWeights(p: java.io.PrintWriter, weightsByLabel: Map[Int, Counter[String]]) : Unit = {
+    for ((label, weights) <- weightsByLabel) {
+      p.println(label)
+      def rep(list: Seq[(String, Double)]): Seq[String] =
+        list.map({case (feature, weight) => "%s %.4f".format(feature, weight)})
+
+      val sortedWeights = weights.sorted
+      p.println("+\t-")
+      p.println(rep(sortedWeights.take(20)).zip(rep(sortedWeights.reverse.take(20))).map({ case (s1, s2) => "%s\t%s".format(s1, s2) }).mkString("\n"))
+      p.println
+    }
+  }
+
+  def printWeights(p: java.io.PrintWriter, params: ExperimentParameters, counterMap: Map[String, Map[Int, Counter[String]]]) : Unit = {
     if (params.classifierType == SVM_L2 || params.classifierType == SVM_L1)  {
       p.println(params)
 
       for ((name, weightsByLabel) <- counterMap) {
         p.println(name.toUpperCase)
-        for ((label, weights) <- weightsByLabel) {
-          p.println(label)
-          def rep(list: Seq[(String, Double)]): Seq[String] =
-            list.map({case (feature, weight) => "%s %.4f".format(feature, weight)})
-
-          val sortedWeights = weights.sorted
-          p.println("+\t-")
-          p.println(rep(sortedWeights.take(20)).zip(rep(sortedWeights.reverse.take(20))).map({ case (s1, s2) => "%s\t%s".format(s1, s2) }).mkString("\n"))
-          p.println
-        }
+        printWeights(p, weightsByLabel)
         p.println
       }
       p.println

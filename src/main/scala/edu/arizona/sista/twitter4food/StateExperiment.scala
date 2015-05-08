@@ -276,7 +276,7 @@ object StateExperiment {
     pw.println("feature weights")
 
     for ((params, Success(resultsByDataset)) <- predictionsAndWeights.sortBy(_._1.toString)) {
-      printWeights(pw)(params, resultsByDataset.mapValues(_.featureWeightsPerClass))
+      printWeights(pw, params, resultsByDataset.mapValues(_.featureWeightsPerClass))
     }
 
     if (outFile != null) {
