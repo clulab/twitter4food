@@ -56,8 +56,9 @@ object Tweet {
 object TweetParser {
   val dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
 
+  val tweetParser = new TweetParser
+
   def parseTweetFile(source: Source): Seq[Tweet] = {
-    val tweetParser = new TweetParser
     val tweets = for {
       lines: Seq[String] <- source.getLines.grouped(3)
     } yield tweetParser.parseTweetLines(lines)
