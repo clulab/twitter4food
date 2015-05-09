@@ -65,8 +65,13 @@ object TweetParser {
     tweets.toList
   }
 
-  def parseTweetFile(filename: String): Seq[Tweet] =
-    parseTweetFile(Utils.loadFile(filename))
+  def parseTweetFile(filename: String): Seq[Tweet] = {
+    try {
+      parseTweetFile(Utils.loadFile(filename))
+    } catch {
+      case e: Exception => { println(filename); System.err.println(filename); throw e }
+    }
+  }
 
   def parallelParseTweetFile(filename: String, nrOfWorkers: Int = 5, maxWait: Duration = Duration.Inf): Seq[Tweet] = {
     // this is so much easier than akka!

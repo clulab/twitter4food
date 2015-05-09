@@ -1,11 +1,12 @@
 package edu.arizona.sista.twitter4food
 
 import java.io.File
+import scala.collection.JavaConversions._
 
 /**
  * Created by dfried on 5/6/15.
  */
-class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double = 0.75, val randomSeed: Int = 1234) {
+class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double = 0.75, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) {
   // baseDirectory should have one folder for each state
   // each state folder contains a single file per user, containing tweets from that user
 
@@ -16,13 +17,17 @@ class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double 
   } yield (stateDir.getName -> stateDir)).toMap
 
   val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues {
-    stateDir => stateDir.listFiles
+    stateDir => numToTake match {
+        case None => stateDir.listFiles
+        case Some(k) => stateDir.listFiles.sortBy(file => - file.length()).take(k)
+    }
   }
 
-  lazy val tweetsByUserByState: Map[String, Map[String, Seq[Tweet]]] = for {
+  lazy val tweetsByUserByState: Map[String, Map[String, Seq[Tweet]]] = (for {
     (state, tweetFiles) <- tweetFilesByState
-    parsedTweetFiles = tweetFiles.map({ tweetFile => (tweetFile.getName, TweetParser.parseTweetFile(io.Source.fromFile(tweetFile))) }).toMap
-  } yield (state -> parsedTweetFiles)
+    _ = { println(state) }
+    parsedTweetFiles = tweetFiles.map({ tweetFile => (tweetFile.getName, TweetParser.parseTweetFile(tweetFile.getAbsolutePath())) }).toMap
+  } yield (state -> parsedTweetFiles)).toMap
 
   def splitTweetsTrainingAndTesting(tweetsByUser: Map[String, Seq[Tweet]]): (Map[String, Seq[Tweet]], Map[String, Seq[Tweet]]) = {
     val N = tweetsByUser.size
