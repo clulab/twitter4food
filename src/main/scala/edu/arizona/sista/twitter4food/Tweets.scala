@@ -226,7 +226,7 @@ class MinimalTweetParser extends TweetParser(sentimentClassifier = None, topicMo
     val tokensAL = new java.util.ArrayList[String](tokens.size)
     for (token <- tokens) tokensAL.add(token)
 
-    new Tweet(text = text)
+    new Tweet(text = text, tokens=tokensAL)
   }
 }
 

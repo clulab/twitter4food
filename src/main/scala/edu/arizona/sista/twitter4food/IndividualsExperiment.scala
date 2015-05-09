@@ -104,7 +104,7 @@ object IndividualsExperiment {
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
 
     val outFile = if (args.size > 0) args(0) else null
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501")
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(500))
 
     val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
@@ -119,25 +119,26 @@ object IndividualsExperiment {
       annotators <- List(
         //List(LDAAnnotator(tokenTypes), SentimentAnnotator),
         //List(SentimentAnnotator),
-        List(LDAAnnotator(tokenTypes)),
+        // List(LDAAnnotator(tokenTypes)),
         List())
+      // classifierType <- List(RandomForest, SVM_L2)
+      classifierType <- List(SVM_L2)
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold = Some(2)
+      ngramThreshold = None
       // split feature values into this number of quantiles
-      numFeatureBins = Some(3)
+      numFeatureBins = if (classifierType == RandomForest) Some(3) else None
       // use a bias in the SVM?
       useBias = false
       // use regions as features?
       regionType = NoRegions
-      classifierType = RandomForest
 
       // Some(k) to use k classifiers bagged, or None to not do bagging
       baggingNClassifiers <- List(None)
       // force use of features that we think will be informative in random forests?
-      forceFeatures = true
+      forceFeatures = (classifierType == RandomForest)
       // how many classes should we bin the numerical data into for classification?
       numClasses = 2
       // Some(k) to keep k features ranked by mutual information, or None to not do this
@@ -155,13 +156,13 @@ object IndividualsExperiment {
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals)
     // Try is an object that contains either the results of the method inside or an error if it failed
-    } yield params -> Try(new IndividualsExperiment(params, pw).run(individualsCorpus))).seq
+    } yield params -> new IndividualsExperiment(params, pw).run(individualsCorpus)).seq
 
     def indexedMap[L](xs: Seq[L]) = (for {
       (x, i) <- xs.zipWithIndex
     } yield i -> x).toMap
 
-    for ((params, Success(resultsByDataset)) <- predictionsAndWeights.sortBy(_._1.toString)) {
+    for ((params, resultsByDataset) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
       val actual = indexedMap(resultsByDataset._1)
       val predicted = indexedMap(resultsByDataset._2)
@@ -172,7 +173,7 @@ object IndividualsExperiment {
     pw.println
     pw.println("feature weights")
 
-    for ((params, Success(resultsByDataset)) <- predictionsAndWeights.sortBy(_._1.toString)) {
+    for ((params, resultsByDataset) <- predictionsAndWeights.sortBy(_._1.toString)) {
       printWeights(pw, resultsByDataset._3.toMap)
     }
 

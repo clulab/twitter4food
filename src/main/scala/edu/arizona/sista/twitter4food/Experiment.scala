@@ -44,7 +44,8 @@ case class ExperimentParameters(lexicalParameters: LexicalParameters = LexicalPa
                                 featureScalingFactor: Option[Double] = Some(1000.0)) {
   override def toString = s"""tokenTypes: ${lexicalParameters.tokenTypes}
 annotators: ${lexicalParameters.annotators}
-regionType: ${regionType}"""
+regionType: ${regionType}
+classifierType: ${classifierType}"""
 
 }
 
