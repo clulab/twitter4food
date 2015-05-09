@@ -14,6 +14,8 @@ import edu.arizona.sista.struct._
 
 object SentimentClassifier {
 
+  lazy val tweetParser = new TweetParser
+
   // http://sentiment.christopherpotts.net/lingstruc.html
   val negation = ("(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasnt|hadnt|cant|couldnt|shouldnt|wont" +
     "|wouldnt|dont|doesnt|didnt|isnt|arent|aint)$)|n't").r
@@ -43,7 +45,7 @@ object SentimentClassifier {
         (0, neutralFile),
         (1, positiveFile)
       )
-    } yield label -> TweetParser.parseTweetFile(file).map(tweet => tweet.tokens.toList)).toMap
+    } yield label -> tweetParser.parseTweetFile(file).map(tweet => tweet.tokens.toList)).toMap
 
     val minSize = tokensByClass.values.map(_.size).min
 
@@ -63,7 +65,7 @@ object SentimentClassifier {
       (label, file) <- List((-1, negativeFile),
         (0, neutralFile),
         (1, positiveFile))
-    } yield label -> TweetParser.parseTweetFile(file).map(tweet => tweet.tokens.toList)).toMap
+    } yield label -> tweetParser.parseTweetFile(file).map(tweet => tweet.tokens.toList)).toMap
     tokensByClass
   }
 

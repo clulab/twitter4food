@@ -12,6 +12,8 @@ class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double 
 
   val stateDirs: Array[File] = { new File(baseDirectory).listFiles }
 
+  val tweetParser = new TweetParser()
+
   val dirsByState = (for {
     stateDir <- stateDirs
   } yield (stateDir.getName -> stateDir)).toMap
@@ -24,10 +26,11 @@ class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double 
   }
 
   lazy val tweetsByUserByState: Map[String, Map[String, Seq[Tweet]]] = (for {
-    (state, tweetFiles) <- tweetFilesByState
+    (state, tweetFiles) <- tweetFilesByState.par
+    tweetParser = new MinimalTweetParser
     _ = { println(state) }
-    parsedTweetFiles = tweetFiles.map({ tweetFile => (tweetFile.getName, TweetParser.parseTweetFile(tweetFile.getAbsolutePath())) }).toMap
-  } yield (state -> parsedTweetFiles)).toMap
+    parsedTweetFiles = tweetFiles.map({ tweetFile => (tweetFile.getName, tweetParser.parseTweetFile(tweetFile.getAbsolutePath())) }).toMap
+  } yield (state -> parsedTweetFiles)).seq.toMap
 
   def splitTweetsTrainingAndTesting(tweetsByUser: Map[String, Seq[Tweet]]): (Map[String, Seq[Tweet]], Map[String, Seq[Tweet]]) = {
     val N = tweetsByUser.size

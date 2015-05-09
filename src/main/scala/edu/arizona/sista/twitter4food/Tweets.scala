@@ -58,21 +58,6 @@ object TweetParser {
 
   val tweetParser = new TweetParser
 
-  def parseTweetFile(source: Source): Seq[Tweet] = {
-    val tweets = for {
-      lines: Seq[String] <- source.getLines.grouped(3)
-    } yield tweetParser.parseTweetLines(lines)
-    tweets.toList
-  }
-
-  def parseTweetFile(filename: String): Seq[Tweet] = {
-    try {
-      parseTweetFile(Utils.loadFile(filename))
-    } catch {
-      case e: Exception => { println(filename); System.err.println(filename); throw e }
-    }
-  }
-
   def parallelParseTweetFile(filename: String, nrOfWorkers: Int = 5, maxWait: Duration = Duration.Inf): Seq[Tweet] = {
     // this is so much easier than akka!
     // group the lines into a group for each tweet, converting all iterators to lists
@@ -112,11 +97,25 @@ object TweetParser {
 class TweetParser(val sentimentClassifier: Option[SentimentClassifier] = None,
                   val topicModels: Map[TokenType, LDA] = Map()) {
   val processor = new CoreNLPProcessor()
-  val sentimentProc = new SentimentProcessor
 
   val geotagger = new GeoTagger()
 
   val localDateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
+
+  def parseTweetFile(source: Source): Seq[Tweet] = {
+    val tweets = for {
+      lines: Seq[String] <- source.getLines.grouped(3)
+    } yield parseTweetLines(lines)
+    tweets.toList
+  }
+
+  def parseTweetFile(filename: String): Seq[Tweet] = {
+    try {
+      parseTweetFile(Utils.loadFile(filename))
+    } catch {
+      case e: Exception => { println(filename); System.err.println(filename); throw e }
+    }
+  }
 
   def parseBlockOfTweets(blockOfLines: Seq[Seq[String]]): Seq[Tweet] =
     blockOfLines map parseTweetLines
@@ -218,3 +217,16 @@ class TweetParser(val sentimentClassifier: Option[SentimentClassifier] = None,
   }
 
 }
+
+class MinimalTweetParser extends TweetParser(sentimentClassifier = None, topicModels = Map()) {
+  override def parseTweetLines(lines: Seq[String]): Tweet = {
+    val text = lines(2).stripLineEnd
+    val tokens: Array[String] = processor.mkDocument(text).sentences.map(_.words).flatten.map(_.toLowerCase)
+
+    val tokensAL = new java.util.ArrayList[String](tokens.size)
+    for (token <- tokens) tokensAL.add(token)
+
+    new Tweet(text = text)
+  }
+}
+
