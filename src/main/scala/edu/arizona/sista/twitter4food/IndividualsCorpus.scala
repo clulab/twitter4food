@@ -1,7 +1,6 @@
 package edu.arizona.sista.twitter4food
 
 import java.io.File
-import scala.collection.JavaConversions._
 
 /**
  * Created by dfried on 5/6/15.

@@ -60,14 +60,25 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
     TweetView.view(parameters.lexicalParameters.annotators)(parameters.lexicalParameters.tokenTypes)(tweet)
   }
 
-  def mkViewFeatures(ngramThreshold: Option[Int])(tweets: Seq[Tweet]): Counter[String] = {
-    val feats = new Counter[String](tweets.map(processTweet).flatten)
-    val thresh = ngramThreshold match {
-      case None => feats
-      case Some(k) => feats.filterValues(_ >= k)
+  def mkViewFeatures(ngramThreshold: Option[Int])(groupedTweets: Seq[Seq[Tweet]]): (Seq[Counter[String]], String => Boolean) = {
+    // one list of processed features for each group
+    val groupedFeatures : Seq[Seq[String]] = for {
+      group <- groupedTweets
+    } yield group.flatMap(processTweet)
+
+    // count the features overall
+    val countedFeatures = new Counter[String](groupedFeatures.flatten)
+    val filterFn: (String) => Boolean = ngramThreshold match {
+      case None => _ => true
+      case Some(k) => { countedFeatures.filterValues(_ >= k).keySet.contains _ }
     }
+
+    val counters: Seq[Counter[String]] = for {
+      (features, tweets) <- (groupedFeatures zip groupedTweets)
     // scale each feature by the number of tweets aggregated (but divide by scaling factor to avoid SVM numerical instability)
-    thresh / (tweets.size.toDouble / parameters.featureScalingFactor.getOrElse(1.0))
+    } yield new Counter(features) / (tweets.size.toDouble / parameters.featureScalingFactor.getOrElse(1.0))
+
+    (counters, filterFn)
   }
 
   // return a list of the names of features to force use of in the random forest

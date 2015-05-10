@@ -141,7 +141,7 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
 
     val (stateLabels: Seq[String], stateTweets: Seq[Seq[Tweet]]) = tweetsByState.unzip
 
-    val viewFeatures = stateTweets.map(mkViewFeatures(parameters.lexicalParameters.ngramThreshold))
+    val viewFeatures = mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(stateTweets)._1
     // val lexicalFeatures = stateTweets.map(tweets => mkLexicalFeatures(tweets,  parameters.lexicalParameters.ngramThreshold))
     // val ldaFeatures = stateTweets.map(mkLdaFeatures)
     val regionalFeatures = stateTweets.map(mkRegionalFeatures)

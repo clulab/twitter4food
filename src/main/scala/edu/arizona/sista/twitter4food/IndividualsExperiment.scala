@@ -42,14 +42,8 @@ class IndividualsExperiment(parameters: ExperimentParameters, printWriter: Print
 
     }
 
-    val trainingViewFeatures = trainingTweets.map(mkViewFeatures(parameters.lexicalParameters.ngramThreshold))
-    val trainingRegionalFeatures = trainingTweets.map(mkRegionalFeatures)
-
-    val testingViewFeatures = trainingTweets.map(mkViewFeatures(parameters.lexicalParameters.ngramThreshold))
-    val testingRegionalFeatures = trainingTweets.map(mkRegionalFeatures)
-
-    val trainingFeatures = trainingTweets.map(tweets => mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(tweets) + mkRegionalFeatures(tweets))
-    val testingFeatures = testingTweets.map(tweets => mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(tweets) + mkRegionalFeatures(tweets))
+    val (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets)
+    val testingFeatures = mkViewFeatures(None)(testingTweets)._1.map(_.filter(p => filterFn(p._1)))
 
     val labels = (trainingLabels ++ testingLabels).toSet
 
@@ -122,14 +116,17 @@ object IndividualsExperiment {
         // List(LDAAnnotator(tokenTypes)),
         List())
       // classifierType <- List(RandomForest, SVM_L2)
-      classifierType <- List(SVM_L2)
+      classifierType: ClassifierType <- List(SVM_L2)
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold = None
+      ngramThreshold = Some(3)
       // split feature values into this number of quantiles
-      numFeatureBins = if (classifierType == RandomForest) Some(3) else None
+      numFeatureBins = classifierType match {
+        case RandomForest => Some(3)
+        case _ => None
+      }
       // use a bias in the SVM?
       useBias = false
       // use regions as features?
@@ -138,7 +135,10 @@ object IndividualsExperiment {
       // Some(k) to use k classifiers bagged, or None to not do bagging
       baggingNClassifiers <- List(None)
       // force use of features that we think will be informative in random forests?
-      forceFeatures = (classifierType == RandomForest)
+      forceFeatures = classifierType match {
+        case RandomForest => true
+        case _ => false
+      }
       // how many classes should we bin the numerical data into for classification?
       numClasses = 2
       // Some(k) to keep k features ranked by mutual information, or None to not do this
