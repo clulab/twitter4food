@@ -104,7 +104,7 @@ object IndividualsExperiment {
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
 
     val outFile = if (args.size > 0) args(0) else null
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(500))
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(100))
 
     val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
@@ -127,7 +127,7 @@ object IndividualsExperiment {
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold = None
+      ngramThreshold = Some(5)
       // split feature values into this number of quantiles
       numFeatureBins = if (classifierType == RandomForest) Some(3) else None
       // use a bias in the SVM?
