@@ -5,13 +5,14 @@ import java.io.File
 /**
  * Created by dfried on 5/6/15.
  */
+// tweets for an individual
+case class IndividualsTweets(val tweets: Seq[Tweet], val username: String, val label: Option[Int], val state: Option[String])
+
 class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double = 0.75, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) {
   // baseDirectory should have one folder for each state
   // each state folder contains a single file per user, containing tweets from that user
 
   val stateDirs: Array[File] = { new File(baseDirectory).listFiles }
-
-  val tweetParser = new TweetParser()
 
   val dirsByState = (for {
     stateDir <- stateDirs

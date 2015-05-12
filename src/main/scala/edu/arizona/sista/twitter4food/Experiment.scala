@@ -49,8 +49,6 @@ classifierType: ${classifierType}"""
 
 }
 
-case class ExperimentResults[L](predictedLabels: Map[String, L], actualLabels: Map[String, L], featureWeightsPerClass: Map[L,Counter[String]])
-
 /**
  * Created by dfried on 5/6/15.
  */

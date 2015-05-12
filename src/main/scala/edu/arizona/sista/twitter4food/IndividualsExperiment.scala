@@ -21,26 +21,13 @@ import edu.arizona.sista.utils.EvaluationStatistics
 class IndividualsExperiment(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
-  def run(individualsCorpus: IndividualsCorpus, testingCorpus: Option[Seq[(Seq[Tweet], Int)]] = None) = {
-    // maps from state abbreviations to integer labels
-    val stateLabels = Experiment.makeLabels(Datasets.overweight, parameters.numClasses, parameters.removeMarginals)
+  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets]) = {
 
-    // take a mapping from state abbvs to a dictionary of userName -> tweets
-    // return two lists: the user tweets, and the labels for those tweets (assuming each user has his/her state's label)
-    def propLabels(tweetsByUserByState: Map[String, Map[String, Seq[Tweet]]]): (Seq[Seq[Tweet]], Seq[Int]) = (for {
-      (state, tweetsByUser) <- tweetsByUserByState.toSeq
-      tweet <- tweetsByUser.values
-    } yield (tweet, stateLabels(state))).unzip
+    val trainingTweets = trainingCorpus.map(_.tweets)
+    val trainingLabels = trainingCorpus.map(_.label.get)
 
-    val ((trainingTweets, trainingLabels), (testingTweets, testingLabels)) = testingCorpus match {
-      case None => {
-        (propLabels(individualsCorpus.trainingTweets), propLabels(individualsCorpus.testingTweets))
-      }
-      case Some(testC) => {
-        (propLabels(individualsCorpus.allTweets), testC.unzip)
-      }
-
-    }
+    val testingTweets = testingCorpus.map(_.tweets)
+    val testingLabels = testingCorpus.map(_.label.get)
 
     val (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets)
     val testingFeatures = mkViewFeatures(None)(testingTweets)._1.map(_.filter(p => filterFn(p._1)))
@@ -86,7 +73,7 @@ class IndividualsExperiment(parameters: ExperimentParameters, printWriter: Print
       prediction = clf.classOf(testingDatum)
     } yield prediction
 
-    (testingLabels, predictedLabels, weights)
+    (predictedLabels, weights)
   }
 
 }
@@ -94,11 +81,54 @@ class IndividualsExperiment(parameters: ExperimentParameters, printWriter: Print
 object IndividualsExperiment {
   import Experiment._
 
+  def makeBaselineTrainingAndTesting(numClasses: Int, removeMarginals: Option[Int])(trainingCorpus: IndividualsCorpus, testingCorpus: Option[LabelledIndividualsCorpus]): (Seq[IndividualsTweets], Seq[IndividualsTweets]) = {
+    // maps from state abbreviations to integer labels
+    val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals)
+
+    // take a mapping from state abbvs to a dictionary of userName -> tweets
+    // return three lists: the user tweets, usernames, and the labels for those tweets (assuming each user has his/her state's label)
+    def propLabels(tweetsByUserByState: Map[String, Map[String, Seq[Tweet]]]): Seq[IndividualsTweets] = for {
+      (state, tweetsByUser) <- tweetsByUserByState.toSeq
+      (username, tweets) <- tweetsByUser
+    } yield IndividualsTweets(tweets, username, Some(stateLabels(state)), Some(state))
+
+    val (trainingTweets, testingTweets) = testingCorpus match {
+      case None => {
+        (propLabels(trainingCorpus.trainingTweets), propLabels(trainingCorpus.testingTweets))
+      }
+      case Some(testC) => {
+        (propLabels(trainingCorpus.allTweets), testC.tweets)
+      }
+    }
+
+    (trainingTweets, testingTweets)
+  }
+
+
   def main(args: Array[String]) {
+
+    val predictCelebrities = false
+
+    // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
+    // or None to use all states
+    val removeMarginals: Option[Int] = None
+    // how many classes should we bin the numerical data into for classification?
+    val numClasses = 2
+
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
 
     val outFile = if (args.size > 0) args(0) else null
+
     val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(100))
+
+    val testCorpus = if (predictCelebrities) {
+      val celebrityCorpus = new LabelledIndividualsCorpus("/data/nlp/corpora/twitter4food/newUsers.csv", "/data/nlp/corpora/twitter4food/newUsers")
+      Some(celebrityCorpus)
+    } else {
+      None
+    }
+
+    val (trainingTweets, testingTweets) = makeBaselineTrainingAndTesting(numClasses, removeMarginals)(individualsCorpus, testCorpus)
 
     val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
@@ -139,8 +169,6 @@ object IndividualsExperiment {
         case RandomForest => true
         case _ => false
       }
-      // how many classes should we bin the numerical data into for classification?
-      numClasses = 2
       // Some(k) to keep k features ranked by mutual information, or None to not do this
       miNumToKeep: Option[Int] = None
       // Some(k) to limit random forest tree depth to k levels, or None to not do this
@@ -148,25 +176,54 @@ object IndividualsExperiment {
       // these were from failed experiments to use NNMF to reduce the feature space
       //reduceLexicalK: Option[Int] = None
       //reduceLdaK: Option[Int] = None
-      // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
-      // or None to use all states
-      removeMarginals: Option[Int] = None
 
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals)
     // Try is an object that contains either the results of the method inside or an error if it failed
-    } yield params -> new IndividualsExperiment(params, pw).run(individualsCorpus)).seq
+    } yield params -> new IndividualsExperiment(params, pw).run(trainingTweets, testingTweets)).seq
 
     def indexedMap[L](xs: Seq[L]) = (for {
       (x, i) <- xs.zipWithIndex
     } yield i -> x).toMap
 
-    for ((params, resultsByDataset) <- predictionsAndWeights.sortBy(_._1.toString)) {
+    for ((params, (predictions, weights)) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
-      val actual = indexedMap(resultsByDataset._1)
-      val predicted = indexedMap(resultsByDataset._2)
-      pw.println(accuracy(actual, predicted))
+      pw.println("overall accuracy")
+      pw.println(accuracy(indexedMap(testingTweets.map(_.label)), indexedMap(predictions)))
+      pw.println
+
+      // return the number correctly predicted and the total
+      def labelledAccuracy(tweetsWithPredictedLabels: Seq[(IndividualsTweets, Int)]): (Int, Int) = {
+        val correctlyPredicted = tweetsWithPredictedLabels.filter({
+          case (tweets, predictedLabel) => tweets.label.get == predictedLabel
+        }).size
+        (correctlyPredicted, tweetsWithPredictedLabels.size)
+      }
+
+      val labelledInstances: Seq[(IndividualsTweets, Int)] = testingTweets zip predictions
+      val byClass: Map[Int, Seq[(IndividualsTweets, Int)]] = labelledInstances.groupBy(_._1.label.get)
+
+      val byClassAccuracy = byClass.mapValues(labelledAccuracy).toMap
+      // print the per-class accuracy
+      for ((class_, (correct, total)) <- byClassAccuracy) {
+        pw.println("accuracy by class")
+        pw.println(s"class ${class_}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
+        pw.println
+      }
+
+      if (predictCelebrities) {
+        // print each prediction
+        for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => (it.label.get, it.username) } )) {
+          pw.println(s"${tweets.username}\tact: ${tweets.label.get}\tpred: ${prediction}")
+        }
+      } else {
+        // print predictions by state
+        for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
+          val (correct, total) = labelledAccuracy(statesInstances)
+          pw.println(s"${state}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
+        }
+      }
     }
 
 
@@ -174,8 +231,11 @@ object IndividualsExperiment {
     pw.println("feature weights")
 
     for ((params, resultsByDataset) <- predictionsAndWeights.sortBy(_._1.toString)) {
-      printWeights(pw, resultsByDataset._3.toMap)
+      printWeights(pw, resultsByDataset._2.toMap)
     }
+
+    pw.println
+    pw.println
 
     if (outFile != null) {
       try {

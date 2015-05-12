@@ -15,6 +15,8 @@ import scala.io.Source
 import collection.JavaConversions._
 import edu.arizona.sista.utils.EvaluationStatistics
 
+case class StateExperimentResults[L](predictedLabels: Map[String, L], actualLabels: Map[String, L], featureWeightsPerClass: Map[L,Counter[String]])
+
 /**
  * Created by dfried on 1/14/14.
  */
@@ -34,7 +36,7 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
    *         the results of the experiment: the predicted labels for each state, the actual labels (an exact copy of
    *         actualLabels), and the highly weighted features for predicting each label
    */
-  def runSet[L](stateFeatures: Map[String, Counter[String]], actualLabels: Map[String, L]): ExperimentResults[L] = {
+  def runSet[L](stateFeatures: Map[String, Counter[String]], actualLabels: Map[String, L]): StateExperimentResults[L] = {
     val labels = actualLabels.values.toSet
 
     // keep track of the highly weighted features for each label. This will be updated by updateWeights in each fold
@@ -86,7 +88,7 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
     } yield heldOutState -> prediction).toMap
 
     // return the predicted labels and the mean feature weights
-    ExperimentResults(predictedLabels, actualLabels, weights.toMap)
+    StateExperimentResults(predictedLabels, actualLabels, weights.toMap)
   }
 
   /**
@@ -96,7 +98,7 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
    * @return a map from the dataset name (e.g. "overweight", "diabetes") to the classification results for that
    *         experiment
    */
-  def run(tweets: Seq[Tweet]): Map[String, ExperimentResults[Int]] = {
+  def run(tweets: Seq[Tweet]): Map[String, StateExperimentResults[Int]] = {
     val geotagger = new GeoTagger
 
     val diabetesLabels = Experiment.makeLabels(Datasets.diabetes, parameters.numClasses, parameters.removeMarginals)
@@ -252,7 +254,7 @@ object StateExperiment {
         var intraActual = new ArrayBuffer[Int]
         var intraBaseline = new ArrayBuffer[Int]
         var intrAccuracies = new ArrayBuffer[Double]
-        for ((datasetName, ExperimentResults(predicted, actual, _)) <- treatment) {
+        for ((datasetName, StateExperimentResults(predicted, actual, _)) <- treatment) {
           val baseline = if (isBaseline) predictMajorityNoCV(actual) else baselineModel(datasetName).predictedLabels
           val states = baseline.keySet.intersect(predicted.keySet).intersect(actual.keySet).toSeq
           val es = new EvaluationStatistics[Int](states map(predicted), states map(actual))
