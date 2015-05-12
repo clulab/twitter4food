@@ -104,6 +104,13 @@ object IndividualsExperiment {
     (trainingTweets, testingTweets)
   }
 
+  // return the number correctly predicted and the total
+  def labelledAccuracy(tweetsWithPredictedLabels: Seq[(IndividualsTweets, Int)]): (Int, Int) = {
+    val correctlyPredicted = tweetsWithPredictedLabels.filter({
+      case (tweets, predictedLabel) => tweets.label.get == predictedLabel
+    }).size
+    (correctlyPredicted, tweetsWithPredictedLabels.size)
+  }
 
   def main(args: Array[String]) {
 
@@ -189,19 +196,13 @@ object IndividualsExperiment {
 
     for ((params, (predictions, weights)) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
-      pw.println("overall accuracy")
-      pw.println(accuracy(indexedMap(testingTweets.map(_.label)), indexedMap(predictions)))
-      pw.println
-
-      // return the number correctly predicted and the total
-      def labelledAccuracy(tweetsWithPredictedLabels: Seq[(IndividualsTweets, Int)]): (Int, Int) = {
-        val correctlyPredicted = tweetsWithPredictedLabels.filter({
-          case (tweets, predictedLabel) => tweets.label.get == predictedLabel
-        }).size
-        (correctlyPredicted, tweetsWithPredictedLabels.size)
-      }
 
       val labelledInstances: Seq[(IndividualsTweets, Int)] = testingTweets zip predictions
+
+      val (correct, total) = labelledAccuracy(labelledInstances)
+      pw.println(s"overall accuracy\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
+      pw.println
+
       val byClass: Map[Int, Seq[(IndividualsTweets, Int)]] = labelledInstances.groupBy(_._1.label.get)
 
       val byClassAccuracy = byClass.mapValues(labelledAccuracy).toMap
@@ -224,6 +225,9 @@ object IndividualsExperiment {
           pw.println(s"${state}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
         }
       }
+
+      pw.println
+      pw.println
     }
 
 
@@ -231,6 +235,7 @@ object IndividualsExperiment {
     pw.println("feature weights")
 
     for ((params, resultsByDataset) <- predictionsAndWeights.sortBy(_._1.toString)) {
+      pw.println(params)
       printWeights(pw, resultsByDataset._2.toMap)
     }
 
