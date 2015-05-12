@@ -59,20 +59,13 @@ class IndividualsExperiment(parameters: ExperimentParameters, printWriter: Print
 
     val (clf, procFeats, featureSelector) = trainFromFeatures(trainingFeatures, trainingLabels)
 
+    if (parameters.classifierType == SVM_L1 || parameters.classifierType == SVM_L2) 
+        updateWeights(clf)
+
     val predictedLabels: Seq[Int] = for {
       testF <- testingFeatures
       // make a datum for the individual (label will not be used!)
       testingDatum = mkDatum(0, procFeats(testF))
-      _ = { // this funky notation just allows us to do side effects in the for comprehension,
-        // specifically updating the feature weights
-        println(clf.toString)
-        if (featureSelector != None)
-          println(featureSelector.get.featureScores.toSeq.sortBy(_._2).reverse.take(20))
-        if (parameters.classifierType == SVM_L1 || parameters.classifierType == SVM_L2) {
-          // get the feature weights for this state for the true class
-          updateWeights(clf)
-        }
-      }
       prediction = clf.classOf(testingDatum)
     } yield prediction
 
@@ -129,7 +122,7 @@ object IndividualsExperiment {
 
     val outFile = if (args.size > 0) args(0) else null
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(10))
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(500))
 
     val testCorpus = if (predictCelebrities) {
       val celebrityCorpus = new LabelledIndividualsCorpus("/data/nlp/corpora/twitter4food/testDataset/newUsers.csv", "/data/nlp/corpora/twitter4food/testDataset/newUsers")
@@ -148,7 +141,8 @@ object IndividualsExperiment {
     //           <- means the parameter will take on all of the values in the list in turn
     val predictionsAndWeights = (for {
     // which base tokens to use? e.g. food words, hashtags, all words
-      tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
+      // tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
+      tokenTypes: TokenType <- List(AllTokens).par
       // which annotators to use in addition to tokens?
       annotators <- List(
         //List(LDAAnnotator(tokenTypes), SentimentAnnotator),
@@ -156,12 +150,12 @@ object IndividualsExperiment {
         // List(LDAAnnotator(tokenTypes)),
         List())
       // classifierType <- List(RandomForest, SVM_L2)
-      classifierType: ClassifierType <- List(SVM_L2)
+      classifierType: ClassifierType <- List(RandomForest)
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold = Some(5)
+      ngramThreshold = Some(3)
       // split feature values into this number of quantiles
       numFeatureBins = classifierType match {
         case RandomForest => Some(3)
