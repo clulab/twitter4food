@@ -21,12 +21,15 @@ import edu.arizona.sista.utils.EvaluationStatistics
 class IndividualsExperiment(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
-  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets]) = {
+  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], onlyFoodTweets: Boolean = false) = {
 
-    val trainingTweets = trainingCorpus.map(_.tweets)
+    def filterFoodTweets(tweets: Seq[Tweet]): Seq[Tweet] =
+      tweets.filter(tweet => tweet.tokens.exists(FoodTokens.okToken))
+
+    val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
     val trainingLabels = trainingCorpus.map(_.label.get)
 
-    val testingTweets = testingCorpus.map(_.tweets)
+    val testingTweets = testingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
     val testingLabels = testingCorpus.map(_.label.get)
 
     val (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets)
@@ -178,11 +181,13 @@ object IndividualsExperiment {
       //reduceLexicalK: Option[Int] = None
       //reduceLdaK: Option[Int] = None
 
+      filterFoodTweets = true
+
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals)
     // Try is an object that contains either the results of the method inside or an error if it failed
-    } yield params -> new IndividualsExperiment(params, pw).run(trainingTweets, testingTweets)).seq
+    } yield params -> new IndividualsExperiment(params, pw).run(trainingTweets, testingTweets, filterFoodTweets)).seq
 
     def indexedMap[L](xs: Seq[L]) = (for {
       (x, i) <- xs.zipWithIndex

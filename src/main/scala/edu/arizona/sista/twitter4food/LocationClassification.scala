@@ -84,10 +84,15 @@ class NycLaClassifier(tweetsByLocation: Map[String, Seq[Seq[String]]],
   lazy val stopwords = Set("#nyc", "#newyork", "#losangeles", "#la")
 }
 
-class LocationClassifier(var classifier: LinearSVMClassifier[String, String],
+//class LocationClassifier(var classifier: LinearSVMClassifier[String, String],
+class LocationClassifier(var classifier: RandomForestClassifier[String, String],
+                         var splits: Option[Map[String, Seq[Float]]],
                          val properties: TCProperties,
                          val annotators: Seq[Annotator],
-                         val tokenType: TokenType) {
+                         val tokenType: TokenType,
+                         val numTrees: Int,
+                         val maxTreeDepth: Int,
+                         val ngramThreshold: Option[Int]) {
 
   def process(tweet: Tweet): Seq[String] =
     TweetView.view(annotators)(tokenType)(tweet)
@@ -98,30 +103,69 @@ class LocationClassifier(var classifier: LinearSVMClassifier[String, String],
     (new Counter[String](processed.flatten)) / (tweets.size / 1000.0)
   }
 
-  def train(dataset: Dataset[String, String]): LinearSVMClassifier[String, String] = {
-    val classifier = new LinearSVMClassifier[String, String](bias=true)
+  def binVals(numberOfBins: Int)(m: Map[String, Counter[String]]): (Map[String, Counter[String]], Option[Map[String, Seq[Float]]]) = {
+    numberOfBins match {
+      case noBinning if numberOfBins < 2 => (m, None)
+      case _ =>
+        val splits = (for {
+          feat <- (for (c <- m.values) yield c.keySet).toSeq.flatten
+        } yield (feat, Experiment.quantiles(numberOfBins)((for (c <- m.values) yield c.getCount(feat).toFloat).toSeq))).toMap
+
+        val binned = (for {
+          (key, count) <- m
+          c = new Counter[String]
+          dummy = for (feat <- count.keySet) c.setCount(feat, Experiment.insertionLocation(count.getCount(feat).toFloat, splits(feat)))
+        } yield key -> c).toMap
+
+        (binned, Some(splits))
+    }
+  }
+
+  def processTweet(tweet: Tweet): Seq[String] = {
+    TweetView.view(annotators)(tokenType)(tweet)
+  }
+
+  def mkViewFeatures(ngramThreshold: Option[Int])(tweets: Seq[Tweet]): Counter[String] = {
+    val feats = new Counter[String](tweets.map(processTweet).flatten)
+    val thresh = ngramThreshold match {
+      case None => feats
+      case Some(k) => feats.filterValues(_ >= k)
+    }
+    // scale each feature by the number of tweets aggregated (but divide by 1000 to avoid SVM numerical instability)
+    thresh / (tweets.size / 1000.0)
+  }
+
+  //def train(dataset: Dataset[String, String]): LinearSVMClassifier[String, String] = {
+    //val classifier = new LinearSVMClassifier[String, String](bias=true)
+  def train(dataset: Dataset[String, String], numTrees: Int, maxTreeDepth: Int): RandomForestClassifier[String, String] = {
+    val classifier = new RandomForestClassifier[String, String](numTrees = numTrees, maxTreeDepth = maxTreeDepth)
     classifier.train(dataset)
     classifier
   }
 
   def this(documentsByClass: Map[String, Seq[Tweet]], properties: TCProperties = TCProperties(),
-           annotators: Seq[Annotator] = List(), tokenType: TokenType = AllTokens) = {
-    this(null:LinearSVMClassifier[String,String], properties, annotators, tokenType)
+           annotators: Seq[Annotator] = List(), tokenType: TokenType = AllTokens, numTrees: Int = 1000, maxTreeDepth: Int = 0,
+           ngramThreshold: Option[Int] = None) = {
+    // this(null:LinearSVMClassifier[String,String], properties, annotators, tokenType)
+    this(null:RandomForestClassifier[String,String], None, properties, annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
     println("extracting features")
-    val featuresByClass: Map[String, Counter[String]] = documentsByClass.mapValues(features).map(identity)
+    // val featuresByClass: Map[String, Counter[String]] = documentsByClass.mapValues(features).map(identity)
+    val featuresByClass: Map[String, Counter[String]] = documentsByClass.mapValues(mkViewFeatures(ngramThreshold)).map(identity)
+    val bins = binVals(3)(featuresByClass)
+    splits = bins._2
     // println("creating feature normalizer")
     // featureNormalizer = Some(new CounterProcessor(featuresByClass.values.flatten.toSeq, properties.normalization, None, None))
     // println("normalizing features")
     // val normalizedFeatures = featuresByClass.mapValues(_.map(counter => featureNormalizer.get.apply(counter)))
     println("training classifier")
-    classifier = train(dataset(data(featuresByClass)))
+    classifier = train(dataset(data(bins._1)), numTrees, maxTreeDepth)
+    println(classifier.asInstanceOf[RandomForestClassifier[String, String]].toString)
   }
 
   def saveTo(fileName: String) = classifier.saveTo(fileName)
 
   def labelledDatum(label: String, features: Counter[String]) =
     new RVFDatum(label, features)
-
 
   def data(featuresByClass: Map[String, Counter[String]]): Seq[RVFDatum[String, String]] = for {
     (label, features) <- featuresByClass.toSeq
@@ -135,11 +179,24 @@ class LocationClassifier(var classifier: LinearSVMClassifier[String, String],
 
   def predict(datum: Datum[String, String]): String = classifier.classOf(datum)
 
-  def predict(default:String, tweets: Seq[Tweet]): String =
-    classifier.classOf(labelledDatum(default, features(tweets)))
+  def predict(default:String, tweets: Seq[Tweet]): String = {
+    val heldOutFeatures = features(tweets)
+    val binnedHeldOutFeatures = {
+      if (this.splits.isEmpty) heldOutFeatures
+      else {
+        val counter = new Counter[String]
+        heldOutFeatures.keySet.map({
+          case (k) => if (splits.get.contains(k)) counter.setCount(k, Experiment.insertionLocation(heldOutFeatures.getCount(k).toFloat, splits.get(k)).toDouble)
+        })
+        counter
+      }
+    }
+    classifier.classOf(labelledDatum(default, binnedHeldOutFeatures))
+  }
 
 
-  def weights: Option[Map[String, Counter[String]]] = Some(classifier.getWeights(verbose = false))
+  //def weights: Option[Map[String, Counter[String]]] = Some(classifier.getWeights(verbose = false))
+  def weights: Option[Map[String, Counter[String]]] = None
 
 }
 
@@ -158,9 +215,9 @@ object LocationClassifier {
   val normalizationType: NormalizationType = NoNorm
 
   def classifySet(training: Map[String, Seq[Tweet]], testing: Map[String, Seq[Tweet]], annotators: Seq[Annotator],
-                  tokenType: TokenType) = {
+                  tokenType: TokenType, numTrees: Int, maxTreeDepth: Int, ngramThreshold: Option[Int]) = {
     println("training classifier")
-    val classifier = new LocationClassifier(training, TCProperties(normalizationType), annotators, tokenType)
+    val classifier = new LocationClassifier(training, TCProperties(normalizationType), annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
     println("evaluating classes")
     (testing.mapValues(tweets => classifier.predict("", tweets)), classifier.weights)
   }
@@ -204,18 +261,25 @@ object LocationClassifier {
     } yield name -> tweets.drop(numTraining(name)).take(toTake)
 
     if (DO_ABLATION) {
-      val predictionsAndWeights: List[((TokenType, List[Annotator]), (Map[String, String], Option[Map[String, Counter[String]]]))] = for {
-        tokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens)
-        annotators <- List(List(LDAAnnotator(tokenType)), List())
+      val predictionsAndWeights: List[((TokenType, Int, Int, Option[Int]), (Map[String, String], Option[Map[String, Counter[String]]]))] = for {
+        // tokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens)
+        tokenType <- List(AllTokens, HashtagTokens, FoodTokens)
+        annotators <- List(List(LDAAnnotator(tokenType)))//, List())
         trainingTweets = makeTraining(1.0)
         testingTweets = makeTesting(1.0)
-      } yield (tokenType, annotators) -> classifySet(trainingTweets, testingTweets, annotators, tokenType)
+        // numTrees <- List(4,5,6,7,8,9,10)
+        numTrees <- List(5,8,9)
+        // maxTreeDepth <- List(2,3,4,5)
+        maxTreeDepth <- List(3,4,5)
+        // ngramThreshold <- List(Some(4),Some(5),Some(6),Some(7),Some(8),Some(9),Some(10))
+        ngramThreshold <- List(Some(4),Some(7))
+      } yield (tokenType, numTrees, maxTreeDepth, ngramThreshold) -> classifySet(trainingTweets, testingTweets, annotators, tokenType, numTrees, maxTreeDepth, ngramThreshold)
 
-      val byTokenType = predictionsAndWeights.groupBy({case ((tt, _), _ ) => tt})
+      val byTokenType = predictionsAndWeights.groupBy({case ((tt, _, _, _), _ ) => tt})
 
       for ((tokenType, subPredsAndWeights) <- byTokenType) {
         pw.println(s"tokenType: s$tokenType")
-        val (unigramPredictions, _) = predictionsAndWeights.filter({ case ((tt, List()), _) => tt == tokenType; case _ => false}).head._2
+        val (unigramPredictions, _) = predictionsAndWeights.filter({ case ((tt, _, _, _), _) => tt == tokenType; case _ => false}).head._2
 
         //scala.util.Random.setSeed(0L)
         // just get the state names from something we've already calculated
@@ -227,20 +291,17 @@ object LocationClassifier {
         pw.println(f"\t\t$shuffledAcc%2.2f")
 
         // now iterate over the different annotator models for this token type
-        for (((_, annotators), (predictions, weights)) <- subPredsAndWeights) {
-          pw.println("\t" + annotators.map(_.toString).mkString("+"))
+        for (((_, numTrees, maxTreeDepth, ngramThreshold), (predictions, weights)) <- subPredsAndWeights) {
+          pw.println("\t" + "number of trees: " + numTrees + ", maximum depth: " + maxTreeDepth + ", ngram threshold: " + ngramThreshold.get)
           val (actual, predicted) = predictions.toSeq.unzip
           // if we're using the unannotated version, then use a random permutation of the states as the baseline
-          val baseline = if (annotators.isEmpty)
-            guessBaseline
-          else
-            actual.map(unigramPredictions)
+          val baseline = actual.map(unigramPredictions)
           val accuracy = (new EvaluationStatistics[String](predicted, actual)).accuracy * 100
           val pValue = EvaluationStatistics.classificationAccuracySignificance(predicted, baseline, actual)
           pw.println(f"\t\t$accuracy%2.2f ($pValue%2.2f)")
         }
       }
-    } else { // learning curves
+    } /*else { // learning curves
       val results = (for {
         trainingFraction <- List(0.20, 0.40, 0.60, 0.80, 1.0).par
         testingFraction <- List(0.20, 0.40, 0.60, 0.80, 1.0)
@@ -273,7 +334,7 @@ object LocationClassifier {
           pw.println(s"\t -: ${cntr.sorted.reverse.take(20).map(_._1).mkString("\t")}")
         }
       }
-    }
+    }*/
     pw.close()
   }
 }
