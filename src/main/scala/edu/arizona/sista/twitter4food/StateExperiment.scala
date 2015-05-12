@@ -74,9 +74,14 @@ class StateExperiment(parameters: ExperimentParameters, printWriter: PrintWriter
 
       // make a datum for the state we're testing on (stateLabel will not be used!)
       testingDatum = mkDatum(stateLabel, procFeats(stateFeatures(heldOutState)))
-      _ = { // this funky notation just allows us to do side effects in the for comprehension,
+      _ = { // this notation just allows us to do side effects in the for comprehension,
         // specifically updating the feature weights
         println(clf.toString)
+        if (parameters.classifierType == RandomForest) {
+          println("Tokens: " + parameters.lexicalParameters.tokenTypes)
+          println("Annotators: " + parameters.lexicalParameters.annotators)
+          println(clf.asInstanceOf[RandomForestClassifier[L, String]].toString)
+        }
         if (featureSelector != None)
           println(featureSelector.get.featureScores.toSeq.sortBy(_._2).reverse.take(20))
         if (parameters.classifierType == SVM_L1 || parameters.classifierType == SVM_L2) {
@@ -234,9 +239,11 @@ object StateExperiment {
         // or None to use all states
         removeMarginals: Option[Int] = None
 
+        numTrees: Int = 10 // <- List(4,5,6,7,8,9,10)
+
         params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
           classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
-          miNumToKeep, maxTreeDepth, removeMarginals)
+          miNumToKeep, maxTreeDepth, removeMarginals, numTrees=numTrees)
       // Try is an object that contains either the results of the method inside or an error if it failed
       } yield params -> Try(new StateExperiment(params, pw).run(tweets))).seq
 
@@ -245,6 +252,11 @@ object StateExperiment {
       pw.println(s"tokenType: ${tokenType}")
       val (baselineParams, Success(baselineModel)) = group.filter({ case (params,  _) => params.lexicalParameters.annotators.isEmpty }).head
       for ((params, Success(treatment)) <- group) {
+        pw.println(f"Number of trees: ${params.numTrees}")
+        pw.println(f"Max tree depth: ${params.maxTreeDepth.get}")
+        pw.println(f"Ngram cutoff: ${params.lexicalParameters.ngramThreshold.get}")
+        pw.println(f"Number of bins for features: ${params.lexicalParameters.numFeatureBins.get}")
+
         pw.println("\tannotators: " + params.lexicalParameters.annotators.map(_.toString).mkString("+"))
 
         val isBaseline = (params == baselineParams)

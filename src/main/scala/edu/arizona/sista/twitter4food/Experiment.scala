@@ -39,9 +39,9 @@ case class ExperimentParameters(lexicalParameters: LexicalParameters = LexicalPa
                                 //reduceLexicalK: Option[Int] = None,
                                 //reduceLdaK: Option[Int] = None,
                                 removeMarginals: Option[Int] = None,
-
                                 // feature scaling factor: having tiny feature values leads to SVM numerical instability
-                                featureScalingFactor: Option[Double] = Some(1000.0)) {
+                                featureScalingFactor: Option[Double] = Some(1000.0),
+                                numTrees: Int = 1000) {
   override def toString = s"""tokenTypes: ${lexicalParameters.tokenTypes}
 annotators: ${lexicalParameters.annotators}
 regionType: ${regionType}
@@ -149,8 +149,8 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
         bias = parameters.useBias)
       case RBF_SVM => () => new LibSVMClassifier[L, String](RBFKernel, C = 1.0)
       case Linear_SVM => () => new LibSVMClassifier[L, String](LinearKernel)
-      case RandomForest => () => new RandomForestClassifier[L, String](
-        numTrees = 7,
+      case RandomForest => () => new RandomForestClassifier[L,String](
+        numTrees = parameters.numTrees,
         featureSampleRatio = -1.0,
         // featuresToForce=featuresToForce,
         maxTreeDepth = parameters.maxTreeDepth.getOrElse(0))
@@ -182,11 +182,11 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
     val selectedFeatures: Seq[Counter[String]] = featureSelector.map(fs => normedFeatures.map(fs.apply)).getOrElse(normedFeatures)
 
     // bin feature values into number of quantiles specified in lexical parameters
-    //binnedFeatures: Map[String, Counter[String]] = binVals(parameters.lexicalParameters.numFeatureBins.getOrElse(0))(selectedFeatures)
+    val (binnedFeatures, splits) = Experiment.binVals(parameters.lexicalParameters.numFeatureBins.getOrElse(0))(selectedFeatures)
 
     // convert the map of states to features (selectedFeatures) into a dataset
     //dataset: RVFDataset[L, String] = mkDataset({state: String => actualLabels.get(state)}, binnedFeatures)
-    val dataset: RVFDataset[L, String] = mkDataset(selectedFeatures, labels)
+    val dataset: RVFDataset[L, String] = mkDataset(binnedFeatures, labels)
 
     val clf: Classifier[L, String] = trainedClassifier(dataset)
 
@@ -194,9 +194,22 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
     // if applicable
     val procFeats: (Counter[String] => Counter[String]) = { (counter: Counter[String]) =>
       val normed = featureProcessor(counter)
-      featureSelector.map(fs => fs(normed)).getOrElse(normed)
+      val selected = featureSelector.map(fs => fs(normed)).getOrElse(normed)
+      splits match {
+        case None => selected
+        case Some(sp) => {
+          val c = new Counter[String]
+          for (feature <- selected.keySet) {
+            sp.get(feature).foreach(
+              // if we have splitpoints (otherwise get(feature) returns None)
+              splitPoints => c.setCount(feature, Experiment.insertionLocation(selected.getCount(feature).toFloat, splitPoints))
+            )
+          }
+          c
+        }
+      }
     }
-    return (clf, procFeats, featureSelector)
+    (clf, procFeats, featureSelector)
   }
 }
 
@@ -274,23 +287,21 @@ object Experiment {
     threshold(m, splits, removeMarginals)
   }
 
-  def binVals(numberOfBins: Int)(m: Map[String, Counter[String]]): Map[String, Counter[String]] = {
-    numberOfBins match {
-      case noBinning if numberOfBins == 0 => m
-      case error if numberOfBins < 0 => m
-      case _ =>
-        val splits = (for {
-          feat <- (for (c <- m.values) yield c.keySet).toSeq.flatten
-        } yield (feat, quantiles(numberOfBins)((for (c <- m.values) yield c.getCount(feat).toFloat).toSeq))).toMap
+  def binVals(numberOfBins: Int)(s: Seq[Counter[String]]): (Seq[Counter[String]], Option[Map[String, Seq[Float]]]) = {
+    if (numberOfBins < 2) {
+      (s, None)
+    } else {
+      val splits: Map[String, Seq[Float]] = (for {
+        feat <- s.flatMap(_.keySet).toSeq
+        // changed this so we don't add in zeros
+        allValues = s.flatMap(c => if (c.keySet.contains(feat)) Some(c.getCount(feat).toFloat) else None)
+      } yield (feat -> quantiles(numberOfBins)(allValues))).toMap
 
-        val binned = (for {
-          (key, count) <- m
-          c = new Counter[String]
-          dummy = for (feat <- count.keySet) c.setCount(feat, insertionLocation(count.getCount(feat).toFloat, splits(feat)))
+      val binned = for {
+        counter <- s
+      } yield counter.map({ case (feature, value) => insertionLocation(value.toFloat, splits(feature))})
 
-        } yield key -> c).toMap
-
-        binned
+      (binned, Some(splits))
     }
   }
 
@@ -347,7 +358,7 @@ object Experiment {
     }
   }
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]) {
     sys.error("Experiment has been moved to StateExperiment")
   }
 }
