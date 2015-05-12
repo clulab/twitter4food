@@ -119,10 +119,10 @@ object IndividualsExperiment {
 
     val outFile = if (args.size > 0) args(0) else null
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(100))
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(10))
 
     val testCorpus = if (predictCelebrities) {
-      val celebrityCorpus = new LabelledIndividualsCorpus("/data/nlp/corpora/twitter4food/newUsers.csv", "/data/nlp/corpora/twitter4food/newUsers")
+      val celebrityCorpus = new LabelledIndividualsCorpus("/data/nlp/corpora/twitter4food/testDataset/newUsers.csv", "/data/nlp/corpora/twitter4food/testDataset/newUsers")
       Some(celebrityCorpus)
     } else {
       None
