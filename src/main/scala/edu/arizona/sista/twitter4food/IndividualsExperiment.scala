@@ -195,10 +195,6 @@ object IndividualsExperiment {
     // Try is an object that contains either the results of the method inside or an error if it failed
     } yield params -> new IndividualsExperiment(params, pw).run(trainingTweets, testingTweets, filterFoodTweets)).seq
 
-    def indexedMap[L](xs: Seq[L]) = (for {
-      (x, i) <- xs.zipWithIndex
-    } yield i -> x).toMap
-
     for ((params, (predictions, weights)) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
 
