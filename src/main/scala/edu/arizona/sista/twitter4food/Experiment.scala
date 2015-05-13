@@ -74,7 +74,12 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
     val counters: Seq[Counter[String]] = for {
       (features, tweets) <- (groupedFeatures zip groupedTweets)
     // scale each feature by the number of tweets aggregated (but divide by scaling factor to avoid SVM numerical instability)
-    } yield new Counter(features) / (tweets.size.toDouble / parameters.featureScalingFactor.getOrElse(1.0))
+      featureCounter = new Counter(features)
+      threshCounter = ngramThreshold match {
+        case Some(k) => featureCounter.filter(p => filterFn(p._1))
+        case None => featureCounter
+      }
+    } yield threshCounter / (tweets.size.toDouble / parameters.featureScalingFactor.getOrElse(1.0))
 
     (counters, filterFn)
   }
