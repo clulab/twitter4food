@@ -192,21 +192,32 @@ object IndividualsExperiment {
     for ((params, (predictions, weights)) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
 
-      val labelledInstances: Seq[(IndividualsTweets, Int)] = testingTweets zip predictions
+      val actual = testingTweets.map(_.label.get)
 
+      // baseline
+      val majorityBaseline: Seq[Int] = predictMajorityNoCV(actual)
+      val labelledBaseline = testingTweets zip majorityBaseline
+
+      val (baselineCorrect, baselineTotal) = labelledAccuracy(labelledBaseline)
+      pw.println(s"overall accuracy\t${baselineCorrect} / ${baselineTotal}\t${baselineCorrect.toDouble / baselineTotal * 100.0}%")
+      pw.println
+
+      // system
+      val labelledInstances: Seq[(IndividualsTweets, Int)] = testingTweets zip predictions
       val (correct, total) = labelledAccuracy(labelledInstances)
-      pw.println(s"overall accuracy\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
+      val pvalue = EvaluationStatistics.classificationAccuracySignificance(predictions, majorityBaseline, actual)
+      pw.println(s"overall accuracy\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%\t(p = ${pvalue})")
       pw.println
 
       val byClass: Map[Int, Seq[(IndividualsTweets, Int)]] = labelledInstances.groupBy(_._1.label.get)
 
       val byClassAccuracy = byClass.mapValues(labelledAccuracy).toMap
       // print the per-class accuracy
+      pw.println("accuracy by class")
       for ((class_, (correct, total)) <- byClassAccuracy) {
-        pw.println("accuracy by class")
         pw.println(s"class ${class_}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
-        pw.println
       }
+      pw.println
 
       if (predictCelebrities) {
         // print each prediction

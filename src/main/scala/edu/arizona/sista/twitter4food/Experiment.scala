@@ -322,6 +322,11 @@ object Experiment {
     majorityClass = (new Counter(trainingFold.values)).toSeq.maxBy(_._2)._1
   } yield (heldout -> majorityClass)
 
+  def predictMajorityNoCV[L](s: Seq[L]): Seq[L] = {
+    val majorityClass = (new Counter(s)).toSeq.maxBy(_._2)._1
+    s.map(_ => majorityClass)
+  }
+
   def predictMajorityNoCV[K, L](m: Map[K, L]): Map[K, L] = {
     val majorityClass = (new Counter(m.values)).toSeq.maxBy(_._2)._1
     m.mapValues(_ => majorityClass)
