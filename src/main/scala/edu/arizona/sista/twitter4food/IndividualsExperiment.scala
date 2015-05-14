@@ -23,13 +23,10 @@ class IndividualsExperiment(parameters: ExperimentParameters, printWriter: Print
 
   def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], onlyFoodTweets: Boolean = false) = {
 
-    def filterFoodTweets(tweets: Seq[Tweet]): Seq[Tweet] =
-      tweets.filter(tweet => tweet.tokens.exists(FoodTokens.okToken))
-
-    val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
+    val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) Experiment.filterFoodTweets(it.tweets) else it.tweets)
     val trainingLabels = trainingCorpus.map(_.label.get)
 
-    val testingTweets = testingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
+    val testingTweets = testingCorpus.map(it => if (onlyFoodTweets) Experiment.filterFoodTweets(it.tweets) else it.tweets)
     val testingLabels = testingCorpus.map(_.label.get)
 
     val (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets)
@@ -141,8 +138,8 @@ object IndividualsExperiment {
     //           <- means the parameter will take on all of the values in the list in turn
     val predictionsAndWeights = (for {
     // which base tokens to use? e.g. food words, hashtags, all words
-      // tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
-      tokenTypes: TokenType <- List(AllTokens).par
+      tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
+      //tokenTypes: TokenType <- List(AllTokens).par
       // which annotators to use in addition to tokens?
       annotators <- List(
         //List(LDAAnnotator(tokenTypes), SentimentAnnotator),
@@ -155,12 +152,9 @@ object IndividualsExperiment {
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold = Some(3)
+      ngramThreshold = Some(5)
       // split feature values into this number of quantiles
-      numFeatureBins = classifierType match {
-        case RandomForest => Some(3)
-        case _ => None
-      }
+      numFeatureBins = Some(3)
       // use a bias in the SVM?
       useBias = false
       // use regions as features?
@@ -177,6 +171,7 @@ object IndividualsExperiment {
       miNumToKeep: Option[Int] = None
       // Some(k) to limit random forest tree depth to k levels, or None to not do this
       maxTreeDepth: Option[Int] = Some(3)
+      numTrees = 9
       // these were from failed experiments to use NNMF to reduce the feature space
       //reduceLexicalK: Option[Int] = None
       //reduceLdaK: Option[Int] = None
@@ -185,7 +180,7 @@ object IndividualsExperiment {
 
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
-        miNumToKeep, maxTreeDepth, removeMarginals)
+        miNumToKeep, maxTreeDepth, removeMarginals, numTrees = numTrees)
     // Try is an object that contains either the results of the method inside or an error if it failed
     } yield params -> new IndividualsExperiment(params, pw).run(trainingTweets, testingTweets, filterFoodTweets)).seq
 

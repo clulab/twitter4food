@@ -5,6 +5,7 @@ import java.io.PrintWriter
 import de.bwaldvogel.liblinear.SolverType
 import edu.arizona.sista.learning._
 import edu.arizona.sista.struct.Counter
+import scala.collection.JavaConversions._
 import Mixins._
 
 trait ClassifierType
@@ -65,20 +66,23 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
     } yield group.flatMap(processTweet)
 
     // count the features overall
-    val countedFeatures = new Counter[String](groupedFeatures.flatten)
     val filterFn: (String) => Boolean = ngramThreshold match {
       case None => _ => true
-      case Some(k) => { countedFeatures.filterValues(_ >= k).keySet.contains _ }
+      case Some(k) => { 
+        val countedFeatures = new Counter[String](groupedFeatures.flatten)
+        val filteredFeatures = countedFeatures.filterValues(_ >= k)
+        str => filteredFeatures.keySet.contains(str) 
+      }
     }
 
     val counters: Seq[Counter[String]] = for {
       (features, tweets) <- (groupedFeatures zip groupedTweets)
-    // scale each feature by the number of tweets aggregated (but divide by scaling factor to avoid SVM numerical instability)
       featureCounter = new Counter(features)
       threshCounter = ngramThreshold match {
         case Some(k) => featureCounter.filter(p => filterFn(p._1))
         case None => featureCounter
       }
+    // scale each feature by the number of tweets aggregated (but divide by scaling factor to avoid SVM numerical instability)
     } yield threshCounter / (tweets.size.toDouble / parameters.featureScalingFactor.getOrElse(1.0))
 
     (counters, filterFn)
@@ -221,6 +225,9 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
 object Experiment {
   val geotagger = new GeoTagger
 
+  def filterFoodTweets(tweets: Seq[Tweet]): Seq[Tweet] =
+    tweets.filter(tweet => tweet.tokens.exists(FoodTokens.okToken))
+
   def makeLabels(dataset: Map[String, Float], numClasses: Int, removeMarginals: Option[Int]) = {
     bin(numClasses)(normLocationsInMap(dataset, geotagger), removeMarginals)
   }
@@ -362,6 +369,7 @@ object Experiment {
       p.println
     }
   }
+
 
   def main(args: Array[String]) {
     sys.error("Experiment has been moved to StateExperiment")

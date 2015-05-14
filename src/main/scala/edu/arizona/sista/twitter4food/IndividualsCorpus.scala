@@ -1,6 +1,7 @@
 package edu.arizona.sista.twitter4food
 
-import java.io.File
+import java.io.{File, PrintWriter}
+import org.apache.commons.io.FilenameUtils
 
 /**
  * Created by dfried on 5/6/15.
@@ -29,7 +30,7 @@ class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double 
     (state, tweetFiles) <- tweetFilesByState.par
     tweetParser = new MinimalTweetParser
     _ = { println(state) }
-    parsedTweetFiles = tweetFiles.map({ tweetFile => (tweetFile.getName, tweetParser.parseTweetFile(tweetFile.getAbsolutePath())) }).toMap
+    parsedTweetFiles = tweetFiles.map({ tweetFile => (FilenameUtils.removeExtension(tweetFile.getName), tweetParser.parseTweetFile(tweetFile.getAbsolutePath())) }).toMap
   } yield (state -> parsedTweetFiles)).seq.toMap
 
   def splitTweetsTrainingAndTesting(tweetsByUser: Map[String, Seq[Tweet]]): (Map[String, Seq[Tweet]], Map[String, Seq[Tweet]]) = {
@@ -54,5 +55,38 @@ class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double 
   lazy val allTweets = tweetsByUserByState
   lazy val trainingTweets = splitTweets.mapValues(_._1)
   lazy val testingTweets = splitTweets.mapValues(_._2)
+}
+
+object IndividualsCorpus {
+  def main(args: Array[String]) {
+
+    val outFile = if (args.size > 0) args(0) else null
+    val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
+
+    val ic = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501/", numToTake=None)
+    val allTweets = ic.allTweets
+    val foodFilteredTweets = for {
+      (state, tweetsByUser) <- allTweets
+      numFoodTweetsByUser = for {
+        (user, tweets) <- tweetsByUser
+      } yield (user -> Experiment.filterFoodTweets(tweets).size)
+    } yield (state -> numFoodTweetsByUser)
+
+    for ((state, tweetsByUser) <- foodFilteredTweets.toSeq.sortBy(_._1)) {
+        pw.println(state)
+        for ((user, numberOfTweets) <- tweetsByUser.toSeq.sortBy(- _._2)) {
+            pw.println(s"${user}\t${numberOfTweets}")
+        }
+        pw.println
+    }
+
+
+    if (outFile != null) {
+      try {
+      } finally { pw.close() }
+    } else {
+      pw.flush()
+    }
+  }
 }
 
