@@ -1,0 +1,10 @@
+import edu.arizona.sista.twitter4food._
+val miml = new MIMLWrapper("/tmp/stuff.dat")
+val plants = MIML(List(Set("stem", "leaf", "plant", "water", "grow"), Set("plant", "water", "tree", "roots")), Set("plants"))
+val animals = MIML(List(Set("dog", "walk", "animal", "woof", "bone", "pet"), Set("cat", "milk", "animal", "pet")), Set("animals"))
+miml.train(List(plants, animals, plants, animals, plants, animals, plants, animals, plants, animals))
+miml.classifyGroup(plants.group)
+miml.classifyGroup(animals.group)
+miml.classifyIndividual(plants.group.head)
+miml.classifyIndividual(animals.group.head)
+miml.classifyIndividual(Set("water", "grow"))

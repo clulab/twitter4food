@@ -12,19 +12,15 @@ import StateExperiment._
 import Mixins._
 import de.bwaldvogel.liblinear.SolverType
 import scala.io.Source
-import collection.JavaConversions._
 import edu.arizona.sista.utils.EvaluationStatistics
 
 /**
  * Created by dfried on 5/6/15.
  */
-class IndividualsExperiment(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
+class IndividualsBaseline(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
   def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], onlyFoodTweets: Boolean = false) = {
-
-    def filterFoodTweets(tweets: Seq[Tweet]): Seq[Tweet] =
-      tweets.filter(tweet => tweet.tokens.exists(FoodTokens.okToken))
 
     val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
     val trainingLabels = trainingCorpus.map(_.label.get)
@@ -74,7 +70,7 @@ class IndividualsExperiment(parameters: ExperimentParameters, printWriter: Print
 
 }
 
-object IndividualsExperiment {
+object IndividualsBaseline {
   import Experiment._
 
   def makeBaselineTrainingAndTesting(numClasses: Int, removeMarginals: Option[Int])(trainingCorpus: IndividualsCorpus, testingCorpus: Option[LabelledIndividualsCorpus]): (Seq[IndividualsTweets], Seq[IndividualsTweets]) = {
@@ -187,7 +183,7 @@ object IndividualsExperiment {
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals)
     // Try is an object that contains either the results of the method inside or an error if it failed
-    } yield params -> new IndividualsExperiment(params, pw).run(trainingTweets, testingTweets, filterFoodTweets)).seq
+    } yield params -> new IndividualsBaseline(params, pw).run(trainingTweets, testingTweets, filterFoodTweets)).seq
 
     for ((params, (predictions, weights)) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)

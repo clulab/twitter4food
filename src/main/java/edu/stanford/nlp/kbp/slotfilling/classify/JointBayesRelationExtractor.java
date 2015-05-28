@@ -1362,7 +1362,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
    * Implements weighted voting over the different Z classifiers in each fold
    * @return Probabilities (NOT log probs!) for each known label
    */
-  private Counter<String> classifyLocally(Collection<String> sentence) {
+  public Counter<String> classifyLocally(Collection<String> sentence) {
     Datum<String, String> datum = new BasicDatum<String, String>(sentence);
 
     if(localClassificationMode == LOCAL_CLASSIFICATION_MODE.WEIGHTED_VOTE) {
