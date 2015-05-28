@@ -59,7 +59,6 @@ class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double 
 
 object IndividualsCorpus {
   def main(args: Array[String]) {
-
     val outFile = if (args.size > 0) args(0) else null
     val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
@@ -73,11 +72,11 @@ object IndividualsCorpus {
     } yield (state -> numFoodTweetsByUser)
 
     for ((state, tweetsByUser) <- foodFilteredTweets.toSeq.sortBy(_._1)) {
-        pw.println(state)
-        for ((user, numberOfTweets) <- tweetsByUser.toSeq.sortBy(- _._2)) {
-            pw.println(s"${user}\t${numberOfTweets}")
-        }
-        pw.println
+      pw.println(state)
+      for ((user, numberOfTweets) <- tweetsByUser.toSeq.sortBy(- _._2)) {
+        pw.println(s"${user}\t${numberOfTweets}")
+      }
+      pw.println
     }
 
 

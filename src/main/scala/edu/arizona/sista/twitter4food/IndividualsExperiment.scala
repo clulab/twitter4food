@@ -146,15 +146,16 @@ object IndividualsExperiment {
         //List(SentimentAnnotator),
         // List(LDAAnnotator(tokenTypes)),
         List())
-      // classifierType <- List(RandomForest, SVM_L2)
-      classifierType: ClassifierType <- List(RandomForest)
+      classifierType <- List(RandomForest, SVM_L2)
+      //classifierType: ClassifierType <- List(RandomForest)
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
       ngramThreshold = Some(5)
       // split feature values into this number of quantiles
-      numFeatureBins = Some(3)
+      //numFeatureBins = Some(3)
+      numFeatureBins = None
       // use a bias in the SVM?
       useBias = false
       // use regions as features?
