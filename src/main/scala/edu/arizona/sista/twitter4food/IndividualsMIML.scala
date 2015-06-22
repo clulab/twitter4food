@@ -24,9 +24,8 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     val stateMIMLs = for {
       (Some(state), group) <- (processedFeatures zip trainingCorpus).groupBy((_._2.state)).toSeq
       stateFeatures: Seq[Counter[String]] = group.map(_._1)
-      stateFeatureBags: Seq[Set[String]] = stateFeatures.map(_.keySet.toSet)
       label = stateLabels(state)
-    } yield MIML[String, String](stateFeatureBags, Set(label))
+    } yield MIML[String, String](stateFeatures, Set(label))
 
 
     val miml = new MIMLWrapper("/tmp/test.dat")
@@ -34,8 +33,7 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
 
     val predictedLabels = for {
       features <- testingFeatures
-      featureBag = features.keySet.toSet
-      predictions = miml.classifyIndividual(featureBag)
+      predictions = miml.classifyIndividual(features)
     } yield predictions.head._1
 
     predictedLabels

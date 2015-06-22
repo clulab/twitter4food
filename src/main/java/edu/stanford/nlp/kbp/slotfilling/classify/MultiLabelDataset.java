@@ -1,14 +1,17 @@
 package edu.stanford.nlp.kbp.slotfilling.classify;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import edu.stanford.nlp.ling.BasicDatum;
 import edu.stanford.nlp.ling.Datum;
+import edu.stanford.nlp.ling.RVFDatum;
+import edu.stanford.nlp.stats.ClassicCounter;
+import edu.stanford.nlp.stats.Counter;
 import edu.stanford.nlp.util.HashIndex;
 import edu.stanford.nlp.util.Index;
 
@@ -23,9 +26,9 @@ public class MultiLabelDataset<L, F> implements Serializable {
   /** Stores the list of known negative labels for each datum group */
   protected Set<Integer> [] negLabels;
   /** Stores the datum groups, where each group consists of a collection of datums */
-  protected int[][][] data;
+  protected Datum<L,F>[][] data;
   protected int size;
-  
+
   public MultiLabelDataset() {
     this(10);
   }
@@ -34,7 +37,7 @@ public class MultiLabelDataset<L, F> implements Serializable {
     initialize(sz);
   }
   
-  public MultiLabelDataset(int[][][] data,
+  public MultiLabelDataset(Datum<L,F>[][] data,
       Index<F> featureIndex,
       Index<L> labelIndex,
       Set<Integer> [] posLabels,
@@ -53,7 +56,7 @@ public class MultiLabelDataset<L, F> implements Serializable {
     featureIndex = new HashIndex<F>();
     posLabels = new Set[numDatums];
     negLabels = new Set[numDatums];
-    data = new int[numDatums][][];
+    data = new Datum[numDatums][];
     size = 0;
   }
   
@@ -77,7 +80,7 @@ public class MultiLabelDataset<L, F> implements Serializable {
     return negLabels;
   }
 
-  public int[][][] getDataArray() {
+  public Datum<L,F>[][] getDataArray() {
     data = trimToSize(data);
     return data;
   }
@@ -89,7 +92,15 @@ public class MultiLabelDataset<L, F> implements Serializable {
     System.arraycopy(i, 0, newI, 0, size);
     return newI;
   }
-  
+
+  @SuppressWarnings("unchecked")
+  protected Datum<L,F>[][] trimToSize(Datum<L,F>[][] i) {
+    if(i.length == size) return i;
+    Datum<L,F>[][] newI = new Datum[size][];
+    System.arraycopy(i, 0, newI, 0, size);
+    return newI;
+  }
+
   protected int[][][] trimToSize(int[][][] i) {
     if(i.length == size) return i;
     int[][][] newI = new int[size][][];
@@ -106,7 +117,7 @@ public class MultiLabelDataset<L, F> implements Serializable {
     for(int j = size - 1; j > 0; j --){
       int randIndex = rand.nextInt(j);
       
-      int [][] tmp = data[randIndex];
+      Datum<L,F>[] tmp = data[randIndex];
       data[randIndex] = data[j];
       data[j] = tmp;
       
@@ -126,7 +137,7 @@ public class MultiLabelDataset<L, F> implements Serializable {
     for(int j = size - 1; j > 0; j --){
       int randIndex = rand.nextInt(j);
       
-      int [][] tmp = data[randIndex];
+      Datum<L,F>[] tmp = data[randIndex];
       data[randIndex] = data[j];
       data[j] = tmp;
       
@@ -153,8 +164,12 @@ public class MultiLabelDataset<L, F> implements Serializable {
     float[] counts = new float[featureIndex.size()];
     for (int i = 0; i < size; i++) {
       for (int j = 0; j < data[i].length; j++) {
-        for(int k = 0; k < data[i][j].length; k ++) {
-          counts[data[i][j][k]] += 1.0;
+        Datum<L, F> datum = data[i][j];
+        for (F feature: datum.asFeatures()) {
+          if(datum instanceof RVFDatum<?, ?>)
+            counts[featureIndex.indexOf(feature)] += ((RVFDatum<L, F>) datum).getFeatureCount(feature);
+          else
+            counts[featureIndex.indexOf(feature)] += 1.0;
         }
       }
     }
@@ -191,56 +206,62 @@ public class MultiLabelDataset<L, F> implements Serializable {
     //
     for (int i = 0; i < size; i++) {
       for(int j = 0; j < data[i].length; j ++){
-        List<Integer> featList = new ArrayList<Integer>(data[i][j].length);
-        for (int k = 0; k < data[i][j].length; k++) {
-          if (featMap[data[i][j][k]] >= 0) {
-            featList.add(featMap[data[i][j][k]]);
+        Datum<L, F> oldDatum = data[i][j];
+        Counter<F> featureCounter = new ClassicCounter<F>();
+        for (F feature: oldDatum.asFeatures()) {
+          if (featMap[featureIndex.indexOf(feature)] >= 0) {
+            if (oldDatum instanceof RVFDatum<?, ?>) {
+              featureCounter.setCount(feature, ((RVFDatum) oldDatum).getFeatureCount(feature));
+            } else {
+              featureCounter.setCount(feature, 1.0); // just place it in, we'll dump features later
+            }
           }
         }
-        data[i][j] = new int[featList.size()];
-        for(int k = 0; k < data[i][j].length; k ++) {
-          data[i][j][k] = featList.get(k);
+        Datum<L, F> newDatum;
+        if (oldDatum instanceof RVFDatum<?, ?>) {
+          newDatum = new RVFDatum<L, F>(featureCounter);
+        } else {
+          newDatum = new BasicDatum<L, F>(featureCounter.keySet());
         }
+        data[i][j] = newDatum;
       }
     }
   }
   
   public void addDatum(Set<L> yPos, Set<L> yNeg, List<Datum<L, F>> group) {
-    List<Collection<F>> features = new ArrayList<Collection<F>>();
-    for(Datum<L, F> datum: group){
-      features.add(datum.asFeatures());
-    }
-    add(yPos, yNeg, features);
-  }
-  
-  public void add(Set<L> yPos, Set<L> yNeg, List<Collection<F>> group) {
     ensureSize();
-    
+
     addPosLabels(yPos);
     addNegLabels(yNeg);
-    addFeatures(group);
-    
+    addGroup(group);
+
     size ++;
   }
-  
-  protected void addFeatures(List<Collection<F>> group) {
-    int [][] groupFeatures = new int[group.size()][];
+
+  protected void addGroup(List<Datum<L, F>> group) {
+    Datum<L,F>[] groupFeatures = new Datum[group.size()];
     int datumIndex = 0;
-    for(Collection<F> features: group){
-      int[] intFeatures = new int[features.size()];
-      int j = 0;
-      for (F feature : features) {
+    for(Datum<?, F> datum: group){
+      Counter<F> featureCounter = new ClassicCounter<F>();
+
+      for (F feature: datum.asFeatures()) {
         featureIndex.add(feature);
-        int index = featureIndex.indexOf(feature);
-        if (index >= 0) {
-          intFeatures[j] = featureIndex.indexOf(feature);
-          j++;
+        if (featureIndex.indexOf(feature) >= 0) {
+          if (datum instanceof RVFDatum<?, ?>) {
+            featureCounter.setCount(feature, ((RVFDatum) datum).getFeatureCount(feature));
+          } else {
+            featureCounter.setCount(feature, 1.0); // just place it in, we'll dump features later
+          }
         }
       }
-      
-      int [] trimmedFeatures = new int[j];
-      System.arraycopy(intFeatures, 0, trimmedFeatures, 0, j);
-      groupFeatures[datumIndex] = trimmedFeatures;
+      Datum<L, F> newDatum;
+      if (datum instanceof RVFDatum<?, ?>) {
+        newDatum = new RVFDatum<L, F>(featureCounter);
+      } else {
+        newDatum = new BasicDatum<L, F>(featureCounter.keySet());
+      }
+
+      groupFeatures[datumIndex] = newDatum;
       datumIndex ++;
     }
     assert(datumIndex == group.size());
@@ -276,7 +297,7 @@ public class MultiLabelDataset<L, F> implements Serializable {
       System.arraycopy(negLabels, 0, newLabels, 0, size);
       negLabels = newLabels;
       
-      int[][][] newData = new int[size * 2][][];
+      Datum<L,F>[][] newData = new Datum[size * 2][];
       System.arraycopy(data, 0, newData, 0, size);
       data = newData;      
     }
