@@ -21,11 +21,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import edu.stanford.nlp.classify.Dataset;
-import edu.stanford.nlp.classify.LinearClassifier;
-import edu.stanford.nlp.classify.LinearClassifierFactory;
-import edu.stanford.nlp.classify.RVFDataset;
-import edu.stanford.nlp.classify.WeightedDataset;
+import edu.stanford.nlp.classify.*;
 import edu.stanford.nlp.kbp.slotfilling.common.Constants;
 import edu.stanford.nlp.kbp.slotfilling.common.Log;
 import edu.stanford.nlp.kbp.slotfilling.common.Props;
@@ -48,7 +44,9 @@ import edu.stanford.nlp.util.PropertiesUtils;
  * @author Mihai
  *
  */
-public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor{
+public class JointBayesRelationExtractor
+        // extends JointlyTrainedRelationExtractor
+{
   private static final long serialVersionUID = -7961154075748697901L;
   
   static enum LOCAL_CLASSIFICATION_MODE {
@@ -125,12 +123,14 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
   private Set<String> knownDependencies;
   
   private String serializedModelPath;
-    
-  public JointBayesRelationExtractor(Properties props) {
-    this(props, false);
+
+  private final boolean useRVF;
+
+  public JointBayesRelationExtractor(Properties props, boolean useRVF) {
+    this(props, false, useRVF);
   }
   
-  public JointBayesRelationExtractor(Properties props, boolean onlyLocal) {
+  public JointBayesRelationExtractor(Properties props, boolean onlyLocal, boolean useRVF) {
     // We need workDir, serializedRelationExtractorName, modelType, samplingRatio to serialize the initial models
     String workDir = props.getProperty(Props.WORK_DIR);
     String srn = props.getProperty(Props.SERIALIZED_MODEL_PATH, "kbp_relation_model");
@@ -168,6 +168,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
         serializedRelationExtractorName, 
         modelType, 
         samplingRatio);
+    this.useRVF = useRVF;
   }
   
   private static InferenceType makeInferenceType(String v) {
@@ -203,7 +204,8 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       int featureModel,
       String inferenceType,
       boolean trainY,
-      boolean onlyLocalTraining) {
+      boolean onlyLocalTraining,
+      boolean useRVF) {
     this.initialModelPath = initialModelPath;
     this.numberOfTrainEpochs = numberOfTrainEpochs;
     this.numberOfFolds = numberOfFolds;
@@ -215,6 +217,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     this.inferenceType = makeInferenceType(inferenceType);
     this.trainY = trainY;
     this.serializedModelPath = null;
+    this.useRVF = useRVF;
   }
   
   public void setSerializedModelPath(String p) {
@@ -267,10 +270,10 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       LinearClassifier<String, String> zClassifier = zClassifiers[f];
       assert(zClassifier != null);
       for(int i = foldStart(f, data.getDataArray().length); i < foldEnd(f, data.getDataArray().length); i ++){
-        int [][] group = data.getDataArray()[i];
+        Datum<String,String>[] group = data.getDataArray()[i];
         zLabels[i] = new int[group.length];
         for(int j = 0; j < group.length; j ++){
-          int [] datum = group[j];
+          Datum<String, String> datum = group[j];
           Counter<String> scores = zClassifier.scoresOf(datum);
           List<Pair<String, Double>> sortedScores = sortPredictions(scores);
           int sys = zLabelIndex.indexOf(sortedScores.get(0).first());
@@ -304,12 +307,12 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     return "co:s|" + src + "|d|" + dst + "|";
   }
   
-  @Override
+  // @Override
   public void train(MultiLabelDataset<String, String> data) {
     
     // filter some of the groups
     if(localDataFilter instanceof LargeFilter) {
-      List<int [][]> filteredGroups = new ArrayList<int[][]>();
+      List<Datum<String,String>[]> filteredGroups = new ArrayList<Datum<String,String>[]>();
       List<Set<Integer>> filteredPosLabels = new ArrayList<Set<Integer>>();
       List<Set<Integer>> filteredNegLabels = new ArrayList<Set<Integer>>();
       for(int i = 0; i < data.size(); i ++) {
@@ -320,7 +323,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
         }
       }
       data = new MultiLabelDataset<String, String>(
-          filteredGroups.toArray(new int[filteredGroups.size()][][]),
+          filteredGroups.toArray(new Datum[filteredGroups.size()][]),
           data.featureIndex(), data.labelIndex(), 
           filteredPosLabels.toArray(ErasureUtils.<Set<Integer> []>uncheckedCast(new Set[filteredPosLabels.size()])),
           filteredNegLabels.toArray(ErasureUtils.<Set<Integer> []>uncheckedCast(new Set[filteredNegLabels.size()])));
@@ -344,7 +347,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       featureIndex = data.featureIndex();
       yLabelIndex = data.labelIndex();
       zLabelIndex = new HashIndex<String>(yLabelIndex);
-      zLabelIndex.add(UNRELATED);
+      zLabelIndex.add(JointlyTrainedRelationExtractor.UNRELATED);
       
       // initialize classifiers 
       zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex);
@@ -372,7 +375,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     
     // calculate total number of sentences
     int totalSentences = 0;
-    for (int[][] group : data.getDataArray())
+    for (Datum<String,String>[] group : data.getDataArray())
       totalSentences += group.length;
 
     // initialize predicted z labels
@@ -407,7 +410,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
         int end = foldEnd(fold, data.getDataArray().length);
         
         for (int i = start; i < end; i++) {
-          int[][] group = data.getDataArray()[i];
+          Datum<String,String>[] group = data.getDataArray()[i];
           randomizeGroup(group, epoch);
           
           Set<Integer> positiveLabels = data.getPositiveLabelsArray()[i];
@@ -452,7 +455,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       }
       
       // update the labels in the z dataset
-      Dataset<String, String> zDataset = initializeZDataset(totalSentences, zLabels, data.getDataArray());
+      GeneralDataset<String, String> zDataset = initializeZDataset(totalSentences, zLabels, data.getDataArray());
 
       //
       // M step
@@ -493,16 +496,16 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       yDatasets = initializeYDatasets();
     }
     
-    Dataset<String, String> zDataset = initializeZDataset(totalSentences, zLabels, data.getDataArray());
+    GeneralDataset<String, String> zDataset = initializeZDataset(totalSentences, zLabels, data.getDataArray());
     makeSingleZClassifier(zDataset, zFactory);
   }
   
-  void randomizeGroup(int[][] group, int randomSeed) {
+  void randomizeGroup(Datum<String,String>[] group, int randomSeed) {
     Random rand = new Random(randomSeed);
     for(int j = group.length - 1; j > 0; j --){
       int randIndex = rand.nextInt(j);
       
-      int [] tmp = group[randIndex];
+      Datum<String,String> tmp = group[randIndex];
       group[randIndex] = group[j];
       group[j] = tmp;
     }
@@ -511,7 +514,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
   void computeYScore(String name, int [][] zLabels, Set<Integer> [] golds) {
     int labelCorrect = 0, labelPredicted = 0, labelTotal = 0;
     int groupCorrect = 0, groupTotal = 0;
-    int nilIndex = zLabelIndex.indexOf(UNRELATED);
+    int nilIndex = zLabelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
     for(int i = 0; i < golds.length; i ++) {
       Set<Integer> pred = new HashSet<Integer>();
       for(int z: zLabels[i]) 
@@ -550,7 +553,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
   void computeConfusionMatrixForCounts(String name, int [][] zLabels, Set<Integer> [] golds) {
     Counter<Integer> pos = new ClassicCounter<Integer>();
     Counter<Integer> neg = new ClassicCounter<Integer>();
-    int nilIndex = zLabelIndex.indexOf(UNRELATED);
+    int nilIndex = zLabelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
     for(int i = 0; i < zLabels.length; i ++) {
       int [] zs = zLabels[i];
       Counter<Integer> freqs = new ClassicCounter<Integer>();
@@ -617,7 +620,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     //if(yFeats.size() > 0) System.err.println("YFEATS" + (isPositive ? " POSITIVE " : " NEGATIVE ") + yLabel + " " + yFeats);
     RVFDatum<String, String> datum = 
       new RVFDatum<String, String>(yFeats, 
-          (isPositive ? yLabel : UNRELATED));
+          (isPositive ? yLabel : JointlyTrainedRelationExtractor.UNRELATED));
     yDataset.add(datum);
   }
   
@@ -636,7 +639,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
   }
   
   private void makeSingleZClassifier(
-      Dataset<String, String> zDataset, 
+      GeneralDataset<String, String> zDataset,
       LinearClassifierFactory<String, String> zFactory) {
     if(localClassificationMode == LOCAL_CLASSIFICATION_MODE.SINGLE_MODEL) {
       // train a single Z classifier over the entire data
@@ -658,8 +661,8 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
   }
   
   static abstract class LocalFilter {
-    public abstract boolean filterZ(int [][] data, Set<Integer> posLabels);
-    public boolean filterY(int [][] data, Set<Integer> posLabels) { return true; }
+    public abstract boolean filterZ(Datum<String,String>[] data, Set<Integer> posLabels);
+    public boolean filterY(Datum<String,String>[] data, Set<Integer> posLabels) { return true; }
   }
   static class LargeFilter extends LocalFilter {
     final int threshold;
@@ -667,44 +670,45 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       this.threshold = thresh;
     }
     @Override
-    public boolean filterZ(int[][] data, Set<Integer> posLabels) {
+    public boolean filterZ(Datum<String,String>[] data, Set<Integer> posLabels) {
       if(data.length > threshold) return false;
       return true;
     }
     @Override
-    public boolean filterY(int[][] data, Set<Integer> posLabels) {
+    public boolean filterY(Datum<String,String>[] data, Set<Integer> posLabels) {
       if(data.length > threshold) return false;
       return true;
     }
   }
   static class AllFilter extends LocalFilter {
     @Override
-    public boolean filterZ(int[][] data, Set<Integer> posLabels) {
+    public boolean filterZ(Datum<String,String>[] data, Set<Integer> posLabels) {
       return true;
     }
   }
   static class SingleFilter extends LocalFilter {
     @Override
-    public boolean filterZ(int[][] data, Set<Integer> posLabels) {
+    public boolean filterZ(Datum<String,String>[] data, Set<Integer> posLabels) {
       if(posLabels.size() <= 1) return true;
       return false;
     }
   }
   static class RedundancyFilter extends LocalFilter {
     @Override
-    public boolean filterZ(int[][] data, Set<Integer> posLabels) {
+    public boolean filterZ(Datum<String,String>[] data, Set<Integer> posLabels) {
       if(posLabels.size() <= 1 && data.length > 1) return true;
       return false;
     }
   }
   
-  private static Dataset<String, String> makeLocalData(
-      int [][][] dataArray, 
+  private static GeneralDataset<String, String> makeLocalData(
+      Datum<String,String>[][] dataArray,
       Set<Integer> [] posLabels,
       Index<String> labelIndex,
       Index<String> featureIndex,
       LocalFilter f,
-      int fold) {
+      int fold,
+      boolean useRVF) {
     // Detect the size of the dataset for the local classifier
     int flatSize = 0, posGroups = 0, negGroups = 0;
     for(int i = 0; i < dataArray.length; i ++) {
@@ -724,16 +728,16 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     //
     // Construct the flat local classifier
     //
-    int [][] localTrainData = new int[flatSize][];
+    Datum<String,String>[] localTrainData = new Datum[flatSize];
     int [] localTrainLabels = new int[flatSize];
     float [] weights = new float[flatSize];
     int offset = 0, posCount = 0;
     Set<Integer> negLabels = new HashSet<Integer>();
-    int nilIndex = labelIndex.indexOf(UNRELATED);
+    int nilIndex = labelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
     negLabels.add(nilIndex);
     for(int i = 0; i < dataArray.length; i ++) {
       if(! f.filterZ(dataArray[i], posLabels[i])) continue;
-      int [][] group = dataArray[i];
+      Datum<String,String>[] group = dataArray[i];
       Set<Integer> labels = posLabels[i];
       if(labels.size() == 0) labels = negLabels;
       float weight = (float) 1.0 / (float) labels.size();
@@ -750,14 +754,27 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       }
       if(offset >= flatSize) break;
     }
-    
-    Dataset<String, String> dataset = new WeightedDataset<String, String>(
-        labelIndex, 
-        localTrainLabels, 
-        featureIndex, 
-        localTrainData, localTrainData.length, 
-        weights);
-    Log.severe("Fold #" + fold + ": Constructed a dataset with " + localTrainData.length + 
+
+    GeneralDataset<String, String> dataset;
+
+    if (useRVF) {
+      dataset = new RVFDataset<String,String>(featureIndex, labelIndex);
+      for (int i = 0; i < localTrainData.length; i++) {
+        ((RVFDatum<String, String>) localTrainData[i]).setLabel(labelIndex.get(localTrainLabels[i]));
+        dataset.add(localTrainData[i]);
+      }
+    } else {
+      dataset = new WeightedDataset<String, String>();
+      dataset.labelIndex = labelIndex;
+      dataset.featureIndex = featureIndex;
+
+      for (int i = 0; i < localTrainData.length; i++) {
+        ((BasicDatum<String,String>) localTrainData[i]).setLabel(labelIndex.get(localTrainLabels[i]));
+        ((WeightedDataset<String, String>) dataset).add(localTrainData[i], weights[i]);
+      }
+    }
+
+    Log.severe("Fold #" + fold + ": Constructed a dataset with " + localTrainData.length +
         " datums, out of which " + posCount + " are positive.");
     if(posCount == 0) throw new RuntimeException("ERROR: cannot handle a dataset with 0 positive examples!");
     
@@ -796,11 +813,11 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     return train;
   }
 
-  private Pair<int [][][], int [][][]> makeDataArraysForFold(int [][][] dataArray, int fold) {
+  private Pair<Datum<String,String>[][], Datum<String,String>[][]> makeDataArraysForFold(Datum<String,String>[][] dataArray, int fold) {
     int start = foldStart(fold, dataArray.length);
     int end = foldEnd(fold, dataArray.length);
-    int [][][] train = new int[dataArray.length - end + start][][];
-    int [][][] test = new int[end - start][][];
+    Datum<String,String>[][] train = new Datum[dataArray.length - end + start][];
+    Datum<String,String>[][] test = new Datum[end - start][];
     int trainOffset = 0, testOffset = 0;
     for(int i = 0; i < dataArray.length; i ++){
       if(i < start){
@@ -814,7 +831,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
         trainOffset ++;
       }
     }
-    return new Pair<int[][][], int[][][]>(train, test);
+    return new Pair<Datum<String,String>[][], Datum<String,String>[][]>(train, test);
   }
   
   @SuppressWarnings("unchecked")
@@ -850,22 +867,22 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     // construct the initial model for each fold
     for(int fold = 0; fold < numberOfFolds; fold ++){
       Log.severe("Constructing dataset for the local model in fold #" + fold + "...");
-      Pair<int [][][], int [][][]> dataArrays = makeDataArraysForFold(data.getDataArray(), fold);
+      Pair<Datum<String,String>[][], Datum<String,String>[][]> dataArrays = makeDataArraysForFold(data.getDataArray(), fold);
       Pair<Set<Integer> [], Set<Integer> []> labelSets = 
         makeLabelSetsForFold(data.getPositiveLabelsArray(), fold);
       
-      int [][][] trainDataArray = dataArrays.first();
+      Datum<String,String>[][] trainDataArray = dataArrays.first();
       Set<Integer> [] trainPosLabels = labelSets.first();
       assert(trainDataArray.length == trainPosLabels.length);
-      int [][][] testDataArray = dataArrays.second();
+      Datum<String,String>[][] testDataArray = dataArrays.second();
       Set<Integer> [] testPosLabels = labelSets.second();
       assert(testDataArray.length == testPosLabels.length);
       
       //
       // Construct the flat local classifier
       //
-      Dataset<String, String> dataset = 
-        makeLocalData(trainDataArray, trainPosLabels, labelIndex, featureIndex, localDataFilter, fold);
+      GeneralDataset<String, String> dataset =
+        makeLocalData(trainDataArray, trainPosLabels, labelIndex, featureIndex, localDataFilter, fold, useRVF);
 
       //
       // Train local classifier
@@ -879,15 +896,15 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       //
       // Evaluate the classifier on the multidataset
       //
-      int nilIndex = labelIndex.indexOf(UNRELATED);
+      int nilIndex = labelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
       Log.severe("Fold #" + fold + ": Evaluating the local classifier on the hierarchical dataset...");
       int total = 0, predicted = 0, correct = 0;
       for(int i = 0; i < testDataArray.length; i ++){
-        int [][] group = testDataArray[i];
+        Datum<String,String>[] group = testDataArray[i];
         Set<Integer> gold = testPosLabels[i];
         Set<Integer> pred = new HashSet<Integer>();
         for(int j = 0; j < group.length; j ++){
-          int [] datum = group[j];
+          Datum<String,String> datum = group[j];
           Counter<String> scores = localClassifier.scoresOf(datum);
           List<Pair<String, Double>> sortedScores = sortPredictions(scores);
           int sys = labelIndex.indexOf(sortedScores.get(0).first());
@@ -967,7 +984,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
 
       Index<String> thisYLabelIndex = new HashIndex<String>();
       thisYLabelIndex.add(yLabel);
-      thisYLabelIndex.add(UNRELATED);
+      thisYLabelIndex.add(JointlyTrainedRelationExtractor.UNRELATED);
 
       double[][] weights = initializeWeights(yFeatureIndex.size(), thisYLabelIndex.size());
       setYWeightsForAtLeastOnce(weights, yFeatureIndex, thisYLabelIndex);
@@ -984,7 +1001,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       Index<String> labelIndex) {
     int posLabel = -1, negLabel = -1;
     for(String l: labelIndex) {
-      if(l.equalsIgnoreCase(UNRELATED)) {
+      if(l.equalsIgnoreCase(JointlyTrainedRelationExtractor.UNRELATED)) {
         negLabel = labelIndex.indexOf(l);
       } else {
         Log.fine("posLabel = " + l);
@@ -1009,18 +1026,33 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     return weights;
   }
   
-  private Dataset<String, String> initializeZDataset(int totalSentences, int[][] zLabels, int[][][] data) {
-    int[][] flatData = new int[totalSentences][];
+  private GeneralDataset<String, String> initializeZDataset(int totalSentences, int[][] zLabels, Datum<String,String>[][] data) {
+    GeneralDataset<String,String> dataset;
+
+    if (useRVF) {
+      dataset = new RVFDataset<String, String>(featureIndex, zLabelIndex);
+    } else {
+      dataset = new Dataset<String, String>(featureIndex, zLabelIndex);
+    }
+
     int count = 0;
     for (int i = 0; i < data.length; i++) {
-      for (int s = 0; s < data[i].length; s++)
-        flatData[count++] = data[i][s];
+      Datum<String,String>[] group = data[i];
+      for (int s = 0; s < group.length; s++) {
+        Datum<String,String> datum = group[s];
+        if (useRVF) {
+          ((RVFDatum<String,String>) datum).setLabel(zLabelIndex.get(zLabels[i][s]));
+        } else {
+          ((BasicDatum<String,String>) datum).setLabel(zLabelIndex.get(zLabels[i][s]));
+        }
+        dataset.add(datum);
+        count++;
+      }
     }
-    
-    int[] flatZLabels = flatten(zLabels, totalSentences);
-    Log.severe("Created the Z dataset with " + flatZLabels.length + " datums.");
-    
-    return new Dataset<String, String>(zLabelIndex, flatZLabels, featureIndex, flatData);
+
+    Log.severe("Created the Z dataset with " + count + " datums.");
+
+    return dataset;
   }
 
   private Map<String, RVFDataset<String, String>> initializeYDatasets() {
@@ -1030,7 +1062,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     return result;
   }
   
-  void predictZLabels(int [][] group,
+  void predictZLabels(Datum<String,String>[] group,
       int[] zLabels,
       LinearClassifier<String, String> zClassifier) {
     for (int s = 0; s < group.length; s++) {
@@ -1039,7 +1071,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     }
   }
 
-  void computeZLogProbs(int[][] group, 
+  void computeZLogProbs(Datum<String,String>[] group,
       Counter<String> [] zLogProbs, 
       LinearClassifier<String, String> zClassifier,
       int epoch) {
@@ -1049,7 +1081,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
   }
   
   /** updates the zLabels array with new predicted z labels */
-  void inferZLabelsStable(int[][] group, 
+  void inferZLabelsStable(Datum<String,String>[] group,
       Set<Integer> positiveLabels,
       Set<Integer> negativeLabels, 
       int[] zLabels,
@@ -1106,7 +1138,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
           Datum<String, String> yDatum = 
             new RVFDatum<String, String>(extractYFeatures(yLabel, zLabels, zLogProbs), "");
           Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
-          double v = yProbabilities.getCount(UNRELATED);
+          double v = yProbabilities.getCount(JointlyTrainedRelationExtractor.UNRELATED);
           if(showProbs) System.err.println("\t\t\ty- (" + y + ") = " + v);
           prob += v;
         }
@@ -1134,7 +1166,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
   }
   
   /** updates the zLabels array with new predicted z labels */
-  void inferZLabels(int[][] group, 
+  void inferZLabels(Datum<String,String>[] group,
       Set<Integer> positiveLabels,
       Set<Integer> negativeLabels, 
       int[] zLabels,
@@ -1198,7 +1230,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
             Datum<String, String> yDatum = 
               new RVFDatum<String, String>(extractYFeatures(yLabel, zLabels, zLogProbs), "");
             Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
-            double v = yProbabilities.getCount(UNRELATED);
+            double v = yProbabilities.getCount(JointlyTrainedRelationExtractor.UNRELATED);
             if(showProbs) System.err.println("\t\t\ty- (" + y + ") = " + v);
             prob += v;
           }
@@ -1296,14 +1328,14 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       int[] zLabels,
       Counter<String> [] zLogProbs,
       boolean addDependencies) {
-    assert(! yLabel.equals(UNRELATED));
+    assert(! yLabel.equals(JointlyTrainedRelationExtractor.UNRELATED));
     int count = 0;
     Set<String> others = new HashSet<String>();
     for (int s = 0; s < zLabels.length; s ++) {
       String zString = zLabelIndex.get(zLabels[s]);
       if (zString.equals(yLabel)) {
         count ++;
-      } else if(! zString.equals(UNRELATED)) {
+      } else if(! zString.equals(JointlyTrainedRelationExtractor.UNRELATED)) {
         others.add(zString);
       }
     }
@@ -1362,9 +1394,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
    * Implements weighted voting over the different Z classifiers in each fold
    * @return Probabilities (NOT log probs!) for each known label
    */
-  public Counter<String> classifyLocally(Collection<String> sentence) {
-    Datum<String, String> datum = new BasicDatum<String, String>(sentence);
-
+  public Counter<String> classifyLocally(Datum<String,String> datum) {
     if(localClassificationMode == LOCAL_CLASSIFICATION_MODE.WEIGHTED_VOTE) {
       Counter<String> sumProbs = new ClassicCounter<String>();
       
@@ -1387,9 +1417,9 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     throw new RuntimeException("ERROR: classification mode " + localClassificationMode + " not supported!");
   }
   
-  @Override
+  // @Override
   public Counter<String> classifyOracleMentions(
-      List<Collection<String>> sentences,
+      List<Datum<String,String>> sentences,
       Set<String> goldLabels) {
     Counter<String> [] zProbs = 
       ErasureUtils.uncheckedCast(new Counter[sentences.size()]);
@@ -1400,7 +1430,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     Counter<String> yLabels = new ClassicCounter<String>();
     Map<String, Counter<Integer>> ranks = new HashMap<String, Counter<Integer>>();
     for (int i = 0; i < sentences.size(); i++) {
-      Collection<String> sentence = sentences.get(i);
+      Datum<String,String> sentence = sentences.get(i);
       zProbs[i] = classifyLocally(sentence);
       
       if(! uniformDistribution(zProbs[i])) {
@@ -1410,7 +1440,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
           String l = sortedProbs.get(j).first();
           double v = sortedProbs.get(j).second();
           if(v + 0.99 < top) break;
-          if(! l.equals(UNRELATED)){ // && v + 0.99 > top){// && goldLabels.contains(l)) {
+          if(! l.equals(JointlyTrainedRelationExtractor.UNRELATED)){ // && v + 0.99 > top){// && goldLabels.contains(l)) {
             double rank = 1.0 / (1.0 + (double) j);
             Counter<Integer> lRanks = ranks.get(l);
             if(lRanks == null) {
@@ -1437,8 +1467,8 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     return yLabels;
   }
   
-  @Override
-  public Counter<String> classifyMentions(List<Collection<String>> sentences) {
+  // @Override
+  public Counter<String> classifyMentions(List<Datum<String,String>> sentences) {
     String[] zLabels = new String[sentences.size()];
     Counter<String> [] zLogProbs = 
       ErasureUtils.uncheckedCast(new Counter[sentences.size()]);
@@ -1450,7 +1480,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     Counter<String> localBest = new ClassicCounter<String>();
     Counter<String> localNoisyOr = new ClassicCounter<String>();
     for (int i = 0; i < sentences.size(); i++) {
-      Collection<String> sentence = sentences.get(i);
+      Datum<String,String> sentence = sentences.get(i);
       Counter<String> probs = classifyLocally(sentence);
       
       zLogProbs[i] = new ClassicCounter<String>();
@@ -1464,7 +1494,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       double s = prediction.second();
       zLabels[i] = l;
       // we do not output NIL labels
-      if(! zLabels[i].equals(UNRELATED)) {
+      if(! zLabels[i].equals(JointlyTrainedRelationExtractor.UNRELATED)) {
         localSum.incrementCount(l, s);
         if(! localBest.containsKey(l) || s > localBest.getCount(l)) {
           localBest.setCount(l, s);
@@ -1491,7 +1521,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
       Datum<String, String> datum = new RVFDatum<String, String>(features, "");
       Counter<String> probs = yClassifier.probabilityOf(datum);
       double posScore = probs.getCount(yLabel);
-      double negScore = probs.getCount(UNRELATED);
+      double negScore = probs.getCount(JointlyTrainedRelationExtractor.UNRELATED);
       //System.err.println("***POS SCORE: " + posScore + "***");
       //System.err.println("***NEG SCORE: " + negScore + "***");
       if (posScore > negScore)
@@ -1541,7 +1571,7 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     out.close();
   }
   
-  @Override
+  // @Override
   public void load(ObjectInputStream in) throws IOException, ClassNotFoundException {
     knownDependencies = ErasureUtils.uncheckedCast(in.readObject());
     zLabelIndex = ErasureUtils.uncheckedCast(in.readObject());
@@ -1568,9 +1598,10 @@ public class JointBayesRelationExtractor extends JointlyTrainedRelationExtractor
     }
   }
   
-  public static JointlyTrainedRelationExtractor load(String path, Properties props) throws IOException, ClassNotFoundException {
+  // public static JointlyTrainedRelationExtractor load(String path, Properties props, boolean useRVF) throws IOException, ClassNotFoundException {
+  public static JointBayesRelationExtractor load(String path, Properties props, boolean useRVF) throws IOException, ClassNotFoundException {
     ObjectInputStream in = new ObjectInputStream(new FileInputStream(path));
-    JointBayesRelationExtractor extractor = new JointBayesRelationExtractor(props); 
+    JointBayesRelationExtractor extractor = new JointBayesRelationExtractor(props, useRVF);
     extractor.load(in);
     in.close();
     return extractor;
