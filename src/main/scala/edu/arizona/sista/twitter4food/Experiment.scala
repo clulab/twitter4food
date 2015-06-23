@@ -7,6 +7,7 @@ import edu.arizona.sista.learning._
 import edu.arizona.sista.struct.Counter
 import scala.collection.JavaConversions._
 import Mixins._
+import collection.JavaConversions._
 
 trait ClassifierType
 
@@ -58,6 +59,9 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
   def processTweet(tweet: Tweet): Seq[String] = {
     TweetView.view(parameters.lexicalParameters.annotators)(parameters.lexicalParameters.tokenTypes)(tweet)
   }
+
+  def filterFoodTweets(tweets: Seq[Tweet]): Seq[Tweet] =
+    tweets.filter(tweet => tweet.tokens.exists(FoodTokens.okToken))
 
   def mkViewFeatures(ngramThreshold: Option[Int])(groupedTweets: Seq[Seq[Tweet]]): (Seq[Counter[String]], String => Boolean) = {
     // one list of processed features for each group
@@ -172,8 +176,7 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
     clf
   }
 
-  // returns a trained classifier and a feature processing function
-  def trainFromFeatures[L](features: Seq[Counter[String]], labels: Seq[L]): (Classifier[L, String], Counter[String] => Counter[String], Option[MutualInformation[L, String]]) = {
+  def processFeatures[L](features: Seq[Counter[String]], labels: Seq[L]) = {
     val featureProcessor: CounterProcessor[String] = new CounterProcessor[String](features, parameters.lexicalParameters.normalization, None, None)
 
     // normalize all features in the training set using the featureProcessor
@@ -192,12 +195,6 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
 
     // bin feature values into number of quantiles specified in lexical parameters
     val (binnedFeatures, splits) = Experiment.binVals(parameters.lexicalParameters.numFeatureBins.getOrElse(0))(selectedFeatures)
-
-    // convert the map of states to features (selectedFeatures) into a dataset
-    //dataset: RVFDataset[L, String] = mkDataset({state: String => actualLabels.get(state)}, binnedFeatures)
-    val dataset: RVFDataset[L, String] = mkDataset(binnedFeatures, labels)
-
-    val clf: Classifier[L, String] = trainedClassifier(dataset)
 
     // create a function to process testing features by applying first normalization and then featureSelection,
     // if applicable
@@ -218,6 +215,26 @@ class Experiment(val parameters: ExperimentParameters, val printWriter: PrintWri
         }
       }
     }
+
+    (binnedFeatures, procFeats, featureSelector)
+
+  }
+
+  def datasetFromFeatures[L](features: Seq[Counter[String]], labels: Seq[L]): (RVFDataset[L, String], Counter[String] => Counter[String], Option[MutualInformation[L, String]]) = {
+    val (processedFeatures, procFeatFn, featureSelector) = processFeatures(features, labels)
+
+    // convert the map of states to features (selectedFeatures) into a dataset
+    //dataset: RVFDataset[L, String] = mkDataset({state: String => actualLabels.get(state)}, binnedFeatures)
+    val dataset: RVFDataset[L, String] = mkDataset(processedFeatures, labels)
+
+    (dataset, procFeatFn, featureSelector)
+
+  }
+
+  // returns a trained classifier and a feature processing function
+  def trainFromFeatures[L](features: Seq[Counter[String]], labels: Seq[L]): (Classifier[L, String], Counter[String] => Counter[String], Option[MutualInformation[L, String]]) = {
+    val (dataset, procFeats, featureSelector) = datasetFromFeatures(features, labels)
+    val clf: Classifier[L, String] = trainedClassifier(dataset)
     (clf, procFeats, featureSelector)
   }
 }
