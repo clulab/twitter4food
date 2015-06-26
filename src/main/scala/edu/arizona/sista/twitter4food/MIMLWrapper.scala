@@ -49,7 +49,7 @@ class MIMLWrapper(initialModelPath: String, numberOfTrainEpochs: Int = 6, number
     },
     trainY,
     onlyLocalTraining,
-    true)
+    realValued)
 
   def train(groups: Seq[MIML[String, String]]) = {
     jbre.train(MIMLWrapper.makeMultiLabelDataset(groups, realValued))
