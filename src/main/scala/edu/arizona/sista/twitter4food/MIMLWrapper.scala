@@ -77,11 +77,11 @@ object MIMLWrapper {
       val datums: Seq[S_Datum[L, F]] = for {
         counter <- labelledGroup.group
         datum = if (realValued)
-          counterToRVFDatum(counter)
+          counterToRVFDatum[L,F](counter)
         else
-          counterToBVFDatum(counter)
+          counterToBVFDatum[L,F](counter)
 
-      } yield ().asInstanceOf[S_Datum[L,F]]
+      } yield (datum)
       mld.addDatum(labelledGroup.labels.asJava, Set[L]().asJava, datums.asJava)
     }
     mld
