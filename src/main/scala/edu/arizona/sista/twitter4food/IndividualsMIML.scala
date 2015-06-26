@@ -11,7 +11,7 @@ import edu.arizona.sista.utils.EvaluationStatistics
 class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
-  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], stateLabels: Map[String, String], onlyFoodTweets: Boolean = false) = {
+  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], stateLabels: Map[String, String], onlyFoodTweets: Boolean = false, realValued: Boolean = true) = {
 
     val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
     val testingTweets = testingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
@@ -28,7 +28,7 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     } yield MIML[String, String](stateFeatures, Set(label))
 
 
-    val miml = new MIMLWrapper("/tmp/test.dat")
+    val miml = new MIMLWrapper("/tmp/test.dat", realValued = realValued)
     miml.train(stateMIMLs)
 
     val predictedLabels = for {
@@ -48,7 +48,9 @@ object IndividualsMIML {
   def main(args: Array[String]) {
     import Experiment._
 
-    val predictCelebrities = true
+    val predictCelebrities = false
+
+    val realValued = false
 
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
@@ -126,7 +128,7 @@ object IndividualsMIML {
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals)
-    } yield params -> new IndividualsMIML(params, pw).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets)).seq
+    } yield params -> new IndividualsMIML(params, pw).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)

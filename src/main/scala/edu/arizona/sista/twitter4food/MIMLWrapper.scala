@@ -1,7 +1,7 @@
 package edu.arizona.sista.twitter4food
 
 import edu.stanford.nlp.kbp.slotfilling.classify.{JointBayesRelationExtractor, MultiLabelDataset}
-import edu.stanford.nlp.ling.{RVFDatum => S_RVFDatum, Datum => S_Datum}
+import edu.stanford.nlp.ling.{RVFDatum => S_RVFDatum, Datum => S_Datum, BasicDatum => S_BasicDatum}
 import edu.stanford.nlp.stats.{Counter => S_Counter, ClassicCounter}
 import scala.collection.JavaConverters._
 import edu.arizona.sista.struct.Counter
@@ -25,7 +25,12 @@ case object Slow extends InferenceType
 
 case class MIML[L, F](group: Seq[Counter[F]], labels: Set[L])
 
-class MIMLWrapper(initialModelPath: String, numberOfTrainEpochs: Int = 6, numberOfFolds: Int = 5, localFilter: LocalDataFilter = AllFilter, featureModel: FeatureModel = AtLeastOnce, inferenceType: InferenceType = Stable, trainY: Boolean = true, onlyLocalTraining: Boolean = false) {
+class MIMLWrapper(initialModelPath: String, numberOfTrainEpochs: Int = 6, numberOfFolds: Int = 5, localFilter: LocalDataFilter = AllFilter, featureModel: FeatureModel = AtLeastOnce, inferenceType: InferenceType = Stable, trainY: Boolean = true, onlyLocalTraining: Boolean = false, realValued: Boolean = true) {
+
+  val counterToDatumFn = if (realValued)
+      MIMLWrapper.counterToRVFDatum[String,String] _
+    else
+      MIMLWrapper.counterToBVFDatum[String,String] _
 
   val jbre = new JointBayesRelationExtractor(
     initialModelPath,
@@ -47,16 +52,16 @@ class MIMLWrapper(initialModelPath: String, numberOfTrainEpochs: Int = 6, number
     true)
 
   def train(groups: Seq[MIML[String, String]]) = {
-    jbre.train(MIMLWrapper.makeMultiLabelDataset(groups))
+    jbre.train(MIMLWrapper.makeMultiLabelDataset(groups, realValued))
   }
 
   def classifyGroup(group: Seq[Counter[String]]): Seq[(String, Double)] = {
-    val counter = jbre.classifyMentions(group.map(MIMLWrapper.counterToRVFDatum).asJava)
+    val counter = jbre.classifyMentions(group.map(counterToDatumFn).asJava)
     MIMLWrapper.sortCounterDescending(counter)
   }
 
   def classifyIndividual(individualFeatures: Counter[String]) = {
-    val counter = jbre.classifyLocally(MIMLWrapper.counterToRVFDatum(individualFeatures))
+    val counter = jbre.classifyLocally(counterToDatumFn(individualFeatures))
     MIMLWrapper.sortCounterDescending(counter)
   }
 }
@@ -66,13 +71,17 @@ object MIMLWrapper {
       f <- counter.keySet().asScala.toSeq
   } yield f -> counter.getCount(f)).sortBy(-_._2)
 
-  def makeMultiLabelDataset[L, F](groups: Seq[MIML[L, F]]) = {
+  def makeMultiLabelDataset[L, F](groups: Seq[MIML[L, F]], realValued: Boolean = true) = {
     val mld = new MultiLabelDataset[L, F]
     for (labelledGroup <- groups) {
       val datums: Seq[S_Datum[L, F]] = for {
         counter <- labelledGroup.group
-        converted = convertToStanfordCounter(counter)
-      } yield (new S_RVFDatum[L, F](converted)).asInstanceOf[S_Datum[L,F]]
+        datum = if (realValued)
+          counterToRVFDatum(counter)
+        else
+          counterToBVFDatum(counter)
+
+      } yield ().asInstanceOf[S_Datum[L,F]]
       mld.addDatum(labelledGroup.labels.asJava, Set[L]().asJava, datums.asJava)
     }
     mld
@@ -86,8 +95,9 @@ object MIMLWrapper {
     out
   }
 
-  def counterToRVFDatum(in: Counter[String]): S_Datum[String, String] = {
-    val out = new S_RVFDatum[String, String](convertToStanfordCounter(in))
-    out
-  }
+  def counterToRVFDatum[L,F](in: Counter[F]): S_Datum[L, F] =
+    new S_RVFDatum[L, F](convertToStanfordCounter(in))
+
+  def counterToBVFDatum[L,F](in: Counter[F]): S_Datum[L, F] =
+     new S_BasicDatum[L, F](in.keySet.asJava)
 }
