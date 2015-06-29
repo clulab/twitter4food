@@ -21,6 +21,10 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
 
     val (processedFeatures, processFeaturesFn, _) = processFeatures(trainingFeatures, Seq()) // don't need to pass labels since we're not doing MI selection
 
+    //def binarize(counter: Counter[String]) = new Counter(counter.keySet)
+
+    //val (processedFeatures, processFeaturesFn) = (trainingFeatures.map(binarize), binarize _)
+
     val stateMIMLs = for {
       (Some(state), group) <- (processedFeatures zip trainingCorpus).groupBy((_._2.state)).toSeq
       stateFeatures: Seq[Counter[String]] = group.map(_._1)
@@ -36,6 +40,8 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
       predictions = miml.classifyIndividual(features)
     } yield predictions.head._1
 
+    printWriter.println(miml.jbre.zClassifiers(0).toBiggestWeightFeaturesString(true, 20, true))
+
     predictedLabels
 
   }
@@ -50,7 +56,7 @@ object IndividualsMIML {
 
     val predictCelebrities = false
 
-    val realValued = false
+    val realValued = true
 
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
@@ -127,7 +133,7 @@ object IndividualsMIML {
 
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
-        miNumToKeep, maxTreeDepth, removeMarginals)
+        miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
     } yield params -> new IndividualsMIML(params, pw).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {

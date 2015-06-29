@@ -1,10 +1,26 @@
 import edu.arizona.sista.twitter4food._
-val miml = new MIMLWrapper("/tmp/stuff.dat")
-val plants = MIML(List(Set("stem", "leaf", "plant", "water", "grow"), Set("plant", "water", "tree", "roots")), Set("plants"))
-val animals = MIML(List(Set("dog", "walk", "animal", "woof", "bone", "pet"), Set("cat", "milk", "animal", "pet")), Set("animals"))
-miml.train(List(plants, animals, plants, animals, plants, animals, plants, animals, plants, animals))
-miml.classifyGroup(plants.group)
-miml.classifyGroup(animals.group)
-miml.classifyIndividual(plants.group.head)
-miml.classifyIndividual(animals.group.head)
-miml.classifyIndividual(Set("water", "grow"))
+import edu.arizona.sista.struct.Counter
+
+val plants = MIML(List(new Counter(List("stem", "leaf", "plant", "water", "grow", "water")), new Counter(List("plant", "water", "tree", "roots"))), Set("plants"))
+val animals = MIML(List(new Counter(List("dog", "walk", "animal", "woof", "bone", "pet", "pet")), new Counter(List("cat", "milk", "animal", "pet"))), Set("animals"))
+
+val mimlBV = new MIMLWrapper("/tmp/stuff2.dat", realValued=false)
+mimlBV.train(List(plants, animals, plants, animals, plants, animals, plants, animals, plants, animals))
+
+val mimlRV = new MIMLWrapper("/tmp/stuff.dat", realValued=true)
+mimlRV.train(List(plants, animals, plants, animals, plants, animals, plants, animals, plants, animals))
+
+def test(miml: MIMLWrapper) = {
+    println(miml.classifyGroup(plants.group))
+    println(miml.classifyGroup(animals.group))
+    println(miml.classifyIndividual(plants.group.head))
+    println(miml.classifyIndividual(animals.group.head))
+    println(miml.classifyIndividual(new Counter(List("water", "grow", "water"))))
+    println(miml.classifyIndividual(new Counter(List("pet", "pet", "water", "water"))))
+}
+
+println("real valued")
+test(mimlRV)
+
+println("binary valued")
+test(mimlBV)

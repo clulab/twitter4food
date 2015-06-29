@@ -66,11 +66,11 @@ public class JointBayesRelationExtractor
    * sentence-level multi-class classifier, trained across all sentences 
    * one per fold to avoid overfitting
    */
-  private LinearClassifier<String, String> [] zClassifiers;
+  public LinearClassifier<String, String> [] zClassifiers;
   /** this is created only if localClassificationMode == SINGLE_MODEL */
   LinearClassifier<String, String> zSingleClassifier;
   /** one two-class classifier for each top-level relation */
-  private Map<String, LinearClassifier<String, String>> yClassifiers;
+  public Map<String, LinearClassifier<String, String>> yClassifiers;
   
   private Index<String> featureIndex;
   private Index<String> yLabelIndex;
