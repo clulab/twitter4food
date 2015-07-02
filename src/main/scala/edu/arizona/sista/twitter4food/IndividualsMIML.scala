@@ -75,7 +75,7 @@ object IndividualsMIML {
 
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
 
-    val outFile = if (args.size > 0) args(0) else null
+    val outFile = if (args.size > 0) args(args.length - 1) else null
 
     val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
 

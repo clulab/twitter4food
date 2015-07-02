@@ -105,7 +105,7 @@ object IndividualsBaseline {
 
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
 
-    val outFile = if (args.size > 0) args(0) else null
+    val outFile = if (args.size > 0) args(args.length - 1) else null
 
     val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
 
@@ -122,7 +122,8 @@ object IndividualsBaseline {
     //           <- means the parameter will take on all of the values in the list in turn
     val predictionsAndWeights = (for {
     // which base tokens to use? e.g. food words, hashtags, all words
-      tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
+      //tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
+      tokenTypes: TokenType <- List(AllTokens).par
       //tokenTypes: TokenType <- List(AllTokens).par
       // which annotators to use in addition to tokens?
       annotators <- List(
@@ -130,13 +131,13 @@ object IndividualsBaseline {
         //List(SentimentAnnotator),
         // List(LDAAnnotator(tokenTypes)),
         List())
-      classifierType <- List(RandomForest, SVM_L2)
+      classifierType: ClassifierType <- List(SVM_L2)
       //classifierType: ClassifierType <- List(RandomForest)
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold = Some(5)
+      ngramThreshold = Some(3)
       // split feature values into this number of quantiles
       //numFeatureBins = Some(3)
       numFeatureBins = None
