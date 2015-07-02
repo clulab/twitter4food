@@ -20,14 +20,17 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     val (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets)
     val testingFeatures: Seq[Counter[String]] = mkViewFeatures(None)(testingTweets)._1.map(_.filter(p => filterFn(p._1)))
 
-    val (processedFeatures, processFeaturesFn, _) = processFeatures(trainingFeatures, Seq()) // don't need to pass labels since we're not doing MI selection
+    //val (processedFeatures, processFeaturesFn, _) = processFeatures(trainingFeatures, Seq()) // don't need to pass labels since we're not doing MI selection
 
     //def binarize(counter: Counter[String]) = new Counter(counter.keySet)
 
     //val (processedFeatures, processFeaturesFn) = (trainingFeatures.map(binarize), binarize _)
 
+    val rescaledTrainingFeatures = trainingFeatures
+    val rescaledTestingFeatures = testingFeatures
+
     val stateMIMLs = for {
-      (Some(state), group) <- (processedFeatures zip trainingCorpus).groupBy((_._2.state)).toSeq
+      (Some(state), group) <- (rescaledTrainingFeatures zip trainingCorpus).groupBy((_._2.state)).toSeq
       stateFeatures: Seq[Counter[String]] = group.map(_._1)
       label = stateLabels(state)
     } yield MIML[String, String](stateFeatures, Set(label))
@@ -37,7 +40,7 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     miml.train(stateMIMLs)
 
     val predictedLabels = for {
-      features <- testingFeatures
+      features <- rescaledTestingFeatures
       predictions = miml.classifyIndividual(features)
     } yield predictions.head._1
 
@@ -133,7 +136,7 @@ object IndividualsMIML {
 
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
-        miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
+        miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1000.0))
     } yield params -> new IndividualsMIML(params, pw, zSigma = zSigma, ySigma = ySigma).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
