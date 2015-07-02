@@ -4,6 +4,7 @@ import edu.arizona.sista.struct._
 import java.io._
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import edu.arizona.sista.utils.EvaluationStatistics
+import edu.arizona.sista.utils.StringUtils
 
 /**
  * Created by dfried on 5/6/15.
@@ -54,9 +55,12 @@ object IndividualsMIML {
   def main(args: Array[String]) {
     import Experiment._
 
-    val predictCelebrities = false
+    val props = StringUtils.argsToProperties(args, verbose=false)
 
-    val realValued = true
+    val realValued = StringUtils.getBool(props, "realValued", true)
+
+    val zSigma = StringUtils.getDouble(props, "zSigma", 1.0)
+    val ySigma = StringUtils.getDouble(props, "ySigma", 1.0)
 
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
@@ -68,18 +72,12 @@ object IndividualsMIML {
 
     val outFile = if (args.size > 0) args(0) else null
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(500))
-
-    val testCorpus = if (predictCelebrities) {
-      val celebrityCorpus = new LabelledIndividualsCorpus("/data/nlp/corpora/twitter4food/testDataset/newUsers.csv", "/data/nlp/corpora/twitter4food/testDataset/newUsers")
-      Some(celebrityCorpus)
-    } else {
-      None
-    }
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
 
     val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals).mapValues(_.toString)
 
-    val (trainingTweets, testingTweets) = IndividualsBaseline.makeBaselineTrainingAndTesting(numClasses, removeMarginals)(individualsCorpus, testCorpus)
+    val trainingTweets = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
+    val testingTweets = individualsCorpus.testingTweets
 
     val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
@@ -167,12 +165,13 @@ object IndividualsMIML {
       }
       pw.println
 
+      /*
       if (predictCelebrities) {
         // print each prediction
         for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => (it.label.get, it.username) } )) {
           pw.println(s"${tweets.username}\tact: ${tweets.label.get}\tpred: ${prediction}")
         }
-      } else {
+      } else*/ {
         // print predictions by state
         for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
           val (correct, total) = labelledAccuracy(statesInstances)

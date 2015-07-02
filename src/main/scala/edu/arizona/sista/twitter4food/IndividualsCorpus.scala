@@ -2,6 +2,7 @@ package edu.arizona.sista.twitter4food
 
 import java.io.{File, PrintWriter}
 import org.apache.commons.io.FilenameUtils
+import com.github.tototoshi.csv.CSVReader
 
 /**
  * Created by dfried on 5/6/15.
@@ -9,7 +10,7 @@ import org.apache.commons.io.FilenameUtils
 // tweets for an individual
 case class IndividualsTweets(val tweets: Seq[Tweet], val username: String, val label: Option[Int], val state: Option[String])
 
-class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double = 0.75, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) {
+class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) {
   // baseDirectory should have one folder for each state
   // each state folder contains a single file per user, containing tweets from that user
 
@@ -19,73 +20,91 @@ class IndividualsCorpus(val baseDirectory: String, val trainingFraction: Double 
     stateDir <- stateDirs
   } yield (stateDir.getName -> stateDir)).toMap
 
-  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues {
-    stateDir => numToTake match {
-        case None => stateDir.listFiles
-        case Some(k) => stateDir.listFiles.sortBy(file => - file.length()).take(k)
-    }
-  }
+  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles)
 
-  lazy val tweetsByUserByState: Map[String, Map[String, Seq[Tweet]]] = (for {
-    (state, tweetFiles) <- tweetFilesByState.par
-    tweetParser = new MinimalTweetParser
-    _ = { println(state) }
-    parsedTweetFiles = tweetFiles.map({ tweetFile => (FilenameUtils.removeExtension(tweetFile.getName), tweetParser.parseTweetFile(tweetFile.getAbsolutePath())) }).toMap
-  } yield (state -> parsedTweetFiles)).seq.toMap
+  val userAnnotations: Map[String, Int] = IndividualsCorpus.labelsFromAnnotationFile(annotationFile, header = true)
 
-  def splitTweetsTrainingAndTesting(tweetsByUser: Map[String, Seq[Tweet]]): (Map[String, Seq[Tweet]], Map[String, Seq[Tweet]]) = {
-    val N = tweetsByUser.size
-    val numTraining = (N * trainingFraction).toInt
-    val numTesting = N - numTraining
+  val random = new util.Random(randomSeed)
+
+
+  val (testingUsers, devUsers) = {
+    val shuffledUsers = random.shuffle(userAnnotations.keys.toSeq.sorted)
+
+    val N = shuffledUsers.size
+    val numTesting = (N * annotatedTestingFraction).toInt
+    val numDev = N - numTesting
+
     require(numTesting > 0, "numTesting is 0")
-    require(numTraining > 0, "numTraining is 0")
+    require(numDev > 0, "numDev is 0")
 
-    val (training, testing) = this.synchronized {
-      util.Random.setSeed(randomSeed)
-      // first sort by username so it's deterministic, then shuffle by seed
-      val shuffled = util.Random.shuffle(tweetsByUser.toSeq.sortBy(_._1))
-      (shuffled.take(numTraining), shuffled.drop(numTraining))
-    }
-    (training.toMap, testing.toMap)
+    (shuffledUsers.take(numTesting).toSet, shuffledUsers.drop(numTesting).toSet)
   }
 
-  // split each state into training and testing sets of tweets (grouped by user) by number of users
-  private lazy val splitTweets = tweetsByUserByState.mapValues(splitTweetsTrainingAndTesting).toMap // convert to map because of lazy eval
+  private def usernameForFile(file: File) = {
+    FilenameUtils.removeExtension(file.getName)
+  }
 
-  lazy val allTweets = tweetsByUserByState
-  lazy val trainingTweets = splitTweets.mapValues(_._1)
-  lazy val testingTweets = splitTweets.mapValues(_._2)
+  // map usernames to filtered tweets (annotated users excluded, and up to K users by number of tweets descending)
+  private def getTrainingTweets(files: Array[File]): Map[String, Seq[Tweet]] = {
+    // sort the tweet files by number of tweets, descending
+    val filesByNumTweets = files.sortBy(file => {
+      val source = io.Source.fromFile(file)
+      val numLines = source.getLines.size
+      source.close
+      - numLines
+    })
+
+    // get those which do not have annotations
+    var trainingFiles = filesByNumTweets.filter(file => ! testingUsers.contains(usernameForFile(file)) && !devUsers.contains(usernameForFile(file)))
+
+    // if we have a limit, take only up to that many
+    numToTake.foreach(k => trainingFiles = trainingFiles.take(k))
+
+    // parse them
+    val parser = new MinimalTweetParser
+
+    (for {
+      file <- trainingFiles
+      username = usernameForFile(file)
+      tweets = parser.parseTweetFile(file.getAbsolutePath)
+    } yield username -> tweets).toMap
+  }
+
+  private def getAnnotatedTweetsMatchingUsernames(tweetParser: MinimalTweetParser, usernames: Set[String]) = (for {
+    file <- tweetFilesByState.values.flatten
+    username = usernameForFile(file)
+    if (usernames.contains(username))
+    tweets = tweetParser.parseTweetFile(io.Source.fromFile(file))
+    label = userAnnotations(username)
+  } yield IndividualsTweets(tweets, username, Some(label), state=None)).toSeq
+
+  private val tweetParser = new MinimalTweetParser
+  lazy val testingTweets = getAnnotatedTweetsMatchingUsernames(tweetParser, testingUsers)
+  lazy val devTweets = getAnnotatedTweetsMatchingUsernames(tweetParser, devUsers)
+
+  lazy val trainingTweetsByState: Map[String, Map[String, Seq[Tweet]]] = (for {
+    (state, tweetFiles) <- tweetFilesByState.par
+  } yield (state -> getTrainingTweets(tweetFiles))).seq.toMap
 }
 
 object IndividualsCorpus {
-  def main(args: Array[String]) {
-    val outFile = if (args.size > 0) args(0) else null
-    val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
+  def labelsFromAnnotationFile(filename: String, header: Boolean = true): Map[String, Int] = {
+    val reader = CSVReader.open(filename)
 
-    val ic = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501/", numToTake=None)
-    val allTweets = ic.allTweets
-    val foodFilteredTweets = for {
-      (state, tweetsByUser) <- allTweets
-      numFoodTweetsByUser = for {
-        (user, tweets) <- tweetsByUser
-      } yield (user -> Experiment.filterFoodTweets(tweets).size)
-    } yield (state -> numFoodTweetsByUser)
+    val lines = reader.iterator.toList
 
-    for ((state, tweetsByUser) <- foodFilteredTweets.toSeq.sortBy(_._1)) {
-      pw.println(state)
-      for ((user, numberOfTweets) <- tweetsByUser.toSeq.sortBy(- _._2)) {
-        pw.println(s"${user}\t${numberOfTweets}")
+    // map users to label (1 for overweight, 0 for not)
+    val labelMap: Map[String, Int] = (for {
+      fields <- if (header) lines.drop(1) else lines
+      username = fields(0)
+      label = fields(5) match {
+        case "Overweight" => 1
+        case "NotOverweight" => 0
+        case label => throw new Exception(s"invalid individual label $label")
       }
-      pw.println
-    }
+    } yield username -> label).toMap
 
-
-    if (outFile != null) {
-      try {
-      } finally { pw.close() }
-    } else {
-      pw.flush()
-    }
+    labelMap
   }
 }
 

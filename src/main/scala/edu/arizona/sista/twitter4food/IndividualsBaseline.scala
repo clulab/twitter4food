@@ -73,7 +73,7 @@ class IndividualsBaseline(parameters: ExperimentParameters, printWriter: PrintWr
 object IndividualsBaseline {
   import Experiment._
 
-  def makeBaselineTrainingAndTesting(numClasses: Int, removeMarginals: Option[Int])(trainingCorpus: IndividualsCorpus, testingCorpus: Option[LabelledIndividualsCorpus]): (Seq[IndividualsTweets], Seq[IndividualsTweets]) = {
+  def makeBaselineTraining(numClasses: Int, removeMarginals: Option[Int])(corpus: IndividualsCorpus): Seq[IndividualsTweets] = {
     // maps from state abbreviations to integer labels
     val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals)
 
@@ -84,16 +84,7 @@ object IndividualsBaseline {
       (username, tweets) <- tweetsByUser
     } yield IndividualsTweets(tweets, username, Some(stateLabels(state)), Some(state))
 
-    val (trainingTweets, testingTweets) = testingCorpus match {
-      case None => {
-        (propLabels(trainingCorpus.trainingTweets), propLabels(trainingCorpus.testingTweets))
-      }
-      case Some(testC) => {
-        (propLabels(trainingCorpus.allTweets), testC.tweets)
-      }
-    }
-
-    (trainingTweets, testingTweets)
+    propLabels(corpus.trainingTweetsByState)
   }
 
   // return the number correctly predicted and the total
@@ -106,8 +97,6 @@ object IndividualsBaseline {
 
   def main(args: Array[String]) {
 
-    val predictCelebrities = false
-
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
     val removeMarginals: Option[Int] = None
@@ -118,16 +107,12 @@ object IndividualsBaseline {
 
     val outFile = if (args.size > 0) args(0) else null
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", numToTake=Some(500))
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
 
-    val testCorpus = if (predictCelebrities) {
-      val celebrityCorpus = new LabelledIndividualsCorpus("/data/nlp/corpora/twitter4food/testDataset/newUsers.csv", "/data/nlp/corpora/twitter4food/testDataset/newUsers")
-      Some(celebrityCorpus)
-    } else {
-      None
-    }
+    val trainingTweets = makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
 
-    val (trainingTweets, testingTweets) = makeBaselineTrainingAndTesting(numClasses, removeMarginals)(individualsCorpus, testCorpus)
+    val testingTweets = individualsCorpus.testingTweets
+    val devTweets = individualsCorpus.devTweets
 
     val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
@@ -214,12 +199,13 @@ object IndividualsBaseline {
       }
       pw.println
 
+      /*
       if (predictCelebrities) {
         // print each prediction
         for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => (it.label.get, it.username) } )) {
           pw.println(s"${tweets.username}\tact: ${tweets.label.get}\tpred: ${prediction}")
         }
-      } else {
+      } else */ {
         // print predictions by state
         for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
           val (correct, total) = labelledAccuracy(statesInstances)
