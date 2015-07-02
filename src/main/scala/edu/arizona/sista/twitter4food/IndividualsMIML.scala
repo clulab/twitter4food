@@ -58,7 +58,7 @@ object IndividualsMIML {
   def main(args: Array[String]) {
     import Experiment._
 
-    val props = StringUtils.argsToProperties(args, verbose=false)
+    val props = StringUtils.argsToProperties(args, verbose=true)
 
     val realValued = StringUtils.getBool(props, "realValued", true)
 
@@ -75,7 +75,11 @@ object IndividualsMIML {
 
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
 
-    val outFile = if (args.size > 0) args(args.length - 1) else null
+    val outFile = StringUtils.getStringOption(props, "outputFile")
+    val pw: PrintWriter = outFile match {
+        case Some(fileName) => new PrintWriter(new java.io.File(fileName))
+        case None => new PrintWriter(System.out)
+    }
 
     val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
 
@@ -84,7 +88,6 @@ object IndividualsMIML {
     val trainingTweets = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
     val testingTweets = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
 
-    val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
     // create many possible variants of the experiment parameters, and for each map to results of running the
     // experiment
@@ -170,19 +173,17 @@ object IndividualsMIML {
       }
       pw.println
 
-      /*
-      if (predictCelebrities) {
-        // print each prediction
-        for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => (it.label.get, it.username) } )) {
-          pw.println(s"${tweets.username}\tact: ${tweets.label.get}\tpred: ${prediction}")
-        }
-      } else*/ {
-        // print predictions by state
-        for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
-          val (correct, total) = labelledAccuracy(statesInstances)
-          pw.println(s"${state}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
-        }
+      // print each prediction
+      for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => (it.label.get, it.username) } )) {
+        pw.println(s"${tweets.username}\tact: ${tweets.label.get}\tpred: ${prediction}")
       }
+      /*
+      // print predictions by state
+      for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
+        val (correct, total) = labelledAccuracy(statesInstances)
+        pw.println(s"${state}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
+      }
+      */
 
       pw.println
       pw.println
