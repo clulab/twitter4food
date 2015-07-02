@@ -114,12 +114,13 @@ object IndividualsBaseline {
         case None => new PrintWriter(System.out)
     }
 
+    val evaluateOnDev = StringUtils.getBool(props, "evaluateOnDev", false)
+
     val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
 
     val trainingTweets = makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
 
-    val testingTweets = individualsCorpus.testingTweets
-    val devTweets = individualsCorpus.devTweets
+    val testingTweets = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
 
 
     // create many possible variants of the experiment parameters, and for each map to results of running the
