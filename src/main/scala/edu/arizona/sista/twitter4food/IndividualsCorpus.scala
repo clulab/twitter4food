@@ -47,7 +47,7 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
   // map usernames to filtered tweets (annotated users excluded, and up to K users by number of tweets descending)
   private def getTrainingTweets(files: Array[File]): Map[String, Seq[Tweet]] = {
     // sort the tweet files by number of tweets, descending
-    val filesByNumTweets = files.sortBy(file => {
+    val filesByNumTweets = files.toSeq.sortBy(file => {
       val source = io.Source.fromFile(file)
       val numLines = source.getLines.size
       source.close

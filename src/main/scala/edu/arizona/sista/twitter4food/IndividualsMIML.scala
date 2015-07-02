@@ -9,7 +9,7 @@ import edu.arizona.sista.utils.StringUtils
 /**
  * Created by dfried on 5/6/15.
  */
-class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out))
+class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out), val zSigma: Double = 1.0, val ySigma: Double = 1.0)
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
   def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], stateLabels: Map[String, String], onlyFoodTweets: Boolean = false, realValued: Boolean = true) = {
@@ -33,7 +33,7 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     } yield MIML[String, String](stateFeatures, Set(label))
 
 
-    val miml = new MIMLWrapper("/tmp/test.dat", realValued = realValued)
+    val miml = new MIMLWrapper("/tmp/test.dat", realValued = realValued, zSigma = zSigma, ySigma = ySigma)
     miml.train(stateMIMLs)
 
     val predictedLabels = for {
@@ -62,6 +62,8 @@ object IndividualsMIML {
     val zSigma = StringUtils.getDouble(props, "zSigma", 1.0)
     val ySigma = StringUtils.getDouble(props, "ySigma", 1.0)
 
+    val evaluateOnDev = StringUtils.getBoolOption(props, "evaluateOnDev").get
+
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
     val removeMarginals: Option[Int] = None
@@ -77,7 +79,7 @@ object IndividualsMIML {
     val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals).mapValues(_.toString)
 
     val trainingTweets = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
-    val testingTweets = individualsCorpus.testingTweets
+    val testingTweets = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
 
     val pw: PrintWriter = if (outFile != null) (new PrintWriter(new java.io.File(outFile))) else (new PrintWriter(System.out))
 
@@ -132,7 +134,7 @@ object IndividualsMIML {
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
-    } yield params -> new IndividualsMIML(params, pw).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
+    } yield params -> new IndividualsMIML(params, pw, zSigma = zSigma, ySigma = ySigma).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)

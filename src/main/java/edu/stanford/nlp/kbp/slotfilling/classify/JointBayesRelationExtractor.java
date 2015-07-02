@@ -127,10 +127,10 @@ public class JointBayesRelationExtractor
   private final boolean useRVF;
 
   public JointBayesRelationExtractor(Properties props, boolean useRVF) {
-    this(props, false, useRVF);
+    this(props, false, useRVF, 1.0, 1.0);
   }
   
-  public JointBayesRelationExtractor(Properties props, boolean onlyLocal, boolean useRVF) {
+  public JointBayesRelationExtractor(Properties props, boolean onlyLocal, boolean useRVF, double zSigma, double ySigma) {
     // We need workDir, serializedRelationExtractorName, modelType, samplingRatio to serialize the initial models
     String workDir = props.getProperty(Props.WORK_DIR);
     String srn = props.getProperty(Props.SERIALIZED_MODEL_PATH, "kbp_relation_model");
@@ -150,9 +150,9 @@ public class JointBayesRelationExtractor
         Props.EPOCHS, 10);
     numberOfFolds = PropertiesUtils.getInt(props,
         Props.FOLDS, 5);
-    zSigma = 1.0;
-    ySigma = 1.0;
-    localDataFilter = 
+    this.zSigma = zSigma;
+    this.ySigma = ySigma;
+    localDataFilter =
       makeLocalDataFilter(props.getProperty(
         Props.FILTER, "all"));
     inferenceType =
@@ -205,12 +205,14 @@ public class JointBayesRelationExtractor
       String inferenceType,
       boolean trainY,
       boolean onlyLocalTraining,
-      boolean useRVF) {
+      boolean useRVF,
+      double zSigma,
+      double ySigma) {
     this.initialModelPath = initialModelPath;
     this.numberOfTrainEpochs = numberOfTrainEpochs;
     this.numberOfFolds = numberOfFolds;
-    this.zSigma = 1.0;
-    this.ySigma = 1.0;
+    this.zSigma = zSigma;
+    this.ySigma = ySigma;
     this.onlyLocalTraining = onlyLocalTraining;
     this.localDataFilter = makeLocalDataFilter(localFilter);
     this.featureModel = featureModel;
@@ -740,6 +742,7 @@ public class JointBayesRelationExtractor
       Datum<String,String>[] group = dataArray[i];
       Set<Integer> labels = posLabels[i];
       if(labels.size() == 0) labels = negLabels;
+
       float weight = (float) 1.0 / (float) labels.size();
       for(Integer label: labels) {
         for(int j = 0; j < group.length; j ++){
@@ -758,10 +761,13 @@ public class JointBayesRelationExtractor
     GeneralDataset<String, String> dataset;
 
     if (useRVF) {
-      dataset = new RVFDataset<String,String>(featureIndex, labelIndex);
+      dataset = new WeightedRVFDataset<String,String>();
+      dataset.featureIndex = featureIndex;
+      dataset.labelIndex = labelIndex;
       for (int i = 0; i < localTrainData.length; i++) {
-        ((RVFDatum<String, String>) localTrainData[i]).setLabel(labelIndex.get(localTrainLabels[i]));
-        dataset.add(localTrainData[i]);
+        RVFDatum<String, String> datum = (RVFDatum<String, String>) localTrainData[i];
+        datum.setLabel(labelIndex.get(localTrainLabels[i]));
+        ((WeightedRVFDataset)dataset).add(datum, weights[i]);
       }
     } else {
       dataset = new WeightedDataset<String, String>();

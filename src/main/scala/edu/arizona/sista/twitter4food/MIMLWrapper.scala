@@ -25,7 +25,7 @@ case object Slow extends InferenceType
 
 case class MIML[L, F](group: Seq[Counter[F]], labels: Set[L])
 
-class MIMLWrapper(initialModelPath: String, numberOfTrainEpochs: Int = 6, numberOfFolds: Int = 5, localFilter: LocalDataFilter = AllFilter, featureModel: FeatureModel = AtLeastOnce, inferenceType: InferenceType = Stable, trainY: Boolean = true, onlyLocalTraining: Boolean = false, realValued: Boolean = true) {
+class MIMLWrapper(initialModelPath: String, numberOfTrainEpochs: Int = 6, numberOfFolds: Int = 5, localFilter: LocalDataFilter = AllFilter, featureModel: FeatureModel = AtLeastOnce, inferenceType: InferenceType = Stable, trainY: Boolean = true, onlyLocalTraining: Boolean = false, realValued: Boolean = true, zSigma: Double = 1.0, ySigma: Double = 1.0) {
 
   val counterToDatumFn = if (realValued)
       MIMLWrapper.counterToRVFDatum[String,String] _
@@ -49,7 +49,9 @@ class MIMLWrapper(initialModelPath: String, numberOfTrainEpochs: Int = 6, number
     },
     trainY,
     onlyLocalTraining,
-    realValued)
+    realValued,
+    zSigma,
+    ySigma)
 
   def train(groups: Seq[MIML[String, String]]) = {
     jbre.train(MIMLWrapper.makeMultiLabelDataset(groups, realValued))
