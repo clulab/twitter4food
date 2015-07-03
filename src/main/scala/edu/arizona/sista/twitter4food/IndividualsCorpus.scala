@@ -21,7 +21,7 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
     if (stateDir.isDirectory)
   } yield (stateDir.getName -> stateDir)).toMap
 
-  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles)
+  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles).toMap
 
   val userAnnotations: Map[String, Int] = IndividualsCorpus.labelsFromAnnotationFile(annotationFile, header = true)
 
