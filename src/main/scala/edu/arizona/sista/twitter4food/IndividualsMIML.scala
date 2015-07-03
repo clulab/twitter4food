@@ -36,7 +36,7 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     } yield MIML[String, String](stateFeatures, Set(label))
 
 
-    val miml = new MIMLWrapper("/tmp/test.dat", realValued = realValued, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma)
+    val miml = new MIMLWrapper(realValued = realValued, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma)
     miml.train(stateMIMLs)
 
     val predictedLabels = for {
