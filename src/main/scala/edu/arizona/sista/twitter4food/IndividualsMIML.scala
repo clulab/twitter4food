@@ -141,7 +141,7 @@ object IndividualsMIML {
 
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
-        miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1000.0))
+        miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
     } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
