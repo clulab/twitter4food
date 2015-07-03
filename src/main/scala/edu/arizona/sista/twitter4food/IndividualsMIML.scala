@@ -12,7 +12,7 @@ import edu.arizona.sista.utils.StringUtils
 class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out), val onlyLocalTraining: Boolean = false, val zSigma: Double = 1.0, val ySigma: Double = 1.0)
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
-  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], stateLabels: Map[String, String], onlyFoodTweets: Boolean = false, realValued: Boolean = true) = {
+  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], stateLabels: Map[String, String], onlyFoodTweets: Boolean = false, realValued: Boolean = true, featureSerializationPath: Option[String] = None) = {
 
     val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
     val testingTweets = testingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
@@ -26,11 +26,8 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
 
     //val (processedFeatures, processFeaturesFn) = (trainingFeatures.map(binarize), binarize _)
 
-    val rescaledTrainingFeatures = trainingFeatures
-    val rescaledTestingFeatures = testingFeatures
-
     val stateMIMLs = for {
-      (Some(state), group) <- (rescaledTrainingFeatures zip trainingCorpus).groupBy((_._2.state)).toSeq
+      (Some(state), group) <- (trainingFeatures zip trainingCorpus).groupBy((_._2.state)).toSeq
       stateFeatures: Seq[Counter[String]] = group.map(_._1)
       label = stateLabels(state)
     } yield MIML[String, String](stateFeatures, Set(label))
@@ -40,7 +37,7 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     miml.train(stateMIMLs)
 
     val predictedLabels = for {
-      features <- rescaledTestingFeatures
+      features <- testingFeatures
       predictions = miml.classifyIndividual(features)
     } yield predictions.head._1
 
