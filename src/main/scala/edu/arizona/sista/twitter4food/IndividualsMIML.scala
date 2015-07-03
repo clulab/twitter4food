@@ -66,6 +66,8 @@ object IndividualsMIML {
 
     val evaluateOnDev = StringUtils.getBoolOption(props, "evaluateOnDev").get
 
+    val binarizedCorpus = StringUtils.getStringOption(props, "binarizedCorpus")
+
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
     val removeMarginals: Option[Int] = None
@@ -80,7 +82,27 @@ object IndividualsMIML {
         case None => new PrintWriter(System.out)
     }
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
+    def corpusFn() = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
+
+    // since tokenization takes a while, give the option to load pre-tokenized tweets
+    val individualsCorpus = binarizedCorpus match {
+      case Some(file) => {
+        // if we've passed a filename storing the tokenized tweets, try to load the corpus from it
+        try {
+          Serialization.load(file)
+        }
+          // if we can't, load and tokenize the tweets and then save them to the file
+        catch {
+          case _ : Throwable => {
+            val corpus = corpusFn()
+            Serialization.save(corpus, file)
+            corpus
+          }
+        }
+      }
+        // otherwise just load and tokenize the tweets
+      case None => corpusFn()
+    }
 
     val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals).mapValues(_.toString)
 

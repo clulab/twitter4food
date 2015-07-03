@@ -10,7 +10,7 @@ import com.github.tototoshi.csv.CSVReader
 // tweets for an individual
 case class IndividualsTweets(val tweets: Seq[Tweet], val username: String, val label: Option[Int], val state: Option[String])
 
-class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) {
+class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) extends Serializable {
   // baseDirectory should have one folder for each state
   // each state folder contains a single file per user, containing tweets from that user
 
@@ -26,7 +26,6 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
   val userAnnotations: Map[String, Int] = IndividualsCorpus.labelsFromAnnotationFile(annotationFile, header = true)
 
   val random = new util.Random(randomSeed)
-
 
   val (testingUsers, devUsers) = {
     val shuffledUsers = random.shuffle(userAnnotations.keys.toSeq.sorted)
@@ -79,9 +78,10 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
     label = userAnnotations(username)
   } yield IndividualsTweets(tweets, username, Some(label), state=None)).toSeq
 
-  private val tweetParser = new MinimalTweetParser
-  lazy val testingTweets = getAnnotatedTweetsMatchingUsernames(tweetParser, testingUsers)
-  lazy val devTweets = getAnnotatedTweetsMatchingUsernames(tweetParser, devUsers)
+  val (testingTweets, devTweets) = {
+    val tweetParser = new MinimalTweetParser
+    (getAnnotatedTweetsMatchingUsernames(tweetParser, testingUsers), getAnnotatedTweetsMatchingUsernames(tweetParser, devUsers))
+  }
 
   lazy val trainingTweetsByState: Map[String, Map[String, Seq[Tweet]]] = (for {
     (state, tweetFiles) <- tweetFilesByState.par

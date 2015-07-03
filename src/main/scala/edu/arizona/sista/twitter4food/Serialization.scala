@@ -3,7 +3,7 @@ package edu.arizona.sista.twitter4food
 import java.io._
 
 object Serialization {
-  def save[A <: Serializable](model: A, serializedFile: File) = {
+  def save[A <: Serializable](model: A, serializedFile: File): Unit = {
     val oos = new ObjectOutputStream(new FileOutputStream(serializedFile))
     oos.writeObject(model)
     oos.close
@@ -17,6 +17,8 @@ object Serialization {
   }
 
   def load[A](serializedFilename: String): A = load(new File(serializedFilename))
+
+  def save[A <: Serializable](model: A, serializedFilename: String): Unit = save(model, new File(serializedFilename))
 
   def main(args: Array[String]) = {
     val tweets: List[Tweet] = load(new File("/home/dfried/tweets_small.dat"))
