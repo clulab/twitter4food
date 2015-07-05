@@ -9,7 +9,7 @@ import edu.arizona.sista.utils.StringUtils
 /**
  * Created by dfried on 5/6/15.
  */
-class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out), val onlyLocalTraining: Boolean = false, val zSigma: Double = 1.0, val ySigma: Double = 1.0)
+class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out), val onlyLocalTraining: Boolean = false, val zSigma: Double = 1.0, val ySigma: Double = 1.0, val thresholded: Boolean = false)
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
   def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], stateLabels: Map[String, String], onlyFoodTweets: Boolean = false, realValued: Boolean = true, featureSerializationPath: Option[String] = None) = {
@@ -32,8 +32,10 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
       label = stateLabels(state)
     } yield MIML[String, String](stateFeatures, Set(label))
 
+    val classificationType = if (thresholded) Thresholded("1", "0", 0.5) else LR
 
-    val miml = new MIMLWrapper(realValued = realValued, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma)
+
+    val miml = new MIMLWrapper(realValued = realValued, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, classificationType=classificationType)
     miml.train(stateMIMLs)
 
     val predictedLabels = for {
@@ -67,6 +69,8 @@ object IndividualsMIML {
     val evaluateOnDev = StringUtils.getBoolOption(props, "evaluateOnDev").get
 
     val binarizedCorpus = StringUtils.getStringOption(props, "binarizedCorpus")
+
+    val thresholded = StringUtils.getBool(props, "thresholded", false)
 
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
@@ -161,7 +165,7 @@ object IndividualsMIML {
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
-    } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
+    } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, thresholded=thresholded).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
