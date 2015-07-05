@@ -59,7 +59,7 @@ public class JointBayesRelationExtractor
     STABLE
   }
 
-  private static final LOCAL_CLASSIFICATION_MODE localClassificationMode = 
+  protected static final LOCAL_CLASSIFICATION_MODE localClassificationMode =
     LOCAL_CLASSIFICATION_MODE.WEIGHTED_VOTE;
   
   /**
@@ -72,13 +72,13 @@ public class JointBayesRelationExtractor
   /** one two-class classifier for each top-level relation */
   public Map<String, LinearClassifier<String, String>> yClassifiers;
   
-  private Index<String> featureIndex;
-  private Index<String> yLabelIndex;
-  private Index<String> zLabelIndex;
+  protected Index<String> featureIndex;
+  protected Index<String> yLabelIndex;
+  protected Index<String> zLabelIndex;
   
-  private static String ATLEASTONCE_FEAT = "atleastonce";
-  private static String NONE_FEAT = "none";
-  private static List<String> Y_FEATURES_FOR_INITIAL_MODEL;
+  protected static String ATLEASTONCE_FEAT = "atleastonce";
+  protected static String NONE_FEAT = "none";
+  protected static List<String> Y_FEATURES_FOR_INITIAL_MODEL;
   
   static {
     Y_FEATURES_FOR_INITIAL_MODEL = new ArrayList<String>();
@@ -87,44 +87,44 @@ public class JointBayesRelationExtractor
   }
   
   /** Run EM for this many epochs */
-  private final int numberOfTrainEpochs;
+  protected final int numberOfTrainEpochs;
   
   /** Organize the Z classifiers into this many folds for cross validation */
-  private int numberOfFolds;
+  protected int numberOfFolds;
   
   /** 
    * Should we skip the EM loop?
    * If true, this is essentially a multiclass local LR classifier
    */
-  private final boolean onlyLocalTraining;
+  protected final boolean onlyLocalTraining;
   
   /** Required to know where to save the initial models */
-  private final String initialModelPath;
+  protected final String initialModelPath;
   
   /** Sigma for the Z classifiers */
-  private final double zSigma;
+  protected final double zSigma;
   /** Sigma for the Y classifiers */
-  private final double ySigma;
+  protected final double ySigma;
   
   /** Counts number of flips for Z labels in one epoch */
-  private int zUpdatesInOneEpoch = 0;
+  protected int zUpdatesInOneEpoch = 0;
   
-  private final LocalFilter localDataFilter;
+  protected final LocalFilter localDataFilter;
   
-  private final InferenceType inferenceType;
+  protected final InferenceType inferenceType;
   
   /** Which feature model to use */
-  private final int featureModel;
+  protected final int featureModel;
   
   /** Should we train Y models? */
-  private final boolean trainY;
+  protected final boolean trainY;
   
   /** These label dependencies were seen in training */
-  private Set<String> knownDependencies;
+  protected Set<String> knownDependencies;
   
-  private String serializedModelPath;
+  protected String serializedModelPath;
 
-  private final boolean useRVF;
+  protected final boolean useRVF;
 
   public JointBayesRelationExtractor(Properties props, boolean useRVF) {
     this(props, false, useRVF, 1.0, 1.0);
@@ -245,7 +245,7 @@ public class JointBayesRelationExtractor
       Constants.SER_EXT;
   }
   
-  private int foldStart(int fold, int size) {
+  protected int foldStart(int fold, int size) {
     int foldSize = size / numberOfFolds;
     assert(foldSize > 0);
     int start = fold * foldSize;
@@ -253,7 +253,7 @@ public class JointBayesRelationExtractor
     return start;
   }
   
-  private int foldEnd(int fold, int size) {
+  protected int foldEnd(int fold, int size) {
     // padding if this is the last fold
     if(fold == numberOfFolds - 1) 
       return size;
@@ -265,7 +265,7 @@ public class JointBayesRelationExtractor
     return end;
   }
   
-  private int [][] initializeZLabels(MultiLabelDataset<String, String> data) {
+  protected int [][] initializeZLabels(MultiLabelDataset<String, String> data) {
     // initialize Z labels with the predictions of the local classifiers
     int[][] zLabels = new int[data.getDataArray().length][];
     for(int f = 0; f < numberOfFolds; f ++){
@@ -288,7 +288,7 @@ public class JointBayesRelationExtractor
     return zLabels;
   }
   
-  private void detectDependencyYFeatures(MultiLabelDataset<String, String> data) {
+  protected void detectDependencyYFeatures(MultiLabelDataset<String, String> data) {
     knownDependencies = new HashSet<String>();
     for(int i = 0; i < data.size(); i ++){
       Set<Integer> labels = data.getPositiveLabelsArray()[i];
@@ -512,6 +512,17 @@ public class JointBayesRelationExtractor
       group[j] = tmp;
     }
   }
+
+  void randomizeGroup(int[] group, int randomSeed) {
+    Random rand = new Random(randomSeed);
+    for(int j = group.length - 1; j > 0; j --){
+      int randIndex = rand.nextInt(j);
+
+      int tmp = group[randIndex];
+      group[randIndex] = group[j];
+      group[j] = tmp;
+    }
+  }
   
   void computeYScore(String name, int [][] zLabels, Set<Integer> [] golds) {
     int labelCorrect = 0, labelPredicted = 0, labelTotal = 0;
@@ -626,7 +637,7 @@ public class JointBayesRelationExtractor
     yDataset.add(datum);
   }
   
-  private String makeEpochPath(int epoch) {
+  protected String makeEpochPath(int epoch) {
     String epochPath = null;
     if(epoch < numberOfTrainEpochs && serializedModelPath != null) {
       if(serializedModelPath.endsWith(".ser")) {
@@ -640,7 +651,7 @@ public class JointBayesRelationExtractor
     return epochPath;
   }
   
-  private void makeSingleZClassifier(
+  protected void makeSingleZClassifier(
       GeneralDataset<String, String> zDataset,
       LinearClassifierFactory<String, String> zFactory) {
     if(localClassificationMode == LOCAL_CLASSIFICATION_MODE.SINGLE_MODEL) {
@@ -787,7 +798,7 @@ public class JointBayesRelationExtractor
     return dataset;
   }
   
-  private int [] makeTrainLabelArrayForFold(int [] labelArray, int fold) {
+  protected int [] makeTrainLabelArrayForFold(int [] labelArray, int fold) {
     int start = foldStart(fold, labelArray.length);
     int end = foldEnd(fold, labelArray.length);
     int [] train = new int[labelArray.length - end + start];
@@ -803,7 +814,7 @@ public class JointBayesRelationExtractor
     return train;
   }
   
-  private int [][] makeTrainDataArrayForFold(int [][] dataArray, int fold) {
+  protected int [][] makeTrainDataArrayForFold(int [][] dataArray, int fold) {
     int start = foldStart(fold, dataArray.length);
     int end = foldEnd(fold, dataArray.length);
     int [][] train = new int[dataArray.length - end + start][];
@@ -863,7 +874,7 @@ public class JointBayesRelationExtractor
   }
   
   @SuppressWarnings("unchecked")
-  private LinearClassifier<String, String> [] initializeZClassifierLocally(
+  protected LinearClassifier<String, String> [] initializeZClassifierLocally(
       MultiLabelDataset<String, String> data,
       Index<String> featureIndex,
       Index<String> labelIndex) {
@@ -936,7 +947,7 @@ public class JointBayesRelationExtractor
   }
   
   @SuppressWarnings("unchecked")
-  private void loadInitialModels(String path) throws IOException, ClassNotFoundException {
+  protected void loadInitialModels(String path) throws IOException, ClassNotFoundException {
     InputStream is = new FileInputStream(path);
     ObjectInputStream in = new ObjectInputStream(is);
     
@@ -965,7 +976,7 @@ public class JointBayesRelationExtractor
     in.close();
   }
   
-  private void saveInitialModels(String path) throws IOException {
+  protected void saveInitialModels(String path) throws IOException {
     ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(path));
     out.writeObject(featureIndex);
     out.writeObject(zLabelIndex);
@@ -1032,7 +1043,7 @@ public class JointBayesRelationExtractor
     return weights;
   }
   
-  private GeneralDataset<String, String> initializeZDataset(int totalSentences, int[][] zLabels, Datum<String,String>[][] data) {
+  protected GeneralDataset<String, String> initializeZDataset(int totalSentences, int[][] zLabels, Datum<String,String>[][] data) {
     GeneralDataset<String,String> dataset;
 
     if (useRVF) {
