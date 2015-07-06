@@ -26,19 +26,19 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
 
   val userAnnotations: Map[String, Int] = IndividualsCorpus.labelsFromAnnotationFile(annotationFile, header = true)
 
-  val random = new util.Random(randomSeed)
 
   val (testingUsers, devUsers) = {
-    val shuffledUsers = random.shuffle(userAnnotations.keys.toSeq.sorted)
-
-    val N = shuffledUsers.size
-    val numTesting = (N * annotatedTestingFraction).toInt
-    val numDev = N - numTesting
-
-    require(numTesting > 0, "numTesting is 0")
-    require(numDev > 0, "numDev is 0")
-
-    (shuffledUsers.take(numTesting).toSet, shuffledUsers.drop(numTesting).toSet)
+    val random = new util.Random(randomSeed)
+    val groupedUsers: Seq[Seq[(String, Int)]] = userAnnotations.toSeq.groupBy(_._2).toSeq.sortBy(_._1).map(_._2)
+    val shuffledGroups = groupedUsers.map(random.shuffle(_))
+    val numTestingPerClass: Seq[Int] = shuffledGroups.map(list => (list.size * annotatedTestingFraction).toInt)
+    val testing = (shuffledGroups zip numTestingPerClass).flatMap {
+      case (group, n) => group.take(n).map(_._1)
+    }
+    val dev = (shuffledGroups zip numTestingPerClass).flatMap {
+      case (group, n) => group.drop(n).map(_._1)
+    }
+    (testing.toSet, dev.toSet)
   }
 
   private def usernameForFile(file: File) = {
