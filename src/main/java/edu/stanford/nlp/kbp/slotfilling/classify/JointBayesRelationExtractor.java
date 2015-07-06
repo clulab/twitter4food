@@ -1035,7 +1035,7 @@ public class JointBayesRelationExtractor
     Log.fine("posLabel = " + posLabel + ", negLabel = " + negLabel + ", atLeastOnceIndex = " + atLeastOnceIndex);
   }
   
-  private static double[][] initializeWeights(int numFeatures, int numLabels) {
+  public static double[][] initializeWeights(int numFeatures, int numLabels) {
     double[][] weights = new double[numFeatures][numLabels];
     for (double[] row : weights)
       Arrays.fill(row, 0.0);

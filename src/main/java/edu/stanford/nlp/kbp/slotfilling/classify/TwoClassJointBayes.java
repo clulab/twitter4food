@@ -8,44 +8,55 @@ import java.io.IOException;
 import edu.stanford.nlp.classify.*;
 import edu.stanford.nlp.kbp.slotfilling.common.Log;
 import edu.stanford.nlp.ling.Datum;
+import edu.stanford.nlp.ling.RVFDatum;
 import edu.stanford.nlp.stats.ClassicCounter;
 import edu.stanford.nlp.stats.Counter;
 import edu.stanford.nlp.util.ErasureUtils;
 import edu.stanford.nlp.util.HashIndex;
+import edu.stanford.nlp.util.Index;
 import edu.stanford.nlp.util.Pair;
 
-/**
- * Created by df345 on 04/07/15.
- */
-public class ThresholdedJointBayes extends JointBayesRelationExtractor {
-    public double initialThreshold;
-    public double currentThreshold;
+import java.util.List;
 
+/**
+ * Created by df345 on 06/07/15.
+ */
+public class TwoClassJointBayes extends JointBayesRelationExtractor {
     public String positiveClass;
     public String negativeClass;
 
     public int positiveIndex;
     public int negativeIndex;
 
-    public ThresholdedJointBayes(String initialModelPath, int numberOfTrainEpochs, int numberOfFolds, String localFilter, int featureModel, String inferenceType, boolean trainY, boolean onlyLocalTraining, boolean useRVF, double zSigma, double initialThreshold, String positiveClass, String negativeClass) {
-        super(initialModelPath, numberOfTrainEpochs, numberOfFolds, localFilter, featureModel, inferenceType, trainY, onlyLocalTraining, useRVF, zSigma, 1.0);
-        this.initialThreshold = initialThreshold;
+    public LinearClassifier<String, String> yClassifier;
+
+    protected static String POSITIVE_CLASS_FRACTION = "positive_fraction";
+    protected static String BIAS_FEAT = "bias";
+    protected static List<String> Y_FEATURES_FOR_INITIAL_MODEL;
+
+    static {
+        Y_FEATURES_FOR_INITIAL_MODEL = new ArrayList<String>();
+        Y_FEATURES_FOR_INITIAL_MODEL.add(POSITIVE_CLASS_FRACTION);
+        Y_FEATURES_FOR_INITIAL_MODEL.add(BIAS_FEAT);
+    }
+
+    public TwoClassJointBayes(String initialModelPath, int numberOfTrainEpochs, int numberOfFolds, String localFilter, int featureModel, String inferenceType, boolean trainY, boolean onlyLocalTraining, boolean useRVF, double zSigma, double ySigma, String positiveClass, String negativeClass) {
+        super(initialModelPath, numberOfTrainEpochs, numberOfFolds, localFilter, featureModel, inferenceType, trainY, onlyLocalTraining, useRVF, zSigma, ySigma);
         this.positiveClass = positiveClass;
         this.negativeClass = negativeClass;
     }
 
-    public ThresholdedJointBayes(Properties props, boolean onlyLocal, boolean useRVF, double zSigma, double initialThreshold, String positiveClass, String negativeClass) {
-        super(props, onlyLocal, useRVF, zSigma, 1.0);
-        this.initialThreshold = initialThreshold;
+    public TwoClassJointBayes(Properties props, boolean onlyLocal, boolean useRVF, double zSigma, double ySigma, String positiveClass, String negativeClass) {
+        super(props, onlyLocal, useRVF, zSigma, ySigma);
         this.positiveClass = positiveClass;
         this.negativeClass = negativeClass;
     }
 
-    public ThresholdedJointBayes(Properties props, boolean useRVF, double initialThreshold, String positiveClass, String negativeClass) {
-        this(props, false, useRVF, 1.0, initialThreshold, positiveClass, negativeClass);
+    public TwoClassJointBayes(Properties props, boolean useRVF, String positiveClass, String negativeClass) {
+        this(props, false, useRVF, 1.0, 1.0, positiveClass, negativeClass);
     }
 
-    @Override
+    // @Override
     public void train(MultiLabelDataset<String, String> data) {
 
         // filter some of the groups
@@ -87,13 +98,12 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
             zLabelIndex = new HashIndex<String>(yLabelIndex);
             zLabelIndex.add(JointlyTrainedRelationExtractor.UNRELATED);
 
-            positiveIndex = zLabelIndex.indexOf(positiveClass);
-            negativeIndex = zLabelIndex.indexOf(negativeClass);
+            positiveIndex = yLabelIndex.indexOf(positiveClass);
+            negativeIndex = yLabelIndex.indexOf(negativeClass);
 
             // initialize classifiers
             zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex);
-            // yClassifiers = initializeYClassifiersWithAtLeastOnce(yLabelIndex);
-            currentThreshold = initialThreshold;
+            yClassifier = initializeYStupidly(yLabelIndex);
 
             if(initialModelPath != null) {
                 try {
@@ -108,7 +118,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
         // this is essentially a local model!
         if(onlyLocalTraining) return;
 
-        // detectDependencyYFeatures(data);
+        detectDependencyYFeatures(data);
 
         for(String y: yLabelIndex) {
             int yi = yLabelIndex.indexOf(y);
@@ -129,7 +139,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
         // Dataset<String, String> zDataset = initializeZDataset(totalSentences, zLabels, data.getDataArray());
 
         // y dataset initialized to be empty, as it will be populated during the E step
-        // Map<String, RVFDataset<String, String>> yDatasets = initializeYDatasets();
+        RVFDataset<String, String> yDataset = new RVFDataset<String, String>();
 
         // run EM
         for (int epoch = 0; epoch < numberOfTrainEpochs; epoch++) {
@@ -146,13 +156,6 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
             //
             Log.severe("E-STEP");
             // for each group, infer the hidden sentence labels z_i,s
-            int[] yLabels = new int[zLabels.length];
-            for (int i = 0; i < data.getPositiveLabelsArray().length; i++) {
-                Set<Integer> positiveLabels = data.getPositiveLabelsArray()[i];
-                assert(positiveLabels.size() == 1);
-                yLabels[i] = positiveLabels.iterator().next();
-            }
-
             for(int fold = 0; fold < numberOfFolds; fold ++) {
                 LinearClassifier<String, String> zClassifier = zClassifiers[fold];
                 int start = foldStart(fold, data.getDataArray().length);
@@ -180,22 +183,18 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
                             throw new RuntimeException("ERROR: unknown inference type: " + inferenceType);
                     }
 
+                    assert(positiveLabels.size() == 1);
+                    String yLabel = yLabelIndex.get(positiveLabels.iterator().next());
+
                     // given these predicted z labels, update the features in the y dataset
                     //printGroup(zLabels[i], positiveLabels);
-//                    for (int y : positiveLabels) {
-//                        String yLabel = yLabelIndex.get(y);
-//                        addYDatum(yDatasets.get(yLabel), yLabel, zLabels[i], zLogProbs, true);
-//                    }
-//                    for (int y : negativeLabels) {
-//                        String yLabel = yLabelIndex.get(y);
-//                        addYDatum(yDatasets.get(yLabel), yLabel, zLabels[i], zLogProbs, false);
-//                    }
+                    addYDatum(yDataset, yLabel, zLabels[i]);
                 }
             }
 
             computeConfusionMatrixForCounts("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
-//            computeYScore("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
-//            computeYScore("(Z ONLY) EPOCH " + epoch, zLabelsPredictedByZ, data.getPositiveLabelsArray());
+            computeYScore("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
+            computeYScore("(Z ONLY) EPOCH " + epoch, zLabelsPredictedByZ, data.getPositiveLabelsArray());
 
             Log.severe("In epoch #" + epoch + " zUpdatesInOneEpoch = " + zUpdatesInOneEpoch);
             if(zUpdatesInOneEpoch == 0){
@@ -222,9 +221,8 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
 
             // learn the weights of each of the top-level two-class classifiers
             if(trainY) {
-                currentThreshold = setThreshold(zLabels, yLabels);
-                Log.severe("EPOCH " + epoch + ": threshold value " + currentThreshold);
-                System.err.println("EPOCH " + epoch + ": threshold value " + currentThreshold);
+                Log.severe("EPOCH " + epoch + ": Training Y classifier");
+                yClassifier = yFactory.trainClassifier(yDataset);
             }
 
             // save this epoch's model
@@ -239,81 +237,49 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
                 Log.severe("Exception message: " + ex.getMessage());
             }
 
-            // clear our y datasets so they can be repopulated on next iteration
-//            yDatasets = initializeYDatasets();
+            // clear our y dataset so it can be repopulated on next iteration
+            yDataset = new RVFDataset<String, String>();
         }
 
         GeneralDataset<String, String> zDataset = initializeZDataset(totalSentences, zLabels, data.getDataArray());
         makeSingleZClassifier(zDataset, zFactory);
     }
 
-    public double setThreshold(int[][] groupedZLabelIndices, int[] yLabels) {
-        double[] ratios = new double[groupedZLabelIndices.length];
-        for (int index = 0; index < groupedZLabelIndices.length; index++) {
-            ratios[index] = ((double) count(groupedZLabelIndices[index], positiveIndex)) / count(groupedZLabelIndices[index], negativeIndex);
-        }
+    private LinearClassifier<String, String> initializeYStupidly(Index<String> labelIndex) {
+        Index<String> yFeatureIndex = new HashIndex<String>();
+        yFeatureIndex.addAll(Y_FEATURES_FOR_INITIAL_MODEL);
 
-        double[] sortedRatios = Arrays.copyOf(ratios, ratios.length);
-        sortedRatios[sortedRatios.length - 1] = 1.0;
-        Arrays.sort(sortedRatios);
+        Index<String> thisYLabelIndex = new HashIndex<String>();
+        thisYLabelIndex.add(positiveClass);
+        thisYLabelIndex.add(negativeClass);
 
-        double last = 0.0;
-        double splitThreshold;
-        List<Double> bestThresholds = new ArrayList<Double>();
-        int bestCorrectClassification = 0;
-
-        for (double next: sortedRatios) {
-            if (next == last) continue;
-            splitThreshold = (last + next) / 2;
-
-            int correctClassification = 0;
-            for (int group = 0; group < groupedZLabelIndices.length; group++) {
-                if ((ratios[group] >= splitThreshold) == (yLabels[group] == positiveIndex)) correctClassification++;
-            }
-
-            if (correctClassification > bestCorrectClassification) {
-                bestThresholds.clear();
-                bestThresholds.add(splitThreshold);
-            } else if (correctClassification == bestCorrectClassification) {
-                bestThresholds.add(splitThreshold);
-            }
-
-            last = next;
-        }
-
-        return bestThresholds.get((new Random()).nextInt(bestThresholds.size()));
+        double[][] weights = initializeWeights(yFeatureIndex.size(), thisYLabelIndex.size());
+        // do nothing, keep weights as 0
+        LinearClassifier<String, String> classifier =  new LinearClassifier<String, String>(weights, yFeatureIndex, thisYLabelIndex);
+        Log.severe("Created the classifier with " + yFeatureIndex.size() + " features");
+        return classifier;
     }
 
-    public static int count(int[] xs, int x) {
-        int count = 0;
-        for (int xP: xs) {
-            if (xP == x) count++;
-        }
-        return count;
+    private void addYDatum(
+            RVFDataset<String, String> yDataset,
+            String yLabel,
+            int [] zLabels) {
+        Counter<String> features = extractYFeatures(zLabels);
+        RVFDatum<String, String> datum = new RVFDatum<String, String>(features, yLabel);
+        yDataset.add(datum);
     }
 
-    public int classifyY(int[] zLabelIndices) {
-        int positiveCount = count(zLabelIndices, positiveIndex);
-        int negativeCount = count(zLabelIndices, negativeIndex);
-
-        if ((double)positiveCount / negativeCount >= currentThreshold)
-            return positiveIndex;
-        else
-            return negativeIndex;
+    private Counter<String> extractYFeatures(int[] zLabels) {
+        Counter<String> features = new ClassicCounter<String>();
+        int positiveCount = ThresholdedJointBayes.count(zLabels, positiveIndex);
+        int negativeCount = ThresholdedJointBayes.count(zLabels, negativeIndex);
+        double fraction = ((double) positiveCount) / (positiveCount + negativeCount);
+        features.setCount(POSITIVE_CLASS_FRACTION, fraction);
+        features.setCount(BIAS_FEAT, 1.0);
+        return features;
     }
 
     @Override
-    /** updates the zLabels array with new predicted z labels */
-    void inferZLabels(Datum<String,String>[] group,
-                      Set<Integer> positiveLabels,
-                      Set<Integer> negativeLabels,
-                      int[] zLabels,
-                      Counter<String> [] zLogProbs,
-                      LinearClassifier<String, String> zClassifier,
-                      int epoch) {
-        throw new UnsupportedOperationException("not implemented");
-    }
-
     /** updates the zLabels array with new predicted z labels */
     void inferZLabelsStable(Datum<String,String>[] group,
                             Set<Integer> positiveLabels,
@@ -337,31 +303,51 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
             System.err.println();
         }
 
-        assert(positiveLabels.size() == 1);
-
-        int yLabel = positiveLabels.iterator().next();
-
         // compute the Z probabilities; these do not change
         computeZLogProbs(group, zLogProbs, zClassifier, epoch);
 
-        int[] indices = new int[group.length];
-        for (int i = 0; i < indices.length; i++) indices[i] = i;
-        randomizeGroup(indices, epoch);
-
-        for (int s: indices) {
+        for (int s = 0; s < group.length; s++) {
             double maxProb = Double.NEGATIVE_INFINITY;
             int bestLabel = -1;
 
             Counter<String> zProbabilities = zLogProbs[s];
+            Counter<String> jointProbabilities = new ClassicCounter<String>();
 
             int origZLabel = zLabels[s];
             for (String candidate : zProbabilities.keySet()) {
                 int candidateIndex = zLabelIndex.indexOf(candidate);
 
+                // start with z probability
                 if(showProbs) System.err.println("\tProbabilities for z[" + s + "]:");
                 double prob = zProbabilities.getCount(candidate);
+                zLabels[s] = candidateIndex;
                 if(showProbs) System.err.println("\t\tlocal (" + zLabels[s] + ") = " + prob);
 
+                int[] labels = {positiveIndex, negativeIndex};
+
+                // TODO: here
+                // add the y probabilities
+                for (int y : labels) {
+                    String yLabel = yLabelIndex.get(y);
+                    Datum<String, String> yDatum =
+                            new RVFDatum<String, String>(extractYFeatures(zLabels), "");
+                    Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
+                    double v = yProbabilities.getCount(yLabel);
+                    if(showProbs) System.err.println("\t\t\ty+ (" + y + ") = " + v);
+                    prob += v;
+                }
+                for (int y : negativeLabels) {
+                    String yLabel = yLabelIndex.get(y);
+                    Datum<String, String> yDatum =
+                            new RVFDatum<String, String>(extractYFeatures(yLabel, zLabels, zLogProbs), "");
+                    Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
+                    double v = yProbabilities.getCount(JointlyTrainedRelationExtractor.UNRELATED);
+                    if(showProbs) System.err.println("\t\t\ty- (" + y + ") = " + v);
+                    prob += v;
+                }
+
+                if(showProbs) System.err.println("\t\ttotal (" + zLabels[s] + ") = " + prob);
+                jointProbabilities.setCount(candidate, prob);
 
                 // update the current maximum
                 if (prob > maxProb) {
@@ -374,13 +360,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
                 // found the best flip for this mention
                 if(verbose) System.err.println("\tNEW zLabels[" + s + "] = " + bestLabel);
                 zLabels[s] = bestLabel;
-                // switch if we're flipping within the threshold or toward the threshold
-                if (classifyY(zLabels) == yLabel || bestLabel == yLabel) {
-                    zUpdatesInOneEpoch++;
-                    // otherwise switch back
-                } else {
-                    zLabels[s] = origZLabel;
-                }
+                zUpdatesInOneEpoch ++;
             } else {
                 // nothing good found
                 zLabels[s] = origZLabel;
@@ -389,7 +369,15 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
     }
 
     @Override
-    public Counter<String> classifyMentions(List<Datum<String,String>> sentences) {
-        throw new UnsupportedOperationException("classifyMentions not implemented");
+    /** updates the zLabels array with new predicted z labels */
+    void inferZLabels(Datum<String,String>[] group,
+                      Set<Integer> positiveLabels,
+                      Set<Integer> negativeLabels,
+                      int[] zLabels,
+                      Counter<String> [] zLogProbs,
+                      LinearClassifier<String, String> zClassifier,
+                      int epoch) {
+        throw new UnsupportedOperationException("inferZLabels not implemented!");
     }
+
 }
