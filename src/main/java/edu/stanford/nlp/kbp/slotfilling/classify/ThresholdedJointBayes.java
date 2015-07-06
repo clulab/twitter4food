@@ -376,10 +376,12 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
                 // found the best flip for this mention
                 if(verbose) System.err.println("\tNEW zLabels[" + s + "] = " + bestLabel);
                 zLabels[s] = bestLabel;
-                if (classifyY(zLabels) != yLabel) {
-                    zLabels[s] = origZLabel;
-                } else {
+                // switch if we're flipping within the threshold or toward the threshold
+                if (classifyY(zLabels) == yLabel || bestLabel == yLabel) {
                     zUpdatesInOneEpoch++;
+                    // otherwise switch back
+                } else {
+                    zLabels[s] = origZLabel;
                 }
             } else {
                 // nothing good found
