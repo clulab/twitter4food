@@ -95,6 +95,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
             // initialize classifiers
             zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex);
             // yClassifiers = initializeYClassifiersWithAtLeastOnce(yLabelIndex);
+            currentThreshold = initialThreshold;
 
             if(initialModelPath != null) {
                 try {
@@ -225,6 +226,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
             if(trainY) {
                 currentThreshold = setThreshold(zLabels, yLabels);
                 Log.severe("EPOCH " + epoch + ": threshold value " + currentThreshold);
+                System.err.println("EPOCH " + epoch + ": threshold value " + currentThreshold);
             }
 
             // save this epoch's model

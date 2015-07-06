@@ -8,7 +8,7 @@ import com.github.tototoshi.csv.CSVReader
  * Created by dfried on 5/6/15.
  */
 // tweets for an individual
-case class IndividualsTweets(val tweets: Seq[Tweet], val username: String, val label: Option[Int], val state: Option[String])
+case class IndividualsTweets(val tweets: List[Tweet], val username: String, val label: Option[Int], val state: Option[String])
 
 class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) extends Serializable {
   // baseDirectory should have one folder for each state
@@ -21,7 +21,8 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
     if (stateDir.isDirectory)
   } yield (stateDir.getName -> stateDir)).toMap
 
-  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles).toMap
+  // map(identity) because http://stackoverflow.com/questions/17709995/notserializableexception-for-mapstring-string-alias
+  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles).map(identity) 
 
   val userAnnotations: Map[String, Int] = IndividualsCorpus.labelsFromAnnotationFile(annotationFile, header = true)
 
@@ -74,16 +75,16 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
     file <- tweetFilesByState.values.flatten
     username = usernameForFile(file)
     if (usernames.contains(username))
-    tweets = tweetParser.parseTweetFile(io.Source.fromFile(file))
+    tweets = tweetParser.parseTweetFile(io.Source.fromFile(file)).toList
     label = userAnnotations(username)
   } yield IndividualsTweets(tweets, username, Some(label), state=None)).toSeq
 
-  val (testingTweets, devTweets) = {
+  val (testingTweets: List[IndividualsTweets], devTweets: List[IndividualsTweets]) = {
     val tweetParser = new MinimalTweetParser
-    (getAnnotatedTweetsMatchingUsernames(tweetParser, testingUsers), getAnnotatedTweetsMatchingUsernames(tweetParser, devUsers))
+    (getAnnotatedTweetsMatchingUsernames(tweetParser, testingUsers).toList, getAnnotatedTweetsMatchingUsernames(tweetParser, devUsers).toList)
   }
 
-  lazy val trainingTweetsByState: Map[String, Map[String, Seq[Tweet]]] = (for {
+  val trainingTweetsByState: Map[String, Map[String, Seq[Tweet]]] = (for {
     (state, tweetFiles) <- tweetFilesByState.par
   } yield (state -> getTrainingTweets(tweetFiles))).seq.toMap
 }

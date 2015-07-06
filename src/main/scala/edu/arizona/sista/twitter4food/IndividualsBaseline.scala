@@ -83,7 +83,7 @@ object IndividualsBaseline {
     def propLabels(tweetsByUserByState: Map[String, Map[String, Seq[Tweet]]]): Seq[IndividualsTweets] = for {
       (state, tweetsByUser) <- tweetsByUserByState.toSeq
       (username, tweets) <- tweetsByUser
-    } yield IndividualsTweets(tweets, username, Some(stateLabels(state)), Some(state))
+    } yield IndividualsTweets(tweets.toList, username, Some(stateLabels(state)), Some(state))
 
     propLabels(corpus.trainingTweetsByState)
   }

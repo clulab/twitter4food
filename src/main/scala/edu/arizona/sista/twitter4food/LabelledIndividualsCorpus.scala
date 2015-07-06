@@ -17,7 +17,7 @@ class LabelledIndividualsCorpus(val csvFileName: String, val tweetDirectory: Str
     if (labelsByUsername.contains(username))
     label = labelsByUsername(username)
     tweets = tweetParser.parseTweetFile(userFile.getAbsolutePath)
-  } yield IndividualsTweets(tweets, username, Some(label), None)
+  } yield IndividualsTweets(tweets.toList, username, Some(label), None)
 
 }
 
