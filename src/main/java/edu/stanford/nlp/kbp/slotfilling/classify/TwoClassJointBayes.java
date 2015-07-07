@@ -327,7 +327,7 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
                 // add the y probabilities
                 String yLabel = yLabelIndex.get(positiveLabels.iterator().next());
                 Datum<String, String> yDatum = new RVFDatum<String, String>(extractYFeatures(zLabels), "");
-                Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
+                Counter<String> yProbabilities = yClassifier.logProbabilityOf(yDatum);
                 double v = yProbabilities.getCount(yLabel);
                 if(showProbs) System.err.println("\t\t\ty+ (" + yLabel + ") = " + v);
                 prob += v;
