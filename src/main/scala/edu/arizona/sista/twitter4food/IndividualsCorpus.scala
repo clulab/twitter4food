@@ -84,7 +84,7 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
     (getAnnotatedTweetsMatchingUsernames(tweetParser, testingUsers).toList, getAnnotatedTweetsMatchingUsernames(tweetParser, devUsers).toList)
   }
 
-  val trainingTweetsByState: Map[String, Map[String, Seq[Tweet]]] = (for {
+  lazy val trainingTweetsByState: Map[String, Map[String, Seq[Tweet]]] = (for {
     (state, tweetFiles) <- tweetFilesByState.par
   } yield (state -> getTrainingTweets(tweetFiles))).seq.toMap
 }

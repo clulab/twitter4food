@@ -192,6 +192,18 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
                 }
             }
 
+            Log.severe("yDataset\n"+yDataset);
+            for (int i = 0; i < yDataset.getLabelsArray().length; i++) {
+                Log.severe("" + i + ": " + yDataset.getRVFDatum(i));
+            }
+            Log.severe("classifierWeights");
+            Log.severe("class " + positiveClass);
+            Log.severe("" + POSITIVE_CLASS_FRACTION + ":" + yClassifier.weight(POSITIVE_CLASS_FRACTION, positiveClass));
+            Log.severe("" + BIAS_FEAT + ":" + yClassifier.weight(BIAS_FEAT, positiveClass));
+            // Log.severe("class " + negativeClass);
+            // Log.severe("" + POSITIVE_CLASS_FRACTION + ":" + yClassifier.weight(POSITIVE_CLASS_FRACTION, negativeClass));
+            // Log.severe("" + BIAS_FEAT + ":" + yClassifier.weight(BIAS_FEAT, negativeClass));
+
             computeConfusionMatrixForCounts("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
             computeYScore("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
             computeYScore("(Z ONLY) EPOCH " + epoch, zLabelsPredictedByZ, data.getPositiveLabelsArray());
