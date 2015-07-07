@@ -366,4 +366,9 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
         throw new UnsupportedOperationException("inferZLabels not implemented!");
     }
 
+    @Override
+    public Counter<String> classifyMentions(List<Datum<String,String>> sentences) {
+        throw new UnsupportedOperationException("classifyMentions not implemented!");
+    }
+
 }
