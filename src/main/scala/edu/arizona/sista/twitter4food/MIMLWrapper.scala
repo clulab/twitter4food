@@ -1,6 +1,6 @@
 package edu.arizona.sista.twitter4food
 
-import edu.stanford.nlp.kbp.slotfilling.classify.{ThresholdedJointBayes, JointBayesRelationExtractor, MultiLabelDataset}
+import edu.stanford.nlp.kbp.slotfilling.classify.{ThresholdedJointBayes, JointBayesRelationExtractor, MultiLabelDataset, TwoClassJointBayes}
 import edu.stanford.nlp.ling.{RVFDatum => S_RVFDatum, Datum => S_Datum, BasicDatum => S_BasicDatum}
 import edu.stanford.nlp.stats.{Counter => S_Counter, ClassicCounter}
 import scala.collection.JavaConverters._
@@ -28,6 +28,7 @@ case class MIML[L, F](group: Seq[Counter[F]], labels: Set[L])
 trait YClassificationType
 case object LR extends YClassificationType
 case class Thresholded(positiveClass: String, negativeClass: String, initialThreshold: Double = 0.5) extends YClassificationType
+case class TwoClass(positiveClass: String, negativeClass: String) extends YClassificationType
 
 class MIMLWrapper(modelPath: Option[String] = None, numberOfTrainEpochs: Int = 6, numberOfFolds: Int = 5, localFilter: LocalDataFilter = AllFilter, featureModel: FeatureModel = AtLeastOnce, inferenceType: InferenceType = Stable, trainY: Boolean = true, onlyLocalTraining: Boolean = false, realValued: Boolean = true, zSigma: Double = 1.0, ySigma: Double = 1.0, classificationType: YClassificationType = LR) {
 
@@ -50,9 +51,11 @@ class MIMLWrapper(modelPath: Option[String] = None, numberOfTrainEpochs: Int = 6
       case Slow => "slow"
     }
 
+  // public TwoClassJointBayes(String initialModelPath, int numberOfTrainEpochs, int numberOfFolds, String localFilter, int featureModel, String inferenceType, boolean trainY, boolean onlyLocalTraining, boolean useRVF, double zSigma, double ySigma, String positiveClass, String negativeClass) {
   val jbre = classificationType match {
     case Thresholded(positiveClass, negativeClass, initialThreshold) => new ThresholdedJointBayes(modelPath.getOrElse(null), numberOfTrainEpochs, numberOfFolds, localFilterString, featureModelInt, inferenceTypeString, trainY, onlyLocalTraining, realValued, zSigma, initialThreshold, positiveClass, negativeClass)
     case LR =>  new JointBayesRelationExtractor(modelPath.getOrElse(null), numberOfTrainEpochs, numberOfFolds, localFilterString, featureModelInt, inferenceTypeString, trainY, onlyLocalTraining, realValued, zSigma, ySigma)
+    case TwoClass(positiveClass, negativeClass) => new TwoClassJointBayes(modelPath.getOrElse(null),  numberOfTrainEpochs, numberOfFolds, localFilterString, featureModelInt, inferenceTypeString, trainY, onlyLocalTraining, realValued, zSigma, ySigma, positiveClass, negativeClass);
   }
 
   def train(groups: Seq[MIML[String, String]]) = {

@@ -291,6 +291,7 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
         boolean showProbs = false;
         boolean verbose = true;
 
+        assert(positiveLabels.size() == 1);
         if(verbose) {
             System.err.print("inferZLabels: ");
             if(positiveLabels.size() > 1) System.err.println("MULTI RELATION");
@@ -323,28 +324,13 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
                 zLabels[s] = candidateIndex;
                 if(showProbs) System.err.println("\t\tlocal (" + zLabels[s] + ") = " + prob);
 
-                int[] labels = {positiveIndex, negativeIndex};
-
-                // TODO: here
                 // add the y probabilities
-                for (int y : labels) {
-                    String yLabel = yLabelIndex.get(y);
-                    Datum<String, String> yDatum =
-                            new RVFDatum<String, String>(extractYFeatures(zLabels), "");
-                    Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
-                    double v = yProbabilities.getCount(yLabel);
-                    if(showProbs) System.err.println("\t\t\ty+ (" + y + ") = " + v);
-                    prob += v;
-                }
-                for (int y : negativeLabels) {
-                    String yLabel = yLabelIndex.get(y);
-                    Datum<String, String> yDatum =
-                            new RVFDatum<String, String>(extractYFeatures(yLabel, zLabels, zLogProbs), "");
-                    Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
-                    double v = yProbabilities.getCount(JointlyTrainedRelationExtractor.UNRELATED);
-                    if(showProbs) System.err.println("\t\t\ty- (" + y + ") = " + v);
-                    prob += v;
-                }
+                String yLabel = yLabelIndex.get(positiveLabels.iterator().next());
+                Datum<String, String> yDatum = new RVFDatum<String, String>(extractYFeatures(zLabels), "");
+                Counter<String> yProbabilities = yClassifiers.get(yLabel).logProbabilityOf(yDatum);
+                double v = yProbabilities.getCount(yLabel);
+                if(showProbs) System.err.println("\t\t\ty+ (" + yLabel + ") = " + v);
+                prob += v;
 
                 if(showProbs) System.err.println("\t\ttotal (" + zLabels[s] + ") = " + prob);
                 jointProbabilities.setCount(candidate, prob);
