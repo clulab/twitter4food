@@ -76,6 +76,8 @@ object IndividualsMIML {
 
     val twoClassLR = StringUtils.getBool(props, "twoClassLR", false)
 
+    val excludeUsersWithMoreThan = StringUtils.getIntOption(props, "excludeUsersWithMoreThan")
+
     require(! (thresholded && twoClassLR), "cannot have thresholded and twoClassLR both set to true")
 
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
@@ -92,7 +94,7 @@ object IndividualsMIML {
         case None => new PrintWriter(System.out)
     }
 
-    def corpusFn() = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
+    def corpusFn() = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan)
 
     // since tokenization takes a while, give the option to load pre-tokenized tweets
     val individualsCorpus = binarizedCorpus match {

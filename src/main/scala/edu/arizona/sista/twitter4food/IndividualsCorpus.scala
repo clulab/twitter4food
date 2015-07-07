@@ -10,7 +10,7 @@ import com.github.tototoshi.csv.CSVReader
 // tweets for an individual
 case class IndividualsTweets(val tweets: List[Tweet], val username: String, val label: Option[Int], val state: Option[String])
 
-class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500)) extends Serializable {
+class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500), val excludeUsersWithMoreThan: Option[Int] = None) extends Serializable {
   // baseDirectory should have one folder for each state
   // each state folder contains a single file per user, containing tweets from that user
 
@@ -48,15 +48,18 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
   // map usernames to filtered tweets (annotated users excluded, and up to K users by number of tweets descending)
   private def getTrainingTweets(files: Array[File]): Map[String, Seq[Tweet]] = {
     // sort the tweet files by number of tweets, descending
-    val filesByNumTweets = files.toSeq.sortBy(file => {
+    val filesAndNumTweets: Seq[(File, Int)] = files.toSeq.map(file => {
       val source = io.Source.fromFile(file)
       val numLines = source.getLines.size
       source.close
-      - numLines
+      (file, numLines / 3)
     })
 
-    // get those which do not have annotations
-    var trainingFiles = filesByNumTweets.filter(file => ! testingUsers.contains(usernameForFile(file)) && !devUsers.contains(usernameForFile(file)))
+    // sort the files by number of tweets, descending, and only take those which we don't have annotations for and (if excludeUsersWithMoreThan is set) have fewer than that number of tweets (since users with many tweets are probably advertisers
+    var trainingFiles = (excludeUsersWithMoreThan match {
+      case None => filesAndNumTweets
+      case Some(k) => filesAndNumTweets.filter(_._2 <= k)
+    }).sortBy(- _._2).map(_._1).filter(file => ! testingUsers.contains(usernameForFile(file)) && !devUsers.contains(usernameForFile(file)))
 
     // if we have a limit, take only up to that many
     numToTake.foreach(k => trainingFiles = trainingFiles.take(k))
