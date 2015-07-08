@@ -296,7 +296,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
         int positiveCount = count(zLabelIndices, positiveIndex);
         int negativeCount = count(zLabelIndices, negativeIndex);
 
-        if ((double)positiveCount / negativeCount >= currentThreshold)
+        if ((double)positiveCount / (positiveCount + negativeCount) >= currentThreshold)
             return positiveIndex;
         else
             return negativeIndex;
