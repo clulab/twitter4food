@@ -40,6 +40,8 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
         Y_FEATURES_FOR_INITIAL_MODEL.add(BIAS_FEAT);
     }
 
+    private static final double MEDIUM_WEIGHT = +10;
+
     public TwoClassJointBayes(String initialModelPath, int numberOfTrainEpochs, int numberOfFolds, String localFilter, int featureModel, String inferenceType, boolean trainY, boolean onlyLocalTraining, boolean useRVF, double zSigma, double ySigma, String positiveClass, String negativeClass) {
         super(initialModelPath, numberOfTrainEpochs, numberOfFolds, localFilter, featureModel, inferenceType, trainY, onlyLocalTraining, useRVF, zSigma, ySigma);
         this.positiveClass = positiveClass;
@@ -103,7 +105,8 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
 
             // initialize classifiers
             zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex);
-            yClassifier = initializeYStupidly(yLabelIndex);
+            //yClassifier = initializeYStupidly(yLabelIndex);
+            yClassifier = initializeYStepFn(yLabelIndex);
 
             if(initialModelPath != null) {
                 try {
@@ -267,6 +270,26 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
 
         double[][] weights = initializeWeights(yFeatureIndex.size(), thisYLabelIndex.size());
         // do nothing, keep weights as 0
+        LinearClassifier<String, String> classifier =  new LinearClassifier<String, String>(weights, yFeatureIndex, thisYLabelIndex);
+        Log.severe("Created the classifier with " + yFeatureIndex.size() + " features");
+        return classifier;
+    }
+
+    private LinearClassifier<String, String> initializeYStepFn(Index<String> labelIndex) {
+        Index<String> yFeatureIndex = new HashIndex<String>();
+        yFeatureIndex.addAll(Y_FEATURES_FOR_INITIAL_MODEL);
+
+        Index<String> thisYLabelIndex = new HashIndex<String>();
+        thisYLabelIndex.add(positiveClass);
+        thisYLabelIndex.add(negativeClass);
+
+        double[][] weights = initializeWeights(yFeatureIndex.size(), thisYLabelIndex.size());
+
+        // use these weights so that POSITIVE_CLASS_FRACTION = 0.5 produces p = 0.5. MEDIUM_WEIGHT changes certainty
+        weights[yFeatureIndex.indexOf(POSITIVE_CLASS_FRACTION)][yLabelIndex.indexOf(positiveClass)] = MEDIUM_WEIGHT;
+        weights[yFeatureIndex.indexOf(POSITIVE_CLASS_FRACTION)][yLabelIndex.indexOf(negativeClass)] = - MEDIUM_WEIGHT;
+        weights[yFeatureIndex.indexOf(BIAS_FEAT)][yLabelIndex.indexOf(positiveClass)] = - MEDIUM_WEIGHT / 2;
+        weights[yFeatureIndex.indexOf(BIAS_FEAT)][yLabelIndex.indexOf(negativeClass)] = MEDIUM_WEIGHT / 2;
         LinearClassifier<String, String> classifier =  new LinearClassifier<String, String>(weights, yFeatureIndex, thisYLabelIndex);
         Log.severe("Created the classifier with " + yFeatureIndex.size() + " features");
         return classifier;
