@@ -386,6 +386,38 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
                 zLabels[s] = origZLabel;
             }
         } // end scan for group
+        while (classifyY(zLabels) != yLabel) {
+            double maxProb = Double.NEGATIVE_INFINITY;
+            int bestIndex = -1;
+            for (int s = 0; s < group.length; s++) {
+                // only possibly flip labels that aren't equal to yLabel
+                if (zLabels[s] == yLabel) continue;
+
+                Counter<String> zProbabilities = zLogProbs[s];
+
+                double thisProb;
+                if (yLabel == positiveIndex) {
+                    thisProb = zProbabilities.getCount(positiveClass);
+                } else if (yLabel == negativeIndex) {
+                    thisProb = zProbabilities.getCount(negativeClass);
+                } else {
+                    throw new RuntimeException("invalid label in training data " + yLabel);
+                }
+
+                if (thisProb > maxProb) {
+                    maxProb = thisProb;
+                    bestIndex = s;
+                }
+            }
+            if (bestIndex == -1) {
+                Log.severe("no labels left to switch, but does not match class label");
+                break;
+            } else {
+                Log.severe("switching label at index " + bestIndex + ", to class " + yLabel + " with probability " + maxProb);
+                zLabels[bestIndex] = yLabel;
+                zUpdatesInOneEpoch++;
+            }
+        }
     }
 
     @Override
