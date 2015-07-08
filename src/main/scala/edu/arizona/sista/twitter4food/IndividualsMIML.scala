@@ -9,7 +9,7 @@ import edu.arizona.sista.utils.StringUtils
 /**
  * Created by dfried on 5/6/15.
  */
-class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out), val onlyLocalTraining: Boolean = false, val zSigma: Double = 1.0, val ySigma: Double = 1.0, val thresholded: Boolean = false, val twoClassLR: Boolean = false)
+class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter = new java.io.PrintWriter(System.out), val onlyLocalTraining: Boolean = false, val zSigma: Double = 1.0, val ySigma: Double = 1.0, val thresholded: Boolean = false, val twoClassLR: Boolean = false, trainY: Boolean = true)
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
   require(!(thresholded && twoClassLR), "cannot have thresholded and twoClassLR")
@@ -37,7 +37,7 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
     val classificationType = if (twoClassLR) TwoClass("1", "0") else if (thresholded) Thresholded("1", "0", 0.5) else LR
 
 
-    val miml = new MIMLWrapper(realValued = realValued, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, classificationType=classificationType)
+    val miml = new MIMLWrapper(realValued = realValued, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, classificationType=classificationType, trainY=trainY)
     miml.train(stateMIMLs)
 
     val predictedLabels = for {
@@ -77,6 +77,8 @@ object IndividualsMIML {
     val twoClassLR = StringUtils.getBool(props, "twoClassLR", false)
 
     val excludeUsersWithMoreThan = StringUtils.getIntOption(props, "excludeUsersWithMoreThan")
+
+    val trainY = StringUtils.getBool(props, "trainY", true)
 
     require(! (thresholded && twoClassLR), "cannot have thresholded and twoClassLR both set to true")
 
@@ -173,7 +175,7 @@ object IndividualsMIML {
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
         classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
-    } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, thresholded=thresholded, twoClassLR=twoClassLR).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
+    } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, thresholded=thresholded, twoClassLR=twoClassLR, trainY=trainY).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
