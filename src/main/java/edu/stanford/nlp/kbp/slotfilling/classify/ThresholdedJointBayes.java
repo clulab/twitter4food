@@ -250,7 +250,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
     public double setThreshold(int[][] groupedZLabelIndices, int[] yLabels) {
         double[] ratios = new double[groupedZLabelIndices.length];
         for (int index = 0; index < groupedZLabelIndices.length; index++) {
-            ratios[index] = ((double) count(groupedZLabelIndices[index], positiveIndex)) / count(groupedZLabelIndices[index], negativeIndex);
+            ratios[index] = ((double) count(groupedZLabelIndices[index], positiveIndex)) / (count(groupedZLabelIndices[index], negativeIndex) + count(groupedZLabelIndices[index], positiveIndex));
         }
 
         double[] sortedRatios = Arrays.copyOf(ratios, ratios.length);
@@ -296,7 +296,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
         int positiveCount = count(zLabelIndices, positiveIndex);
         int negativeCount = count(zLabelIndices, negativeIndex);
 
-        if ((double)positiveCount / negativeCount >= currentThreshold)
+        if ((double)positiveCount / (positiveCount + negativeCount) >= currentThreshold)
             return positiveIndex;
         else
             return negativeIndex;
