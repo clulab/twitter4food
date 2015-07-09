@@ -109,6 +109,8 @@ object IndividualsCorpus {
       }
     } yield username -> label).toMap
 
+    reader.close()
+
     labelMap
   }
 }
