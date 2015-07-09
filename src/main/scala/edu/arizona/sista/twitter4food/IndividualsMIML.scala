@@ -80,6 +80,8 @@ object IndividualsMIML {
 
     val trainY = StringUtils.getBool(props, "trainY", true)
 
+    val resultsOut = StringUtils.getStringOption(props, "resultsOut")
+
     require(! (thresholded && twoClassLR), "cannot have thresholded and twoClassLR both set to true")
 
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
@@ -95,6 +97,8 @@ object IndividualsMIML {
         case Some(fileName) => new PrintWriter(new java.io.File(fileName))
         case None => new PrintWriter(System.out)
     }
+
+    val resultsPw: Option[PrintWriter] = resultsOut.map(filename => new PrintWriter(new java.io.File(filename)))
 
     def corpusFn() = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan)
 
@@ -208,21 +212,28 @@ object IndividualsMIML {
       }
       pw.println
 
-      // print each prediction
-      for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => (it.label.get, it.username) } )) {
-        pw.println(s"${tweets.username}\tact: ${tweets.label.get}\tpred: ${prediction}")
-      }
-      /*
-      // print predictions by state
-      for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
-        val (correct, total) = labelledAccuracy(statesInstances)
-        pw.println(s"${state}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
-      }
-      */
+      def printPredictions(printWriter: PrintWriter): Unit = {
+        // print each prediction
+        printWriter.println("username,actual,predicted")
+        for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => it.username } )) {
+          printWriter.println(s"${tweets.username},${tweets.label.get},${prediction}")
+        }
+        /*
+        // print predictions by state
+        for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
+          val (correct, total) = labelledAccuracy(statesInstances)
+          pw.println(s"${state}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
+        }
+        */
 
-      pw.println
-      pw.println
-    }
+        pw.println
+        pw.println
+      }
+
+      printPredictions(pw)
+      resultsPw.foreach(printPredictions)
+
+      }
 
     pw.println
     pw.println
@@ -233,6 +244,8 @@ object IndividualsMIML {
     } else {
       pw.flush()
     }
+
+    resultsPw.foreach(_.close)
   }
 
 }
