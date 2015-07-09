@@ -279,18 +279,14 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
         Index<String> yFeatureIndex = new HashIndex<String>();
         yFeatureIndex.addAll(Y_FEATURES_FOR_INITIAL_MODEL);
 
-        Index<String> thisYLabelIndex = new HashIndex<String>();
-        thisYLabelIndex.add(positiveClass);
-        thisYLabelIndex.add(negativeClass);
-
-        double[][] weights = initializeWeights(yFeatureIndex.size(), thisYLabelIndex.size());
+        double[][] weights = initializeWeights(yFeatureIndex.size(), labelIndex.size());
 
         // use these weights so that POSITIVE_CLASS_FRACTION = 0.5 produces p = 0.5. MEDIUM_WEIGHT changes certainty
-        weights[yFeatureIndex.indexOf(POSITIVE_CLASS_FRACTION)][yLabelIndex.indexOf(positiveClass)] = MEDIUM_WEIGHT;
-        weights[yFeatureIndex.indexOf(POSITIVE_CLASS_FRACTION)][yLabelIndex.indexOf(negativeClass)] = - MEDIUM_WEIGHT;
-        weights[yFeatureIndex.indexOf(BIAS_FEAT)][yLabelIndex.indexOf(positiveClass)] = - MEDIUM_WEIGHT / 2;
-        weights[yFeatureIndex.indexOf(BIAS_FEAT)][yLabelIndex.indexOf(negativeClass)] = MEDIUM_WEIGHT / 2;
-        LinearClassifier<String, String> classifier =  new LinearClassifier<String, String>(weights, yFeatureIndex, thisYLabelIndex);
+        weights[yFeatureIndex.indexOf(POSITIVE_CLASS_FRACTION)][labelIndex.indexOf(positiveClass)] = MEDIUM_WEIGHT;
+        weights[yFeatureIndex.indexOf(POSITIVE_CLASS_FRACTION)][labelIndex.indexOf(negativeClass)] = - MEDIUM_WEIGHT;
+        weights[yFeatureIndex.indexOf(BIAS_FEAT)][labelIndex.indexOf(positiveClass)] = - MEDIUM_WEIGHT / 2;
+        weights[yFeatureIndex.indexOf(BIAS_FEAT)][labelIndex.indexOf(negativeClass)] = MEDIUM_WEIGHT / 2;
+        LinearClassifier<String, String> classifier =  new LinearClassifier<String, String>(weights, yFeatureIndex, labelIndex);
         Log.severe("Created the classifier with " + yFeatureIndex.size() + " features");
         return classifier;
     }
