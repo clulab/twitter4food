@@ -23,7 +23,9 @@ trait InferenceType
 case object Stable extends InferenceType
 case object Slow extends InferenceType
 
-case class MIML[L, F](group: Seq[Counter[F]], labels: Set[L])
+case class NullableCounter[F](counter: Counter[F], initializeToNull: Boolean = false)
+
+case class MIML[L, F](group: Seq[NullableCounter[F]], labels: Set[L])
 
 trait YClassificationType
 case object LR extends YClassificationType
@@ -59,7 +61,7 @@ class MIMLWrapper(modelPath: Option[String] = None, numberOfTrainEpochs: Int = 6
   }
 
   def train(groups: Seq[MIML[String, String]]) = {
-    jbre.train(MIMLWrapper.makeMultiLabelDataset(groups, realValued))
+    jbre.train(MIMLWrapper.makeMultiLabelDataset(groups, realValued), groups.map(_.group.map(_.initializeToNull).toArray).toArray)
   }
 
   def classifyGroup(group: Seq[Counter[String]]): Seq[(String, Double)] = {
@@ -82,7 +84,7 @@ object MIMLWrapper {
     val mld = new MultiLabelDataset[L, F]
     for (labelledGroup <- groups) {
       val datums: Seq[S_Datum[L, F]] = for {
-        counter <- labelledGroup.group
+        NullableCounter(counter, _) <- labelledGroup.group
         datum = if (realValued)
           counterToRVFDatum[L,F](counter)
         else

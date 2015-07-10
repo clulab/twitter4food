@@ -46,7 +46,7 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
     }
 
     @Override
-    public void train(MultiLabelDataset<String, String> data) {
+    public void train(MultiLabelDataset<String, String> data, boolean[][] initialNulls) {
 
         // filter some of the groups
         if(localDataFilter instanceof LargeFilter) {
@@ -122,6 +122,13 @@ public class ThresholdedJointBayes extends JointBayesRelationExtractor {
 
         // initialize predicted z labels
         int[][] zLabels = initializeZLabels(data);
+        for (int i = 0; i < zLabels.length; i++) {
+            for (int j = 0; j < zLabels[i].length; j++) {
+                if (initialNulls[i][j]) {
+                    zLabels[i][j] = zLabelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
+                }
+            }
+        }
         computeConfusionMatrixForCounts("LOCAL", zLabels, data.getPositiveLabelsArray());
         computeYScore("LOCAL", zLabels, data.getPositiveLabelsArray());
 

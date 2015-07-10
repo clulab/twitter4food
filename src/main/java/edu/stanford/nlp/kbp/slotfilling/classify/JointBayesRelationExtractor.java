@@ -308,9 +308,17 @@ public class JointBayesRelationExtractor
   private static String makeCoocurrenceFeature(String src, String dst) {
     return "co:s|" + src + "|d|" + dst + "|";
   }
+
+  public void train(MultiLabelDataset<String, String> data) {
+    boolean [][] initialNulls = new boolean[data.getDataArray().length][];
+    for (int i = 0; i < initialNulls.length; i++) {
+      initialNulls[i] = new boolean[data.getDataArray()[i].length];
+    }
+    train(data, initialNulls);
+  }
   
   // @Override
-  public void train(MultiLabelDataset<String, String> data) {
+  public void train(MultiLabelDataset<String, String> data, boolean [][] initialNulls) {
     
     // filter some of the groups
     if(localDataFilter instanceof LargeFilter) {
@@ -382,6 +390,13 @@ public class JointBayesRelationExtractor
 
     // initialize predicted z labels
     int[][] zLabels = initializeZLabels(data);
+    for (int i = 0; i < zLabels.length; i++) {
+      for (int j = 0; j < zLabels[i].length; j++) {
+        if (initialNulls[i][j]) {
+          zLabels[i][j] = zLabelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
+        }
+      }
+    }
     computeConfusionMatrixForCounts("LOCAL", zLabels, data.getPositiveLabelsArray());
     computeYScore("LOCAL", zLabels, data.getPositiveLabelsArray());
     
