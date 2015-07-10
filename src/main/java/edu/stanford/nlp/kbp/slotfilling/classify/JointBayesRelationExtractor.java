@@ -460,7 +460,7 @@ public class JointBayesRelationExtractor
           }
         }
       }
-      
+
       computeConfusionMatrixForCounts("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
       computeYScore("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
       computeYScore("(Z ONLY) EPOCH " + epoch, zLabelsPredictedByZ, data.getPositiveLabelsArray());
@@ -496,7 +496,22 @@ public class JointBayesRelationExtractor
           yClassifiers.put(yLabel, yFactory.trainClassifier(trainSet));
         }
       }
-          
+
+      for (String yLabel: yLabelIndex.objectsList()) {
+        RVFDataset<String, String> yDataset = yDatasets.get(yLabel);
+        Log.severe("yDataset for label" + yLabel);
+        for (int i = 0; i < yDataset.getLabelsArray().length; i++) {
+          Log.severe("" + i + ": " + yDataset.getRVFDatum(i));
+        }
+        Log.severe("classifierWeights");
+        Log.severe("class " + yLabel);
+        LinearClassifier<String,String> yClassifier = yClassifiers.get(yLabel);
+        for (String feature: yClassifier.features()) {
+          Log.severe("" + feature + ":" + yClassifier.weight(feature, yLabel));
+          Log.severe("" + feature + ":" + yClassifier.weight(feature, yLabel));
+        }
+      }
+
       // save this epoch's model
       String epochPath = makeEpochPath(epoch);
       try {
