@@ -12,6 +12,7 @@ import edu.arizona.sista.struct.Counter
 trait FeatureModel
 case object AtLeastOnce extends FeatureModel
 case object LabelDependencies extends FeatureModel
+case object Fractions extends FeatureModel
 
 trait LocalDataFilter
 case object AllFilter extends LocalDataFilter
@@ -46,7 +47,7 @@ class MIMLWrapper(modelPath: Option[String] = None, numberOfTrainEpochs: Int = 6
       case LargeFilter(k) => s"large$k"
     }
 
-  val featureModelInt = featureModel match { case AtLeastOnce => 0; case LabelDependencies => 1}
+  val featureModelInt = featureModel match { case AtLeastOnce => 0; case LabelDependencies => 1; case Fractions => 2}
 
   val inferenceTypeString = inferenceType match {
       case Stable => "stable"

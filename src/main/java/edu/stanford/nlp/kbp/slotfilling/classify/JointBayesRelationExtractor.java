@@ -10,7 +10,6 @@ import java.io.ObjectOutputStream;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -1367,6 +1366,11 @@ public class JointBayesRelationExtractor
       return extractYFeaturesBoolean(yLabel, zLabels, zLogProbs, true);
     }
 
+    if (featureModel == 2) {
+      // numeric fractions: number of times ylabel appears out of total number of Ys
+      return extractYFeaturesFractions(yLabel, zLabels, zLogProbs);
+    }
+
     throw new RuntimeException("ERROR: unknown feature model " + featureModel);
   }
 
@@ -1406,6 +1410,33 @@ public class JointBayesRelationExtractor
           features.setCount(f, 1.0);
         }
       }
+    }
+
+    return features;
+  }
+
+  private Counter<String> extractYFeaturesFractions(
+          String yLabel,
+          int[] zLabels,
+          Counter<String>[] zLogProbs) {
+    assert(! yLabel.equals(JointlyTrainedRelationExtractor.UNRELATED));
+    int count = 0;
+    for (int s = 0; s < zLabels.length; s ++) {
+      String zString = zLabelIndex.get(zLabels[s]);
+      if (zString.equals(yLabel)) {
+        count ++;
+      }
+    }
+
+    Counter<String> features = new ClassicCounter<String>();
+
+    // was this label proposed by at least a Z?
+    if (count > 0) {
+      features.setCount(ATLEASTONCE_FEAT, ((float) count) / zLabels.length);
+    }
+    // no Z proposed this label
+    else if(count == 0){
+      features.setCount(NONE_FEAT, 1.0);
     }
 
     return features;
