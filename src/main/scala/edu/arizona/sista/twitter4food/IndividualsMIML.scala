@@ -73,8 +73,6 @@ object IndividualsMIML {
 
     val evaluateOnDev = StringUtils.getBoolOption(props, "evaluateOnDev").get
 
-    val binarizedCorpus = StringUtils.getStringOption(props, "binarizedCorpus")
-
     val thresholded = StringUtils.getBool(props, "thresholded", false)
 
     val twoClassLR = StringUtils.getBool(props, "twoClassLR", false)
@@ -107,27 +105,7 @@ object IndividualsMIML {
 
     val resultsPw: Option[PrintWriter] = resultsOut.map(filename => new PrintWriter(new java.io.File(filename)))
 
-    def corpusFn() = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan)
-
-    // since tokenization takes a while, give the option to load pre-tokenized tweets
-    val individualsCorpus = binarizedCorpus match {
-      case Some(file) => {
-        // if we've passed a filename storing the tokenized tweets, try to load the corpus from it
-        try {
-          Serialization.load(file)
-        }
-          // if we can't, load and tokenize the tweets and then save them to the file
-        catch {
-          case _ : Throwable => {
-            val corpus = corpusFn()
-            Serialization.save(corpus, file)
-            corpus
-          }
-        }
-      }
-        // otherwise just load and tokenize the tweets
-      case None => corpusFn()
-    }
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan)
 
     val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals).mapValues(_.toString)
 
@@ -149,18 +127,13 @@ object IndividualsMIML {
         //List(SentimentAnnotator),
         // List(LDAAnnotator(tokenTypes)),
         List())
-      // classifierType <- List(RandomForest, SVM_L2)
-      classifierType: ClassifierType <- List(SVM_L2)
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
       ngramThreshold = Some(3)
       // split feature values into this number of quantiles
-      numFeatureBins = classifierType match {
-        case RandomForest => Some(3)
-        case _ => None
-      }
+      numFeatureBins = None
       // use a bias in the SVM?
       useBias = false
       // use regions as features?
@@ -169,10 +142,7 @@ object IndividualsMIML {
       // Some(k) to use k classifiers bagged, or None to not do bagging
       baggingNClassifiers <- List(None)
       // force use of features that we think will be informative in random forests?
-      forceFeatures = classifierType match {
-        case RandomForest => true
-        case _ => false
-      }
+      forceFeatures = false
       // Some(k) to keep k features ranked by mutual information, or None to not do this
       miNumToKeep: Option[Int] = None
       // Some(k) to limit random forest tree depth to k levels, or None to not do this
@@ -184,7 +154,8 @@ object IndividualsMIML {
       filterFoodTweets = true
 
       params = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
-        classifierType, useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
+        classifierType=SVM_L2, // note: this is ignored
+        useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
     } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, thresholded=thresholded, twoClassLR=twoClassLR, trainY=trainY, featureModel=featureModel).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued, initializeOrganizationsToNull=initializeOrganizationsToNull)).seq
 
@@ -225,13 +196,6 @@ object IndividualsMIML {
         for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => it.username } )) {
           printWriter.println(s"${tweets.username},${tweets.label.get},${prediction}")
         }
-        /*
-        // print predictions by state
-        for ((state, statesInstances) <- labelledInstances.groupBy( { case (it, prediction)  => it.state.get }).toSeq.sortBy(_._1)) {
-          val (correct, total) = labelledAccuracy(statesInstances)
-          pw.println(s"${state}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
-        }
-        */
 
         pw.println
         pw.println
