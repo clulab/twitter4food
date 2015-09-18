@@ -9,7 +9,7 @@ import java.io.PrintWriter
 import java.util.Date
 import scala.collection.JavaConversions.asScalaBuffer
 
-class ScrapeIndividuals {
+object ScrapeIndividuals {
   val SLEEP = 3100
 
   def dateToString(d: Date): String = if(d == null) "NIL" else d.toString
@@ -44,8 +44,7 @@ class ScrapeIndividuals {
     s.replaceAll("[\\t\\n\\r]+", " ")
   }
 
-  def main(args: Seq[String]) = {
-    val threshold = 5
+  def main(args: Array[String]) = {
     val ratedIndividualsFiles = "/edu/arizona/sista/twitter4food/rated_individuals.csv"
     val bufferedSource = io.Source.fromURL(ratedIndividualsFiles)
     val userWeight = (for (line <- bufferedSource.getLines) yield {
