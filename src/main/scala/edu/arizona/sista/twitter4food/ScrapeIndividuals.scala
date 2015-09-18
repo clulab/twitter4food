@@ -9,7 +9,7 @@ import java.util.Date
 import scala.collection.JavaConversions.asScalaBuffer
 
 object ScrapeIndividuals {
-  val SLEEP = 3100
+  val SLEEP = 5500
 
   def dateToString(d: Date): String = if(d == null) "NIL" else d.toString
 
@@ -126,17 +126,17 @@ object ScrapeIndividuals {
 
 
         //   xps 0
-        cb.setOAuthConsumerKey("CBnHVyQnRg9KIFobTROtkbHRA")
-        cb.setOAuthConsumerSecret("KmHxrNtKQK3GmtxNGPV5qMREhEFQWIbijVDk8LgmzLQsdohTsb")
-        cb.setOAuthAccessToken("3177229782-7DBC7LPqbjsiTvyYudQFtBqfQlC0TfYocPlupnI")
-        cb.setOAuthAccessTokenSecret("Kw0gnSPE4AkWBMpJ8gNtir8izGcZxWpTW67CVDqkoEkkY")
+//        cb.setOAuthConsumerKey("CBnHVyQnRg9KIFobTROtkbHRA")
+//        cb.setOAuthConsumerSecret("KmHxrNtKQK3GmtxNGPV5qMREhEFQWIbijVDk8LgmzLQsdohTsb")
+//        cb.setOAuthAccessToken("3177229782-7DBC7LPqbjsiTvyYudQFtBqfQlC0TfYocPlupnI")
+//        cb.setOAuthAccessTokenSecret("Kw0gnSPE4AkWBMpJ8gNtir8izGcZxWpTW67CVDqkoEkkY")
 
 
         //xps 1
-        //	         cb.setOAuthConsumerKey("DSlsEVL8jUhLn3YCMITQOE750")
-        //   cb.setOAuthConsumerSecret("DJ9fpErgd906ZlBnhFJZpModXwMbKpylanxPT2qgTd9OsqE4Wt")
-        //   cb.setOAuthAccessToken("3009667412-TBfLtoYtn9Eh7OZPWK4hEW5Vdt9PD7CHpzv0Nun")
-        //   cb.setOAuthAccessTokenSecret("fTIri69QpNypdkCjTlKdAo4OWWv3AAqy9MHUnCAZ6h4Xc")
+        cb.setOAuthConsumerKey("DSlsEVL8jUhLn3YCMITQOE750")
+        cb.setOAuthConsumerSecret("DJ9fpErgd906ZlBnhFJZpModXwMbKpylanxPT2qgTd9OsqE4Wt")
+        cb.setOAuthAccessToken("3009667412-TBfLtoYtn9Eh7OZPWK4hEW5Vdt9PD7CHpzv0Nun")
+        cb.setOAuthAccessTokenSecret("fTIri69QpNypdkCjTlKdAo4OWWv3AAqy9MHUnCAZ6h4Xc")
         //
         ////
 
@@ -212,8 +212,8 @@ object ScrapeIndividuals {
 
         val twitter: Twitter = new TwitterFactory(cb.build()).getInstance()
         for (i <- 1 to 16) {//get the first i pages of 200 tweets (we expect i*200 tweets), max 3200 total
-        val paging = new Paging(i, 200); //200 is the max # of tweets per page
-        val statuses = twitter.getUserTimeline(userHandle, paging)
+          val paging = new Paging(i, 200); //200 is the max # of tweets per page
+          val statuses = twitter.getUserTimeline(userHandle, paging)
           if(statuses!=null && statuses.size > 0){
             val u = statuses.get(0).getUser()
             val uCreatedAt = dateToString(u.getCreatedAt())
