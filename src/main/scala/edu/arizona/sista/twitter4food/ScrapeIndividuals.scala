@@ -9,7 +9,7 @@ import java.util.Date
 import scala.collection.JavaConversions.asScalaBuffer
 
 object ScrapeIndividuals {
-  val SLEEP = 3100
+  val SLEEP = 5500
 
   def dateToString(d: Date): String = if(d == null) "NIL" else d.toString
 
@@ -126,17 +126,17 @@ object ScrapeIndividuals {
 
 
         //   xps 0
+//        cb.setOAuthConsumerKey("")
+//        cb.setOAuthConsumerSecret("")
+//        cb.setOAuthAccessToken("")
+//        cb.setOAuthAccessTokenSecret("")
+
+
+        //xps 1
         cb.setOAuthConsumerKey("")
         cb.setOAuthConsumerSecret("")
         cb.setOAuthAccessToken("")
         cb.setOAuthAccessTokenSecret("")
-
-
-        //xps 1
-        //	         cb.setOAuthConsumerKey("")
-        //   cb.setOAuthConsumerSecret("")
-        //   cb.setOAuthAccessToken("")
-        //   cb.setOAuthAccessTokenSecret("")
         //
         ////
 
@@ -212,8 +212,8 @@ object ScrapeIndividuals {
 
         val twitter: Twitter = new TwitterFactory(cb.build()).getInstance()
         for (i <- 1 to 16) {//get the first i pages of 200 tweets (we expect i*200 tweets), max 3200 total
-        val paging = new Paging(i, 200); //200 is the max # of tweets per page
-        val statuses = twitter.getUserTimeline(userHandle, paging)
+          val paging = new Paging(i, 200); //200 is the max # of tweets per page
+          val statuses = twitter.getUserTimeline(userHandle, paging)
           if(statuses!=null && statuses.size > 0){
             val u = statuses.get(0).getUser()
             val uCreatedAt = dateToString(u.getCreatedAt())
