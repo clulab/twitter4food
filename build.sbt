@@ -2,7 +2,7 @@ name := "twitter4food"
 
 version := "1.0"
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.7"
 
 resolvers ++= Seq(
   "amateras-repo" at "http://amateras.sourceforge.jp/mvn/"
