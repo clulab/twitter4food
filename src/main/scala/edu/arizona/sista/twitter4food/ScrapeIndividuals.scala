@@ -45,7 +45,7 @@ object ScrapeIndividuals {
 
   def main(args: Array[String]) = {
     val ratedIndividualsFiles = "/work/dane/rated_individuals.csv"
-    val bufferedSource = scala.io.Source.fromFile(ratedIndividualsFiles))
+    val bufferedSource = scala.io.Source.fromFile(ratedIndividualsFiles)
     val userWeight = (for (line <- bufferedSource.getLines) yield {
       val Array(userHandle, label) = line.split(",").map(_.trim)
       userHandle -> label
