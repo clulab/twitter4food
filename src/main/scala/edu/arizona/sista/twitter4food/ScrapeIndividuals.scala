@@ -214,7 +214,7 @@ object ScrapeIndividuals {
         for (i <- 1 to 16) {//get the first i pages of 200 tweets (we expect i*200 tweets), max 3200 total
         val paging = new Paging(i, 200); //200 is the max # of tweets per page
         val statuses = twitter.getUserTimeline(userHandle, paging)
-          if(statuses!=null){
+          if(statuses!=null && statuses.size > 0){
             val u = statuses.get(0).getUser()
             val uCreatedAt = dateToString(u.getCreatedAt())
             for (status <- asScalaBuffer(statuses)) {
