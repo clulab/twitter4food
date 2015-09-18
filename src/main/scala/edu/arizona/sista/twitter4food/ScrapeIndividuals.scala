@@ -26,7 +26,7 @@ class ScrapeIndividuals {
         i <- 1 until gs.length
         j <- 1 until gs(i).length
       } {
-        os.append("/" + geoLocationToString(gs(i)(j))
+        os.append("/" + geoLocationToString(gs(i)(j)))
       }
       os.toString
     }
