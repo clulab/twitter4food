@@ -1,11 +1,10 @@
 package edu.arizona.sista.twitter4food
 
+import java.io.{FileOutputStream, PrintWriter, File}
+
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 
-import java.io.File
-import java.io.FileOutputStream
-import java.io.PrintWriter
 import java.util.Date
 import scala.collection.JavaConversions.asScalaBuffer
 
