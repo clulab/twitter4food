@@ -46,7 +46,7 @@ object ScrapeIndividuals {
 
   def main(args: Array[String]) = {
     val ratedIndividualsFiles = "/edu/arizona/sista/twitter4food/rated_individuals.csv"
-    val bufferedSource = fromURL(ratedIndividualsFiles)
+    val bufferedSource = fromURL(getClass.getResource(ratedIndividualsFiles))
     val userWeight = (for (line <- bufferedSource.getLines) yield {
       val Array(userHandle, label) = line.split(",").map(_.trim)
       userHandle -> label
