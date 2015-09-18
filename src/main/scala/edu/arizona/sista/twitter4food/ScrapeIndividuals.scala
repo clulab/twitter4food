@@ -7,6 +7,7 @@ import twitter4j.conf.ConfigurationBuilder
 
 import java.util.Date
 import scala.collection.JavaConversions.asScalaBuffer
+import scala.io.Source.fromURL
 
 object ScrapeIndividuals {
   val SLEEP = 3100
@@ -45,7 +46,7 @@ object ScrapeIndividuals {
 
   def main(args: Array[String]) = {
     val ratedIndividualsFiles = "/edu/arizona/sista/twitter4food/rated_individuals.csv"
-    val bufferedSource = scala.io.Source.fromURL(ratedIndividualsFiles)
+    val bufferedSource = fromURL(ratedIndividualsFiles)
     val userWeight = (for (line <- bufferedSource.getLines) yield {
       val Array(userHandle, label) = line.split(",").map(_.trim)
       userHandle -> label
