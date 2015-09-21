@@ -9,7 +9,7 @@ import java.util.Date
 import scala.collection.JavaConversions.asScalaBuffer
 
 object ScrapeIndividuals {
-  val SLEEP = 5500
+  val SLEEP = 8000
 
   def dateToString(d: Date): String = if(d == null) "NIL" else d.toString
 
@@ -132,20 +132,20 @@ object ScrapeIndividuals {
 //        cb.setOAuthAccessTokenSecret("")
 
 
-        //xps 1
-        cb.setOAuthConsumerKey("")
-        cb.setOAuthConsumerSecret("")
-        cb.setOAuthAccessToken("")
-        cb.setOAuthAccessTokenSecret("")
+        // xps 1
+        // cb.setOAuthConsumerKey("")
+        // cb.setOAuthConsumerSecret("")
+        // cb.setOAuthAccessToken("")
+        // cb.setOAuthAccessTokenSecret("")
         //
         ////
 
 
         //xps 2
-        //	  	         cb.setOAuthConsumerKey("")
-        //   cb.setOAuthConsumerSecret("")
-        //   cb.setOAuthAccessToken("")
-        //   cb.setOAuthAccessTokenSecret("")
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
         //
 
 
