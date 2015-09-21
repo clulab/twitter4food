@@ -9,7 +9,7 @@ import java.util.Date
 import scala.collection.JavaConversions.asScalaBuffer
 
 object ScrapeIndividuals {
-  val SLEEP = 5500
+  val SLEEP = 8000
 
   def dateToString(d: Date): String = if(d == null) "NIL" else d.toString
 
@@ -132,20 +132,20 @@ object ScrapeIndividuals {
 //        cb.setOAuthAccessTokenSecret("Kw0gnSPE4AkWBMpJ8gNtir8izGcZxWpTW67CVDqkoEkkY")
 
 
-        //xps 1
-        cb.setOAuthConsumerKey("DSlsEVL8jUhLn3YCMITQOE750")
-        cb.setOAuthConsumerSecret("DJ9fpErgd906ZlBnhFJZpModXwMbKpylanxPT2qgTd9OsqE4Wt")
-        cb.setOAuthAccessToken("3009667412-TBfLtoYtn9Eh7OZPWK4hEW5Vdt9PD7CHpzv0Nun")
-        cb.setOAuthAccessTokenSecret("fTIri69QpNypdkCjTlKdAo4OWWv3AAqy9MHUnCAZ6h4Xc")
+        // xps 1
+        // cb.setOAuthConsumerKey("DSlsEVL8jUhLn3YCMITQOE750")
+        // cb.setOAuthConsumerSecret("DJ9fpErgd906ZlBnhFJZpModXwMbKpylanxPT2qgTd9OsqE4Wt")
+        // cb.setOAuthAccessToken("3009667412-TBfLtoYtn9Eh7OZPWK4hEW5Vdt9PD7CHpzv0Nun")
+        // cb.setOAuthAccessTokenSecret("fTIri69QpNypdkCjTlKdAo4OWWv3AAqy9MHUnCAZ6h4Xc")
         //
         ////
 
 
         //xps 2
-        //	  	         cb.setOAuthConsumerKey("2YgqSp46Y0OWU2iKfZBGE1Ajq")
-        //   cb.setOAuthConsumerSecret("L9cDALuThICHpk8RPgAgAonRSxd5chsxftnVY8MnnrWV145OSN")
-        //   cb.setOAuthAccessToken("3009667412-fibZytzxxFICr9inAk6qlq7KaaKeW2J0xRTcErt")
-        //   cb.setOAuthAccessTokenSecret("e0G8HH00rB8H1HnAaGpVdmxgFkFtoki9PB3P2MBRuJd5y")
+        cb.setOAuthConsumerKey("2YgqSp46Y0OWU2iKfZBGE1Ajq")
+        cb.setOAuthConsumerSecret("L9cDALuThICHpk8RPgAgAonRSxd5chsxftnVY8MnnrWV145OSN")
+        cb.setOAuthAccessToken("3009667412-fibZytzxxFICr9inAk6qlq7KaaKeW2J0xRTcErt")
+        cb.setOAuthAccessTokenSecret("e0G8HH00rB8H1HnAaGpVdmxgFkFtoki9PB3P2MBRuJd5y")
         //
 
 
