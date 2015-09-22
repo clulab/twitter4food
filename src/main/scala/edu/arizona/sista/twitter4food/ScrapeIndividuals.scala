@@ -43,6 +43,128 @@ object ScrapeIndividuals {
     s.replaceAll("[\\t\\n\\r]+", " ")
   }
 
+  def mkConfig: ConfigurationBuilder = {
+    val cb = new ConfigurationBuilder()
+    cb.setDebugEnabled(false)
+    val rand = new scala.util.Random()
+    val cset = rand.nextInt() % 18
+    cset match {
+      case 0 => {
+        // app name: search4food ***** Twitter4Food
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 1 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 2 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 3 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 4 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 5 => {
+        //       app name: search4food2
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 6 => {
+        //for DELL computer
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 7 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 8 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 9 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 10 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 11 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 12 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 13 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 14 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 15 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case 16 => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+      case _ => {
+        cb.setOAuthConsumerKey("")
+        cb.setOAuthConsumerSecret("")
+        cb.setOAuthAccessToken("")
+        cb.setOAuthAccessTokenSecret("")
+      }
+    }
+
+  cb
+  }
+
   def main(args: Array[String]) = {
     val ratedIndividualsFiles = "/work/dane/rated_individuals.csv"
     val bufferedSource = scala.io.Source.fromFile(ratedIndividualsFiles)
@@ -74,168 +196,72 @@ object ScrapeIndividuals {
       val userfile = new File(output)
       if(!userfile.exists()){
         val pw = new PrintWriter(new FileOutputStream(output, true))
-        val cb = new ConfigurationBuilder()
-        cb.setDebugEnabled(false)
-        // app name: search4food ***** Twitter4Food
-        //first
-
-        //      cb.setOAuthConsumerKey("")
-        //      cb.setOAuthConsumerSecret("")
-        //      cb.setOAuthAccessToken("")
-        //      cb.setOAuthAccessTokenSecret("")
-
-        //fail
-        //      cb.setOAuthConsumerKey("")
-        //      cb.setOAuthConsumerSecret("")
-        //      cb.setOAuthAccessToken("")
-        //      cb.setOAuthAccessTokenSecret("")
-
-
-        //    cb.setOAuthConsumerKey("")
-        //    cb.setOAuthConsumerSecret("")
-        //    cb.setOAuthAccessToken("")
-        //    cb.setOAuthAccessTokenSecret("")
-
-        //
-        //    cb.setOAuthConsumerKey("")
-        //    cb.setOAuthConsumerSecret("")
-        //    cb.setOAuthAccessToken("")
-        //    cb.setOAuthAccessTokenSecret("")
-
-        //
-        //      cb.setOAuthConsumerKey("")
-        //      cb.setOAuthConsumerSecret("")
-        //      cb.setOAuthAccessToken("")
-        //      cb.setOAuthAccessTokenSecret("")
-
-
-        //       app name: search4food2
-        //      cb.setOAuthConsumerKey("")
-        //      cb.setOAuthConsumerSecret("")
-        //      cb.setOAuthAccessToken("")
-        //      cb.setOAuthAccessTokenSecret("")
-
-
-        //for DELL computer
-        //	       cb.setOAuthConsumerKey("")
-        //   cb.setOAuthConsumerSecret("")
-        //   cb.setOAuthAccessToken("")
-        //   cb.setOAuthAccessTokenSecret("")
-        ////
-        //
-
-
-        //   xps 0
-//        cb.setOAuthConsumerKey("")
-//        cb.setOAuthConsumerSecret("")
-//        cb.setOAuthAccessToken("")
-//        cb.setOAuthAccessTokenSecret("")
-
-
-        // xps 1
-        // cb.setOAuthConsumerKey("")
-        // cb.setOAuthConsumerSecret("")
-        // cb.setOAuthAccessToken("")
-        // cb.setOAuthAccessTokenSecret("")
-        //
-        ////
-
-
-        //xps 2
-        cb.setOAuthConsumerKey("")
-        cb.setOAuthConsumerSecret("")
-        cb.setOAuthAccessToken("")
-        cb.setOAuthAccessTokenSecret("")
-        //
-
-
-        //xps3
-        //	  	  	         cb.setOAuthConsumerKey("")
-        //   cb.setOAuthConsumerSecret("")
-        //   cb.setOAuthAccessToken("")
-        //   cb.setOAuthAccessTokenSecret("")
-
-
-        //   xps 4
-        //       cb.setOAuthConsumerKey("")
-        //cb.setOAuthConsumerSecret("")
-        //cb.setOAuthAccessToken("")
-        //cb.setOAuthAccessTokenSecret("")
-
-
-        //   xps 5
-        //      cb.setOAuthConsumerKey("")
-        //cb.setOAuthConsumerSecret("")
-        //cb.setOAuthAccessToken("")
-        //cb.setOAuthAccessTokenSecret("")
-
-
-        //   xps 6
-        //      cb.setOAuthConsumerKey("")
-        //cb.setOAuthConsumerSecret("")
-        //cb.setOAuthAccessToken("")
-        //cb.setOAuthAccessTokenSecret("")
-
-
-        //   xps 7
-        //   cb.setOAuthConsumerKey("")
-        //cb.setOAuthConsumerSecret("")
-        //cb.setOAuthAccessToken("")
-        //cb.setOAuthAccessTokenSecret("")
-
-
-        //   xps 8
-        //      cb.setOAuthConsumerKey("")
-        //   cb.setOAuthConsumerSecret("")
-        //   cb.setOAuthAccessToken("")
-        //   cb.setOAuthAccessTokenSecret("")
-
-        //   xps 9
-        //    	      cb.setOAuthConsumerKey("")
-        //    	   cb.setOAuthConsumerSecret("")
-        //    	   cb.setOAuthAccessToken("")
-        //    	   cb.setOAuthAccessTokenSecret("")
-
-
-
-        //  	   //   xps 10
-        //     	      cb.setOAuthConsumerKey("")
-        //     	   cb.setOAuthConsumerSecret("")
-        //     	   cb.setOAuthAccessToken("")
-        //     	   cb.setOAuthAccessTokenSecret("")
-        //
-
+        var cb = mkConfig
 
         println("Getting Tweets: ")
 
         ////////////////Right here the program really starts - Gets the user tweets////
 
-        val twitter: Twitter = new TwitterFactory(cb.build()).getInstance()
+        var twitter: Twitter = new TwitterFactory(cb.build()).getInstance()
         for (i <- 1 to 16) {//get the first i pages of 200 tweets (we expect i*200 tweets), max 3200 total
-          val paging = new Paging(i, 200); //200 is the max # of tweets per page
-          val statuses = twitter.getUserTimeline(userHandle, paging)
-          if(statuses!=null && statuses.size > 0){
-            val u = statuses.get(0).getUser()
-            val uCreatedAt = dateToString(u.getCreatedAt())
-            for (status <- asScalaBuffer(statuses)) {
-              pw.println(
-                "@" + u.getScreenName() + "\t" +
-                  c(u.getName()) + "\t" +
-                  c(u.getId().toString) + "\t" +
-                  c(u.getLocation()) + "\t" +
-                  c(u.getFollowersCount().toString) + "\t" +
-                  c(u.getUtcOffset().toString) + "\t" +
-                  c(u.getTimeZone()) + "\t" +
-                  c(uCreatedAt.toString) + "\t" +
-                  c(u.getLang()) + "\n" +
-                  c(dateToString(status.getCreatedAt())) + "\t" +
-                  geoLocationToString(status.getGeoLocation()) + "\t" +
-                  placeToString(status.getPlace()) + "\n" +
-                  c(status.getText()))
-              pw.flush()
+          try {
+            val paging = new Paging(i, 200)
+            //200 is the max # of tweets per page
+            val statuses = twitter.getUserTimeline(userHandle, paging)
+            if (statuses != null && statuses.size > 0) {
+              val u = statuses.get(0).getUser()
+              val uCreatedAt = dateToString(u.getCreatedAt())
+              for (status <- asScalaBuffer(statuses)) {
+                pw.println(
+                  "@" + u.getScreenName() + "\t" +
+                    c(u.getName()) + "\t" +
+                    c(u.getId().toString) + "\t" +
+                    c(u.getLocation()) + "\t" +
+                    c(u.getFollowersCount().toString) + "\t" +
+                    c(u.getUtcOffset().toString) + "\t" +
+                    c(u.getTimeZone()) + "\t" +
+                    c(uCreatedAt.toString) + "\t" +
+                    c(u.getLang()) + "\n" +
+                    c(dateToString(status.getCreatedAt())) + "\t" +
+                    geoLocationToString(status.getGeoLocation()) + "\t" +
+                    placeToString(status.getPlace()) + "\n" +
+                    c(status.getText()))
+                pw.flush()
+              }
+            }
+            Thread.sleep(SLEEP)
+          } catch {
+            case e: Exception => {
+              // If there's an exception, try new credentials...
+              cb = mkConfig
+              twitter = new TwitterFactory(cb.build()).getInstance()
+              val paging = new Paging(i, 200)
+              //200 is the max # of tweets per page
+              val statuses = twitter.getUserTimeline(userHandle, paging)
+              if (statuses != null && statuses.size > 0) {
+                val u = statuses.get(0).getUser()
+                val uCreatedAt = dateToString(u.getCreatedAt())
+                for (status <- asScalaBuffer(statuses)) {
+                  pw.println(
+                    "@" + u.getScreenName() + "\t" +
+                      c(u.getName()) + "\t" +
+                      c(u.getId().toString) + "\t" +
+                      c(u.getLocation()) + "\t" +
+                      c(u.getFollowersCount().toString) + "\t" +
+                      c(u.getUtcOffset().toString) + "\t" +
+                      c(u.getTimeZone()) + "\t" +
+                      c(uCreatedAt.toString) + "\t" +
+                      c(u.getLang()) + "\n" +
+                      c(dateToString(status.getCreatedAt())) + "\t" +
+                      geoLocationToString(status.getGeoLocation()) + "\t" +
+                      placeToString(status.getPlace()) + "\n" +
+                      c(status.getText()))
+                  pw.flush()
+                }
+              }
+              Thread.sleep(SLEEP)
             }
           }
-          Thread.sleep(SLEEP)
         }
       }
     }
