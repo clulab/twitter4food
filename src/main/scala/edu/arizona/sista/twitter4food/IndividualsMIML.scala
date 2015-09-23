@@ -14,7 +14,12 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
 
   require(!(thresholded && twoClassLR), "cannot have thresholded and twoClassLR")
 
-  def run(trainingCorpus: Seq[IndividualsTweets], testingCorpus: Seq[IndividualsTweets], stateLabels: Map[String, String], onlyFoodTweets: Boolean = false, realValued: Boolean = true, featureSerializationPath: Option[String] = None, initializeOrganizationsToNull: Boolean = false) = {
+  def run(trainingCorpus: Seq[IndividualsTweets],
+          testingCorpus: Seq[IndividualsTweets],
+          stateLabels: Map[String, String],
+          onlyFoodTweets: Boolean = false,
+          realValued: Boolean = true,
+          featureSerializationPath: Option[String] = None) = {
 
     val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
     val testingTweets = testingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
@@ -28,12 +33,20 @@ class IndividualsMIML(parameters: ExperimentParameters, printWriter: PrintWriter
 
     //val (processedFeatures, processFeaturesFn) = (trainingFeatures.map(binarize), binarize _)
 
+    var zInitializers: Seq[Option[String]] = for {
+      user: IndividualsTweets <- trainingCorpus
+      // set initialZLabel to Some("1") to initialize with overweight,
+      // Some("0") to initialize with not overweight,
+      // Some(MIMLWrapper.nullZLabel) to initialize with null,
+      // or None to use the label from the state
+      initialZLabel: Option[String] = None
+    } yield initialZLabel
+
     val stateMIMLs = for {
-      (Some(state), group) <- (trainingFeatures zip trainingCorpus).groupBy((_._2.state)).toSeq
-      stateFeatures: Seq[NullableCounter[String]] = for {
-        (features, individual) <- group
-        initializeToNull = initializeOrganizationsToNull && IndividualsMIML.usernameIsOrganization(individual.username)
-      } yield NullableCounter(features, initializeToNull)
+      (Some(state), group) <- (trainingFeatures, trainingCorpus, zInitializers).zipped.groupBy((_._2.state)).toSeq
+      stateFeatures: Seq[InitializableCounter[String, String]] = for {
+        (features, individual, zInitializer) <- group.toSeq
+      } yield InitializableCounter(features, zInitializer)
       label = stateLabels(state)
     } yield MIML[String, String](stateFeatures, Set(label))
 
@@ -83,7 +96,7 @@ object IndividualsMIML {
 
     val resultsOut = StringUtils.getStringOption(props, "resultsOut")
 
-    val initializeOrganizationsToNull = StringUtils.getBool(props, "initializeOrganizationsToNull", false)
+    // val initializeOrganizationsToNull = StringUtils.getBool(props, "initializeOrganizationsToNull", false)
 
     val featureModel = if (StringUtils.getBool(props, "binaryYFeatures", false)) AtLeastOnce else Fractions
 
@@ -111,7 +124,6 @@ object IndividualsMIML {
 
     val trainingTweets = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
     val testingTweets = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
-
 
     // create many possible variants of the experiment parameters, and for each map to results of running the
     // experiment
@@ -157,7 +169,7 @@ object IndividualsMIML {
         classifierType=SVM_L2, // note: this is ignored
         useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
-    } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, thresholded=thresholded, twoClassLR=twoClassLR, trainY=trainY, featureModel=featureModel).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued, initializeOrganizationsToNull=initializeOrganizationsToNull)).seq
+    } yield params -> new IndividualsMIML(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, ySigma = ySigma, thresholded=thresholded, twoClassLR=twoClassLR, trainY=trainY, featureModel=featureModel).run(trainingTweets, testingTweets, stateLabels, filterFoodTweets, realValued = realValued)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)

@@ -59,7 +59,7 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
     }
 
     @Override
-    public void train(MultiLabelDataset<String, String> data, boolean[][] initialNulls) {
+    public void train(MultiLabelDataset<String, String> data, String [][] initialZLabels) {
 
         // filter some of the groups
         if(localDataFilter instanceof LargeFilter) {
@@ -104,7 +104,7 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
             negativeIndex = yLabelIndex.indexOf(negativeClass);
 
             // initialize classifiers
-            zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex);
+            zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex, initialZLabels);
             //yClassifier = initializeYStupidly(yLabelIndex);
             yClassifier = initializeYStepFn(yLabelIndex);
 
@@ -135,13 +135,7 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
 
         // initialize predicted z labels
         int[][] zLabels = initializeZLabels(data);
-        for (int i = 0; i < zLabels.length; i++) {
-            for (int j = 0; j < zLabels[i].length; j++) {
-                if (initialNulls[i][j]) {
-                    zLabels[i][j] = zLabelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
-                }
-            }
-        }
+
         computeConfusionMatrixForCounts("LOCAL", zLabels, data.getPositiveLabelsArray());
         computeYScore("LOCAL", zLabels, data.getPositiveLabelsArray());
 
@@ -268,6 +262,7 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
         makeSingleZClassifier(zDataset, zFactory);
     }
 
+    /*
     private LinearClassifier<String, String> initializeYStupidly(Index<String> labelIndex) {
         Index<String> yFeatureIndex = new HashIndex<String>();
         yFeatureIndex.addAll(Y_FEATURES_FOR_INITIAL_MODEL);
@@ -282,6 +277,7 @@ public class TwoClassJointBayes extends JointBayesRelationExtractor {
         Log.severe("Created the classifier with " + yFeatureIndex.size() + " features");
         return classifier;
     }
+    */
 
     private LinearClassifier<String, String> initializeYStepFn(Index<String> labelIndex) {
         Index<String> yFeatureIndex = new HashIndex<String>();

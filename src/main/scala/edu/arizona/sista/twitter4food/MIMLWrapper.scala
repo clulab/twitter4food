@@ -1,6 +1,6 @@
 package edu.arizona.sista.twitter4food
 
-import edu.stanford.nlp.kbp.slotfilling.classify.{ThresholdedJointBayes, JointBayesRelationExtractor, MultiLabelDataset, TwoClassJointBayes}
+import edu.stanford.nlp.kbp.slotfilling.classify._
 import edu.stanford.nlp.ling.{RVFDatum => S_RVFDatum, Datum => S_Datum, BasicDatum => S_BasicDatum}
 import edu.stanford.nlp.stats.{Counter => S_Counter, ClassicCounter}
 import scala.collection.JavaConverters._
@@ -24,9 +24,9 @@ trait InferenceType
 case object Stable extends InferenceType
 case object Slow extends InferenceType
 
-case class NullableCounter[F](counter: Counter[F], initializeToNull: Boolean = false)
+case class InitializableCounter[L, F](counter: Counter[F], initialLabel: Option[L] = None)
 
-case class MIML[L, F](group: Seq[NullableCounter[F]], labels: Set[L])
+case class MIML[L, F](group: Seq[InitializableCounter[L, F]], labels: Set[L])
 
 trait YClassificationType
 case object LR extends YClassificationType
@@ -62,7 +62,7 @@ class MIMLWrapper(modelPath: Option[String] = None, numberOfTrainEpochs: Int = 6
   }
 
   def train(groups: Seq[MIML[String, String]]) = {
-    jbre.train(MIMLWrapper.makeMultiLabelDataset(groups, realValued), groups.map(_.group.map(_.initializeToNull).toArray).toArray)
+    jbre.train(MIMLWrapper.makeMultiLabelDataset(groups, realValued), groups.map(_.group.map(_.initialLabel.getOrElse(null)).toArray).toArray)
   }
 
   def classifyGroup(group: Seq[Counter[String]]): Seq[(String, Double)] = {
@@ -77,6 +77,9 @@ class MIMLWrapper(modelPath: Option[String] = None, numberOfTrainEpochs: Int = 6
 }
 
 object MIMLWrapper {
+
+  val nullZLabel = JointlyTrainedRelationExtractor.UNRELATED
+
   def sortCounterDescending(counter: S_Counter[String]) = (for {
       f <- counter.keySet().asScala.toSeq
   } yield f -> counter.getCount(f)).sortBy(-_._2)
@@ -85,7 +88,7 @@ object MIMLWrapper {
     val mld = new MultiLabelDataset[L, F]
     for (labelledGroup <- groups) {
       val datums: Seq[S_Datum[L, F]] = for {
-        NullableCounter(counter, _) <- labelledGroup.group
+        InitializableCounter(counter, _) <- labelledGroup.group
         datum = if (realValued)
           counterToRVFDatum[L,F](counter)
         else

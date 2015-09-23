@@ -392,7 +392,6 @@ object Experiment {
     }
   }
 
-
   def main(args: Array[String]) {
     sys.error("Experiment has been moved to StateExperiment")
   }
