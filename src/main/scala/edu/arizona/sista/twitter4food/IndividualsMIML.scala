@@ -107,7 +107,7 @@ object IndividualsMIML {
 
     val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan)
 
-    val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals).mapValues(_.toString)
+    val stateLabels = Experiment.makeLabels(Datasets.stateBMIs, numClasses, removeMarginals).mapValues(_.toString)
 
     val trainingTweets = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
     val testingTweets = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets

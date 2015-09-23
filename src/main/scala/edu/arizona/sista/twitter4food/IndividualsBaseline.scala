@@ -76,7 +76,7 @@ object IndividualsBaseline {
 
   def makeBaselineTraining(numClasses: Int, removeMarginals: Option[Int])(corpus: IndividualsCorpus): Seq[IndividualsTweets] = {
     // maps from state abbreviations to integer labels
-    val stateLabels = Experiment.makeLabels(Datasets.overweight, numClasses, removeMarginals)
+    val stateLabels = Experiment.makeLabels(Datasets.stateBMIs, numClasses, removeMarginals)
 
     // take a mapping from state abbvs to a dictionary of userName -> tweets
     // return three lists: the user tweets, usernames, and the labels for those tweets (assuming each user has his/her state's label)
