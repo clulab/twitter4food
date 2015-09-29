@@ -34,7 +34,7 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
   // map(identity) because http://stackoverflow.com/questions/17709995/notserializableexception-for-mapstring-string-alias
   val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles.filter(file =>
     organizationUsernames match {
-      case Some(set) => set.contains(usernameForFile(file))
+      case Some(set) => ! set.contains(usernameForFile(file))
       case None => true
     }
   )).map(identity)
