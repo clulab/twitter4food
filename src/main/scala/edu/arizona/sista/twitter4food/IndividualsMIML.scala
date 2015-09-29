@@ -100,6 +100,8 @@ object IndividualsMIML {
 
     val featureModel = if (StringUtils.getBool(props, "binaryYFeatures", false)) AtLeastOnce else Fractions
 
+    val organizationsFile = StringUtils.getStringOption(props, "organizationsFiles")
+
     require(! (thresholded && twoClassLR), "cannot have thresholded and twoClassLR both set to true")
 
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
@@ -118,12 +120,12 @@ object IndividualsMIML {
 
     val resultsPw: Option[PrintWriter] = resultsOut.map(filename => new PrintWriter(new java.io.File(filename)))
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan)
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan, organizationsFile = organizationsFile)
 
     val stateLabels = Experiment.makeLabels(Datasets.stateBMIs, numClasses, removeMarginals).mapValues(_.toString)
 
-    val trainingTweets = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
-    val testingTweets = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
+    val trainingTweets: Seq[IndividualsTweets] = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
+    val testingTweets: List[IndividualsTweets] = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
 
     // create many possible variants of the experiment parameters, and for each map to results of running the
     // experiment

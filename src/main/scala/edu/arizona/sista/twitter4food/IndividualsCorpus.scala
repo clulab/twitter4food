@@ -10,7 +10,7 @@ import com.github.tototoshi.csv.CSVReader
 // tweets for an individual
 case class IndividualsTweets(val tweets: List[Tweet], val username: String, val label: Option[Int], val state: Option[String])
 
-class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500), val excludeUsersWithMoreThan: Option[Int] = None) extends Serializable {
+class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, val annotatedTestingFraction: Double = 0.8, val randomSeed: Int = 1234, val numToTake: Option[Int] = Some(500), val excludeUsersWithMoreThan: Option[Int] = None, val organizationsFile: Option[String] = None) extends Serializable {
   // baseDirectory should have one folder for each state
   // each state folder contains a single file per user, containing tweets from that user
 
@@ -21,8 +21,23 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
     if (stateDir.isDirectory)
   } yield (stateDir.getName -> stateDir)).toMap
 
+  val organizationUsernames: Option[Set[String]] = organizationsFile.map(filename =>
+    (for {
+      line <- Utils.loadFile(filename).getLines
+      tokens = line.split("\t")
+      username = tokens(0)
+      label = tokens(1).toInt
+      if (label == 1)
+    } yield username).toSet
+  )
+
   // map(identity) because http://stackoverflow.com/questions/17709995/notserializableexception-for-mapstring-string-alias
-  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles).map(identity) 
+  val tweetFilesByState: Map[String, Array[File]] = dirsByState.mapValues(_.listFiles.filter(file =>
+    organizationUsernames match {
+      case Some(set) => set.contains(usernameForFile(file))
+      case None => true
+    }
+  )).map(identity)
 
   val userAnnotations: Map[String, Int] = IndividualsCorpus.labelsFromAnnotationFile(annotationFile, header = true)
 

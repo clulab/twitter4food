@@ -116,7 +116,9 @@ object IndividualsBaseline {
 
     val evaluateOnDev = StringUtils.getBool(props, "evaluateOnDev", false)
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500))
+    val organizationsFile = StringUtils.getStringOption(props, "organizationsFiles")
+
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), organizationsFile=organizationsFile)
 
     val trainingTweets = makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
 
