@@ -127,6 +127,9 @@ object IndividualsMIML {
     val trainingTweets: Seq[IndividualsTweets] = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
     val testingTweets: List[IndividualsTweets] = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
 
+    pw.println(s"${trainingTweets.size} training tweets")
+    pw.println(s"${testingTweets.size} testing tweets")
+
     // create many possible variants of the experiment parameters, and for each map to results of running the
     // experiment
     // notation: = assigns a parameter to a single value
@@ -184,14 +187,14 @@ object IndividualsMIML {
       val labelledBaseline = testingTweets zip majorityBaseline
 
       val (baselineCorrect, baselineTotal) = labelledAccuracy(labelledBaseline)
-      pw.println(s"overall accuracy\t${baselineCorrect} / ${baselineTotal}\t${baselineCorrect.toDouble / baselineTotal * 100.0}%")
+      pw.println(s"baseline overall accuracy\t${baselineCorrect} / ${baselineTotal}\t${baselineCorrect.toDouble / baselineTotal * 100.0}%")
       pw.println
 
       // system
       val labelledInstances: Seq[(IndividualsTweets, Int)] = testingTweets zip intPredictions
       val (correct, total) = labelledAccuracy(labelledInstances)
       val pvalue = EvaluationStatistics.classificationAccuracySignificance(intPredictions, majorityBaseline, actual)
-      pw.println(s"overall accuracy\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%\t(p = ${pvalue})")
+      pw.println(s"system overall accuracy\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%\t(p = ${pvalue})")
       pw.println
 
       val byClass: Map[Int, Seq[(IndividualsTweets, Int)]] = labelledInstances.groupBy(_._1.label.get)
