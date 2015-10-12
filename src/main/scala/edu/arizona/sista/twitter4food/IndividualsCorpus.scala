@@ -26,9 +26,10 @@ class IndividualsCorpus(val baseDirectory: String, val annotationFile: String, v
       line <- Utils.loadFile(filename).getLines
       tokens = line.split("\t")
       username = tokens(0)
+      strippedUsername = if (username.charAt(0) == '@') username.substring(1) else username
       label = tokens(1).toInt
       if (label == 1)
-    } yield username).toSet
+    } yield strippedUsername).toSet
   )
 
   // map(identity) because http://stackoverflow.com/questions/17709995/notserializableexception-for-mapstring-string-alias
