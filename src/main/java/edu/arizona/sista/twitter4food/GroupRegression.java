@@ -40,11 +40,6 @@ public class GroupRegression {
         SINGLE_MODEL
     }
 
-    static enum InferenceType {
-        SLOW,
-        STABLE
-    }
-
     protected static final LOCAL_CLASSIFICATION_MODE localClassificationMode =
             LOCAL_CLASSIFICATION_MODE.WEIGHTED_VOTE;
 
@@ -76,15 +71,11 @@ public class GroupRegression {
 
     /** Sigma for the Z classifiers */
     protected final double zSigma;
-    /** Sigma for the Y classifiers */
-    protected final double ySigma;
 
     /** Counts number of flips for Z labels in one epoch */
     protected int zUpdatesInOneEpoch = 0;
 
     protected final LocalFilter localDataFilter;
-
-    protected final InferenceType inferenceType;
 
     /** Which feature model to use */
     protected final int featureModel;
@@ -123,9 +114,6 @@ public class GroupRegression {
         localDataFilter =
                 makeLocalDataFilter(props.getProperty(
                         Props.FILTER, "all"));
-        inferenceType =
-                makeInferenceType(props.getProperty(
-                        Props.INFERENCE_TYPE, "stable"));
         featureModel = PropertiesUtils.getInt(props,
                 Props.FEATURES, 0);
         trainY = PropertiesUtils.getBool(props,
@@ -143,12 +131,6 @@ public class GroupRegression {
 
     public GroupRegression(Properties props, boolean useRVF, String positiveClass, String negativeClass) {
         this(props, false, useRVF, 1.0, positiveClass, negativeClass);
-    }
-
-    private static InferenceType makeInferenceType(String v) {
-        if(v.equalsIgnoreCase("slow")) return InferenceType.SLOW;
-        if(v.equalsIgnoreCase("stable")) return InferenceType.STABLE;
-        throw new RuntimeException("ERROR: unknown inference type " + v);
     }
 
     private static LocalFilter makeLocalDataFilter(String fv) {
@@ -176,7 +158,6 @@ public class GroupRegression {
             int numberOfFolds,
             String localFilter,
             int featureModel,
-            String inferenceType,
             boolean trainY,
             boolean onlyLocalTraining,
             boolean useRVF,
@@ -188,14 +169,9 @@ public class GroupRegression {
         this.onlyLocalTraining = onlyLocalTraining;
         this.localDataFilter = makeLocalDataFilter(localFilter);
         this.featureModel = featureModel;
-        this.inferenceType = makeInferenceType(inferenceType);
         this.trainY = trainY;
         this.serializedModelPath = null;
         this.useRVF = useRVF;
-    }
-
-    public void setSerializedModelPath(String p) {
-        serializedModelPath = p;
     }
 
     private static String makeInitialModelPath(
@@ -317,33 +293,24 @@ public class GroupRegression {
         zFactory.setVerbose(false);
         yFactory.setVerbose(false);
 
-        if(initialModelPath != null && new File(initialModelPath).exists()) {
+        featureIndex = data.featureIndex();
+        yLabelIndex = data.labelIndex();
+        zLabelIndex = new HashIndex<String>(yLabelIndex);
+        zLabelIndex.add(JointlyTrainedRelationExtractor.UNRELATED);
+
+        positiveIndex = yLabelIndex.indexOf(positiveClass);
+        negativeIndex = yLabelIndex.indexOf(negativeClass);
+
+        // initialize classifiers
+        zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex, initialZLabels);
+        //yClassifier = initializeYStupidly(yLabelIndex);
+        yClassifier = initializeYStepFn(yLabelIndex);
+
+        if(initialModelPath != null) {
             try {
-                loadInitialModels(initialModelPath);
-                // yClassifiers = initializeYClassifiersWithAtLeastOnce(yLabelIndex);
-            } catch (Exception e1) {
+                saveInitialModels(initialModelPath);
+            } catch (IOException e1) {
                 throw new RuntimeException(e1);
-            }
-        } else {
-            featureIndex = data.featureIndex();
-            yLabelIndex = data.labelIndex();
-            zLabelIndex = new HashIndex<String>(yLabelIndex);
-            zLabelIndex.add(JointlyTrainedRelationExtractor.UNRELATED);
-
-            positiveIndex = yLabelIndex.indexOf(positiveClass);
-            negativeIndex = yLabelIndex.indexOf(negativeClass);
-
-            // initialize classifiers
-            zClassifiers = initializeZClassifierLocally(data, featureIndex, zLabelIndex, initialZLabels);
-            //yClassifier = initializeYStupidly(yLabelIndex);
-            yClassifier = initializeYStepFn(yLabelIndex);
-
-            if(initialModelPath != null) {
-                try {
-                    saveInitialModels(initialModelPath);
-                } catch (IOException e1) {
-                    throw new RuntimeException(e1);
-                }
             }
         }
 
@@ -367,7 +334,6 @@ public class GroupRegression {
         int[][] zLabels = initializeZLabels(data);
 
         computeConfusionMatrixForCounts("LOCAL", zLabels, data.getPositiveLabelsArray());
-        computeYScore("LOCAL", zLabels, data.getPositiveLabelsArray());
 
         // z dataset initialized with nil labels and the sentence-level features array
         // Dataset<String, String> zDataset = initializeZDataset(totalSentences, zLabels, data.getDataArray());
@@ -406,16 +372,7 @@ public class GroupRegression {
 
                     predictZLabels(group, zLabelsPredictedByZ[i], zClassifier);
 
-                    switch(inferenceType) {
-                        case SLOW:
-                            inferZLabels(group, positiveLabels, negativeLabels, zLabels[i], zLogProbs, zClassifier, epoch);
-                            break;
-                        case STABLE:
-                            inferZLabelsStable(group, positiveLabels, negativeLabels, zLabels[i], zLogProbs, zClassifier, epoch);
-                            break;
-                        default:
-                            throw new RuntimeException("ERROR: unknown inference type: " + inferenceType);
-                    }
+                    inferZLabelsStable(group, positiveLabels, negativeLabels, zLabels[i], zLogProbs, zClassifier, epoch);
 
                     assert(positiveLabels.size() == 1);
                     String yLabel = yLabelIndex.get(positiveLabels.iterator().next());
@@ -431,8 +388,6 @@ public class GroupRegression {
             // Log.severe("" + BIAS_FEAT + ":" + yClassifier.weight(BIAS_FEAT, negativeClass));
 
             computeConfusionMatrixForCounts("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
-            computeYScore("EPOCH " + epoch, zLabels, data.getPositiveLabelsArray());
-            computeYScore("(Z ONLY) EPOCH " + epoch, zLabelsPredictedByZ, data.getPositiveLabelsArray());
 
             Log.severe("In epoch #" + epoch + " zUpdatesInOneEpoch = " + zUpdatesInOneEpoch);
             if(zUpdatesInOneEpoch == 0){
@@ -503,56 +458,6 @@ public class GroupRegression {
         }
     }
 
-    void randomizeGroup(int[] group, int randomSeed) {
-        Random rand = new Random(randomSeed);
-        for(int j = group.length - 1; j > 0; j --){
-            int randIndex = rand.nextInt(j);
-
-            int tmp = group[randIndex];
-            group[randIndex] = group[j];
-            group[j] = tmp;
-        }
-    }
-
-    void computeYScore(String name, int [][] zLabels, Set<Integer> [] golds) {
-        int labelCorrect = 0, labelPredicted = 0, labelTotal = 0;
-        int groupCorrect = 0, groupTotal = 0;
-        int nilIndex = zLabelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED);
-        for(int i = 0; i < golds.length; i ++) {
-            Set<Integer> pred = new HashSet<Integer>();
-            for(int z: zLabels[i])
-                if(z != nilIndex) pred.add(z);
-            Set<Integer> gold = golds[i];
-
-            labelPredicted += pred.size();
-            labelTotal += gold.size();
-            for(int z: pred)
-                if(gold.contains(z))
-                    labelCorrect ++;
-
-            groupTotal ++;
-            boolean correct = true;
-            if(pred.size() != gold.size()) {
-                correct = false;
-            } else {
-                for(int z: pred) {
-                    if(! gold.contains(z)) {
-                        correct = false;
-                        break;
-                    }
-                }
-            }
-            if(correct) groupCorrect ++;
-        }
-
-        double p = (double) labelCorrect / (double) labelPredicted;
-        double r = (double) labelCorrect / (double) labelTotal;
-        double f1 = p != 0 && r != 0 ? 2*p*r/(p + r) : 0;
-        double a = (double) groupCorrect / (double) groupTotal;
-        Log.severe("LABEL SCORE for " + name + ": P " + p + " R " + r + " F1 " + f1);
-        Log.severe("GROUP SCORE for " + name + ": A " + a);
-    }
-
     void computeConfusionMatrixForCounts(String name, int [][] zLabels, Set<Integer> [] golds) {
         Counter<Integer> pos = new ClassicCounter<Integer>();
         Counter<Integer> neg = new ClassicCounter<Integer>();
@@ -578,74 +483,6 @@ public class GroupRegression {
         Log.severe("CONFUSION MATRIX NEG: " + neg);
     }
 
-    void printGroup(int [] zs, Set<Integer> ys) {
-        System.err.print("ZS:");
-        for(int z: zs) {
-            String zl = zLabelIndex.get(z);
-            System.err.print(" " + zl);
-        }
-        System.err.println();
-        Set<String> missed = new HashSet<String>();
-        System.err.print("YS:");
-        for(Integer y: ys) {
-            String yl = yLabelIndex.get(y);
-            System.err.print(" " + yl);
-            boolean found = false;
-            for(int z: zs) {
-                String zl = zLabelIndex.get(z);
-                if(zl.equals(yl)) {
-                    found = true;
-                    break;
-                }
-            }
-            if(! found) {
-                missed.add(yl);
-            }
-        }
-        System.err.println();
-        if(missed.size() > 0) {
-            System.err.print("MISSED " + missed.size() + ":");
-            for(String m: missed) {
-                System.err.print(" " + m);
-            }
-        }
-        System.err.println();
-        System.err.println("END GROUP");
-    }
-
-    private void addYDatum(
-            RVFDataset<String, String> yDataset,
-            String yLabel,
-            int [] zLabels) {
-        Counter<String> features = extractYFeatures(zLabels);
-        RVFDatum<String, String> datum = new RVFDatum<String, String>(features, yLabel);
-        yDataset.add(datum);
-    }
-
-    private Counter<String> extractYFeatures(int[] zLabels) {
-        Counter<String> features = new ClassicCounter<String>();
-        int positiveCount = count(zLabels, positiveIndex);
-        int negativeCount = count(zLabels, negativeIndex);
-        double fraction = ((double) positiveCount) / (positiveCount + negativeCount);
-        features.setCount(POSITIVE_CLASS_FRACTION, fraction);
-        features.setCount(BIAS_FEAT, 1.0);
-        return features;
-    }
-
-    protected String makeEpochPath(int epoch) {
-        String epochPath = null;
-        if(epoch < numberOfTrainEpochs && serializedModelPath != null) {
-            if(serializedModelPath.endsWith(".ser")) {
-                epochPath =
-                        serializedModelPath.substring(0, serializedModelPath.length() - ".ser".length()) +
-                                "_EPOCH" + epoch + ".ser";
-            } else {
-                epochPath = serializedModelPath + "_EPOCH" + epoch;
-            }
-        }
-        return epochPath;
-    }
-
     protected void makeSingleZClassifier(
             GeneralDataset<String, String> zDataset,
             LinearClassifierFactory<String, String> zFactory) {
@@ -656,16 +493,6 @@ public class GroupRegression {
         } else {
             zSingleClassifier = null;
         }
-    }
-
-    private int[] flatten(int[][] array, int size) {
-        int[] result = new int[size];
-        int count = 0;
-        for (int[] row : array) {
-            for (int element : row)
-                result[count++] = element;
-        }
-        return result;
     }
 
     static abstract class LocalFilter {
@@ -979,102 +806,7 @@ public class GroupRegression {
         return localClassifiers;
     }
 
-    @SuppressWarnings("unchecked")
-    protected void loadInitialModels(String path) throws IOException, ClassNotFoundException {
-        InputStream is = new FileInputStream(path);
-        ObjectInputStream in = new ObjectInputStream(is);
-
-        featureIndex = ErasureUtils.uncheckedCast(in.readObject());
-        zLabelIndex = ErasureUtils.uncheckedCast(in.readObject());
-        yLabelIndex = ErasureUtils.uncheckedCast(in.readObject());
-
-        numberOfFolds = in.readInt();
-        zClassifiers = new LinearClassifier[numberOfFolds];
-        for(int i = 0; i < numberOfFolds; i ++){
-            LinearClassifier<String, String> classifier =
-                    ErasureUtils.uncheckedCast(in.readObject());
-            zClassifiers[i] = classifier;
-            Log.severe("Loaded Z classifier for fold #" + i + ": " + zClassifiers[i]);
-        }
-
-        int numLabels = in.readInt();
-        yClassifiers = new HashMap<String, LinearClassifier<String, String>>();
-        for (int i = 0; i < numLabels; i++) {
-            String yLabel = ErasureUtils.uncheckedCast(in.readObject());
-            LinearClassifier<String, String> classifier =
-                    ErasureUtils.uncheckedCast(in.readObject());
-            yClassifiers.put(yLabel, classifier);
-        }
-
-        in.close();
-    }
-
-    protected void saveInitialModels(String path) throws IOException {
-        ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(path));
-        out.writeObject(featureIndex);
-        out.writeObject(zLabelIndex);
-        out.writeObject(yLabelIndex);
-        out.writeInt(zClassifiers.length);
-        for(int i = 0; i < zClassifiers.length; i ++)
-            out.writeObject(zClassifiers[i]);
-        out.writeInt(yClassifiers.keySet().size());
-        for (String yLabel : yClassifiers.keySet()) {
-            out.writeObject(yLabel);
-            out.writeObject(yClassifiers.get(yLabel));
-        }
-        out.close();
-    }
-
-    private Map<String, LinearClassifier<String, String>> initializeYClassifiersWithAtLeastOnce(Index<String> labelIndex) {
-        Map<String, LinearClassifier<String, String>> classifiers =
-                new HashMap<String, LinearClassifier<String, String>>();
-        for (String yLabel : labelIndex) {
-            Index<String> yFeatureIndex = new HashIndex<String>();
-            yFeatureIndex.addAll(Y_FEATURES_FOR_INITIAL_MODEL);
-
-            Index<String> thisYLabelIndex = new HashIndex<String>();
-            thisYLabelIndex.add(yLabel);
-            thisYLabelIndex.add(JointlyTrainedRelationExtractor.UNRELATED);
-
-            double[][] weights = initializeWeights(yFeatureIndex.size(), thisYLabelIndex.size());
-            setYWeightsForAtLeastOnce(weights, yFeatureIndex, thisYLabelIndex);
-            classifiers.put(yLabel, new LinearClassifier<String, String>(weights, yFeatureIndex, thisYLabelIndex));
-            Log.severe("Created the classifier for Y=" + yLabel + " with " + yFeatureIndex.size() + " features");
-        }
-        return classifiers;
-    }
-
     private static final double BIG_WEIGHT = +10;
-
-    private static void setYWeightsForAtLeastOnce(double[][] weights,
-                                                  Index<String> featureIndex,
-                                                  Index<String> labelIndex) {
-        int posLabel = -1, negLabel = -1;
-        for(String l: labelIndex) {
-            if(l.equalsIgnoreCase(JointlyTrainedRelationExtractor.UNRELATED)) {
-                negLabel = labelIndex.indexOf(l);
-            } else {
-                Log.fine("posLabel = " + l);
-                posLabel = labelIndex.indexOf(l);
-            }
-        }
-        assert(posLabel != -1);
-        assert(negLabel != -1);
-
-        int atLeastOnceIndex = featureIndex.indexOf(ATLEASTONCE_FEAT);
-        int noneIndex = featureIndex.indexOf(NONE_FEAT);
-        weights[atLeastOnceIndex][posLabel] = BIG_WEIGHT;
-        weights[noneIndex][negLabel] = BIG_WEIGHT;
-        Log.fine("posLabel = " + posLabel + ", negLabel = " + negLabel + ", atLeastOnceIndex = " + atLeastOnceIndex);
-    }
-
-    public static double[][] initializeWeights(int numFeatures, int numLabels) {
-        double[][] weights = new double[numFeatures][numLabels];
-        for (double[] row : weights)
-            Arrays.fill(row, 0.0);
-
-        return weights;
-    }
 
     protected GeneralDataset<String, String> initializeZDataset(int totalSentences, int[][] zLabels, Datum<String,String>[][] data) {
         GeneralDataset<String,String> dataset;
@@ -1103,13 +835,6 @@ public class GroupRegression {
         Log.severe("Created the Z dataset with " + count + " datums.");
 
         return dataset;
-    }
-
-    private Map<String, RVFDataset<String, String>> initializeYDatasets() {
-        Map<String, RVFDataset<String, String>> result = new HashMap<String, RVFDataset<String, String>>();
-        for (String yLabel : yLabelIndex.objectsList())
-            result.put(yLabel, new RVFDataset<String, String>());
-        return result;
     }
 
     void predictZLabels(Datum<String,String>[] group,
@@ -1204,29 +929,6 @@ public class GroupRegression {
         } // end scan for group
     }
 
-    /** updates the zLabels array with new predicted z labels */
-    void inferZLabels(Datum<String,String>[] group,
-                      Set<Integer> positiveLabels,
-                      Set<Integer> negativeLabels,
-                      int[] zLabels,
-                      Counter<String> [] zLogProbs,
-                      LinearClassifier<String, String> zClassifier,
-                      int epoch) {
-        throw new UnsupportedOperationException("inferZLabels not implemented!");
-    }
-
-    private static boolean uniformDistribution(Counter<String> probs) {
-        List<String> keys = new ArrayList<String>(probs.keySet());
-        if(keys.size() < 2) return false;
-        double p = probs.getCount(keys.get(0));
-        for(int i = 1; i < keys.size(); i ++){
-            if(p != probs.getCount(keys.get(i))){
-                return false;
-            }
-        }
-        return true;
-    }
-
     public static List<Pair<String, Double>> sortPredictions(Counter<String> scores) {
         List<Pair<String, Double>> sortedScores = new ArrayList<Pair<String,Double>>();
         for(String key: scores.keySet()) {
@@ -1280,115 +982,9 @@ public class GroupRegression {
         throw new RuntimeException("ERROR: classification mode " + localClassificationMode + " not supported!");
     }
 
-    public Counter<String> classifyOracleMentions(
-            List<Datum<String,String>> sentences,
-            Set<String> goldLabels) {
-        Counter<String> [] zProbs =
-                ErasureUtils.uncheckedCast(new Counter[sentences.size()]);
-
-        //
-        // Z level predictions
-        //
-        Counter<String> yLabels = new ClassicCounter<String>();
-        Map<String, Counter<Integer>> ranks = new HashMap<String, Counter<Integer>>();
-        for (int i = 0; i < sentences.size(); i++) {
-            Datum<String,String> sentence = sentences.get(i);
-            zProbs[i] = classifyLocally(sentence);
-
-            if(! uniformDistribution(zProbs[i])) {
-                List<Pair<String, Double>> sortedProbs = sortPredictions(zProbs[i]);
-                double top = sortedProbs.get(0).second();
-                for(int j = 0; j < sortedProbs.size() && j < 3; j ++) {
-                    String l = sortedProbs.get(j).first();
-                    double v = sortedProbs.get(j).second();
-                    if(v + 0.99 < top) break;
-                    if(! l.equals(JointlyTrainedRelationExtractor.UNRELATED)){ // && v + 0.99 > top){// && goldLabels.contains(l)) {
-                        double rank = 1.0 / (1.0 + (double) j);
-                        Counter<Integer> lRanks = ranks.get(l);
-                        if(lRanks == null) {
-                            lRanks = new ClassicCounter<Integer>();
-                            ranks.put(l, lRanks);
-                        }
-                        lRanks.setCount(j, rank);
-                    }
-                }
-            }
-        }
-
-        for(String l: ranks.keySet()) {
-            double sum = 0;
-            for(int position: ranks.get(l).keySet()) {
-                sum += ranks.get(l).getCount(position);
-            }
-            double rank = sum / sentences.size(); // ranks.get(l).keySet().size();
-            System.err.println("RANK = " + rank);
-            if(rank >= 0) // 0.001)
-                yLabels.setCount(l, rank);
-        }
-
-        return yLabels;
-    }
 
     public Counter<String> classifyMentions(List<Datum<String,String>> sentences) {
         throw new UnsupportedOperationException("classifyMentions not implemented!");
-    }
-
-    public void save(String path) throws IOException {
-        // make sure the directory specified by path exists
-        int lastSlash = path.lastIndexOf(File.separator);
-        if (lastSlash > 0) {
-            File dir = new File(path.substring(0, lastSlash));
-            if (! dir.exists())
-                dir.mkdirs();
-        }
-
-        ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(path));
-        out.writeObject(knownDependencies);
-        out.writeObject(zLabelIndex);
-        out.writeInt(zClassifiers.length);
-        for(int i = 0; i < zClassifiers.length; i ++)
-            out.writeObject(zClassifiers[i]);
-        out.writeObject(zSingleClassifier);
-        out.writeInt(yClassifiers.keySet().size());
-        for (String yLabel : yClassifiers.keySet()) {
-            out.writeObject(yLabel);
-            out.writeObject(yClassifiers.get(yLabel));
-        }
-        out.close();
-    }
-
-    public void load(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        knownDependencies = ErasureUtils.uncheckedCast(in.readObject());
-        zLabelIndex = ErasureUtils.uncheckedCast(in.readObject());
-
-        numberOfFolds = in.readInt();
-        zClassifiers = ErasureUtils.uncheckedCast(new LinearClassifier[numberOfFolds]);
-        for(int i = 0; i < numberOfFolds; i ++){
-            LinearClassifier<String, String> classifier =
-                    ErasureUtils.uncheckedCast(in.readObject());
-            zClassifiers[i] = classifier;
-        }
-        zSingleClassifier =
-                ErasureUtils.uncheckedCast(in.readObject());
-
-        int numLabels = in.readInt();
-        yClassifiers = new HashMap<String, LinearClassifier<String, String>>();
-        for (int i = 0; i < numLabels; i++) {
-            String yLabel = ErasureUtils.uncheckedCast(in.readObject());
-            LinearClassifier<String, String> classifier =
-                    ErasureUtils.uncheckedCast(in.readObject());
-            yClassifiers.put(yLabel, classifier);
-            Log.severe("Loaded Y classifier for label " + yLabel +
-                    ": " + classifier.toAllWeightsString());
-        }
-    }
-
-    public static GroupRegression load(String path, Properties props, boolean useRVF) throws IOException, ClassNotFoundException {
-        ObjectInputStream in = new ObjectInputStream(new FileInputStream(path));
-        GroupRegression extractor = new GroupRegression(props, useRVF);
-        extractor.load(in);
-        in.close();
-        return extractor;
     }
 
     public static int count(int[] xs, int x) {
