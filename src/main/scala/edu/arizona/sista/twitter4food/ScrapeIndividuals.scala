@@ -233,6 +233,7 @@ object ScrapeIndividuals {
           } catch {
             case e: Exception => {
               // If there's an exception, try new credentials...
+              Thread.sleep(SLEEP)
               cb = mkConfig
               twitter = new TwitterFactory(cb.build()).getInstance()
               val paging = new Paging(i, 200)
