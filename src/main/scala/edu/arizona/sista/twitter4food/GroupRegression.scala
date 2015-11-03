@@ -9,6 +9,9 @@ import edu.stanford.nlp.ling.{BasicDatum, Datum, RVFDatum}
 import edu.stanford.nlp.stats.{ClassicCounter, Counter, Counters}
 import edu.stanford.nlp.util.{HashIndex, Index}
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+
 /**
  * Modification of the MIML-RE model to predict real-valued y-outputs from three-class z-labels. Z-labels have a positive class, a negative, and a neutral, and the y-value is simply positive / (positive + negative)
  * @author Julie Tibshirani (jtibs)
@@ -58,17 +61,18 @@ object GroupRegression {
 }
 
 @SerialVersionUID(1)
-class GroupRegression[L:Manifest,F:Manifest](val positiveClass: String,
-                           val negativeClass: String,
-                           val initialModelPath: String = null,
-                           val numberOfTrainEpochs: Int = 10,
-                           val numberOfFolds: Int = 5,
-                           val featureModel: Int = 0,
-                           val trainY: Boolean = true,
-                           val onlyLocalTraining: Boolean = false,
-                           val useRVF: Boolean = true,
-                           val zSigma: Double = 1.0,
-                           val localClassificationMode: LocalClassificationMode = WeightedVote) {
+class GroupRegression[L:Manifest,F:Manifest](val positiveClass: L,
+                                             val negativeClass: L,
+                                             val initialModelPath: String = null,
+                                             val numberOfTrainEpochs: Int = 10,
+                                             val numberOfFolds: Int = 5,
+                                             val featureModel: Int = 0,
+                                             val trainY: Boolean = true,
+                                             val onlyLocalTraining: Boolean = false,
+                                             val useRVF: Boolean = true,
+                                             val zSigma: Double = 1.0,
+                                             val localClassificationMode: LocalClassificationMode = WeightedVote,
+                                             val flippingParameter: Int = 5) {
 
   /**
    * sentence-level multi-class classifier, trained across all sentences
@@ -130,46 +134,18 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: String,
     for (fold <- 0 until numberOfFolds) {
       Log.severe("Constructing dataset for the local model in fold #" + fold + "...")
 
-      val (trainData, testData) = splitForFold(data.map(_.toArray), fold)
+      val (trainData, testData) = splitForFold(data, fold)
       val (trainInitialZLabels, testInitialZLabels) = splitForFold(initialZLabels, fold)
+
       assert((trainInitialZLabels.length == trainData.length))
       assert((testInitialZLabels.length == testData.length))
 
       val dataset: GeneralDataset[L,F] = GroupRegression.makeLocalData(trainData, fold, useRVF, trainInitialZLabels)
+
       Log.severe("Fold #" + fold + ": Training local model...")
       val factory: LinearClassifierFactory[L,F] = new LinearClassifierFactory[L,F](1e-4, false, zSigma)
       val localClassifier: LinearClassifier[L,F] = factory.trainClassifier(dataset)
       Log.severe("Fold #" + fold + ": Training of the local classifier completed.")
-      val nilIndex: Int = labelIndex.indexOf(JointlyTrainedRelationExtractor.UNRELATED)
-      Log.severe("Fold #" + fold + ": Evaluating the local classifier on the hierarchical dataset...")
-      var total: Int = 0
-      var predicted: Int = 0
-      var correct: Int = 0
-      for (i <- 0 until testData.length) {
-        val group = testData(i)
-        val gold: java.util.Set[Integer] = testPosLabels(i)
-        val pred: java.util.Set[Integer] = new java.util.HashSet[Integer]
-        for (j <- 0 until group.length) {
-          val datum: Datum[String, String] = group(j)
-          val scores: Counter[String] = localClassifier.scoresOf(datum)
-          val sortedScores: List[(String, Double)] = GroupRegression.sortPredictions(scores)
-          val sys: Int = labelIndex.indexOf(sortedScores.head._1)
-          if (sys != nilIndex) pred.add(sys)
-        }
-        total += gold.size
-        predicted += pred.size
-        import scala.collection.JavaConversions._
-        for (pv <- pred) {
-          if (gold.contains(pv)) correct += 1;
-        }
-      }
-
-      val p: Double = correct.toDouble / predicted.toDouble
-      val r: Double = correct.toDouble / total.toDouble
-      val f1: Double = (if (p != 0 && r != 0) 2 * p * r / (p + r) else 0)
-      Log.severe("Fold #" + fold + ": Training score on the hierarchical dataset: P " + p + " R " + r + " F1 " + f1)
-      Log.severe("Fold #" + fold + ": Created the Z classifier with " + labelIndex.size + " labels and " + featureIndex.size + " features.")
-      localClassifiers(fold) = localClassifier
     }
     return localClassifiers
   }
@@ -201,7 +177,8 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: String,
     return dataset
   }
 
-  def train(data: Array[Array[Datum[L,F]]], initialZLabels: Array[Array[L]]) {
+  def train(data: Array[Array[Datum[L,F]]], initialZLabels: Array[Array[L]], yTargetProportions: Array[Double]) {
+    import collection.JavaConversions._
     val zFactory: LinearClassifierFactory[L,F] = new LinearClassifierFactory[L,F](1e-4, false, zSigma)
 
     zFactory.setVerbose(false)
@@ -213,7 +190,6 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: String,
     val totalIndividuals: Int = data.map(_.length).sum
     val zLabels: Array[Array[L]] = initializeZLabels(data)
 
-    var yDataset: RVFDataset[L,F] = new RVFDataset[L,F]
     for (epoch <- 0 until numberOfTrainEpochs) {
       zUpdatesInOneEpoch = 0
       Log.severe("***EPOCH " + epoch + "***")
@@ -225,13 +201,13 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: String,
         val end: Int = foldEnd(fold, data.length)
         for (i <- start until end) {
           val random = new scala.util.Random(epoch)
-          val group: Array[Datum[L,F]] = random.shuffle(data(i)).toArray
+          val group: Array[Datum[L,F]] = random.shuffle(data(i).toSeq).toArray
           zLabelsPredictedByZ(i) = predictZLabels(group, zClassifier)
 
+          val yTargetProportion = yTargetProportions(i)
+
           // destructively update zLabels(i)
-          inferZLabelsStable(group, zLabels(i), zClassifier, epoch)
-          val yLabel: L = yLabelIndex.get(positiveLabels.iterator.next)
-          addYDatum(yDataset, yLabel, zLabels(i))
+          inferZLabelsStable(group, zLabels(i), zClassifier, epoch, yTargetProportion)
         }
       }
 
@@ -246,13 +222,6 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: String,
           val zClassifier: LinearClassifier[L,F] = zFactory.trainClassifier(zd)
           zClassifiers(fold) = zClassifier
         }
-
-        if (trainY) {
-          Log.severe("EPOCH " + epoch + ": Training Y classifier")
-          yClassifier = yFactory.trainClassifier(yDataset)
-        }
-
-        yDataset = new RVFDataset[L,F]
       } else {
         Log.severe("Stopping training. Did not find any changes in the Z labels!")
         makeSingleZClassifier(initializeZDataset(zLabels, data), zFactory)
@@ -310,56 +279,74 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: String,
     group.map(zClassifier.logProbabilityOf _)
 
   /** updates the zLabels array with new predicted z labels */
-  private[twitter4food] def inferZLabelsStable(group: Array[Datum[L,F]], zLabels: Array[L], zClassifier: LinearClassifier[L,F], epoch: Int) {
+  private[twitter4food] def inferZLabelsStable(group: Array[Datum[L,F]], zLabels: Array[L], zClassifier: LinearClassifier[L,F], epoch: Int, yTargetProportion: Double) {
+    import scala.collection.JavaConverters._
+
     val showProbs: Boolean = false
     val verbose: Boolean = true
     if (verbose) {
-      System.err.print("inferZLabels: ")
-      if (positiveLabels.size > 1) System.err.println("MULTI RELATION")
-      else if (positiveLabels.size == 1) System.err.println("SINGLE RELATION")
-      else System.err.println("NIL RELATION")
-      System.err.println("positiveLabels: " + positiveLabels)
-      System.err.println("negativeLabels: " + negativeLabels)
       System.err.print("Current zLabels:")
       zLabels.foreach(i => System.err.print(" " + i))
       System.err.println
     }
     val zLogProbs = computeZLogProbs(group, zClassifier, epoch)
-    for (s <- 0 until group.length) {
-      var maxProb: Double = Double.NegativeInfinity
-      var bestLabel: Int = -1
-      val zProbabilities: Counter[L] = zLogProbs(s)
-      val jointProbabilities: Counter[L] = new ClassicCounter[L]
-      val origZLabel: L = zLabels(s)
-      import scala.collection.JavaConversions._
-      for (candidate <- zProbabilities.keySet) {
-        val candidateIndex: Int = zLabelIndex.indexOf(candidate)
-        if (showProbs) System.err.println("\tProbabilities for z[" + s + "]:")
-        var prob: Double = zProbabilities.getCount(candidate)
-        zLabels(s) = candidateIndex
-        if (showProbs) System.err.println("\t\tlocal (" + zLabels(s) + ") = " + prob)
-        val yLabel: String = yLabelIndex.get(positiveLabels.iterator.next)
-        val yDatum: Datum[String, String] = new RVFDatum[String, String](extractYFeatures(zLabels), "")
-        val yProbabilities: Counter[String] = yClassifier.logProbabilityOf(yDatum)
-        val v: Double = yProbabilities.getCount(yLabel)
-        if (showProbs) System.err.println("\t\t\ty+ (" + yLabel + ") = " + v)
-        prob += v
-        if (showProbs) System.err.println("\t\ttotal (" + zLabels(s) + ") = " + prob)
-        jointProbabilities.setCount(candidate, prob)
-        if (prob > maxProb) {
-          maxProb = prob
-          bestLabel = zLabels(s)
+
+    def currentProportion() = {
+      val currentCounts: Map[L, Int] = zLabels.groupBy(identity).mapValues(_.size).map(identity)
+      currentCounts(positiveClass).toDouble / (currentCounts(positiveClass) + currentCounts(negativeClass))
+    }
+
+    if (currentProportion() == yTargetProportion) return;
+
+    val initiallyAbove = currentProportion() > yTargetProportion
+
+    val (goodLabel, badLabel) = if (initiallyAbove)
+      (negativeClass, positiveClass)
+    else
+      (positiveClass, negativeClass)
+
+    val possibleFlips = mutable.PriorityQueue.empty[(Double, Int, L)]( Ordering.by(-_._1)) // we'll want the lowest scoring
+    for (s <- group.indices) {
+      val label: L = zLabels(s)
+      val probs: Counter[L] = zLogProbs(s)
+      // check the existing label, not the predicted class:
+      // intuition is that if a label doesn't match the classifier's predicted label,
+      // then it's evidence that hasn't yet been incorporated
+      if (label != goodLabel) {
+        if (label == badLabel) {
+          for (flipTo <- probs.keySet().asScala) {
+            if (flipTo != label) possibleFlips.enqueue((probs.getCount(label) - probs.getCount(flipTo), s, flipTo))
+          }
+        } else {
+          possibleFlips.enqueue((probs.getCount(label) - probs.getCount(goodLabel), s, goodLabel))
         }
       }
-      if (bestLabel != -1 && bestLabel != origZLabel) {
-        if (verbose) System.err.println("\tNEW zLabels[" + s + "] = " + bestLabel)
-        zLabels(s) = bestLabel
-        zUpdatesInOneEpoch += 1
-      }
-      else {
-        zLabels(s) = origZLabel
+    }
+
+    var numFlipped = 0
+    var halt = false
+    while (numFlipped < flippingParameter && ! halt) {
+      val oldProportion = currentProportion()
+      val (score, index, flipTo) = possibleFlips.dequeue()
+
+      val oldLabel = zLabels(index)
+      zLabels(index) = flipTo
+      numFlipped += 1
+
+      val newProportion = currentProportion()
+
+      if (newProportion == yTargetProportion) halt = true
+      if ((initiallyAbove && newProportion < yTargetProportion) || (!initiallyAbove && newProportion > yTargetProportion)) {
+        halt = true
+        // check to see if we've gone too far
+        if (math.abs(oldProportion - yTargetProportion) <= math.abs(newProportion - yTargetProportion)) {
+          zLabels(index) = oldLabel
+          numFlipped -= 1
+        }
       }
     }
+
+    zUpdatesInOneEpoch += numFlipped
   }
 
   /**
