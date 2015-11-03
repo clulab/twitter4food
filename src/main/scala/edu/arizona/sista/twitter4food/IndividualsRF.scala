@@ -98,7 +98,9 @@ object IndividualsRF {
     val paramsAndPredictions = if (prfc.nonEmpty) {
       // We're loading a RF from a previous training session
       val params = IndividualsRFParameters(corp, prfc)
-      Seq((params, new ExperimentParameters()) -> new IndividualsRF(params, pw = pw).run())
+      val lexParams = new LexicalParameters(AllTokens, List(LDAAnnotator(AllTokens)), NoNorm, Some(3), Some(3))
+      val expParams = new ExperimentParameters(lexicalParameters = lexParams)
+      Seq((params, expParams) -> new IndividualsRF(params, expParams, pw).run())
     } else { for {
       // which base tokens to use? e.g. food words, hashtags, all words
       tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
