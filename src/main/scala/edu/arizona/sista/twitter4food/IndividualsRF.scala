@@ -107,10 +107,10 @@ object IndividualsRF {
       // tokenTypes: TokenType <- List(AllTokens).par
       // which annotators to use in addition to tokens?
       annotators <- List(
-        List(LDAAnnotator(tokenTypes), SentimentAnnotator))
-        //List(SentimentAnnotator),
-        // List(LDAAnnotator(tokenTypes)),
-        // List())
+        // List(LDAAnnotator(tokenTypes), SentimentAnnotator))
+        // List(SentimentAnnotator),
+        List(LDAAnnotator(tokenTypes)),
+        List())
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
