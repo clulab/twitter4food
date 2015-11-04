@@ -98,6 +98,7 @@ object IndividualsRF {
     val paramsAndPredictions = if (prfc.nonEmpty) {
       // We're loading a RF from a previous training session
       val params = IndividualsRFParameters(corp, prfc)
+      // These parameters must match those of the previous RF
       val lexParams = new LexicalParameters(AllTokens, List(LDAAnnotator(AllTokens)), NoNorm, Some(3), Some(3))
       val expParams = new ExperimentParameters(lexicalParameters = lexParams)
       Seq((params, expParams) -> new IndividualsRF(params, expParams, pw).run())
@@ -109,13 +110,13 @@ object IndividualsRF {
       annotators <- List(
         // List(LDAAnnotator(tokenTypes), SentimentAnnotator))
         // List(SentimentAnnotator),
-        List(LDAAnnotator(tokenTypes)),
-        List())
+        List(LDAAnnotator(tokenTypes)))//,
+        //List())
       // type of normalization to perform: normalize across a feature, across a state, or not at all
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold <- List(None, Some(2), Some(3))
+      ngramThreshold <- List(None, Some(2), Some(3)).par
       // split feature values into this number of quantiles
       numFeatureBins = None
       // use a bias in the SVM?
@@ -130,7 +131,7 @@ object IndividualsRF {
       // Some(k) to keep k features ranked by mutual information, or None to not do this
       miNumToKeep: Option[Int] = None
       // Some(k) to limit random forest tree depth to k levels, or None to not do this
-      maxTreeDepth: Option[Int] <-  List(Some(3), Some(4), Some(5), None)
+      maxTreeDepth: Option[Int] <-  List(Some(3), Some(4), Some(5))
       // these were from failed experiments to use NNMF to reduce the feature space
       //reduceLexicalK: Option[Int] = None
       //reduceLdaK: Option[Int] = None
@@ -169,14 +170,16 @@ object IndividualsRF {
 
       val thresholdedPredictions = thresholdByConf(testingTweets, confidences, thresholds)
 
-      pw.println("threshold\ttotal\tprecision\trecall\tf1\tacc\tp\n============================================")
+      pw.println("key\tthreshold\ttotal\tprecision\trecall\tf1\tacc\tp\n============================================")
       thresholdedPredictions.indices.foreach{ predSet =>
         val (actualSubset, pred) = thresholdedPredictions(predSet).unzip
-        val table = EvaluationStatistics.makeTables(actualSubset.map(_.label.get), pred)(1)
+        val tables = EvaluationStatistics.makeTables(actualSubset.map(_.label.get), pred)
         val baselineSubset: Seq[Int] = predictMajorityNoCV(actualSubset.map(_.label.get))
         val pvalue = EvaluationStatistics.classificationAccuracySignificance(pred, baselineSubset, actualSubset)
 
-        pw.println(s"${thresholds(predSet)}\t${pred.length}\t${table.precision}\t${table.recall}\t${table.f1}\t${table.accuracy * 100.0}\t(p = $pvalue)")
+        tables.foreach { case (k, table) =>
+          pw.println(s"$k\t${thresholds(predSet)}\t${pred.length}\t${table.precision}\t${table.recall}\t${table.f1}\t${table.accuracy * 100.0}\t(p = $pvalue)")
+        }
       }
 
 /*
