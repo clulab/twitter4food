@@ -116,7 +116,8 @@ object IndividualsRF {
       // this has been supplanted by our normalization by the number of tweets for each state
       normalization = NoNorm
       // only keep ngrams occurring this many times or more
-      ngramThreshold <- List(None, Some(2), Some(3)).par
+      //ngramThreshold <- List(None, Some(2), Some(3))
+      ngramThreshold = Some(2)
       // split feature values into this number of quantiles
       numFeatureBins = None
       // use a bias in the SVM?
