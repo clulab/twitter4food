@@ -13,15 +13,13 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * Modification of the MIML-RE model to predict real-valued y-outputs from three-class z-labels. Z-labels have a positive class, a negative, and a neutral, and the y-value is simply positive / (positive + negative)
  * @author Julie Tibshirani (jtibs)
  * @author nallapat@ai.sri.com
  * @author Mihai
  * @author dfried
  *
  */
-@SerialVersionUID(-7961154075748697901L)
-object GroupRegression {
+object MultipleInstancesRegression {
 
   private def makeLocalData[L,F](dataArray: Array[Array[Datum[L, F]]], fold: Int, useRVF: Boolean, initialZLabels: Array[Array[L]]): GeneralDataset[L, F] = {
     val dataset: GeneralDataset[L, F] = if (useRVF) {
@@ -46,8 +44,6 @@ object GroupRegression {
     return dataset
   }
 
-  private val BIG_WEIGHT: Double = +10
-
   def sortPredictions[L](scores: Counter[L]): List[(L, Double)] = {
     import scala.collection.JavaConversions._
     (for {
@@ -61,13 +57,10 @@ object GroupRegression {
 }
 
 @SerialVersionUID(1)
-class GroupRegression[L:Manifest,F:Manifest](val positiveClass: L,
+class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
                                              val negativeClass: L,
-                                             val initialModelPath: String = null,
                                              val numberOfTrainEpochs: Int = 10,
                                              val numberOfFolds: Int = 5,
-                                             val featureModel: Int = 0,
-                                             val trainY: Boolean = true,
                                              val onlyLocalTraining: Boolean = false,
                                              val useRVF: Boolean = true,
                                              val zSigma: Double = 1.0,
@@ -118,7 +111,7 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: L,
         for (j <- 0 until group.length) {
           val datum = group(j)
           val scores = zClassifier.scoresOf(datum)
-          val sortedScores = GroupRegression.sortPredictions(scores)
+          val sortedScores = MultipleInstancesRegression.sortPredictions(scores)
           zLabels(i)(j) = sortedScores.head._1
         }
       }
@@ -140,7 +133,7 @@ class GroupRegression[L:Manifest,F:Manifest](val positiveClass: L,
       assert((trainInitialZLabels.length == trainData.length))
       assert((testInitialZLabels.length == testData.length))
 
-      val dataset: GeneralDataset[L,F] = GroupRegression.makeLocalData(trainData, fold, useRVF, trainInitialZLabels)
+      val dataset: GeneralDataset[L,F] = MultipleInstancesRegression.makeLocalData(trainData, fold, useRVF, trainInitialZLabels)
 
       Log.severe("Fold #" + fold + ": Training local model...")
       val factory: LinearClassifierFactory[L,F] = new LinearClassifierFactory[L,F](1e-4, false, zSigma)
