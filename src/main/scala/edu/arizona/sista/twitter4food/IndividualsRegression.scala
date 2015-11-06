@@ -74,6 +74,8 @@ object IndividualsRegression {
 
     val organizationsFile = StringUtils.getStringOption(props, "organizationsFiles")
 
+    val maxUsersPerState = StringUtils.getIntOption(props, "maxUsersPerState")
+
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
     val removeMarginals: Option[Int] = None
@@ -90,7 +92,7 @@ object IndividualsRegression {
 
     val resultsPw: Option[PrintWriter] = resultsOut.map(filename => new PrintWriter(new java.io.File(filename)))
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=Some(500), excludeUsersWithMoreThan=excludeUsersWithMoreThan, organizationsFile = organizationsFile)
+    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=maxUsersPerState, excludeUsersWithMoreThan=excludeUsersWithMoreThan, organizationsFile = organizationsFile)
 
     val stateValues = Datasets.stateBMIs
     val stateLabels = Experiment.makeLabels(stateValues, numClasses, removeMarginals).mapValues(_.toString)
