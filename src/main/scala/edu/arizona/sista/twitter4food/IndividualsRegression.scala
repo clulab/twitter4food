@@ -94,8 +94,9 @@ object IndividualsRegression {
 
     val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=maxUsersPerState, excludeUsersWithMoreThan=excludeUsersWithMoreThan, organizationsFile = organizationsFile)
 
-    val stateValues = Datasets.stateBMIs
-    val stateLabels = Experiment.makeLabels(stateValues, numClasses, removeMarginals).mapValues(_.toString)
+    val dataset = Datasets.stateBMIs
+    val stateValues = normLocationsInMap(dataset, geotagger) // convert Arizona to AZ, for example
+    val stateLabels = Experiment.makeLabels(dataset, numClasses, removeMarginals).mapValues(_.toString)
 
     val trainingTweets: Seq[IndividualsTweets] = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
     val testingTweets: List[IndividualsTweets] = if (evaluateOnDev) individualsCorpus.devTweets else individualsCorpus.testingTweets
