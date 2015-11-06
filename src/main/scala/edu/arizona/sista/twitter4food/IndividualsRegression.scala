@@ -5,11 +5,14 @@ import java.io._
 import edu.arizona.sista.struct._
 import edu.arizona.sista.utils.{EvaluationStatistics, StringUtils}
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
  * Created by dfried on 4 Nov 2015
  */
 class IndividualsRegression(parameters: ExperimentParameters,
                             printWriter: PrintWriter = new java.io.PrintWriter(System.out),
+                            logger: Option[PrintWriter] = None,
                             val onlyLocalTraining: Boolean = false,
                             val zSigma: Double = 1.0)
   extends Experiment(parameters = parameters, printWriter = printWriter) {
@@ -30,16 +33,18 @@ class IndividualsRegression(parameters: ExperimentParameters,
 
     def labelIndividual(individual: IndividualsTweets): String = stateLabels(individual.state.get)
 
+    val stateNames = new ArrayBuffer[String]()
     val (individualDataByState, individualLabelsByState, valuesByState) = (for {
       (Some(state), featuresAndInds) <- (trainingFeatures, trainingCorpus).zipped.groupBy((_._2.state)).toArray
       (individualFeatures, individuals) = featuresAndInds.toArray.unzip
       individualData = individualFeatures.map(MIMLWrapper.counterToRVFDatum[String,String])
       individualLabels = individuals.map(labelIndividual)
       value = stateValues(state)
+      _ = stateNames.append(state)
     } yield (individualData, individualLabels, value)).unzip3
 
-    val regressor = new MultipleInstancesRegression[String,String](positiveClass="1", negativeClass="0", zSigma=zSigma, onlyLocalTraining=onlyLocalTraining)
-    regressor.train(individualDataByState, individualLabelsByState, valuesByState)
+    val regressor = new MultipleInstancesRegression[String,String](positiveClass="1", negativeClass="0", zSigma=zSigma, onlyLocalTraining=onlyLocalTraining, logger=logger)
+    regressor.train(individualDataByState, individualLabelsByState, valuesByState, Some(stateNames.toArray))
 
     val predictedLabels = for {
       features <- testingFeatures
@@ -76,6 +81,17 @@ object IndividualsRegression {
 
     val maxUsersPerState = StringUtils.getIntOption(props, "maxUsersPerState")
 
+    val corpusLocation = props.getProperty("corpusLocation", "/data/nlp/corpora/twitter4food/foodSamples-20150501")
+    val annotationsLocation = props.getProperty("annotationsLocation", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv")
+
+    val outFile = StringUtils.getStringOption(props, "outputFile")
+    val pw: PrintWriter = outFile match {
+      case Some(fileName) => new PrintWriter(new java.io.File(fileName))
+      case None => new PrintWriter(System.out)
+    }
+
+    val logger: Option[PrintWriter] = StringUtils.getStringOption(props, "logFile").map(filename => new PrintWriter(new java.io.File(filename)))
+
     // Some(k) to remove the k states closest to the bin edges when binning numerical data into classification,
     // or None to use all states
     val removeMarginals: Option[Int] = None
@@ -84,17 +100,11 @@ object IndividualsRegression {
 
     println(s"heap size: ${Runtime.getRuntime.maxMemory / (1024 * 1024)}")
 
-    val outFile = StringUtils.getStringOption(props, "outputFile")
-    val pw: PrintWriter = outFile match {
-      case Some(fileName) => new PrintWriter(new java.io.File(fileName))
-      case None => new PrintWriter(System.out)
-    }
-
     val resultsPw: Option[PrintWriter] = resultsOut.map(filename => new PrintWriter(new java.io.File(filename)))
 
-    val individualsCorpus = new IndividualsCorpus("/data/nlp/corpora/twitter4food/foodSamples-20150501", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv", numToTake=maxUsersPerState, excludeUsersWithMoreThan=excludeUsersWithMoreThan, organizationsFile = organizationsFile)
+    val individualsCorpus = new IndividualsCorpus(corpusLocation, annotationsLocation, numToTake=maxUsersPerState, excludeUsersWithMoreThan=excludeUsersWithMoreThan, organizationsFile = organizationsFile)
 
-    val dataset = Datasets.stateBMIs
+    val dataset = Datasets.overweight
     val stateValues = normLocationsInMap(dataset, geotagger) // convert Arizona to AZ, for example
     val stateLabels = Experiment.makeLabels(dataset, numClasses, removeMarginals).mapValues(_.toString)
 
@@ -148,7 +158,7 @@ object IndividualsRegression {
         classifierType=SVM_L2, // note: this is ignored
         useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
-    } yield params -> new IndividualsRegression(params, pw, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma).run(trainingTweets, testingTweets, stateLabels, stateValues.mapValues(_.toDouble), filterFoodTweets)).seq
+    } yield params -> new IndividualsRegression(params, pw, logger = logger, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma).run(trainingTweets, testingTweets, stateLabels, stateValues.mapValues(_.toDouble), filterFoodTweets)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
@@ -208,6 +218,8 @@ object IndividualsRegression {
     }
 
     resultsPw.foreach(_.close)
+
+    logger.foreach(_.close)
   }
 }
 

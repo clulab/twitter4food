@@ -4,7 +4,6 @@ import java.io._
 
 import edu.stanford.nlp.classify._
 import edu.stanford.nlp.kbp.slotfilling.classify._
-import edu.stanford.nlp.kbp.slotfilling.common.{Constants, Log}
 import edu.stanford.nlp.ling.{BasicDatum, Datum, RVFDatum}
 import edu.stanford.nlp.stats.{ClassicCounter, Counter, Counters}
 import edu.stanford.nlp.util.{HashIndex, Index}
@@ -58,14 +57,15 @@ object MultipleInstancesRegression {
 
 @SerialVersionUID(1)
 class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
-                                             val negativeClass: L,
-                                             val numberOfTrainEpochs: Int = 10,
-                                             val numberOfFolds: Int = 5,
-                                             val onlyLocalTraining: Boolean = false,
-                                             val useRVF: Boolean = true,
-                                             val zSigma: Double = 1.0,
-                                             val localClassificationMode: LocalClassificationMode = WeightedVote,
-                                             val flippingParameter: Int = 5) {
+                                                         val negativeClass: L,
+                                                         val numberOfTrainEpochs: Int = 10,
+                                                         val numberOfFolds: Int = 5,
+                                                         val onlyLocalTraining: Boolean = false,
+                                                         val useRVF: Boolean = true,
+                                                         val zSigma: Double = 1.0,
+                                                         val localClassificationMode: LocalClassificationMode = WeightedVote,
+                                                         val flippingParameter: Int = 5,
+                                                         val logger: Option[PrintWriter] = None) {
 
   /**
    * sentence-level multi-class classifier, trained across all sentences
@@ -125,7 +125,7 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
                                              initialZLabels: Array[Array[L]]): Array[LinearClassifier[L,F]] = {
     val localClassifiers: Array[LinearClassifier[L,F]] = new Array[LinearClassifier[L,F]](numberOfFolds)
     for (fold <- 0 until numberOfFolds) {
-      Log.severe("Constructing dataset for the local model in fold #" + fold + "...")
+      log("Constructing dataset for the local model in fold #" + fold + "...")
 
       val (trainData, testData) = splitForFold(data, fold)
       val (trainInitialZLabels, testInitialZLabels) = splitForFold(initialZLabels, fold)
@@ -135,10 +135,11 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
 
       val dataset: GeneralDataset[L,F] = MultipleInstancesRegression.makeLocalData(trainData, fold, useRVF, trainInitialZLabels)
 
-      Log.severe("Fold #" + fold + ": Training local model...")
+      log("Fold #" + fold + ": Training local model...")
       val factory: LinearClassifierFactory[L,F] = new LinearClassifierFactory[L,F](1e-4, false, zSigma)
       val localClassifier: LinearClassifier[L,F] = factory.trainClassifier(dataset)
-      Log.severe("Fold #" + fold + ": Training of the local classifier completed.")
+      log("Fold #" + fold + ": Training of the local classifier completed.")
+      localClassifiers(fold) = localClassifier
     }
     return localClassifiers
   }
@@ -166,11 +167,11 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
         count += 1
       }
     }
-    Log.severe("Created the Z dataset with " + count + " datums.")
+    log("Created the Z dataset with " + count + " datums.")
     return dataset
   }
 
-  def train(data: Array[Array[Datum[L,F]]], initialZLabels: Array[Array[L]], yTargetProportions: Array[Double]) {
+  def train(data: Array[Array[Datum[L,F]]], initialZLabels: Array[Array[L]], yTargetProportions: Array[Double], groupNames: Option[Array[String]] = None) {
     import collection.JavaConversions._
     val zFactory: LinearClassifierFactory[L,F] = new LinearClassifierFactory[L,F](1e-4, false, zSigma)
 
@@ -185,7 +186,7 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
 
     for (epoch <- 0 until numberOfTrainEpochs) {
       zUpdatesInOneEpoch = 0
-      Log.severe("***EPOCH " + epoch + "***")
+      log("***EPOCH " + epoch + "***")
       val zLabelsPredictedByZ: Array[Array[L]] = new Array[Array[L]](zLabels.length)
 
       for (fold <- 0 until numberOfFolds) {
@@ -199,16 +200,18 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
 
           val yTargetProportion = yTargetProportions(i)
 
+          groupNames.map(names => (names(i))).foreach(name => log("Group " + name))
           // destructively update zLabels(i)
           inferZLabelsStable(group, zLabels(i), zClassifier, epoch, yTargetProportion)
+          log("\n")
         }
       }
 
-      Log.severe("In epoch #" + epoch + " zUpdatesInOneEpoch = " + zUpdatesInOneEpoch)
+      log("In epoch #" + epoch + " zUpdatesInOneEpoch = " + zUpdatesInOneEpoch)
       if (zUpdatesInOneEpoch != 0) {
-        Log.severe("M-STEP")
+        log("M-STEP")
         for (fold <- 0 until numberOfFolds) {
-          Log.severe("EPOCH " + epoch + ": Training Z classifier for fold #" + fold)
+          log("EPOCH " + epoch + ": Training Z classifier for fold #" + fold)
           val trainData = splitForFold(data, fold)._1
           val trainLabels = splitForFold(zLabels, fold)._1
           val zd: GeneralDataset[L,F] = initializeZDataset(trainLabels, trainData)
@@ -216,7 +219,7 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
           zClassifiers(fold) = zClassifier
         }
       } else {
-        Log.severe("Stopping training. Did not find any changes in the Z labels!")
+        log("Stopping training. Did not find any changes in the Z labels!")
         makeSingleZClassifier(initializeZDataset(zLabels, data), zFactory)
         return
       }
@@ -227,7 +230,7 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
   protected def makeSingleZClassifier(zDataset: GeneralDataset[L,F], zFactory: LinearClassifierFactory[L,F]) {
     localClassificationMode match {
       case SingleModel =>  {
-        Log.severe("Training the final Z classifier...")
+        log("Training the final Z classifier...")
         zSingleClassifier = zFactory.trainClassifier(zDataset)
       }
       case _ => {
@@ -276,18 +279,18 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
     import scala.collection.JavaConverters._
 
     val showProbs: Boolean = false
-    val verbose: Boolean = true
-    if (verbose) {
-      System.err.print("Current zLabels:")
-      zLabels.foreach(i => System.err.print(" " + i))
-      System.err.println
-    }
     val zLogProbs = computeZLogProbs(group, zClassifier, epoch)
 
     def currentProportion() = {
       val currentCounts: Map[L, Int] = zLabels.groupBy(identity).mapValues(_.size).map(identity)
-      currentCounts(positiveClass).toDouble / (currentCounts(positiveClass) + currentCounts(negativeClass))
+      val totalCount = currentCounts.getOrElse(positiveClass, 0) + currentCounts.getOrElse(negativeClass, 0)
+      currentCounts.getOrElse(positiveClass, 0).toDouble / totalCount
     }
+
+    log(s"target proportion ${yTargetProportion}")
+    log("zLabels before flip:")
+    log(zLabels mkString " ")
+    log("proportion before flip: " + currentProportion())
 
     if (currentProportion() == yTargetProportion) return;
 
@@ -318,7 +321,7 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
 
     var numFlipped = 0
     var halt = false
-    while (numFlipped < flippingParameter && ! halt) {
+    while (numFlipped < flippingParameter &&  possibleFlips.nonEmpty && ! halt) {
       val oldProportion = currentProportion()
       val (score, index, flipTo) = possibleFlips.dequeue()
 
@@ -338,6 +341,11 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
         }
       }
     }
+
+    log(s"flipped ${numFlipped} labels")
+    log("zLabels after flip:")
+    log(zLabels mkString " ")
+    log("proportion after flip: " + currentProportion())
 
     zUpdatesInOneEpoch += numFlipped
   }
@@ -364,4 +372,6 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
   def classifyMentions(sentences: List[Datum[L,F]]): Counter[L] = {
     throw new UnsupportedOperationException("classifyMentions not implemented!")
   }
+
+  def log(string: String) = logger.foreach(pw => pw.println(string))
 }

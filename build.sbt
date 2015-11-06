@@ -27,5 +27,3 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "latest.integration",
   "com.github.tototoshi" %% "scala-csv" % "1.2.1"
 )
-
-scalacOptions ++= Seq("-Ystatistics")
