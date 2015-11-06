@@ -26,7 +26,9 @@ class IndividualsRegression(parameters: ExperimentParameters,
           onlyFoodTweets: Boolean = false,
           realValued: Boolean = true,
           featureSerializationPath: Option[String] = None,
-          randomSeed: Int = 1234) = {
+          randomSeed: Int = 1234,
+          flippingParameter: Int = 5,
+          numberOfTrainEpochs: Int = 10) = {
 
     val random = new util.Random(randomSeed)
 
@@ -50,7 +52,7 @@ class IndividualsRegression(parameters: ExperimentParameters,
       _ = stateNames.append(state)
     } yield (individualData, individualLabels, value)).unzip3
 
-    val regressor = new MultipleInstancesRegression[String,String](positiveClass=positiveClass, negativeClass=negativeClass, zSigma=zSigma, onlyLocalTraining=onlyLocalTraining, logger=logger)
+    val regressor = new MultipleInstancesRegression[String,String](numberOfTrainEpochs=numberOfTrainEpochs, positiveClass=positiveClass, negativeClass=negativeClass, zSigma=zSigma, onlyLocalTraining=onlyLocalTraining, logger=logger, flippingParameter=flippingParameter)
     regressor.train(individualDataByState, individualLabelsByState, valuesByState, Some(stateNames.toArray))
 
     val predictedLabels = for {
@@ -87,6 +89,10 @@ object IndividualsRegression {
     val organizationsFile = StringUtils.getStringOption(props, "organizationsFiles")
 
     val maxUsersPerState = StringUtils.getIntOption(props, "maxUsersPerState")
+
+    val flippingParameter = StringUtils.getInt(props, "flippingParameter", 5)
+
+    val numberOfTrainEpochs = StringUtils.getInt(props, "numberOfTrainEpochs", 10)
 
     val corpusLocation = props.getProperty("corpusLocation", "/data/nlp/corpora/twitter4food/foodSamples-20150501")
     val annotationsLocation = props.getProperty("annotationsLocation", "/data/nlp/corpora/twitter4food/foodSamples-20150501/annotations.csv")
@@ -165,7 +171,7 @@ object IndividualsRegression {
         classifierType=SVM_L2, // note: this is ignored
         useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
-    } yield params -> new IndividualsRegression(params, pw, logger = logger, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma).run(trainingTweets, testingTweets, stateLabels, stateValues.mapValues(_.toDouble), filterFoodTweets)).seq
+    } yield params -> new IndividualsRegression(params, pw, logger = logger, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma).run(trainingTweets, testingTweets, stateLabels, stateValues.mapValues(_.toDouble), filterFoodTweets, numberOfTrainEpochs=numberOfTrainEpochs, flippingParameter=flippingParameter)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)
