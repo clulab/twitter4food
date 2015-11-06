@@ -14,7 +14,9 @@ class IndividualsRegression(parameters: ExperimentParameters,
                             printWriter: PrintWriter = new java.io.PrintWriter(System.out),
                             logger: Option[PrintWriter] = None,
                             val onlyLocalTraining: Boolean = false,
-                            val zSigma: Double = 1.0)
+                            val zSigma: Double = 1.0,
+                            val positiveClass: String = "1",
+                            val negativeClass: String = "0")
   extends Experiment(parameters = parameters, printWriter = printWriter) {
 
   def run(trainingCorpus: Seq[IndividualsTweets],
@@ -23,7 +25,10 @@ class IndividualsRegression(parameters: ExperimentParameters,
           stateValues: Map[String, Double],
           onlyFoodTweets: Boolean = false,
           realValued: Boolean = true,
-          featureSerializationPath: Option[String] = None) = {
+          featureSerializationPath: Option[String] = None,
+          randomSeed: Int = 1234) = {
+
+    val random = new util.Random(randomSeed)
 
     val trainingTweets = trainingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
     val testingTweets = testingCorpus.map(it => if (onlyFoodTweets) filterFoodTweets(it.tweets) else it.tweets)
@@ -31,19 +36,21 @@ class IndividualsRegression(parameters: ExperimentParameters,
     val (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets)
     val testingFeatures: Seq[Counter[String]] = mkViewFeatures(None)(testingTweets)._1.map(_.filter(p => filterFn(p._1)))
 
-    def labelIndividual(individual: IndividualsTweets): String = stateLabels(individual.state.get)
+    def labelIndividuals(individuals: Seq[IndividualsTweets], targetValue: Double): Array[String] = {
+      Array.tabulate[String](individuals.size)(i => if (random.nextDouble() < targetValue) positiveClass else negativeClass)
+    }
 
     val stateNames = new ArrayBuffer[String]()
     val (individualDataByState, individualLabelsByState, valuesByState) = (for {
       (Some(state), featuresAndInds) <- (trainingFeatures, trainingCorpus).zipped.groupBy((_._2.state)).toArray
       (individualFeatures, individuals) = featuresAndInds.toArray.unzip
       individualData = individualFeatures.map(MIMLWrapper.counterToRVFDatum[String,String])
-      individualLabels = individuals.map(labelIndividual)
       value = stateValues(state)
+      individualLabels = labelIndividuals(individuals, value)
       _ = stateNames.append(state)
     } yield (individualData, individualLabels, value)).unzip3
 
-    val regressor = new MultipleInstancesRegression[String,String](positiveClass="1", negativeClass="0", zSigma=zSigma, onlyLocalTraining=onlyLocalTraining, logger=logger)
+    val regressor = new MultipleInstancesRegression[String,String](positiveClass=positiveClass, negativeClass=negativeClass, zSigma=zSigma, onlyLocalTraining=onlyLocalTraining, logger=logger)
     regressor.train(individualDataByState, individualLabelsByState, valuesByState, Some(stateNames.toArray))
 
     val predictedLabels = for {
