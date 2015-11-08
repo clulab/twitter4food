@@ -22,21 +22,19 @@ object MultipleInstancesRegression {
 
   private def makeLocalData[L,F](dataArray: Array[Array[Datum[L, F]]], fold: Int, useRVF: Boolean, initialZLabels: Array[Array[L]]): GeneralDataset[L, F] = {
     val dataset: GeneralDataset[L, F] = if (useRVF) {
-      new WeightedRVFDataset[L, F]()
+      new RVFDataset[L,F]
     } else {
-      new WeightedDataset[L, F]
+      new Dataset[L,F]
     }
 
     for ((group, zLabels) <- dataArray zip initialZLabels) {
       for ((datum, label) <- (group zip zLabels)) {
         if (useRVF) {
-          val d = datum.asInstanceOf[RVFDatum[L, F]]
-          d.setLabel(label)
-          (dataset.asInstanceOf[WeightedRVFDataset[L, F]]).add(d, 1.0f)
+          (datum.asInstanceOf[RVFDatum[L, F]]).setLabel(label)
         } else {
           (datum.asInstanceOf[BasicDatum[L, F]]).setLabel(label)
-          (dataset.asInstanceOf[WeightedDataset[L, F]]).add(datum, 1.0f)
         }
+        dataset.add(datum)
       }
     }
 
@@ -145,12 +143,11 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
   }
 
   protected def initializeZDataset(zLabels: Array[Array[L]], data: Array[Array[Datum[L,F]]]): GeneralDataset[L,F] = {
-    var dataset: GeneralDataset[L,F] = null
-    if (useRVF) {
-      dataset = new RVFDataset[L,F]
+    var dataset: GeneralDataset[L,F] = if (useRVF) {
+      new RVFDataset[L,F]
     }
     else {
-      dataset = new Dataset[L,F]
+      new Dataset[L,F]
     }
     var count: Int = 0
     for (i <- 0 until data.length) {
@@ -177,7 +174,21 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
 
     zFactory.setVerbose(false)
 
+    for (i <- data.indices) {
+        val currentCounts: Map[L, Int] = initialZLabels(i).groupBy(identity).mapValues(_.size).map(identity)
+        val totalCount = currentCounts.getOrElse(positiveClass, 0) + currentCounts.getOrElse(negativeClass, 0)
+        val currentProportion = currentCounts.getOrElse(positiveClass, 0).toDouble / totalCount
+
+        groupNames.map(names => (names(i))).foreach(name => log("Group " + name))
+        log(s"target proportion ${yTargetProportions(i)}")
+        log("initial z labels:")
+        log(initialZLabels(i).zipWithIndex mkString " ")
+        log("initial proportion" + currentProportion)
+        log("\n")
+    }
+
     zClassifiers = initializeZClassifierLocally(data, initialZLabels)
+
 
     if (onlyLocalTraining) return
 
@@ -281,16 +292,16 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
     val showProbs: Boolean = false
     val zLogProbs = computeZLogProbs(group, zClassifier, epoch)
 
+    val zLabelsOld = new Array[L](zLabels.size)
+    Array.copy(zLabels, 0, zLabelsOld, 0, zLabels.size)
+
     def currentProportion() = {
       val currentCounts: Map[L, Int] = zLabels.groupBy(identity).mapValues(_.size).map(identity)
       val totalCount = currentCounts.getOrElse(positiveClass, 0) + currentCounts.getOrElse(negativeClass, 0)
       currentCounts.getOrElse(positiveClass, 0).toDouble / totalCount
     }
 
-    log(s"target proportion ${yTargetProportion}")
-    log("zLabels before flip:")
-    log(zLabels mkString " ")
-    log("proportion before flip: " + currentProportion())
+    val oldProportion = currentProportion()
 
     if (currentProportion() == yTargetProportion) return;
 
@@ -342,10 +353,25 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
       }
     }
 
+    def scoresString(scores: Counter[L]) = (for {
+        (cls, score) <- MultipleInstancesRegression.sortPredictions(scores)
+        str = f"$cls $score%.3f"
+    } yield str).mkString(" ")
+
+
     log(s"flipped ${numFlipped} labels")
+
+    log(s"old\tnew\tscores")
+    for ((oldLabel, newLabel, scoreCounter) <- (zLabelsOld, zLabels, zLogProbs).zipped) {
+        log(s"${oldLabel}\t${newLabel}\t${scoresString(scoreCounter)}")
+    }
+
     log("zLabels after flip:")
-    log(zLabels mkString " ")
-    log("proportion after flip: " + currentProportion())
+    log(zLabels.zipWithIndex mkString " ")
+
+    log(s"old proportion:    ${oldProportion}")
+    log(s"new proportion:    ${currentProportion()}")
+    log(s"target proportion: ${yTargetProportion}")
 
     zUpdatesInOneEpoch += numFlipped
   }
