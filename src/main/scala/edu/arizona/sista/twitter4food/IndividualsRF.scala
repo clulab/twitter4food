@@ -232,8 +232,8 @@ object IndividualsRF {
       thresholded = for {
         tweeter <- tweets.indices
         if confs(tweeter)._2 >= co
-      } yield (co,(tweets(tweeter), confs(tweeter)._1))
-    } yield thresholded
+      } yield (tweets(tweeter), confs(tweeter)._1)
+    } yield (co, thresholded)
   }
 }
 
