@@ -168,20 +168,21 @@ object IndividualsRF {
       pw.println
 
       val confidences = testingPredictions.map(scoresToConf)
-      val thresholds = 50 to 99
+      val thresholds = (50 to 99).map(t => ((math rint (t * 0.01)) * 100) / 100)
 
-      val thresholdedPredictions = thresholdByConf(testingTweets, confidences, thresholds)
+      val thresholdedPredictions = thresholdByConf(testingTweets, confidences, thresholds).filter(_._2.nonEmpty)
 
       pw.println("key\tthreshold\ttotal\tprecision\trecall\tf1\tacc\tp\n============================================")
       thresholdedPredictions.indices.foreach{ predSet =>
-        val (actualSubset, pred) = thresholdedPredictions(predSet).unzip
+        val (thresh, preds) = thresholdedPredictions(predSet)
+        val (actualSubset, pred) = preds.unzip
         val tables = EvaluationStatistics.makeTables(actualSubset.map(_.label.get), pred)
         val baselineSubset: Seq[Int] = predictMajorityNoCV(actualSubset.map(_.label.get))
         println(baselineSubset.mkString(" "))
         val pvalue = EvaluationStatistics.classificationAccuracySignificance(pred, baselineSubset, actualSubset)
 
         tables.foreach { case (k, table) =>
-          pw.println(s"$k\t${thresholds(predSet)}\t${pred.length}\t${table.precision}\t${table.recall}\t${table.f1}\t${table.accuracy * 100.0}\t(p = $pvalue)")
+          pw.println(s"$k\t$thresh\t${pred.length}\t${table.precision}\t${table.recall}\t${table.f1}\t${table.accuracy * 100.0}\t(p = $pvalue)")
         }
       }
 
@@ -225,13 +226,13 @@ object IndividualsRF {
 
   def thresholdByConf(tweets: Seq[IndividualsTweets],
                       confs: Seq[(Int, Double)],
-                      cutoffs: Seq[Int] = 50 to 99): Seq[Seq[(IndividualsTweets, Int)]] = {
+                      cutoffs: Seq[Double] = 50 to 99): Seq[(Double, Seq[(IndividualsTweets, Int)])] = {
     for {
       co <- cutoffs
       thresholded = for {
         tweeter <- tweets.indices
-        if confs(tweeter)._2 * 100.0 >= co
-      } yield (tweets(tweeter), confs(tweeter)._1)
+        if confs(tweeter)._2 >= co
+      } yield (co,(tweets(tweeter), confs(tweeter)._1))
     } yield thresholded
   }
 }
