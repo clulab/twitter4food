@@ -226,7 +226,7 @@ object IndividualsRF {
 
   def thresholdByConf(tweets: Seq[IndividualsTweets],
                       confs: Seq[(Int, Double)],
-                      cutoffs: Seq[Double] = 50 to 99): Seq[(Double, Seq[(IndividualsTweets, Int)])] = {
+                      cutoffs: Seq[Double]): Seq[(Double, Seq[(IndividualsTweets, Int)])] = {
     for {
       co <- cutoffs
       thresholded = for {
