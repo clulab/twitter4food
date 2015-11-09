@@ -16,8 +16,11 @@ class IndividualsRegression(parameters: ExperimentParameters,
                             val onlyLocalTraining: Boolean = false,
                             val zSigma: Double = 1.0,
                             val positiveClass: String = "1",
-                            val negativeClass: String = "0")
+                            val negativeClass: String = "0",
+                            val useRVF: Boolean = true)
   extends Experiment(parameters = parameters, printWriter = printWriter) {
+
+  val datumFn = if (useRVF) MIMLWrapper.counterToRVFDatum[String,String] _ else MIMLWrapper.counterToBVFDatum[String,String] _
 
   def run(trainingCorpus: Seq[IndividualsTweets],
           testingCorpus: Seq[IndividualsTweets],
@@ -46,18 +49,18 @@ class IndividualsRegression(parameters: ExperimentParameters,
     val (individualDataByState, individualLabelsByState, valuesByState) = (for {
       (Some(state), featuresAndInds) <- (trainingFeatures, trainingCorpus).zipped.groupBy((_._2.state)).toArray
       (individualFeatures, individuals) = featuresAndInds.toArray.unzip
-      individualData = individualFeatures.map(MIMLWrapper.counterToRVFDatum[String,String])
+      individualData = individualFeatures.map(datumFn)
       value = stateValues(state)
       individualLabels = labelIndividuals(individuals, value)
       _ = stateNames.append(state)
     } yield (individualData, individualLabels, value)).unzip3
 
-    val regressor = new MultipleInstancesRegression[String,String](numberOfTrainEpochs=numberOfTrainEpochs, positiveClass=positiveClass, negativeClass=negativeClass, zSigma=zSigma, onlyLocalTraining=onlyLocalTraining, logger=logger, flippingParameter=flippingParameter)
+    val regressor = new MultipleInstancesRegression[String,String](numberOfTrainEpochs=numberOfTrainEpochs, positiveClass=positiveClass, negativeClass=negativeClass, zSigma=zSigma, onlyLocalTraining=onlyLocalTraining, logger=logger, flippingParameter=flippingParameter, useRVF=useRVF)
     regressor.train(individualDataByState, individualLabelsByState, valuesByState, Some(stateNames.toArray))
 
     val predictedLabels = for {
       features <- testingFeatures
-      predictions = regressor.classifyLocally(MIMLWrapper.counterToRVFDatum(features))
+      predictions = regressor.classifyLocally(datumFn(features))
     } yield MultipleInstancesRegression.sortPredictions(predictions).maxBy(_._2)._1
 
     printWriter.println(regressor.zClassifiers(0).toBiggestWeightFeaturesString(true, 20, true))
@@ -79,6 +82,8 @@ object IndividualsRegression {
     val onlyLocalTraining = StringUtils.getBool(props, "onlyLocalTraining", false)
 
     val zSigma = StringUtils.getDouble(props, "zSigma", 1.0)
+
+    val useRVF = StringUtils.getBool(props, "useRVF", true)
 
     val evaluateOnDev = StringUtils.getBoolOption(props, "evaluateOnDev").get
 
@@ -171,7 +176,7 @@ object IndividualsRegression {
         classifierType=SVM_L2, // note: this is ignored
         useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0))
-    } yield params -> new IndividualsRegression(params, pw, logger = logger, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma).run(trainingTweets, testingTweets, stateLabels, stateValues.mapValues(_.toDouble), filterFoodTweets, numberOfTrainEpochs=numberOfTrainEpochs, flippingParameter=flippingParameter)).seq
+    } yield params -> new IndividualsRegression(params, pw, logger = logger, onlyLocalTraining = onlyLocalTraining, zSigma = zSigma, useRVF = useRVF).run(trainingTweets, testingTweets, stateLabels, stateValues.mapValues(_.toDouble), filterFoodTweets, numberOfTrainEpochs=numberOfTrainEpochs, flippingParameter=flippingParameter)).seq
 
     for ((params, predictions) <- predictionsAndWeights.sortBy(_._1.toString)) {
       pw.println(params)

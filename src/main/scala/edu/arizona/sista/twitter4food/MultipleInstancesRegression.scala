@@ -180,10 +180,10 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
         val currentProportion = currentCounts.getOrElse(positiveClass, 0).toDouble / totalCount
 
         groupNames.map(names => (names(i))).foreach(name => log("Group " + name))
-        log(s"target proportion ${yTargetProportions(i)}")
         log("initial z labels:")
-        log(initialZLabels(i).zipWithIndex mkString " ")
+        log(initialZLabels(i) mkString " ")
         log("initial proportion" + currentProportion)
+        log(s"target proportion ${yTargetProportions(i)}")
         log("\n")
     }
 
@@ -360,18 +360,14 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
 
 
     log(s"flipped ${numFlipped} labels")
-
+    log(s"old proportion:    ${oldProportion}")
+    log(s"new proportion:    ${currentProportion()}")
+    log(s"target proportion: ${yTargetProportion}")
     log(s"old\tnew\tscores")
     for ((oldLabel, newLabel, scoreCounter) <- (zLabelsOld, zLabels, zLogProbs).zipped) {
         log(s"${oldLabel}\t${newLabel}\t${scoresString(scoreCounter)}")
     }
 
-    log("zLabels after flip:")
-    log(zLabels.zipWithIndex mkString " ")
-
-    log(s"old proportion:    ${oldProportion}")
-    log(s"new proportion:    ${currentProportion()}")
-    log(s"target proportion: ${yTargetProportion}")
 
     zUpdatesInOneEpoch += numFlipped
   }
