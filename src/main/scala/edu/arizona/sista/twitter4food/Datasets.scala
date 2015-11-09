@@ -82,9 +82,8 @@ object Datasets {
 
 
   // the overweight dataset reports the percentage of people within each state who had BMI that put them into the overweight or obese range
-  // lazy val (diabetes, overweight) = parseKFF(source("target_data/kff_combined.csv"))
-  lazy val overweight = sys.error("we've switched to state BMIs! uncomment the above line in Datasets.scala if you really want to use these")
-  lazy val diabetes = parseKFF(source("target_data/kff_combined.csv"))._1
+  lazy val (diabetes, overweight) = parseKFF(source("target_data/kff_combined.csv"))
+  // lazy val diabetes = parseKFF(source("target_data/kff_combined.csv"))._1
 
   lazy val political: Map[String, Float] = parsePolitical(source("target_data/proportion_liberal.txt"))
   // lazy val cdc2010: Map[String, Float] = parseCDC(source("target_data/cdc_obesity_2010.csv"))
