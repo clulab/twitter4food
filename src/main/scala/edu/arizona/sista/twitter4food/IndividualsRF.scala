@@ -168,7 +168,7 @@ object IndividualsRF {
       pw.println
 
       val confidences = testingPredictions.map(scoresToConf)
-      val thresholds = (50 to 99).map(t => ((math rint (t * 0.01)) * 100) / 100)
+      val thresholds = (50 to 99).map(_ * 0.01)
 
       val thresholdedPredictions = thresholdByConf(testingTweets, confidences, thresholds).filter(_._2.nonEmpty)
 
