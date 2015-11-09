@@ -47,6 +47,7 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
           // make a datum for the individual (label will not be used!)
           testingDatum = mkDatum(0, procFeats(testF))
           prediction = clf.scoresOf(testingDatum)
+          _ = {println(prediction.toShortString)}
         } yield prediction)
       } yield predictedLabels).flatten
     }
@@ -176,6 +177,7 @@ object IndividualsRF {
         val (actualSubset, pred) = thresholdedPredictions(predSet).unzip
         val tables = EvaluationStatistics.makeTables(actualSubset.map(_.label.get), pred)
         val baselineSubset: Seq[Int] = predictMajorityNoCV(actualSubset.map(_.label.get))
+        println(baselineSubset.mkString(" "))
         val pvalue = EvaluationStatistics.classificationAccuracySignificance(pred, baselineSubset, actualSubset)
 
         tables.foreach { case (k, table) =>
