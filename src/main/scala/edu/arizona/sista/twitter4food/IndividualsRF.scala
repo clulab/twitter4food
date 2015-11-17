@@ -93,7 +93,7 @@ object IndividualsRF {
 
     val corp = new IndividualsRFCorpus(args(0))
     val pw: PrintWriter = new PrintWriter(new java.io.File(args(1)))
-    val prfc = if (args.length > 2) Some(RandomForestClassifier.loadFrom[Int,String](args(2))) else None
+    val prfc: Option[Classifier[Int,String]] = if (args.length > 2) Some(RandomForestClassifier.loadFrom[Int,String](args(2))) else None
 
     val folds = Some(10)
 
@@ -149,7 +149,7 @@ object IndividualsRF {
 
       rfParams = new IndividualsRFParameters[Int, String](corp, prfc, folds)
       expParams = new ExperimentParameters(new LexicalParameters(tokenTypes, annotators, normalization, ngramThreshold, numFeatureBins),
-        classifierType=RandomForest,
+        classifierType=SVM_L2,
         useBias, regionType, baggingNClassifiers, forceFeatures, numClasses,
         miNumToKeep, maxTreeDepth, removeMarginals, featureScalingFactor = Some(1.0), numTrees)
 
