@@ -95,7 +95,7 @@ object IndividualsRF {
     val pw: PrintWriter = new PrintWriter(new java.io.File(args(1)))
     val prfc: Option[Classifier[Int,String]] = if (args.length > 2) Some(RandomForestClassifier.loadFrom[Int,String](args(2))) else None
 
-    val folds = Some(10)
+    val folds = Some(scala.math.min(10, corp.tweets.length))
 
     val paramsAndPredictions = if (prfc.nonEmpty) {
       // We're loading a RF from a previous training session
@@ -186,11 +186,16 @@ object IndividualsRF {
         val baselineSubset: Seq[Int] = predictMajorityNoCV(actualSubset.map(_.label.get))
         val pvalue = EvaluationStatistics.classificationAccuracySignificance(pred, baselineSubset, actualSubset)
 
-        val table = tables.head._2
+        val table0 = tables(0)
         pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
           s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
-          s"\t$thresh\t${pred.length}\t${table.precision}\t${table.recall}\t${table.f1}\t${table.accuracy * 100.0}\t" +
-          s"(p = $pvalue)")
+          s"\t$thresh\t${pred.length}\t${table0.precision}\t${table0.recall}\t${table0.f1}\t${table0.accuracy * 100.0}\t" +
+          s"(p = $pvalue)\t0")
+        val table1 = tables(1)
+        pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
+          s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
+          s"\t$thresh\t${pred.length}\t${table1.precision}\t${table1.recall}\t${table1.f1}\t${table1.accuracy * 100.0}\t" +
+          s"(p = $pvalue)\t1")
       }
 
 /*
@@ -215,6 +220,7 @@ object IndividualsRF {
     }
   }
 
+  // Should have no effect on probabilities but make RF scores probability-ish
   def scoresToConf(scores: Counter[Int]): (Int, Double) = {
     var max = Double.MinValue
     var sum = 0.0
