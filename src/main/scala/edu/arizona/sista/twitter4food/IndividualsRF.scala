@@ -5,11 +5,12 @@ import edu.arizona.sista.learning.RandomForestClassifier
 import edu.arizona.sista.struct.Counter
 import edu.arizona.sista.twitter4food.Experiment._
 import edu.arizona.sista.utils.EvaluationStatistics
+import edu.arizona.sista.learning.Classifier
 
 import org.apache.commons.io.FilenameUtils
 
 case class IndividualsRFParameters[L,F](corpus: IndividualsRFCorpus,
-                                        prfc: Option[RandomForestClassifier[L,F]],
+                                        prfc: Option[Classifier[L,F]],
                                         folds: Option[Int] = None)
 
 /**
