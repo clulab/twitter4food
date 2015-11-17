@@ -60,7 +60,7 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
     val r = new scala.util.Random(randomSeed)
     val shuffledTweets = r.shuffle(tweets)
     val pieces = cut(shuffledTweets, k.getOrElse(10)).toSeq
-    for (piece <- pieces) yield (piece, (pieces diff piece).flatten)
+    for (piece <- pieces) yield (piece, (pieces.flatten diff piece))
   }
 
   // http://stackoverflow.com/questions/11456107/partition-a-collection-into-k-close-to-equal-pieces-scala-but-language-agnos
