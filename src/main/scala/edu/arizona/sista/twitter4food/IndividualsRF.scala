@@ -60,7 +60,7 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
     val r = new scala.util.Random(randomSeed)
     val shuffledTweets = r.shuffle(tweets)
     val pieces = cut(shuffledTweets, k.getOrElse(10)).toSeq
-    for (piece <- pieces) yield (piece, (pieces.flatten diff piece))
+    for (piece <- pieces) yield (piece, pieces.flatten diff piece)
   }
 
   // http://stackoverflow.com/questions/11456107/partition-a-collection-into-k-close-to-equal-pieces-scala-but-language-agnos
@@ -157,7 +157,7 @@ object IndividualsRF {
     }
 
     pw.println("classifier\ttokenType\tnumTrees\tmaxDepth\tngramCutoff\tannotators\tthreshold\ttotal\tprecision\trecall\tf1\tacc\tp")
-    pw.println("=" * 100)
+    pw.println("=" * 162)
     for (((rfParams, expParams), predictions) <- paramsAndPredictions) {
       // pw.println(expParams)
 
@@ -189,13 +189,13 @@ object IndividualsRF {
         val table0 = tables(0)
         pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
           s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
-          s"\t$thresh\t${pred.length}\t${table0.precision}\t${table0.recall}\t${table0.f1}\t${table0.accuracy * 100.0}\t" +
-          s"(p = $pvalue)\t0")
+          s"\t${"%1.2f" format thresh}\t${pred.length}\t${table0.precision}\t${table0.recall}\t${table0.f1}\t${table0.accuracy * 100.0}\t" +
+          s"$pvalue\t0")
         val table1 = tables(1)
         pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
           s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
-          s"\t$thresh\t${pred.length}\t${table1.precision}\t${table1.recall}\t${table1.f1}\t${table1.accuracy * 100.0}\t" +
-          s"(p = $pvalue)\t1")
+          s"\t${"%1.2f" format thresh}\t${pred.length}\t${table1.precision}\t${table1.recall}\t${table1.f1}\t${table1.accuracy * 100.0}\t" +
+          s"$pvalue\t1")
       }
 
 /*
@@ -218,6 +218,7 @@ object IndividualsRF {
       pw.println
       pw.println
     }
+    pw.close()
   }
 
   // Should have no effect on probabilities but make RF scores probability-ish
