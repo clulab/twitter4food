@@ -189,13 +189,13 @@ object IndividualsRF {
         val table0 = tables(0)
         pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
           s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
-          s"\t${"%1.2f" format thresh}\t${pred.length}\t${table0.precision}\t${table0.recall}\t${table0.f1}\t${table0.accuracy * 100.0}\t" +
-          s"$pvalue\t0")
+          s"\t${expParams.lexicalParameters.annotators}\t${"%1.2f" format thresh}\t${pred.length}\t${table0.precision}"+
+          s"\t${table0.recall}\t${table0.f1}\t${table0.accuracy * 100.0}\t$pvalue\t0")
         val table1 = tables(1)
         pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
           s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
-          s"\t${"%1.2f" format thresh}\t${pred.length}\t${table1.precision}\t${table1.recall}\t${table1.f1}\t${table1.accuracy * 100.0}\t" +
-          s"$pvalue\t1")
+          s"\t${expParams.lexicalParameters.annotators}\t${"%1.2f" format thresh}\t${pred.length}\t${table1.precision}"+
+          s"\t${table1.recall}\t${table1.f1}\t${table1.accuracy * 100.0}\t$pvalue\t1")
       }
 
 /*
