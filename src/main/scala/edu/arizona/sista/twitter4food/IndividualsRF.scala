@@ -181,10 +181,10 @@ object IndividualsRF {
 
       thresholdedPredictions.indices.foreach{ predSet =>
         val (thresh, preds) = thresholdedPredictions(predSet)
-        val (actualSubset, pred) = preds.unzip
-        val tables = EvaluationStatistics.makeTables(actualSubset.map(_.label.get), pred)
-        val baselineSubset: Seq[Int] = predictMajorityNoCV(actualSubset.map(_.label.get))
-        val pvalue = EvaluationStatistics.classificationAccuracySignificance(pred, baselineSubset, actualSubset)
+        val (actual, pred) = preds.unzip
+        val tables = EvaluationStatistics.makeTables(pred,actual)
+        val baselineSubset: Seq[Int] = predictMajorityNoCV(actual)
+        val pvalue = EvaluationStatistics.classificationAccuracySignificance(pred, baselineSubset, actual)
 
         val table0 = tables(0)
         pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
@@ -240,13 +240,13 @@ object IndividualsRF {
 
   def thresholdByConf(tweets: Seq[IndividualsTweets],
                       confs: Seq[(Int, Double)],
-                      cutoffs: Seq[Double]): Seq[(Double, Seq[(IndividualsTweets, Int)])] = {
+                      cutoffs: Seq[Double]): Seq[(Double, Seq[(Int, Int)])] = {
     for {
       co <- cutoffs
       thresholded = for {
         tweeter <- tweets.indices
         if confs(tweeter)._2 >= co
-      } yield (tweets(tweeter), confs(tweeter)._1)
+      } yield (tweets(tweeter).label.get, confs(tweeter)._1)
     } yield (co, thresholded)
   }
 }
