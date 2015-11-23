@@ -295,6 +295,13 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
     val zLabelsOld = new Array[L](zLabels.size)
     Array.copy(zLabels, 0, zLabelsOld, 0, zLabels.size)
 
+    for (i <- zLabels.indices) {
+      zLabels(i) = MultipleInstancesRegression.sortPredictions(zLogProbs(i)).head._1
+    }
+
+    val zLabelsPredicted = new Array[L](zLabels.size)
+    Array.copy(zLabels, 0, zLabelsPredicted, 0, zLabels.size)
+
     def currentProportion() = {
       val currentCounts: Map[L, Int] = zLabels.groupBy(identity).mapValues(_.size).map(identity)
       val totalCount = currentCounts.getOrElse(positiveClass, 0) + currentCounts.getOrElse(negativeClass, 0)
@@ -316,9 +323,6 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
     for (s <- group.indices) {
       val label: L = zLabels(s)
       val probs: Counter[L] = zLogProbs(s)
-      // check the existing label, not the predicted class:
-      // intuition is that if a label doesn't match the classifier's predicted label,
-      // then it's evidence that hasn't yet been incorporated
       if (label != goodLabel) {
         if (label == badLabel) {
           for (flipTo <- probs.keySet().asScala) {
@@ -363,11 +367,15 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
     log(s"old proportion:    ${oldProportion}")
     log(s"new proportion:    ${currentProportion()}")
     log(s"target proportion: ${yTargetProportion}")
-    log(s"old\tnew\tscores")
-    for ((oldLabel, newLabel, scoreCounter) <- (zLabelsOld, zLabels, zLogProbs).zipped) {
-        log(s"${oldLabel}\t${newLabel}\t${scoresString(scoreCounter)}")
-    }
+    log(s"old\tpred\tnew\tscores")
+    for (i <- zLabelsOld.indices) {
+      val oldLabel = zLabelsOld(i)
+      val predictedLabel = zLabelsPredicted(i)
+      val newLabel = zLabels(i)
+      val scoreCounter = zLogProbs(i)
+      log(s"${oldLabel}\t${predictedLabel}\t${newLabel}\t${scoresString(scoreCounter)}")
 
+    }
 
     zUpdatesInOneEpoch += numFlipped
   }
