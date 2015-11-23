@@ -41,11 +41,9 @@ class IndividualsRegression(parameters: ExperimentParameters,
     val (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets)
     val testingFeatures: Seq[Counter[String]] = mkViewFeatures(None)(testingTweets)._1.map(_.filter(p => filterFn(p._1)))
 
-    val stateMajorityLabels = Experiment.makeLabels(stateValues.mapValues(_.toFloat), 2, None)
-
     def labelIndividuals(individuals: Seq[IndividualsTweets], state: String): Array[String] = {
       // Array.tabulate[String](individuals.size)(i => if (random.nextDouble() < targetValue) positiveClass else negativeClass)
-      Array.fill(individuals.size)(if (stateMajorityLabels(state) == 1) positiveClass else negativeClass)
+      Array.fill(individuals.size)(stateLabels(state))
     }
 
     val stateNames = new ArrayBuffer[String]()
