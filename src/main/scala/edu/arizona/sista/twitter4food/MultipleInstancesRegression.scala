@@ -205,9 +205,12 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
         val start: Int = foldStart(fold, data.length)
         val end: Int = foldEnd(fold, data.length)
         for (i <- start until end) {
-          val random = new scala.util.Random(epoch)
-          val group: Array[Datum[L,F]] = random.shuffle(data(i).toSeq).toArray
-          zLabelsPredictedByZ(i) = predictZLabels(group, zClassifier)
+          // val random = new scala.util.Random(epoch)
+          // val pair = random.shuffle(data(i).toSeq zip zLabels(i).toSeq).toArray.unzip
+          // val group = pair._1
+          // zLabels(i) = pair._2
+          // zLabelsPredictedByZ(i) = predictZLabels(group, zClassifier)
+          val group = data(i)
 
           val yTargetProportion = yTargetProportions(i)
 
@@ -232,7 +235,7 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
       } else {
         log("Stopping training. Did not find any changes in the Z labels!")
         makeSingleZClassifier(initializeZDataset(zLabels, data), zFactory)
-        return
+        // return
       }
     }
     makeSingleZClassifier(initializeZDataset(zLabels, data), zFactory)

@@ -1,0 +1,62 @@
+import edu.arizona.sista.struct.Counter
+import edu.arizona.sista.twitter4food._
+
+val positiveClass = 1
+val negativeClass = 0
+
+val good = List(
+ new Counter[Symbol](List('good, 'good, 'good, 'other)),
+ new Counter[Symbol](List('good, 'good, 'good, 'good, 'stuff)),
+ new Counter[Symbol](List('good, 'good, 'other, 'stuff))
+ )
+
+val bad = List(
+ new Counter[Symbol](List('bad, 'bad, 'bad, 'other)),
+ new Counter[Symbol](List('bad, 'bad, 'bad, 'bad, 'stuff)),
+ new Counter[Symbol](List('bad, 'bad, 'other, 'stuff))
+ )
+
+def generate(frac: Double) = {
+  val list = 
+  if (util.Random.nextDouble < frac) {
+    good
+  } else {
+    bad
+  }
+  val ix = util.Random.nextInt(list.length)
+  list(ix)
+}
+
+val N_groups = 10
+def groupSize = 5
+
+def proportion(label: Int) = if (label == 1) 0.75 else 0.25
+
+val datumFn = MIMLWrapper.counterToRVFDatum[Int,Symbol] _
+
+val groupLabels = Array.fill(N_groups)(util.Random.nextInt(2))
+val individualData = Array.tabulate(N_groups)(i => {
+  val label = groupLabels(i)
+  Array.fill(groupSize)(generate(proportion(label))).map(datumFn)
+})
+// val individualLabels = Array.tabulate(N_groups, groupSize)((i, j) => groupLabels(i))
+val individualLabels = individualData.map(_.map(c => if (c.asFeatures.contains('good)) 1 else 0))
+val names = Some(groupLabels.zipWithIndex.map(_.toString))
+
+val pw = new java.io.PrintWriter(System.out)
+
+val mir = new MultipleInstancesRegression[Int,Symbol](1, 0, numberOfTrainEpochs=10, numberOfFolds = 5, flippingParameter = 1, logger = Some(pw))
+
+mir.train(individualData, individualLabels, groupLabels.map(proportion), names)
+
+pw.flush()
+
+var count = 0
+for ((group, groupLabel, indLabs) <- (individualData, groupLabels, individualLabels).zipped) {
+  println("" + count + ":" + groupLabel)
+  for ((individual, individualLabel) <- group zip indLabs) {
+    val pred = MultipleInstancesRegression.sortPredictions(mir.classifyLocally(individual))
+    println(s"\t$individualLabel:$pred")
+  }
+  count += 1
+}
