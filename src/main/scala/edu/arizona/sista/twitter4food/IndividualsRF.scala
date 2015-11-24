@@ -60,7 +60,7 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
   // create cross-validation tuples with k folds, with the held-out test being the first tuple element
   def cvSets(tweets: Seq[IndividualsTweets], k: Option[Int], randomSeed: Int) = {
     val r = new scala.util.Random(randomSeed)
-    val shuffledTweets = r.shuffle(tweets.indices).toSeq
+    val shuffledTweets = r.shuffle(tweets.indices.toList)
     val pieces = cut(shuffledTweets, k.getOrElse(10)).toSeq
     for (piece <- pieces) yield (piece, pieces.flatten diff piece)
   }
