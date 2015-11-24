@@ -37,7 +37,9 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
     }
     else {
       (for{
-        (testingTweets, trainingTweets) <- cvSets(rfParams.corpus.tweets, rfParams.folds, randomSeed)
+        (testingIndices, trainingIndices) <- cvSets(rfParams.corpus.tweets, rfParams.folds, randomSeed)
+        testingTweets = testingIndices.map(rfParams.corpus.tweets(_))
+        trainingTweets = trainingIndices.map(rfParams.corpus.tweets(_))
         trainingLabels = trainingTweets.map(_.label.get)
         (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets.map(_.tweets))
         testingFeatures = mkViewFeatures(None)(testingTweets.map(_.tweets))._1.map(_.filter(p => filterFn(p._1)))
@@ -58,7 +60,7 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
   // create cross-validation tuples with k folds, with the held-out test being the first tuple element
   def cvSets(tweets: Seq[IndividualsTweets], k: Option[Int], randomSeed: Int) = {
     val r = new scala.util.Random(randomSeed)
-    val shuffledTweets = r.shuffle(tweets)
+    val shuffledTweets = r.shuffle(tweets.indices).toSeq
     val pieces = cut(shuffledTweets, k.getOrElse(10)).toSeq
     for (piece <- pieces) yield (piece, pieces.flatten diff piece)
   }
