@@ -27,10 +27,10 @@ def generate(frac: Double) = {
   list(ix)
 }
 
-val N_groups = 5
-def groupSize = 10
+val N_groups = 10
+def groupSize = 5
 
-def proportion(label: Int) = if (label == 1) 0.8 else 0.2
+def proportion(label: Int) = if (label == 1) 0.75 else 0.25
 
 val datumFn = MIMLWrapper.counterToRVFDatum[Int,Symbol] _
 
@@ -45,7 +45,7 @@ val names = Some(groupLabels.zipWithIndex.map(_.toString))
 
 val pw = new java.io.PrintWriter(System.out)
 
-val mir = new MultipleInstancesRegression[Int,Symbol](1, 0, numberOfTrainEpochs=0, numberOfFolds = 2, flippingParameter = 1, logger = Some(pw))
+val mir = new MultipleInstancesRegression[Int,Symbol](1, 0, numberOfTrainEpochs=10, numberOfFolds = 5, flippingParameter = 1, logger = Some(pw))
 
 mir.train(individualData, individualLabels, groupLabels.map(proportion), names)
 
