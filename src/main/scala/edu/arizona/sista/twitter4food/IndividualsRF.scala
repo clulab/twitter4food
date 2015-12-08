@@ -37,7 +37,9 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
     }
     else {
       (for{
-        (testingTweets, trainingTweets) <- cvSets(rfParams.corpus.tweets, rfParams.folds, randomSeed)
+        (testingIndices, trainingIndices) <- cvSets(rfParams.corpus.tweets, rfParams.folds, randomSeed)
+        testingTweets = testingIndices.map(rfParams.corpus.tweets(_))
+        trainingTweets = trainingIndices.map(rfParams.corpus.tweets(_))
         trainingLabels = trainingTweets.map(_.label.get)
         (trainingFeatures, filterFn) =  mkViewFeatures(parameters.lexicalParameters.ngramThreshold)(trainingTweets.map(_.tweets))
         testingFeatures = mkViewFeatures(None)(testingTweets.map(_.tweets))._1.map(_.filter(p => filterFn(p._1)))
@@ -58,7 +60,7 @@ class IndividualsRF[L,F] (val rfParams: IndividualsRFParameters[L,F], val expPar
   // create cross-validation tuples with k folds, with the held-out test being the first tuple element
   def cvSets(tweets: Seq[IndividualsTweets], k: Option[Int], randomSeed: Int) = {
     val r = new scala.util.Random(randomSeed)
-    val shuffledTweets = r.shuffle(tweets)
+    val shuffledTweets = r.shuffle(tweets.indices.toList)
     val pieces = cut(shuffledTweets, k.getOrElse(10)).toSeq
     for (piece <- pieces) yield (piece, pieces.flatten diff piece)
   }
@@ -186,16 +188,13 @@ object IndividualsRF {
         val baselineSubset: Seq[Int] = predictMajorityNoCV(actual)
         val pvalue = EvaluationStatistics.classificationAccuracySignificance(pred, baselineSubset, actual)
 
-        val table0 = tables(0)
-        pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
-          s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
-          s"\t${expParams.lexicalParameters.annotators}\t${"%1.2f" format thresh}\t${pred.length}\t${table0.precision}"+
-          s"\t${table0.recall}\t${table0.f1}\t${table0.accuracy * 100.0}\t$pvalue\t0")
-        val table1 = tables(1)
-        pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
-          s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
-          s"\t${expParams.lexicalParameters.annotators}\t${"%1.2f" format thresh}\t${pred.length}\t${table1.precision}"+
-          s"\t${table1.recall}\t${table1.f1}\t${table1.accuracy * 100.0}\t$pvalue\t1")
+        tables.keys.foreach{ key =>
+          val table = tables(key)
+          pw.println(s"${expParams.classifierType}\t${expParams.lexicalParameters.tokenTypes}\t${expParams.numTrees}\t" +
+            s"${expParams.maxTreeDepth.getOrElse("None")}\t${expParams.lexicalParameters.ngramThreshold.getOrElse("None")}" +
+            s"\t${expParams.lexicalParameters.annotators}\t${"%1.2f" format thresh}\t${pred.length}\t${"%1.2f" format table.precision}" +
+            s"\t${"%1.2f" format table.recall}\t${"%1.2f" format table.f1}\t${"%1.2f" format table.accuracy * 100.0}\t$pvalue\t$key")
+        }
       }
 
 /*
