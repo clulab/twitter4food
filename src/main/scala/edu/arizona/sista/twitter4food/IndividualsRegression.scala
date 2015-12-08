@@ -122,6 +122,8 @@ object IndividualsRegression {
 
     val includeDevAsStates = StringUtils.getBool(props, "includeDevAsStates", false)
 
+    val valueScalingFactor = StringUtils.getDouble(props, "valueScalingFactor", 1.0).toFloat
+
     val outFile = StringUtils.getStringOption(props, "outputFile")
     val pw: PrintWriter = outFile match {
       case Some(fileName) => new PrintWriter(new java.io.File(fileName))
@@ -143,7 +145,7 @@ object IndividualsRegression {
     val individualsCorpus = new IndividualsCorpus(corpusLocation, annotationsLocation, numToTake=maxUsersPerState, excludeUsersWithMoreThan=excludeUsersWithMoreThan, organizationsFile = organizationsFile)
 
     val dataset = Datasets.overweight
-    var stateValues: Map[String, Float] = normLocationsInMap(dataset, geotagger) // convert Arizona to AZ, for example
+    var stateValues: Map[String, Float] = normLocationsInMap(dataset, geotagger).mapValues(_ * valueScalingFactor) // convert Arizona to AZ, for example
     var stateLabels: Map[String, String] = Experiment.makeLabels(dataset, numClasses, removeMarginals).mapValues(_.toString)
 
     var trainingTweets: Seq[IndividualsTweets] = IndividualsBaseline.makeBaselineTraining(numClasses, removeMarginals)(individualsCorpus)
@@ -162,9 +164,6 @@ object IndividualsRegression {
     pw.println(s"${trainingTweets.size} training tweets")
     pw.println(s"${testingTweets.size} testing tweets")
 
-    def callback(epoch: Int) = {
-
-    }
 
     // create many possible variants of the experiment parameters, and for each map to results of running the
     // experiment
