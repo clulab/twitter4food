@@ -158,9 +158,9 @@ object IndividualsRF {
       } yield (rfParams, expParams) -> new IndividualsRF(rfParams, expParams, pw).run()
     }
 
-    pw.println("classifier\ttokenType\tnumTrees\tmaxDepth\tngramCutoff\tannotators\tthreshold\ttotal\tprecision\trecall\tf1\tacc\tp")
+    pw.println("classifier\ttokenType\tnumTrees\tmaxDepth\tngramCutoff\tannotators\tthreshold\ttotal\tprecision\trecall\tf1\tacc\tp\tlabel")
     pw.println("=" * 162)
-    for (((rfParams, expParams), predictions) <- paramsAndPredictions) {
+    for (((rfParams, expParams), predictions) <- paramsAndPredictions.seq) {
       // pw.println(expParams)
 
       val testingTweets = predictions.map(_._1)
@@ -198,16 +198,6 @@ object IndividualsRF {
       }
 
 /*
-      val byClass: Map[Int, Seq[(IndividualsTweets, Int)]] = labelledInstances.groupBy(_._1.label.get)
-
-      val byClassAccuracy = byClass.mapValues(IndividualsBaseline.labelledAccuracy).toMap
-      // print the per-class accuracy
-      pw.println("accuracy by class")
-      for ((class_, (correct, total)) <- byClassAccuracy) {
-        pw.println(s"class ${class_}\t${correct} / ${total}\t${correct.toDouble / total * 100.0}%")
-      }
-      pw.println
-
       // print each prediction
       for ((tweets, prediction) <- labelledInstances.sortBy( { case (it, prediction) => (it.label.get, it.username) } )) {
         pw.println(s"${tweets.username}\tact: ${tweets.label.get}\tpred: ${prediction}")
