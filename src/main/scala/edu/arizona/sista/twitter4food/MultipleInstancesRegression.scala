@@ -168,7 +168,7 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
     return dataset
   }
 
-  def train(data: Array[Array[Datum[L,F]]], initialZLabels: Array[Array[L]], yTargetProportions: Array[Double], groupNames: Option[Array[String]] = None) {
+  def train(data: Array[Array[Datum[L,F]]], initialZLabels: Array[Array[L]], yTargetProportions: Array[Double], groupNames: Option[Array[String]] = None, maybeCallback: Option[Int => Unit] = None) {
     import collection.JavaConversions._
     val zFactory: LinearClassifierFactory[L,F] = new LinearClassifierFactory[L,F](1e-4, false, zSigma)
 
@@ -228,7 +228,11 @@ class MultipleInstancesRegression[L:Manifest,F:Manifest](val positiveClass: L,
           val zd: GeneralDataset[L,F] = initializeZDataset(trainLabels, trainData)
           val zClassifier: LinearClassifier[L,F] = zFactory.trainClassifier(zd)
           zClassifiers(fold) = zClassifier
+
         }
+        makeSingleZClassifier(initializeZDataset(zLabels, data), zFactory)
+        // here's my (epoch) number, so call me maybe
+        maybeCallback.foreach(callback => callback(epoch))
       } else {
         log("Stopping training. Did not find any changes in the Z labels!")
         makeSingleZClassifier(initializeZDataset(zLabels, data), zFactory)
