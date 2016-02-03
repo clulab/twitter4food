@@ -9,20 +9,18 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "latest.integration" % "test",
-  "junit" % "junit" % "latest.integration" % "test",
-  "com.novocode" % "junit-interface" % "latest.integration" % "test",
-  "edu.arizona.sista" %% "processors" % "latest.integration",
-  "edu.arizona.sista" %% "processors" % "latest.integration" classifier "models",
-  "ch.qos.logback" % "logback-classic" % "latest.integration",
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test",
+  "org.clulab" %% "processors" % "5.7.3",
+  "org.clulab" %% "processors" % "5.7.3" classifier "models",
+  "ch.qos.logback" % "logback-classic" % "1.0.10",
   "org.json" % "json" % "latest.integration",
-  "org.twitter4j" % "twitter4j-core" % "latest.integration",
-  "org.twitter4j" % "twitter4j-stream" % "latest.integration",
+  "org.twitter4j" % "twitter4j-core" % "4.0.4",
+  "org.twitter4j" % "twitter4j-stream" % "4.0.4",
   "org.apache.lucene" % "lucene-core" % "4.2.1",
   "org.apache.lucene" % "lucene-analyzers-common" % "4.2.1",
   "org.apache.lucene" % "lucene-queryparser" % "4.2.1",
   "org.apache.lucene" % "lucene-highlighter" % "4.2.1",
   "jp.sf.amateras.solr.scala" %% "solr-scala-client" % "latest.integration",
-  "cc.mallet" % "mallet" % "latest.integration",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "latest.integration"
+  "cc.mallet" % "mallet" % "2.0.7",
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3"
 )
