@@ -1,11 +1,8 @@
 package edu.arizona.sista.twitter4food
 
-import util.parsing.json._
-
 import Geotagging._
 import com.fasterxml.jackson.databind.node.{ObjectNode,ArrayNode}
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-import java.util
 import scala.collection.JavaConversions._
 
 case class Location(lat:Double, lng:Double)
