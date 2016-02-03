@@ -16,6 +16,12 @@ import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation
 /**
  * Created by dfried on 1/21/14.
  */
+
+//
+// ms: disabled for now. needs to be updated to the latest processors
+//
+
+/*
 class SentimentProcessor {
 
   val properties =  new Properties()
@@ -70,3 +76,4 @@ object SentimentProcessor {
     println((args zip meanScores).toList)
   }
 }
+*/

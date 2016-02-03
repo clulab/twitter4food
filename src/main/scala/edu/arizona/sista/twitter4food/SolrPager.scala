@@ -68,7 +68,7 @@ class SolrPager(val connectionURL: String = "http://localhost:8983/solr/twitter4
 
 object SolrPager {
   def randomSort(query: QueryBuilder, seed: Option[Int] = None) = {
-    val fieldName = "random_"+seed.getOrElse(util.Random.nextInt(10000))
+    val fieldName = "random_"+seed.getOrElse(scala.util.Random.nextInt(10000))
     query.sortBy(fieldName, asc)
   }
 }

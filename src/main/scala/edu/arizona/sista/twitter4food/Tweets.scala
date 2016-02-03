@@ -106,7 +106,7 @@ object TweetParser {
 class TweetParser(val sentimentClassifier: Option[SentimentClassifier] = None,
                   val topicModels: Map[TokenType, LDA] = Map()) {
   val processor = new CoreNLPProcessor()
-  val sentimentProc = new SentimentProcessor
+  // val sentimentProc = new SentimentProcessor
 
   val geotagger = new GeoTagger()
 
