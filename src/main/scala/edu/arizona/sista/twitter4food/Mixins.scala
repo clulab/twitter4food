@@ -28,7 +28,7 @@ object Mixins {
 
   // http://stackoverflow.com/questions/4636610/regular-expression-and-pattern-matching-in-scala
   implicit class RegexInterpolation(sc: StringContext) {
-    def r = new util.matching.Regex(sc.parts.mkString, sc.parts.tail.map(_ => "x"): _*)
+    def r = new Regex(sc.parts.mkString, sc.parts.tail.map(_ => "x"): _*)
   }
 
   implicit class OptionMixins[A](val o: Option[A]) {
