@@ -5,6 +5,6 @@ package org.clulab.twitter4food.struct
   * User: mihais
   * Date: 12/14/15
   */
-class AccountDescription {
+class AccountDescription (val text: String) {
   // TODO
 }
