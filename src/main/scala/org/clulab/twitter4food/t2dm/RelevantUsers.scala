@@ -61,8 +61,8 @@ object RelevantUsers {
         writer.close
 
         writer = new PrintWriter("/Users/Terron/Documents/Git/twitter4food/src/main/resources/org.clulab.twitter4food.t2dm/usersMidrange.txt")
-        val minimum = 100
-        val maximum = 2000
+        val minimum = 10
+        val maximum = 7000
 
         System.out.println("Total number of users: " + userTweetCounts.size)
         // Filter in users whose counts are in the middle range of tweet counts
