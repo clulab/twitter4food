@@ -1,0 +1,21 @@
+service
+retailer
+kitchen
+all over the world
+our
+we
+bar
+cafe
+cafeteria
+inn
+joint
+cantina
+canteen
+grill
+outlet
+mall
+diner
+pizzeria
+lunchroom
+nightclub
+fastfood
