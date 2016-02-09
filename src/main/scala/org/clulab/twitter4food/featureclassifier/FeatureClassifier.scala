@@ -1,6 +1,6 @@
 package org.clulab.twitter4food.featureclassifier
 
-import edu.arizona.sista.learning.{LinearSVMClassifier, RVFDataset}
+import edu.arizona.sista.learning.{Classifier, LinearSVMClassifier, RVFDataset}
 import org.clulab.twitter4food.struct.TwitterAccount
 
 import scala.collection.mutable.ArrayBuffer
@@ -17,7 +17,7 @@ trait FeatureClassifier {
   // TODO: ^for attributes subClassifier and labels
 
   var dataset: RVFDataset[String, String]
-  var subClassifier: LinearSVMClassifier[String, String]
+  var subClassifier: Classifier[String, String]
   var labels: List[String]
   var trainingLabels: Map[String, String]
   var trainingSet: ArrayBuffer[TwitterAccount]
