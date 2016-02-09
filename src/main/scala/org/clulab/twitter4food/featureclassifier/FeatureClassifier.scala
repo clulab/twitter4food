@@ -17,7 +17,7 @@ trait FeatureClassifier {
   // TODO: ^for attributes subClassifier and labels
 
   var dataset: RVFDataset[String, String]
-  var subClassifier: Classifier[String, String]
+  var subClassifier: LinearSVMClassifier[String, String]
   var labels: List[String]
   var trainingLabels: Map[String, String]
   var trainingSet: ArrayBuffer[TwitterAccount]
