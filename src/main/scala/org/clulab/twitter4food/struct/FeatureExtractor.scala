@@ -17,7 +17,7 @@ class FeatureExtractor {
     }
 
     def dictionaries(account: TwitterAccount): Unit = {
-        null
+
     }
 
     def embeddings(account: TwitterAccount): Map[TwitterAccount, Array[Float]] = {
