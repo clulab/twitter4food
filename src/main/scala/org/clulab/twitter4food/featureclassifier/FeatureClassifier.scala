@@ -1,6 +1,7 @@
 package org.clulab.twitter4food.featureclassifier
 
 import edu.arizona.sista.learning.{Classifier, LinearSVMClassifier, RVFDataset}
+import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.struct.TwitterAccount
 
 import scala.collection.mutable.ArrayBuffer
@@ -13,27 +14,18 @@ import scala.collection.mutable.Map
   */
 trait FeatureClassifier {
 
-  // TODO: Figure out how to implement traits within traits in subclasses
-  // TODO: ^for attributes subClassifier and labels
-
-  var dataset: RVFDataset[String, String]
-  var subClassifier: LinearSVMClassifier[String, String]
-  var labels: List[String]
-  var trainingLabels: Map[String, String]
-  var trainingSet: ArrayBuffer[TwitterAccount]
-
-  /** Training from a set of users */
-  def train(users: Seq[TwitterAccount])
-
-  /** Use default training set */
-  def train()
+  /**
+    * Training from a set of users
+    * Creates the subClassifier object as the output
+    */
+  def train(accounts: Seq[TwitterAccount], labels:Seq[String])
 
   /** Predicting the given feature (or a distribution of) for a given account */
-  def classify(user: TwitterAccount): String
+  def classify(account: TwitterAccount): String = {
+    val scores = scoresOf(account)
+    scores.sorted.head._1
+  }
 
-  /** Assign labels for different features predicted */
-  def assignLabels(users: Seq[TwitterAccount])
+  def scoresOf(account: TwitterAccount): Counter[String]
 
-  /** Assign labels to default training set */
-  def assignLabels()
 }

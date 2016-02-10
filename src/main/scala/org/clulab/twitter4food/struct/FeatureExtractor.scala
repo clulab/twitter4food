@@ -1,23 +1,37 @@
 package org.clulab.twitter4food.struct
 
+import edu.arizona.sista.learning.{Datum, RVFDatum}
+import edu.arizona.sista.struct.Counter
 import edu.arizona.sista.twitter4food.LDA
 
 /**
   * Created by Terron on 2/9/16.
   */
-class FeatureExtractor {
+class FeatureExtractor (val useUnigrams:Boolean,
+      val useBigrams:Boolean,
+      val useTopics:Boolean) { // TODO: add others
+
+
+    def mkDatum(account:TwitterAccount, label:String): Datum[String, String] = {
+      new RVFDatum[String, String](label, mkFeatures(account))
+    }
+
+    def mkFeatures(account:TwitterAccount):Counter[String] = {
+      null
+    }
+
     // TODO: understand LDA implementation
 //    val lda = new LDA
-    def ngrams(n: Int, account: TwitterAccount): Seq[String] = {
+    def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
         null
     }
 
-    def topics(account: TwitterAccount): Seq[String] = {
+    def topics(account: TwitterAccount): Counter[String] = {
         null
     }
 
-    def dictionaries(account: TwitterAccount): Unit = {
-
+    def dictionaries(account: TwitterAccount): Counter[String] = {
+      null
     }
 
     def embeddings(account: TwitterAccount): Map[TwitterAccount, Array[Float]] = {
