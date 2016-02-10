@@ -2,10 +2,10 @@ package org.clulab.twitter4food.featureclassifier
 
 import java.util.regex.Pattern
 
-import edu.arizona.sista.learning.{RVFDatum, Datum, LinearSVMClassifier, RVFDataset}
+import edu.arizona.sista.learning._
 import edu.arizona.sista.processors.fastnlp.FastNLPProcessor
 import edu.arizona.sista.struct.Counter
-import org.clulab.twitter4food.struct.TwitterAccount
+import org.clulab.twitter4food.struct.{FeatureExtractor, TwitterAccount}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, Map, HashSet}
 import scala.io.Source
@@ -13,6 +13,30 @@ import scala.io.Source
 /**
   * Created by adikou on 1/22/16.
   */
+class HumanClassifier extends FeatureClassifier {
+  var subClassifier:Option[Classifier[String, String]] = None // isEmpty, isDefined, get (to access the element explicitly), getOrElseCreate
+
+  val featureExtractor = new FeatureExtractor() // TODO: parameterize this with humanOrNot params
+
+  override def scoresOf(account: TwitterAccount): Counter[String] = {
+    if(subClassifier.isDefined) {
+      subClassifier.get.scoresOf(featureExtractor.mkDatum(account, ""))
+    } else {
+      throw new RuntimeException("ERROR: must train before using scoresOf!")
+    }
+  }
+
+  /**
+    * Training from a set of users
+    * Creates the subClassifier object as the output
+    */
+  override def train(accounts: Seq[TwitterAccount], labels: Seq[String]): Unit = {
+    // TODO: create RVFDataset from accounts
+    // TODO: actually train the subClassifier
+  }
+}
+
+/*
 class HumanClassifier extends FeatureClassifier {
 
   var dataset = new RVFDataset[String, String]()
@@ -189,3 +213,4 @@ class HumanClassifier extends FeatureClassifier {
     createFeatures()
   }
 }
+*/
