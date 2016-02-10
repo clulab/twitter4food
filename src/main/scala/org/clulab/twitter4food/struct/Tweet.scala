@@ -10,7 +10,8 @@ class Tweet (val tweetText: String,
              val tweetLang: String,
              val user: String
              ) {
-  // TODO
+  // TODO: add time!
+
   val text: String = tweetText
   val id: Long = tweetId
   val lang: String = tweetLang
