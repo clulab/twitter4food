@@ -14,13 +14,9 @@ import scala.collection.mutable.Map
   */
 trait FeatureClassifier {
 
-  /**
-    * Training from a set of users
-    * Creates the subClassifier object as the output
-    */
+
   def train(accounts: Seq[TwitterAccount], labels:Seq[String])
 
-  /** Predicting the given feature (or a distribution of) for a given account */
   def classify(account: TwitterAccount): String = {
     val scores = scoresOf(account)
     scores.sorted.head._1
