@@ -2,28 +2,50 @@ package org.clulab.twitter4food.struct
 
 import edu.arizona.sista.learning.{Datum, RVFDatum}
 import edu.arizona.sista.struct.Counter
-import edu.arizona.sista.twitter4food.LDA
 
 /**
   * Created by Terron on 2/9/16.
   */
 class FeatureExtractor (val useUnigrams:Boolean,
       val useBigrams:Boolean,
-      val useTopics:Boolean) { // TODO: add others
+      val useTopics:Boolean,
+      val useDictionaries:Boolean,
+      val useEmbeddings:Boolean) { // TODO: add others, network?
 
 
-    def mkDatum(account:TwitterAccount, label:String): Datum[String, String] = {
-      new RVFDatum[String, String](label, mkFeatures(account))
+    // Additional method call for adding additional features outside of what's presented here
+    def mkDatum(account: TwitterAccount, label: String, counter: Counter[String]): Datum[String, String] = {
+        new RVFDatum[String, String](label, mkFeatures(account) + counter)
     }
 
-    def mkFeatures(account:TwitterAccount):Counter[String] = {
-      null
+    def mkDatum(account: TwitterAccount, label: String): Datum[String, String] = {
+        new RVFDatum[String, String](label, mkFeatures(account))
     }
 
-    // TODO: understand LDA implementation
-//    val lda = new LDA
+    def mkFeatures(account: TwitterAccount): Counter[String] = {
+        var counter = new Counter[String]()
+        if (useUnigrams)
+            counter += ngrams(1, account)
+        if (useBigrams)
+            counter += ngrams(2, account)
+        if (useTopics)
+            counter += topics(account)
+        if (useDictionaries)
+            counter += dictionaries(account)
+        if (useEmbeddings){} // TODO: how to add embeddings as a feature if not returning a counter?
+
+        return counter
+    }
+
     def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
-        null
+        val description = account.description.toLowerCase
+        var counter = new Counter[String]
+
+        if (n == 1)
+            description.split("\\s+").foreach(word => counter.incrementCount(word, 1))
+        else if (n == 2){} // TODO implement bigrams
+
+        return counter
     }
 
     def topics(account: TwitterAccount): Counter[String] = {
