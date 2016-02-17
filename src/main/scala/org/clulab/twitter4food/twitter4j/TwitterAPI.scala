@@ -66,7 +66,7 @@ class TwitterAPI(keyset: Int) {
       }
       account
     }
-    
+
     else null
 
 
