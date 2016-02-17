@@ -16,7 +16,7 @@ import scala.io.Source
 class HumanClassifier extends FeatureClassifier {
   var subClassifier:Option[Classifier[String, String]] = None // isEmpty, isDefined, get (to access the element explicitly), getOrElseCreate
 
-  val featureExtractor = new FeatureExtractor() // TODO: parameterize this with humanOrNot params
+  val featureExtractor = new FeatureExtractor(true, false, false, false, false) // TODO: parameterize this with humanOrNot params
 
   override def scoresOf(account: TwitterAccount): Counter[String] = {
     if(subClassifier.isDefined) {
