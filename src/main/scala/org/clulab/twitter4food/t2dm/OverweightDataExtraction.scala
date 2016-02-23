@@ -14,9 +14,24 @@ import scala.io.Source
 object OverweightDataExtraction {
     def main(args: Array[String]) {
 
-        val writer = new PrintWriter("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightDataVerbose.txt")
+        var keySet: Int = null
+        if (args.length == 1) {
+            keySet = args(0).toInt
+            if (keySet < 0 || keySet > 16) {
+                println("keySet must be in range [0,15]")
+                System.exit(1)
+            }
+        } else {
+            println("Usage: OverweightDataExtraction [keySetValue]")
+            System.exit(1)
+        }
+        if (keySet == null)
+            println("Error in parsing keySet value")
+            System.exit(1)
 
-        val api = new TwitterAPI(3)
+        val writer = new PrintWriter("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData_"+keySet+".txt")
+
+        val api = new TwitterAPI(keySet)
 
         var i = 0
         for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData.txt").getLines){
@@ -27,7 +42,7 @@ object OverweightDataExtraction {
 
             var account: TwitterAccount = null
             try {
-                account = api.fetchAccount(handle, false, false)
+                account = api.fetchAccount(handle, true, false) // fetchTweets is true
             } catch {
                 case te: TwitterException => // ignore suspended accounts
             }
