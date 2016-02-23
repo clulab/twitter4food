@@ -1,9 +1,9 @@
 package org.clulab.twitter4food.twitter4j
 
 import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
-import twitter4j.{Paging, Status, TwitterFactory, TwitterException}
-import twitter4j.User
+import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * Wrapper for Twitter4J
@@ -54,19 +54,30 @@ class TwitterAPI(keyset: Int) {
             var tweets : Seq[Tweet] = null
 
             if(fetchTweets) {
-                tweets = twitter.getUserTimeline(handle, new Paging(1, 100))
-                    .toArray(new Array[Status](0))
-                    .map {
-                        x => new Tweet(x.getText, x.getId,
-                            x.getLang, user.getScreenName)
-                    }
-            }
+              val page = new Paging(1, 100)
+              var tweets = twitter.getUserTimeline(handle, page)
+                                  .toArray(new Array[Status](0))
+              Thread.sleep(sleepTime)
+              val tweetBuffer = ArrayBuffer[Tweet]()
 
-            val account = new TwitterAccount(handle, id, name, language, url, location, description, tweets)
+              while(!tweets.isEmpty) {
+                tweetBuffer ++= tweets.map(x => new Tweet(x.getText, x.getId,
+                                          x.getLang, x.getCreatedAt, 
+                                          user.getScreenName))
+                val minId = tweets.foldLeft(Long.MaxValue)((min, t) => 
+                  if(t.getId < min) t.getId else min)
+                page.setMaxId(minId-1)
+                tweets = twitter.getUserTimeline(handle, page)
+                                .toArray(new Array[Status](0))
+                Thread.sleep(sleepTime)
+              }
+          }
 
-            return account
+            val account = new TwitterAccount(handle, id, name, language, url, 
+              location, description, tweetBuffer.toSeq)
+
+          account
         }
-        else
-            return null
+        else null
     }
 }
