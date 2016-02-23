@@ -5,24 +5,8 @@ package org.clulab.twitter4food.struct
   * User: mihais
   * Date: 12/14/15
   */
-class Tweet (val tweetText: String,
-             val tweetId: Long,
-             val tweetLang: String,
-             val user: String
-             ) {
-  // TODO: add time!
-
-  val text: String = tweetText
-  val id: Long = tweetId
-  val lang: String = tweetLang
-  val userHandle: String = user
-
-  def getText = text
-
-  def getId = id
-
-  def getLang = lang
-
-  def getUserHandle = userHandle
-
-}
+class Tweet (val text: String,
+             val id: Long,
+             val lang: String,
+             val createdAt: java.util.Date,
+             val handle: String)
