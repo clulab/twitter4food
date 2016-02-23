@@ -11,13 +11,12 @@ import scala.io.Source
 /**
   * Created by Terron on 2/15/16.
   */
-class OverweightClassifier extends FeatureClassifier {
-
-    val useUnigrams = true
-    val useBigrams = false
-    val useTopics = false
-    val useDictionaries = false
-    val useEmbeddings = false
+class OverweightClassifier(
+    val useUnigrams:Boolean = true,
+    val useBigrams:Boolean = false,
+    val useTopics:Boolean = false,
+    val useDictionaries:Boolean = false,
+    val useEmbeddings:Boolean = false) extends FeatureClassifier {
 
     val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings)
     val subClassifier = new LinearSVMClassifier[String, String]()
