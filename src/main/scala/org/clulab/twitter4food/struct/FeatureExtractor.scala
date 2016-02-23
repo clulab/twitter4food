@@ -38,7 +38,7 @@ class FeatureExtractor (val useUnigrams:Boolean,
     }
 
     def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
-        val description = account.description.toLowerCase
+        val description = account.description.toLowerCase.replaceAll("[^a-zA-Z ]", "")
         var counter = new Counter[String]
 
         if (n == 1)
