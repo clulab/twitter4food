@@ -35,7 +35,7 @@ object OverweightDataExtraction {
         val writer = new PrintWriter("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData_" + keySet + ".txt")
 
         println("OverweightDataExtraction: Creating instance of TwitterAPI...")
-        val api = new TwitterAPI(keySet)
+        val api = new TwitterAPI(keySet, isAppOnly=true)
 
         println("OverweightDataExtraction: Calculating total number of accounts...")
         // Find the total number of lines to parse
