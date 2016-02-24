@@ -4,8 +4,6 @@ import cmu.arktweetnlp._
 import scala.collection.JavaConverters._
 
 object Tokenizer{
-  class Sentence(token: String, tag: String)
-
   val modelFileName = "/cmu/arktweetnlp/model.20120919"
   val tagger = new Tagger()
   tagger.loadModel(modelFileName)
