@@ -38,6 +38,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   
   else {
     cb.setApplicationOnlyAuthEnabled(true)
+      .setDebugEnabled(false)
       .setOAuthConsumerKey(keys(0))
       .setOAuthConsumerSecret(keys(1))
   }
