@@ -41,7 +41,7 @@ class OverweightClassifier(
 
 object OverweightClassifier {
 
-    val api = new TwitterAPI(0)
+    val api = new TwitterAPI(0, isAppOnly=true)
 
     def main(args: Array[String]) {
         val oc = new OverweightClassifier()

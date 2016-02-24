@@ -14,70 +14,95 @@ import scala.collection.mutable.ArrayBuffer
   * Owner: @nlpcpu and Dane Bell
   */
 
-class TwitterAPI(keyset: Int) {
+class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
 
-    val sleepTime = 5100
-    val cb = new ConfigurationBuilder()
-    val keysFilePath = "src/main/resources/org/clulab/twitter4food/twitter4j/APIKeys.txt"
-    val keys = scala.io.Source.fromFile(keysFilePath)
+  val AccountSleepTime = 5050
+  val AppOnlySleepTime = 3050
+  val UserSleepTime = 5050
+  val MaxTweetCount = 200
+  val MaxPageCount = 16
+
+  val cb = new ConfigurationBuilder()
+  val keysFilePath = "src/main/resources/org/clulab/twitter4food/twitter4j/APIKeys.txt"
+  val keys = scala.io.Source.fromFile(keysFilePath)
                             .getLines.toList.slice(4*keyset, 4*(keyset+1))
                             .map(x => x.split("\t")(1))
+  /* Application-only OAuth */                            
+  if(!isAppOnly) {
     cb.setDebugEnabled(false)
-        .setOAuthConsumerKey(keys(0))
-        .setOAuthConsumerSecret(keys(1))
-        .setOAuthAccessToken(keys(2))
-        .setOAuthAccessTokenSecret(keys(3))
+      .setOAuthConsumerKey(keys(0))
+      .setOAuthConsumerSecret(keys(1))
+      .setOAuthAccessToken(keys(2))
+      .setOAuthAccessTokenSecret(keys(3))
+  }
+  
+  else {
+    cb.setApplicationOnlyAuthEnabled(true)
+      .setOAuthConsumerKey(keys(0))
+      .setOAuthConsumerSecret(keys(1))
+  }
 
-    val twitter = new TwitterFactory(cb.build()).getInstance
+  val twitter = new TwitterFactory(cb.build()).getInstance
 
-    def fetchAccount(handle: String, fetchTweets: Boolean = false,
+  // TODO: Convert to assertEquals from JUnit
+
+  if(isAppOnly) 
+    if(!twitter.getOAuth2Token().getTokenType().equals("bearer"))
+      println("Assert(bearer) failed")
+
+  def sleep() = if(isAppOnly) Thread.sleep(AppOnlySleepTime) 
+                else Thread.sleep(UserSleepTime)
+
+
+  def fetchAccount(handle: String, fetchTweets: Boolean = false,
                    fetchNetwork: Boolean = false): TwitterAccount = {
-      var user: User = null
-      try {
+    var user: User = null
+    try {
         user = twitter.showUser(handle)
-      } catch {
-        case te: TwitterException => println(s"TwitterAPI: errorCode=${te.getErrorCode}\tmessage=${te.getErrorMessage}")
-      }
+    } catch {
+        case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+                                   println(s"ErrorMsg = ${te.getErrorMessage}")
+    }
 
-      Thread.sleep(sleepTime)
+    Thread.sleep(AccountSleepTime)
 
-      /** User is protected */
-      if(user != null && user.getStatus != null) {
-        val id = user.getId
-        val name = user.getName
-        val language = user.getLang
-        val url = user.getURL
-        val location = user.getLocation
-        val description = user.getDescription
+    /** User is protected */
+    if(user != null && user.getStatus != null) {
+      val id = user.getId
+      val name = user.getName
+      val language = user.getLang
+      val url = user.getURL
+      val location = user.getLocation
+      val description = user.getDescription
 
-        var tweets : Seq[Tweet] = null
-        val tweetBuffer = ArrayBuffer[Tweet]()
+      var tweets : Seq[Tweet] = null
+      val tweetBuffer = ArrayBuffer[Tweet]()
 
-        if(fetchTweets) {
-          val page = new Paging(1, 100)
-          var tweets = twitter.getUserTimeline(handle, page)
+      if(fetchTweets) {
+        val page = new Paging(1, MaxTweetCount)
+        var tweets = twitter.getUserTimeline(handle, page)
                               .toArray(new Array[Status](0))
-          Thread.sleep(sleepTime)
+        sleep()
 
-          while(!tweets.isEmpty) {
-            tweetBuffer ++= tweets.map(x => new Tweet(x.getText, x.getId,
-                                       x.getLang, x.getCreatedAt, 
-                                       user.getScreenName))
-            val minId = tweets.foldLeft(Long.MaxValue)((min, t) => 
-              if(t.getId < min) t.getId else min)
+        while(!tweets.isEmpty) {
+          tweetBuffer ++= tweets.map(x => new Tweet(x.getText, x.getId,
+                                     x.getLang, x.getCreatedAt, 
+                                     user.getScreenName))
+          val minId = tweets.foldLeft(Long.MaxValue)((min, t) => 
+            if(t.getId < min) t.getId else min)
             
-            page.setMaxId(minId-1)
-            tweets = twitter.getUserTimeline(handle, page)
+          page.setMaxId(minId-1)
+          tweets = twitter.getUserTimeline(handle, page)
                             .toArray(new Array[Status](0))
-            Thread.sleep(sleepTime)
-          }
+          sleep()
         }
-
-        val account = new TwitterAccount(handle, id, name, language, url, 
-          location, description, tweetBuffer.toSeq)
-
-        account
       }
-      else null
+
+      val account = new TwitterAccount(handle, id, name, language, url, 
+        location, description, tweetBuffer.toSeq)
+
+      account
+    }
+    else null
   }
 }
