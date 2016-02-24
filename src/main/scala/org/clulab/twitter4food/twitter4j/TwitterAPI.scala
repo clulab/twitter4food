@@ -36,8 +36,7 @@ class TwitterAPI(keyset: Int) {
       try {
         user = twitter.showUser(handle)
       } catch {
-        case te: TwitterException => println(te.getErrorCode + "\t" +
-                                               te.getErrorMessage)
+        case te: TwitterException => println(s"TwitterAPI: errorCode=${te.getErrorCode}\tmessage=${te.getErrorMessage}")
       }
 
       Thread.sleep(sleepTime)
