@@ -63,15 +63,15 @@ object OverweightDataExtraction {
                 }
                 // Only include accounts that are in English
                 if (account != null && (account.lang equals "en")) {
-                    writer.write(s"C|${classification}\n")
-                    writer.write(s"A|${account.handle}\t${account.id}\t${account.name}\t${account.lang}\t${account.location}\n")
-                    writer.write(s"D|${account.description}\n")
+                    writer.write(s"${classification}\n")
+                    writer.write(s"${account.handle}\t${account.id}\t${account.name.replace("\n"," ")}\t${account.lang}\t${account.location}\n")
+                    writer.write(s"${account.description.replace("\n"," ")}\n")
                     account.tweets.foreach(tweet =>
                         if (tweet.lang equals "en")
-                            writer.write(s"T|${tweet.createdAt}\t${tweet.id}\t${tweet.text}\n"))
+                            writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.text.replace("\n"," ")}\n"))
                 }
 
-                println(s"Processed line ${i}")
+                println(s"Processed line ${i}, handle @${handle}")
             }
 
             i += 1
