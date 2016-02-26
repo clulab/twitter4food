@@ -5,13 +5,14 @@ import java.io.PrintWriter
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.twitter4j.TwitterAPI
 import twitter4j.TwitterException
-
+import com.typesafe.config.ConfigFactory
 import scala.io.Source
 
 /**
   * Created by Terron on 2/17/16.
   */
 object OverweightDataExtraction {
+    val config = ConfigFactory.load()
     def main(args: Array[String]) {
 
         val numProcesses = 16
@@ -32,7 +33,7 @@ object OverweightDataExtraction {
         }
 
         println("OverweightDataExtraction: Instantiating PrintWriter...")
-        val writer = new PrintWriter("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData_" + keySet + ".txt")
+        val writer = new PrintWriter(config.getString("classifiers.overweight.opt_template") + keySet + ".txt")
 
         println("OverweightDataExtraction: Creating instance of TwitterAPI...")
         val api = new TwitterAPI(keySet, isAppOnly=true)
@@ -40,14 +41,14 @@ object OverweightDataExtraction {
         println("OverweightDataExtraction: Calculating total number of accounts...")
         // Find the total number of lines to parse
         var numLines = 0
-        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData.txt").getLines)
+        for (line <- Source.fromFile(config.getString("classifiers.overweight.data")).getLines)
             numLines += 1
 
         val window = numLines / numProcesses
 
         println("OverweightDataExtraction: Iterating over accounts...")
         var i = 0
-        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData.txt").getLines) {
+        for (line <- Source.fromFile(config.getString("classifiers.overweight.data")).getLines) {
             // Only process the lines in this window
             if ( i >= keySet * window && i < (keySet + 1) * window ) {
                 // Parse line

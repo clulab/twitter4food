@@ -4,6 +4,7 @@ import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 import scala.collection.mutable.ArrayBuffer
+import com.typesafe.config.ConfigFactory
 
 /**
   * Wrapper for Twitter4J
@@ -22,8 +23,9 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   val MaxTweetCount = 200
   val MaxPageCount = 16
 
+  val config = ConfigFactory.load()
   val cb = new ConfigurationBuilder()
-  val keysFilePath = "src/main/resources/org/clulab/twitter4food/twitter4j/APIKeys.txt"
+  val keysFilePath = config.getString("twitter4j.api_keys")
   val keys = scala.io.Source.fromFile(keysFilePath)
                             .getLines.toList.slice(4*keyset, 4*(keyset+1))
                             .map(x => x.split("\t")(1))

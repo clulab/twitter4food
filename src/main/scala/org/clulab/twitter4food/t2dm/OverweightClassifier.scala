@@ -5,7 +5,7 @@ import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.featureclassifier.FeatureClassifier
 import org.clulab.twitter4food.struct.{FeatureExtractor, TwitterAccount}
 import org.clulab.twitter4food.twitter4j.TwitterAPI
-
+import com.typesafe.config.ConfigFactory
 import scala.io.Source
 
 /**
@@ -42,7 +42,8 @@ class OverweightClassifier(
 object OverweightClassifier {
 
     val api = new TwitterAPI(0, isAppOnly=true)
-
+    val config = ConfigFactory.load()
+    
     def main(args: Array[String]) {
         val oc = new OverweightClassifier()
 
@@ -50,7 +51,7 @@ object OverweightClassifier {
         var totalOverweight = 0
         var totalNotOverweight = 0
 
-        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData.txt").getLines){
+        for (line <- Source.fromFile(config.getString("classifiers.overweight.data")).getLines){
             val tuple = line.split("\t")
             val classification = tuple(1)
             if (classification equals "Overweight")
@@ -87,7 +88,7 @@ object OverweightClassifier {
         var first = true
 
         // Read in overweight data
-        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightDataVerbose.txt").getLines){
+        for (line <- Source.fromFile(config.getString("classifiers.overweight.dataVerbose")).getLines){
             // Each account begins with its classification
             if ( (line equals "Overweight") || (line equals "Not overweight") ) {
                 description = ""
