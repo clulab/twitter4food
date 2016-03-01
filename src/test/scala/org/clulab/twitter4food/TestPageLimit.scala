@@ -7,7 +7,7 @@ import org.clulab.twitter4food.twitter4j.TwitterAPI
   */
 object TestPageLimit {
     def main(args: Array[String]) {
-        val api = new TwitterAPI(7)
-        api.fetchAccount("msurd", true, false)
+//        val api = new TwitterAPI(7)
+//        api.fetchAccount("msurd", true, false)
     }
 }

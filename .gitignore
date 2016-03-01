@@ -18,3 +18,10 @@ project/plugins/project/
 .scala_dependencies
 
 out/
+
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTrain.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTest.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightDev.txt

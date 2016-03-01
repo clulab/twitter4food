@@ -1,8 +1,9 @@
 package org.clulab.twitter4food.t2dm
 
 import java.io.PrintWriter
+import java.text.SimpleDateFormat
 
-import org.clulab.twitter4food.struct.TwitterAccount
+import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
 import org.clulab.twitter4food.twitter4j.TwitterAPI
 import twitter4j.TwitterException
 
@@ -40,14 +41,14 @@ object OverweightDataExtraction {
         println("OverweightDataExtraction: Calculating total number of accounts...")
         // Find the total number of lines to parse
         var numLines = 0
-        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData.txt").getLines)
+        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightLabels.txt").getLines)
             numLines += 1
 
         val window = numLines / numProcesses
 
         println("OverweightDataExtraction: Iterating over accounts...")
         var i = 0
-        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData.txt").getLines) {
+        for (line <- Source.fromFile("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightLabels.txt").getLines) {
             // Only process the lines in this window
             if ( i >= keySet * window && i < (keySet + 1) * window ) {
                 // Parse line
@@ -80,5 +81,72 @@ object OverweightDataExtraction {
         println("\n\nOverweightDataExtraction: Finished!")
 
         writer.close
+    }
+
+    def parse(filePath: String): Map[TwitterAccount, String] = {
+        // account and label to be mapped together
+        var classification = ""
+
+        // Data to fill account
+        var accountInfo: Array[String]  = null
+        var description = ""
+        var tweets = Seq[Tweet]()
+
+        // Can only add account once first account has been processed
+        var isFirst = true
+
+        // The result map to be returned
+        var result = Map[TwitterAccount, String]()
+
+        for (line <- Source.fromFile(filePath).getLines){
+            var split = line.split("\t")
+
+            // Classification falls on its own line
+            if ((line equals "Overweight") || (line equals "Not overweight") || (line equals "Can't tell")) {
+                if (!isFirst) {
+                    // Only add accounts that are human
+                    if (!(classification equals "Can't tell")) {
+                        val account = new TwitterAccount(accountInfo(0), accountInfo(1).toLong, accountInfo(2), accountInfo(3), null, accountInfo(4), description, tweets)
+                        result = result + (account -> classification)
+                    }
+
+                    accountInfo = null
+                    description = ""
+                    tweets = Seq()
+                }
+                else {
+                    isFirst = false
+                }
+
+                classification = line
+            }
+            // If second item is a long (the account's id), line is account info
+            else if (split.length > 1 && split(1).forall(c => c.isDigit)) {
+                while (split.length < 5) {
+                    split = split :+ ""
+                }
+                accountInfo = split
+            }
+            // If first item is a long (the tweet's id), line is tweet info
+            else if (split.length > 1 && split(0).forall(c => c.isDigit)) {
+                val df = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
+                val date = df.parse(split(1))
+
+                if (tweets.length < 50)
+                    tweets = tweets :+ new Tweet(split(2), split(0).toLong, null, date, accountInfo(0))
+            }
+            // Otherwise line must be description text (no discrete format to check here, so handling it with else
+            else {
+                description = line
+            }
+        }
+
+        // Add last account that wasn't processed yet
+        if (!(classification equals "Can't tell")) {
+            val account = new TwitterAccount(accountInfo(0), accountInfo(1).toLong, accountInfo(2), accountInfo(3), null, accountInfo(4), description, tweets)
+            result = result + (account -> classification)
+        }
+
+        result
     }
 }
