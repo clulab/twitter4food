@@ -39,7 +39,7 @@ class OverweightClassifier(
 object OverweightClassifier {
 
     def main(args: Array[String]) {
-        val oc = new OverweightClassifier()
+        val oc = new OverweightClassifier(useUnigrams=true, useBigrams=false)
 
         println("Reading in training accounts...")
         val trainAccounts = OverweightDataExtraction.parse("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTrain.txt")
@@ -51,16 +51,39 @@ object OverweightClassifier {
         println("Training classifier...")
         oc.train(trainAccounts.keys.toSeq, trainAccounts.values.toSeq)
 
-        println("Running classifications...")
+        println("Running classifications on dev accounts...")
 
-        var numCorrect = 0
-        var total = devAccounts.size
+        // Only checking for correct overweight labels
+        var numRelevant = 0
+        var truePositives = 0
+        var falsePositives = 0
 
         for ((account, label) <- devAccounts) {
-            if (oc.classify(account) equals label) numCorrect += 1
+            if (oc.classify(account) equals "Overweight") {
+                if (label equals "Overweight") {
+                    truePositives += 1
+                } else {
+                    falsePositives += 1
+                }
+            }
+
+            if (label equals "Overweight") {
+                numRelevant += 1
+            }
         }
 
-        println(s"\nResults: ${numCorrect * 1.0 / total} percent correctly classified")
+        val precision = truePositives * 1.0 / (truePositives + falsePositives)
+        val recall = truePositives * 1.0 / (numRelevant)
+
+        println("\nResults:")
+        println(s"Precision: ${precision}")
+        println(s"Recall: ${recall}")
+        println(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}")
+        println(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}")
 
     }
+
+    private def fMeasure(precision: Double, recall: Double, beta: Double): Double =
+        ( 1 + Math.pow(beta, 2) ) * ( (precision * recall) / ( Math.pow(beta, 2) * precision + recall) )
+
 }
