@@ -38,15 +38,23 @@ class FeatureExtractor (val useUnigrams:Boolean,
     }
 
     def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
+        // Build text to consider ngrams of
         var text = account.description
+        // Add all text from tweets
         account.tweets.foreach(tweet => text += " " + tweet.text)
-        text = Tokenizer.annotate(text).foldLeft("")((str, taggedToken) => str + taggedToken.token)
+        // Annotate and combine list of TaggedTokens into one string, re-inserting whitespace
+        text = Tokenizer.annotate(text).foldLeft("")((str, taggedToken) => str + " " + taggedToken.token)
 
         var counter = new Counter[String]
 
         if (n == 1)
+            // Increment count of each word
             text.split("\\s+").foreach(word => counter.incrementCount(word, 1))
-        else if (n == 2){} // TODO implement bigrams
+        else if (n == 2){
+            // Increment count of each bigram
+            val words = text.split("\\s+")
+            words.indices.dropRight(1).foreach(i => counter.incrementCount( words(i) + "_" + words(i+1), 1) )
+        }
 
         return counter
     }
