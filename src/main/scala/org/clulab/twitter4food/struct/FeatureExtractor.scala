@@ -42,23 +42,17 @@ class FeatureExtractor (val useUnigrams:Boolean,
     return counter
   }
 
-<<<<<<< HEAD
     def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
+        var counter = new Counter[String]
+
         // Build text to consider ngrams of
         var text = account.description
         // Add all text from tweets
         account.tweets.foreach(tweet => text += " " + tweet.text)
         // Annotate and combine list of TaggedTokens into one string, re-inserting whitespace
         text = Tokenizer.annotate(text).foldLeft("")((str, taggedToken) => str + " " + taggedToken.token)
-=======
-  def setCounts(words: Seq[String], counter: Counter[String]) = {
-    words.foreach(word => counter.incrementCount(word, 1))
-  }
->>>>>>> origin/classifier
 
-  // TODO: Populate ngrams by filtering tokens based on tags.
-
-<<<<<<< HEAD
+        // TODO: Populate ngrams by filtering tokens based on tags.
         if (n == 1)
             // Increment count of each word
             text.split("\\s+").foreach(word => counter.incrementCount(word, 1))
@@ -67,27 +61,9 @@ class FeatureExtractor (val useUnigrams:Boolean,
             val words = text.split("\\s+")
             words.indices.dropRight(1).foreach(i => counter.incrementCount( words(i) + "_" + words(i+1), 1) )
         }
-=======
-  def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
-    val counter = new Counter[String]
-    val tokenSet = (tt: Array[TaggedToken]) => tt.map(t => t.token)
-    val populateNGrams = (n: Int, text: Array[String]) => {
-      text.sliding(n).toList.reverse
-        .foldLeft(List[String]())((l, window) => window.mkString("_") :: l)
-        .toArray
-      }
->>>>>>> origin/classifier
-
-    setCounts(tokenSet(Tokenizer.annotate(account.description)), counter)
-    account.tweets.foreach(tweet => {
-      val tokenAndTagSet = Tokenizer.annotate(tweet.text)
-      val tokens = tokenSet(tokenAndTagSet)
-      val nGramSet = populateNGrams(n, tokens)
-      setCounts(nGramSet, counter)
-    })
         
-    return counter
-  }
+        return counter
+    }
 
   def topics(account: TwitterAccount): Counter[String] = {
     null
