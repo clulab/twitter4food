@@ -9,5 +9,5 @@ object Tokenizer{
   tagger.loadModel(modelFileName)
 
   /* Returns List[TaggedToken] which has members tag, token */
-  def annotate(text: String) = tagger.tokenizeAndTag(text).asScala
+  def annotate(text: String) = tagger.tokenizeAndTag(text).asScala.toArray
 }
