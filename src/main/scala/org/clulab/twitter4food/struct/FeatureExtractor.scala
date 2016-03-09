@@ -59,10 +59,12 @@ class FeatureExtractor (val useUnigrams:Boolean,
 
     setCounts(tokenSet(Tokenizer.annotate(account.description)), counter)
     account.tweets.foreach(tweet => {
-      val tokenAndTagSet = Tokenizer.annotate(tweet.text)
-      val tokens = tokenSet(tokenAndTagSet)
-      val nGramSet = populateNGrams(n, tokens)
-      setCounts(nGramSet, counter)
+      if (tweet.text != null && tweet.text != "") {
+        val tokenAndTagSet = Tokenizer.annotate(tweet.text).filter(tagTok => !"@UGD~$".contains(tagTok.tag))
+        val tokens = tokenSet(tokenAndTagSet)
+        val nGramSet = populateNGrams(n, tokens)
+        setCounts(nGramSet, counter)
+      }
     })
         
     return counter

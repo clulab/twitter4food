@@ -132,7 +132,7 @@ object OverweightDataExtraction {
                 val df = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
                 val date = df.parse(split(1))
 
-                if (tweets.length < 50)
+//                if (tweets.length < 50)
                     tweets = tweets :+ new Tweet(split(2), split(0).toLong, null, date, accountInfo(0))
             }
             // Otherwise line must be description text (no discrete format to check here, so handling it with else
