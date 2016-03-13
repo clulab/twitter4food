@@ -50,15 +50,14 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   // TODO: Convert to assertEquals from JUnit
 
   if(isAppOnly) 
-    if(!twitter.getOAuth2Token().getTokenType().equals("bearer"))
-      println("Assert(bearer) failed")
+    assert(twitter.getOAuth2Token().getTokenType() == "bearer")
 
   def sleep() = if(isAppOnly) Thread.sleep(AppOnlySleepTime) 
                 else Thread.sleep(UserSleepTime)
 
-
   def fetchAccount(handle: String, fetchTweets: Boolean = false,
                    fetchNetwork: Boolean = false): TwitterAccount = {
+    val option = (something: String) => if(something != null) something else ""
     var user: User = null
     try {
         user = twitter.showUser(handle)
@@ -72,32 +71,37 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
     /** User is protected */
     if(user != null && user.getStatus != null) {
       val id = user.getId
-      val name = user.getName
-      val language = user.getLang
-      val url = user.getURL
-      val location = user.getLocation
-      val description = user.getDescription
+      val name = option(user.getName)
+      val language = option(user.getLang)
+      val url = option(user.getURL)
+      val location = option(user.getLocation)
+      val description = option(user.getDescription)
 
       var tweets : Seq[Tweet] = null
       val tweetBuffer = ArrayBuffer[Tweet]()
 
       if(fetchTweets) {
-        val page = new Paging(1, MaxTweetCount)
-        var tweets = twitter.getUserTimeline(handle, page)
-                              .toArray(new Array[Status](0))
-        sleep()
-
-        while(!tweets.isEmpty) {
-          tweetBuffer ++= tweets.map(x => new Tweet(x.getText, x.getId,
-                                     x.getLang, x.getCreatedAt, 
-                                     user.getScreenName))
-          val minId = tweets.foldLeft(Long.MaxValue)((min, t) => 
-            if(t.getId < min) t.getId else min)
-            
-          page.setMaxId(minId-1)
-          tweets = twitter.getUserTimeline(handle, page)
-                            .toArray(new Array[Status](0))
+        try {
+          val page = new Paging(1, MaxTweetCount)
+          var tweets = twitter.getUserTimeline(handle, page)
+                                .toArray(new Array[Status](0))
           sleep()
+
+          while(!tweets.isEmpty) {
+            tweetBuffer ++= tweets.map(x => new Tweet(x.getText, x.getId,
+                                       x.getLang, x.getCreatedAt, 
+                                       user.getScreenName))
+            val minId = tweets.foldLeft(Long.MaxValue)((min, t) => 
+              if(t.getId < min) t.getId else min)
+              
+            page.setMaxId(minId-1)
+            tweets = twitter.getUserTimeline(handle, page)
+                              .toArray(new Array[Status](0))
+            sleep()
+            } 
+        } catch {
+          case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+                                          println(s"ErrorMsg = ${te.getErrorMessage}")
         }
       }
 
