@@ -65,11 +65,9 @@
 @iam_robot	11	M
 @ZayyOrtiz	11	M
 @sunchyne79	7	F
-@smaemaryu	7	F
 @holisticvanity	7	F
 @Culinaryqueen6	7	F
 @SuzysNest	7	F
-@hollywood26hw	7	M
 @NiftyMom	10	F
 @biakaz	7	M
 @SwissLybee	9	M
@@ -109,7 +107,6 @@
 @GermanCityGirl	9	F
 @vsdresscode	7	F
 @wyrdup	7	F
-@Hanoum	7	F
 @didsburygav	8	M
 @jonnealeman	7	M
 @IeshiaE	7	F
@@ -131,7 +128,6 @@
 @Missuptan	7	F
 @HuntingDragons	10	F
 @sabinekadyss	7	F
-@meganewr	7	F
 @JoscelynRC	7	F
 @charlesallen15	8	M
 @AshleyDlite	8	M
@@ -152,7 +148,7 @@
 @liakurtz	10	F
 @girlcalledgemma	7	F
 @slantedk	7	M
-@karentokaren	8	f
+@karentokaren	8	F
 @LucyFarrugia85	11	F
 @SarahAlpha_	10	F
 @AdUmbraLumen	10	F
@@ -161,7 +157,6 @@
 @TRussell1120	7	F
 @reenie_rocks	7	F
 @atty_natzki	7	M
-@jatinjuntilla	7	F
 @Big_Herbster	11	M
 @shoelaccey	8	F
 @Jessi_lou_87	8	F
@@ -186,7 +181,6 @@
 @ReverendSkulls	7	M
 @carrelljohannes	7	M
 @mike_m_50	11	M
-@ahmedjohn7	7	M
 @bradmck65	8	M
 @baritonekeith	16	M
 @hmjavio	10	M
@@ -250,7 +244,6 @@
 @meichanTJ	7	F
 @deejaybarte	7	F
 @KevinArrow	7	M
-@BxCh3apskat3	7	F
 @soniakruas	9	F
 @ShanaHuff001	7	F
 @ByJoBeach	7	F
@@ -303,7 +296,6 @@
 @heyhodaddyojoe	7	M
 @TWF_Ewer	11	M
 @Nellathebest777	7	F
-@EdwardKaihatsu	10	M
 @runningpfuhl	7	F
 @salman_albanna	7	M
 @veggielivinmom	8	F
@@ -334,7 +326,6 @@
 @minierika	7	F
 @pinakadalisay	8	M
 @TheJasonHodge	7	M
-@MyIcing	7	F
 @MsAprilFish	20	F
 @AlenaKobzarenko	11	F
 @beautybymissl	7	F
@@ -452,7 +443,6 @@
 @thepotterbryant	8	F
 @PaigeBARGA	7	F
 @siesiechampion	7	F
-@VickyJohnston	7	F
 @iamtonico	7	M
 @gevone	7	M
 @URaUseful_idiot	10	M
@@ -615,7 +605,6 @@
 @JennaSSumner	8	F
 @missusjoy	7	F
 @AidensCuisine	9	M
-@delphisantiques	9	M
 @IOKEYYOUOK	9	F
 @globaldish	7	F
 @paul_cude	11	M
@@ -998,3 +987,14 @@
 @DanielFanmail	7	M
 @JustinLambchop	9	M
 @Evan_is_Google	9	M
+@MissMarieCox	9	F
+@Setsuko136	7	F
+@RaeRayRay	7	F
+@theaprilnoelle	10	F
+@doingsplendid	7	F
+@GreySword	7	F
+@DaniLAnderson	7	F
+@thedanielcowan	8	M
+@GRIFFERS	9	M
+@HectorBaellerin	8	M
+@WesleyMoore08	6	M
