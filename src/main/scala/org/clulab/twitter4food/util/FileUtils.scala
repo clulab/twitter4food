@@ -12,6 +12,10 @@ object FileUtils {
     fileName: String) = {
     val writer = new BufferedWriter(new FileWriter(new File(fileName)))
     assert(labels.size == users.size)
+
+    val numValidAccounts = users.foldLeft(0)((s,u) => if(u != null) s+1 else s)
+    writer.write(s"${numValidAccounts.toInt}\n")
+
     for(i <- labels.indices) {
       val user = users(i)
       val ctrlChars = "[\0\b\t\n\f\r]"
@@ -40,15 +44,20 @@ object FileUtils {
     val lines = scala.io.Source.fromFile(fileName).getLines.toList
     
     /* Lazy declarations */
-    var i, count = 0
+    var i = 1
+    var count = 0
     var handle, name, label, id = ""
     var desc, lang, location, url = ""
     var numTweets = 0
     val accounts = Map[TwitterAccount, String]()
-    
-    while(i < lines.length) {
+    val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
+    pb.start()
+    pb.maxHint(lines(0).toInt)
+    pb.setExtraMessage("Loading...")
+
+    while(i < lines.length) {      
       val line = lines(i)
-      println(s"$count, $line")
+      //println(s"$count, $line")
       val splits = line.split("\t")
       count match {
         case 0 => label = splits(1)
@@ -82,10 +91,11 @@ object FileUtils {
                   i = i + (2 * numTweets)-1
                   accounts += (new TwitterAccount(handle, id.toLong, name, lang,
                     url, location, desc, tweets) -> label)
-
+                  pb.step()
       }
       count += 1; count %= 5; i += 1
     }
+    pb.stop()
     accounts
   }
 }
