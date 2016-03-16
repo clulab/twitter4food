@@ -88,7 +88,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
           sleep()
 
           while(!tweets.isEmpty) {
-            tweetBuffer ++= tweets.map(x => new Tweet(x.getText, x.getId,
+            tweetBuffer ++= tweets.map(x => new Tweet(option(x.getText), x.getId,
                                        x.getLang, x.getCreatedAt, 
                                        user.getScreenName))
             val minId = tweets.foldLeft(Long.MaxValue)((min, t) => 

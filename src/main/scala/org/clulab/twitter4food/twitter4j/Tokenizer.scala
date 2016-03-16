@@ -1,6 +1,7 @@
 package org.clulab.twitter4food.twitter4j
 
 import cmu.arktweetnlp._
+import cmu.arktweetnlp.Tagger._
 import scala.collection.JavaConverters._
 
 object Tokenizer{
@@ -8,6 +9,15 @@ object Tokenizer{
   val tagger = new Tagger()
   tagger.loadModel(modelFileName)
 
-  /* Returns List[TaggedToken] which has members tag, token */
-  def annotate(text: String) = tagger.tokenizeAndTag(text).asScala.toArray
+  /* Returns Array[TaggedToken] which has members tag, token */
+  def annotate(text: String) = {
+    try {
+      tagger.tokenizeAndTag(text).asScala.toArray
+    } catch {
+      case e: Exception => {
+        print("Exception caused at: "); 
+        Array[TaggedToken]()
+      }
+    }
+  }
 }

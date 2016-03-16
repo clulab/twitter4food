@@ -5,7 +5,8 @@ version := "1.0"
 scalaVersion := "2.11.7"
 
 resolvers ++= Seq(
-  "amateras-repo" at "http://amateras.sourceforge.jp/mvn/"
+  "amateras-repo" at "http://amateras.sourceforge.jp/mvn/",
+  Resolver.sonatypeRepo("public")
 )
 
 libraryDependencies ++= Seq(
@@ -23,5 +24,7 @@ libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-highlighter" % "4.2.1",
   "jp.sf.amateras.solr.scala" %% "solr-scala-client" % "latest.integration",
   "cc.mallet" % "mallet" % "2.0.7",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3"
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
+  "com.github.scopt" %% "scopt" % "3.4.0",
+  "me.tongfei" % "progressbar" % "0.4.0"
 )
