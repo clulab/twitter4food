@@ -15,7 +15,7 @@ object Tokenizer{
       tagger.tokenizeAndTag(text).asScala.toArray
     } catch {
       case e: Exception => {
-        print("Exception caused at: "); 
+        print(s"Exception caused at: ${text}"); 
         Array[TaggedToken]()
       }
     }
