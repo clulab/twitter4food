@@ -20,15 +20,16 @@ class GenderClassifier(
   var dataset = new RVFDataset[String, String]()
 
   override def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
-    // Clear current dataset if training on new one
     assert(accounts.size == labels.size)
+    // Clear current dataset if training on new one
     dataset = new RVFDataset[String, String]()
-    // Populate dataset
  
-    val pb = new me.tongfei.progressbar.ProgressBar("train", 100)
-    pb.maxHint(accounts.size)
+    val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
     pb.start()
+    pb.maxHint(accounts.size)
+    pb.setExtraMessage("Training...")
     
+    // Populate dataset
     for (i <- accounts.indices) {
       dataset += featureExtractor.mkDatum(accounts(i), labels(i))
       pb.step()
@@ -76,11 +77,18 @@ object GenderClassifier {
       devData.values.toArray, testData.values.toArray)
 
     val writer = new BufferedWriter(new FileWriter(
-      new File(config.getString("classifier") + "/gender/results" + 
-      fileExt + ".txt")))
+      config.getString("classifier") + "/gender/results" + 
+      fileExt + ".txt",true))
 
     val gridCbyK = Array.ofDim[Double](7,7)
 
+    /*println(s"training data, label size : ${trainUsers.size}, ${trainLabels.size}")
+    println(s"dev data, label size : ${devUsers.size}, ${devLabels.size}")
+    println(s"testing data, label size : ${testUsers.size}, ${testLabels.size}")
+
+    println(s"${(trainingData ++ devData).size}, ${(trainLabels ++ devLabels).size}")
+    */
+    
     val runTest = (trainingSet: Seq[TwitterAccount], 
       trainingLabels: Seq[String], 
       testSet: Seq[TwitterAccount],
@@ -98,11 +106,14 @@ object GenderClassifier {
         })
 
       // Train with top K tweets
-      gc.train(customAccounts, trainLabels)
+      gc.train(customAccounts, trainingLabels)
+      gc.subClassifier.saveTo(s"${config.getString("classifiers.gender.opt")}_${args.mkString("")}svm_${_C}_${K}.dat")
 
-      val pb = new me.tongfei.progressbar.ProgressBar("testing", 100)
-      pb.maxHint(testSet.size)
+      val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
       pb.start()
+      pb.maxHint(testSet.size.toInt)
+      pb.setExtraMessage("Testing...")
+
       val predictedLabels = testSet.map(u => { pb.step(); gc.classify(u); })
       pb.stop()
 
@@ -113,11 +124,11 @@ object GenderClassifier {
 
       println(s"C=${_C}, #K=$K")
       println(evalMeasures.mkString("\n"))
-      println(s"Macro avg F-1 : ${df.format(macroAvg)}")
+      println(s"\nMacro avg F-1 : ${df.format(macroAvg)}")
       println(s"Micro avg F-1 : ${df.format(microAvg)}")
-      writer.write(s"C=${_C}, #K=$K")
+      writer.write(s"C=${_C}, #K=${K}\n")
       writer.write(evalMeasures.mkString("\n"))
-      writer.write(s"Macro avg F-1 : ${df.format(macroAvg)}\n")
+      writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
       writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
       writer.flush()
 
@@ -145,11 +156,16 @@ object GenderClassifier {
     println(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}")
     writer.write(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}\n")
     println("Testing with test users")
+
     writer.write("*****Test*****\n")
+    writer.flush()
 
     // Final run on test Set
-    runTest(trainUsers ++ devUsers, trainLabels ++ devLabels, testUsers,
-      testLabels, cFolds(iMax), tweetFolds(jMax))
+    val newTrain = trainUsers ++ devUsers
+    val newLabels = trainLabels ++ devLabels
+
+    runTest(newTrain, newLabels, testUsers, testLabels, cFolds(iMax), 
+      tweetFolds(jMax))
 
     println("*****Test complete*****")
     writer.write("*****Test complete*****\n")
