@@ -1,21 +1,21 @@
 package org.clulab.twitter4food.t2dm
 
-import java.io.PrintWriter
+import java.io.{BufferedWriter, FileWriter, PrintWriter}
 
 import edu.arizona.sista.learning.{LinearSVMClassifier, RVFDataset}
 import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.featureclassifier.FeatureClassifier
-import org.clulab.twitter4food.struct.{Tweet, FeatureExtractor, TwitterAccount}
+import org.clulab.twitter4food.struct.{FeatureExtractor, Tweet, TwitterAccount}
+import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
 
 /**
   * Created by Terron on 2/15/16.
   */
-class OverweightClassifier(
-                              val useUnigrams: Boolean = true,
-                              val useBigrams: Boolean = false,
-                              val useTopics: Boolean = false,
-                              val useDictionaries: Boolean = false,
-                              val useEmbeddings: Boolean = false) extends FeatureClassifier {
+class OverweightClassifier(val useUnigrams: Boolean = true,
+                           val useBigrams: Boolean = false,
+                           val useTopics: Boolean = false,
+                           val useDictionaries: Boolean = false,
+                           val useEmbeddings: Boolean = false) extends FeatureClassifier {
 
     val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings)
     val subClassifier = new LinearSVMClassifier[String, String]()
@@ -26,10 +26,19 @@ class OverweightClassifier(
 
         // Clear current dataset if training on new one
         dataset = new RVFDataset[String, String]()
+
+        val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
+        pb.start()
+        pb.maxHint(accounts.size)
+        pb.setExtraMessage("Training...")
+
         // Populate dataset
         for (i <- accounts.indices) {
             dataset += featureExtractor.mkDatum(accounts(i), labels(i))
+            pb.step()
         }
+
+        pb.stop()
         subClassifier.train(dataset)
     }
 
@@ -41,80 +50,71 @@ class OverweightClassifier(
 object OverweightClassifier {
 
     def main(args: Array[String]) {
-        var unigrams = false
-        var bigrams = false
+        val params = TestUtils.parseArgs(args)
+        val (api, config) = TestUtils.init(0, true)
+        val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams,
+            params.useTopics, params.useDictionaries, params.useEmbeddings)
 
-        var fileLabel = ""
-
-        for (arg <- args) {
-            fileLabel += arg
-            if (arg equals "1")
-                unigrams = true
-            if (arg equals "2")
-                bigrams = true
-        }
-
-        println("useUnigrams=" + unigrams)
-        println("useBigrams=" + bigrams)
-
-        val oc = new OverweightClassifier(useUnigrams = unigrams, useBigrams = bigrams)
+        println("Loading training accounts...")
+        val trainingData = OverweightDataExtraction.parse(config
+            .getString("classifiers.overweight.trainingData"))
+        println("Loading dev accounts...")
+        val devData = OverweightDataExtraction.parse(config
+            .getString("classifiers.overweight.devData"))
+        println("Loading test accounts...")
+//        val testAccounts = OverweightDataExtraction.parse(config.getString("classifiers.overweight.testData"))
 
         // when running on local machine
 //        val trainFile = "src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTrain.txt"
 //        val devFile = "src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightDev.txt"
 //        val testFile = "src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTest.txt"
 
-        // when running on servers
-        val trainFile = "/data/nlp/corpora/twitter4food/overweightData/overweightTrain.txt"
-        val devFile = "/data/nlp/corpora/twitter4food/overweightData/overweightDev.txt"
-        val testFile = "/data/nlp/corpora/twitter4food/overweightData/overweightTest.txt"
-
-        println("Reading in training accounts...")
-        val trainAccounts = OverweightDataExtraction.parse(trainFile)
-        println("Reading in dev accounts...")
-        val devAccounts = OverweightDataExtraction.parse(devFile)
-        //        println("Reading in test accounts...")
-        //        val testAccounts = OverweightDataExtraction.parse(testFile)
-
+        // Train classifier and save model to file
         println("Training classifier...")
-        oc.train(trainAccounts.keys.toSeq, trainAccounts.values.toSeq)
+        oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
+        oc.subClassifier.saveTo(s"src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/model/overweight${args.mkString("")}.dat")
 
-        println("Running classifications on dev accounts...")
+        // Set progress bar
+        val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+        pb.start()
+        pb.maxHint(devData.size.toInt)
+        pb.setExtraMessage("Testing on dev accounts...")
 
-        // Only checking for correct overweight labels
-        var numRelevant = 0
-        var truePositives = 0
-        var falsePositives = 0
+        // Classify accounts
+        val devLabels = devData.values.toSeq
+        val predictedLabels = devData.keys.toSeq.map(u => { pb.step(); oc.classify(u); })
 
-        for ((account, label) <- devAccounts) {
-            if (oc.classify(account) equals "Overweight") {
-                if (label equals "Overweight") {
-                    truePositives += 1
-                } else {
-                    falsePositives += 1
-                }
-            }
+        pb.stop()
 
-            if (label equals "Overweight") {
-                numRelevant += 1
-            }
-        }
+        println("Dev:")
+        println(devLabels.mkString("\t"))
+        println("\nPredicted:")
+        println(predictedLabels.mkString("\t"))
 
-        val precision = truePositives * 1.0 / (truePositives + falsePositives)
-        val recall = truePositives * 1.0 / (numRelevant)
+        val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(devLabels, predictedLabels)
+
+        println(evalMeasures.mkString("\n"))
+
+        val evalMetric = evalMeasures("Overweight")
+
+        val precision = evalMetric.P
+        val recall = evalMetric.R
 
         println("\nResults:")
         println(s"Precision: ${precision}")
         println(s"Recall: ${recall}")
         println(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}")
         println(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}")
+        println(s"Macro average: ${macroAvg}")
+        println(s"Micro average: ${microAvg}")
 
-        val writer = new PrintWriter("output" + fileLabel + ".txt")
+        val writer = new BufferedWriter(new FileWriter(s"src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/results/output${args.mkString("")}.txt"))
         writer.write(s"Precision: ${precision}\n")
         writer.write(s"Recall: ${recall}\n")
         writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
         writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-
+        writer.write(s"Macro average: ${macroAvg}")
+        writer.write(s"Micro average: ${microAvg}")
         writer.close()
 
     }

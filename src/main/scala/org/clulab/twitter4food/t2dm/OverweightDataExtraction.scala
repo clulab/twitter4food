@@ -1,6 +1,7 @@
 package org.clulab.twitter4food.t2dm
 
 import java.io.PrintWriter
+import org.clulab.twitter4food.util.FileUtils
 import java.text.SimpleDateFormat
 
 import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
@@ -15,7 +16,7 @@ import scala.io.Source
 object OverweightDataExtraction {
     def main(args: Array[String]) {
 
-        val numProcesses = 16
+        val numProcesses = 8
 
         // Parse keySet value from args
         var keySet: Int = -1
@@ -32,8 +33,7 @@ object OverweightDataExtraction {
             System.exit(1)
         }
 
-        println("OverweightDataExtraction: Instantiating PrintWriter...")
-        val writer = new PrintWriter("src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData_" + keySet + ".txt")
+        val outputFile = "src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightData_" + keySet + ".txt"
 
         println("OverweightDataExtraction: Creating instance of TwitterAPI...")
         val api = new TwitterAPI(keySet, isAppOnly=true)
@@ -45,6 +45,9 @@ object OverweightDataExtraction {
             numLines += 1
 
         val window = numLines / numProcesses
+
+        var accounts = List[TwitterAccount]()
+        var labels = List[String]()
 
         println("OverweightDataExtraction: Iterating over accounts...")
         var i = 0
@@ -64,12 +67,8 @@ object OverweightDataExtraction {
                 }
                 // Only include accounts that are in English
                 if (account != null && (account.lang equals "en")) {
-                    writer.write(s"${classification}\n")
-                    writer.write(s"${account.handle}\t${account.id}\t${account.name.replace("\n"," ")}\t${account.lang}\t${account.location}\n")
-                    writer.write(s"${account.description.replace("\n"," ")}\n")
-                    account.tweets.foreach(tweet =>
-                        if (tweet.lang equals "en")
-                            writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.text.replace("\n"," ")}\n"))
+                    accounts = account :: accounts
+                    labels = classification :: labels
                 }
 
                 println(s"Processed line ${i}, handle @${handle}")
@@ -78,11 +77,15 @@ object OverweightDataExtraction {
             i += 1
         }
 
-        println("\n\nOverweightDataExtraction: Finished!")
 
-        writer.close
+        println("OverweightDataExtraction: Saving to file...")
+        FileUtils.saveToFile(accounts, labels, outputFile)
+
+        println("\n\nOverweightDataExtraction: Finished!")
     }
 
+
+    // ***************** moved to FileUtils ***************** //
     def parse(filePath: String): Map[TwitterAccount, String] = {
         // account and label to be mapped together
         var classification = ""
@@ -98,7 +101,14 @@ object OverweightDataExtraction {
         // The result map to be returned
         var result = Map[TwitterAccount, String]()
 
-        for (line <- Source.fromFile(filePath).getLines){
+        val lines = Source.fromFile(filePath).getLines.toList
+
+        val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
+        pb.start()
+        pb.maxHint(lines(0).toInt)
+        pb.setExtraMessage("Loading...")
+
+        for (line <- lines.drop(1)){
             var split = line.split("\t")
 
             // Classification falls on its own line
@@ -108,6 +118,7 @@ object OverweightDataExtraction {
                     if (!(classification equals "Can't tell")) {
                         val account = new TwitterAccount(accountInfo(0), accountInfo(1).toLong, accountInfo(2), accountInfo(3), null, accountInfo(4), description, tweets)
                         result = result + (account -> classification)
+                        pb.step()
                     }
 
                     accountInfo = null
@@ -141,10 +152,13 @@ object OverweightDataExtraction {
             }
         }
 
+        pb.stop()
+
         // Add last account that wasn't processed yet
         if (!(classification equals "Can't tell")) {
             val account = new TwitterAccount(accountInfo(0), accountInfo(1).toLong, accountInfo(2), accountInfo(3), null, accountInfo(4), description, tweets)
             result = result + (account -> classification)
+            pb.step()
         }
 
         result
