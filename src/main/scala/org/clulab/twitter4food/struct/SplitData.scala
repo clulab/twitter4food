@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.struct
 
+import java.io.{BufferedWriter, File, FileWriter}
+
 import org.clulab.twitter4food.util.FileUtils
 
 import scala.collection.mutable.Map
@@ -35,5 +37,38 @@ object SplitData {
         println(s"notOverweight.size=${notOverweight.size}")
         println(s"other=${other}")
 
+        val percentTraining = 0.6
+        val percentDev = 0.2
+        // percentTest falls from the previous two
+
+        // Find limits
+        val overweightLim1 = (percentTraining * overweight.size).toInt
+        val overweightLim2 = ((percentTraining + percentDev) * overweight.size).toInt
+
+        val notOverweightLim1 = (percentTraining * notOverweight.size).toInt
+        val notOverweightLim2 = ((percentTraining + percentDev) * notOverweight.size).toInt
+
+        // Slice data
+        val trainingOverweight = overweight.slice(0, overweightLim1)
+        val devOverweight = overweight.slice(overweightLim1, overweightLim2)
+        val testOverweight = overweight.slice(overweightLim2, overweight.size)
+
+        val trainingNotOverweight = notOverweight.slice(0, notOverweightLim1)
+        val devNotOverweight = notOverweight.slice(notOverweightLim1, notOverweightLim2)
+        val testNotOverweight = notOverweight.slice(notOverweightLim2, notOverweight.size)
+
+        // Combine
+        val trainingSet = trainingOverweight ++ trainingNotOverweight
+        val devSet = devOverweight ++ devNotOverweight
+        val testSet = testOverweight ++ testNotOverweight
+
+        println(s"trainingSet.size=${trainingSet.size}")
+        println(s"devSet.size=${devSet.size}")
+        println(s"testSet.size=${testSet.size}")
+
+        // Write to file
+        FileUtils.saveToFile(trainingSet.keys.toList, trainingSet.values.toList, trainingFile)
+        FileUtils.saveToFile(devSet.keys.toList, devSet.values.toList, devFile)
+        FileUtils.saveToFile(testSet.keys.toList, testSet.values.toList, testFile)
     }
 }
