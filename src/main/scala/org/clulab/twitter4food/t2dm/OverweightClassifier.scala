@@ -1,8 +1,9 @@
 package org.clulab.twitter4food.t2dm
 
 import java.io.{BufferedWriter, FileWriter, PrintWriter}
+import java.nio.file.{Files, Paths}
 
-import edu.arizona.sista.learning.{LinearSVMClassifier, RVFDataset}
+import edu.arizona.sista.learning.{LiblinearClassifier, LinearSVMClassifier, RVFDataset}
 import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.featureclassifier.FeatureClassifier
 import org.clulab.twitter4food.struct.{FeatureExtractor, Tweet, TwitterAccount}
@@ -18,7 +19,7 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
                            val useEmbeddings: Boolean = false) extends FeatureClassifier {
 
     val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings)
-    val subClassifier = new LinearSVMClassifier[String, String]()
+    var subClassifier = new LinearSVMClassifier[String, String]()
     var dataset = new RVFDataset[String, String]()
 
     override def train(accounts: Seq[TwitterAccount], labels: Seq[String]): Unit = {
@@ -55,29 +56,35 @@ object OverweightClassifier {
         val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams,
             params.useTopics, params.useDictionaries, params.useEmbeddings)
 
-        println("Loading training accounts...")
-        val trainingData = OverweightDataExtraction.parse(config
-            .getString("classifiers.overweight.trainingData"))
+        val fileExt = args.mkString("")
+        val modelFile = s"${config.getString("classifier")}/overweight/model/${fileExt}.dat"
+
+        // Load classifier if model exists
+        if (Files.exists(Paths.get(modelFile))) {
+            println("Loading model from file...")
+            val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
+            oc.subClassifier = new LinearSVMClassifier[String, String](C=cl.C, eps=cl.eps, bias=cl.bias)
+        } else {
+            println("Loading training accounts...")
+            val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
+
+            // Train classifier and save model to file
+            println("Training classifier...")
+            oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
+            oc.subClassifier.saveTo(modelFile)
+        }
+
+        println(s"${oc.subClassifier.getWeights()}")
+
         println("Loading dev accounts...")
-        val devData = OverweightDataExtraction.parse(config
-            .getString("classifiers.overweight.devData"))
-        println("Loading test accounts...")
-//        val testAccounts = OverweightDataExtraction.parse(config.getString("classifiers.overweight.testData"))
-
-        // when running on local machine
-//        val trainFile = "src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTrain.txt"
-//        val devFile = "src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightDev.txt"
-//        val testFile = "src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTest.txt"
-
-        // Train classifier and save model to file
-        println("Training classifier...")
-        oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
-        oc.subClassifier.saveTo(s"src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/model/overweight${args.mkString("")}.dat")
+        val devData = FileUtils.load(config.getString("classifiers.overweight.devData"))
+//        println("Loading test accounts...")
+//        val testAccounts = FileUtils.load(config.getString("classifiers.overweight.testData"))
 
         // Set progress bar
         val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
         pb.start()
-        pb.maxHint(devData.size.toInt)
+        pb.maxHint(devData.size)
         pb.setExtraMessage("Testing on dev accounts...")
 
         // Classify accounts
@@ -108,7 +115,10 @@ object OverweightClassifier {
         println(s"Macro average: ${macroAvg}")
         println(s"Micro average: ${microAvg}")
 
-        val writer = new BufferedWriter(new FileWriter(s"src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/results/output${args.mkString("")}.txt"))
+        // Save results
+        val writer = new BufferedWriter(new FileWriter(
+            config.getString("classifier") + "/overweight/results/output" +
+                fileExt + ".txt",true))
         writer.write(s"Precision: ${precision}\n")
         writer.write(s"Recall: ${recall}\n")
         writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
