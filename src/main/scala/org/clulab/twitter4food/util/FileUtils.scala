@@ -45,7 +45,6 @@ object FileUtils {
         val lines = scala.io.Source.fromFile(fileName).getLines
 
         /* Lazy declarations */
-        var i = 1
         var count = 0
         var handle, name, label, id = ""
         var desc, lang, location, url = ""
@@ -56,7 +55,7 @@ object FileUtils {
         pb.maxHint(lines.next.toInt)
         pb.setExtraMessage("Loading...")
 
-        while (i < numLines) {
+        while (lines.hasNext) {
             val line = lines.next
             //println(s"$count, $line")
             val splits = line.split("\t")
@@ -81,17 +80,12 @@ object FileUtils {
                     val tweets = ArrayBuffer[Tweet]()
                     if (numTweets > 0) {
                         var jCount = 0;
-                        var j = 0
-                        var tweetLines = new Array[String](2 * numTweets)
-                        tweetLines(0) = line
-                        for (k <- 1 until 2 * numTweets) {
-                            tweetLines(k) = lines.next
-                        }
+                        val tweetLines = (line :: lines.slice(0, 2*numTweets - 1).toList).iterator
 
                         var tweetId, tweetLang = ""
                         var date: Date = null
-                        while (j < tweetLines.length) {
-                            val tweetLine = tweetLines(j)
+                        while (tweetLines.hasNext) {
+                            val tweetLine = tweetLines.next
                             val tweetSplit = tweetLine.split("\t")
                             jCount match {
                                 case 0 => tweetId = tweetSplit(0)
@@ -103,10 +97,7 @@ object FileUtils {
                             }
                             jCount += 1;
                             jCount %= 2;
-                            j += 1
                         }
-
-                        i = i + (2 * numTweets) - 1
                     }
 
                     accounts += (new TwitterAccount(handle, id.toLong, name, lang,
@@ -115,7 +106,6 @@ object FileUtils {
             }
             count += 1;
             count %= 5;
-            i += 1
         }
         pb.stop()
         accounts

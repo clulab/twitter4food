@@ -25,3 +25,8 @@ src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweig
 src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTest.txt
 
 src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightDev.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/gender/trainingData.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/gender/devData.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/gender/testData.txt
+
