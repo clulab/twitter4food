@@ -3,7 +3,7 @@ package org.clulab.twitter4food.t2dm
 import java.io.{BufferedWriter, FileWriter, PrintWriter}
 import java.nio.file.{Files, Paths}
 
-import edu.arizona.sista.learning.{LiblinearClassifier, LinearSVMClassifier, RVFDataset}
+import edu.arizona.sista.learning.{Classifier, LiblinearClassifier, LinearSVMClassifier, RVFDataset}
 import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.featureclassifier.FeatureClassifier
 import org.clulab.twitter4food.struct.{FeatureExtractor, Tweet, TwitterAccount}
@@ -19,7 +19,7 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
                            val useEmbeddings: Boolean = false) extends FeatureClassifier {
 
     val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings)
-    var subClassifier = new LinearSVMClassifier[String, String]()
+    var subClassifier:Option[LiblinearClassifier[String, String]] = None
     var dataset = new RVFDataset[String, String]()
 
     override def train(accounts: Seq[TwitterAccount], labels: Seq[String]): Unit = {
@@ -27,6 +27,7 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
 
         // Clear current dataset if training on new one
         dataset = new RVFDataset[String, String]()
+        subClassifier = Some(new LinearSVMClassifier[String, String]())
 
         val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
         pb.start()
@@ -40,11 +41,13 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
         }
 
         pb.stop()
-        subClassifier.train(dataset)
+        subClassifier.get.train(dataset)
     }
 
     override def scoresOf(account: TwitterAccount): Counter[String] = {
-        subClassifier.scoresOf(featureExtractor.mkDatum(account, "unknown"))
+        subClassifier.get.scoresOf(featureExtractor.mkDatum(account, "unknown"))
+
+        // TODO can get scores of features from the datum created here, for the analysis for the weights
     }
 }
 
@@ -63,7 +66,7 @@ object OverweightClassifier {
         if (Files.exists(Paths.get(modelFile))) {
             println("Loading model from file...")
             val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
-            oc.subClassifier = new LinearSVMClassifier[String, String](C=cl.C, eps=cl.eps, bias=cl.bias)
+            oc.subClassifier = Some(cl) // new LinearSVMClassifier[String, String](C=cl.C, eps=cl.eps, bias=cl.bias)
         } else {
             println("Loading training accounts...")
             val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
@@ -71,10 +74,13 @@ object OverweightClassifier {
             // Train classifier and save model to file
             println("Training classifier...")
             oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
-            oc.subClassifier.saveTo(modelFile)
+            oc.subClassifier.get.saveTo(modelFile)
         }
 
-        println(s"${oc.subClassifier.getWeights()}")
+        // TODO write a function that looks at weights
+        // false negatives should have a lot of 0s in resulting product
+        // Dot product between these weights and the values of the features in an example account
+        println(s"${oc.subClassifier.get.getWeights()}")
 
         println("Loading dev accounts...")
         val devData = FileUtils.load(config.getString("classifiers.overweight.devData"))
