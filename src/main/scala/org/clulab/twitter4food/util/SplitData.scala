@@ -1,8 +1,6 @@
-package org.clulab.twitter4food.struct
+package org.clulab.twitter4food.util
 
-import java.io.{BufferedWriter, File, FileWriter}
-
-import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.struct.TwitterAccount
 
 import scala.collection.mutable.Map
 
