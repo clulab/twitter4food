@@ -3,6 +3,7 @@ package org.clulab.twitter4food.struct
 import edu.arizona.sista.learning.{Datum, RVFDatum}
 import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.twitter4j.Tokenizer
+import org.clulab.twitter4food.util.TestUtils
 import cmu.arktweetnlp.Tagger._
 
 /**
@@ -13,6 +14,8 @@ class FeatureExtractor (val useUnigrams:Boolean,
   val useTopics:Boolean,
   val useDictionaries:Boolean,
   val useEmbeddings:Boolean) { // TODO: add others, network?
+
+  val config = TestUtils.init(0, true)._2
 
   /** 
    * Additional method call for adding additional features 
@@ -57,11 +60,16 @@ class FeatureExtractor (val useUnigrams:Boolean,
         .toArray
       }
 
+    val stopWords = scala.io.Source
+      .fromFile(config.getString("classifiers.features.stopWords"))
+      .getLines.toSet
+
     setCounts(tokenSet(Tokenizer.annotate(account.description)), counter)
     account.tweets.filter(t => t.lang != null && t.lang.equals("en")).foreach(tweet => {
       if (tweet.text != null && !tweet.text.equals("")) {
         val tokenAndTagSet = Tokenizer.annotate(tweet.text)
-          .filter(tagTok => !"@UGD~$:".contains(tagTok.tag))
+          .filter(tagTok => !("@UGD~,$".contains(tagTok.tag) 
+            || stopWords.contains(tagTok.token)))
         val tokens = tokenSet(tokenAndTagSet)
         val nGramSet = populateNGrams(n, tokens)
         setCounts(nGramSet, counter)

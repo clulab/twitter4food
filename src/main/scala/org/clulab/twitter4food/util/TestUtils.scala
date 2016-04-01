@@ -5,6 +5,7 @@ import org.clulab.twitter4food.struct._
 import java.io._
 import com.typesafe.config.ConfigFactory
 import scala.reflect.ClassTag
+import scala.collection.mutable.ArrayBuffer
 
 object TestUtils {
   def init(keyset: Int, isAppOnly: Boolean) = {
@@ -65,6 +66,10 @@ class EvalMetric {
   def P = TP.toFloat/(TP+FP)
   def R = TP.toFloat/(TP+FN)
   def A = (TP+TN).toFloat/(TP+FP+TN+FN)
+  val TPAccounts = ArrayBuffer[TwitterAccount]()
+  val FPAccounts = ArrayBuffer[TwitterAccount]()
+  val TNAccounts = ArrayBuffer[TwitterAccount]()
+  val FNAccounts = ArrayBuffer[TwitterAccount]()
   var beta = 0.0
   var F = Eval.fMeasure(P, R, beta)
   val df = new java.text.DecimalFormat("#.###")
@@ -86,21 +91,35 @@ object Eval {
       (m, l) => m + (l -> new EvalMetric()))
   }  
 
-  def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String]) = {
+  def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String],
+    accounts: Seq[TwitterAccount]) = {
     val labels = srcLabels.toSet
     val evalMeasures = genEvalMeasure(labels)
-    assert(srcLabels.size == predictedLabels.size)
+    assert(srcLabels.size == predictedLabels.size
+      && srcLabels.size == accounts.size)
 
     labels.foreach(label => {
       val eval = evalMeasures(label)
       for(i <- srcLabels.indices) {
         if(srcLabels(i) equals label) {
-          if(predictedLabels(i) equals label) eval.TP += 1
-          else eval.FN += 1
+          if(predictedLabels(i) equals label) {
+              eval.TP += 1
+              eval.TPAccounts += accounts(i)
+            } 
+          else {
+            eval.FN += 1
+            eval.FNAccounts += accounts(i)
+          }
         }
         else {
-          if(predictedLabels(i) equals label) eval.FP += 1
-          else eval.TN += 1
+          if(predictedLabels(i) equals label) {
+            eval.FP += 1
+            eval.FPAccounts += accounts(i)
+          }
+          else {
+            eval.TN += 1
+            eval.TNAccounts += accounts(i)
+          }
         }
       }
       eval.F = fMeasure(eval.P, eval.R, 1.0)

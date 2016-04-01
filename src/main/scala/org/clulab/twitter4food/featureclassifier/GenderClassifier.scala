@@ -1,6 +1,6 @@
 package org.clulab.twitter4food.featureclassifier
 
-import edu.arizona.sista.learning.{LinearSVMClassifier, RVFDataset}
+import edu.arizona.sista.learning._
 import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
@@ -42,6 +42,26 @@ class GenderClassifier(
   override def scoresOf(account: TwitterAccount): Counter[String] = {
     subClassifier.scoresOf(featureExtractor.mkDatum(account, "unknown"))
   }
+
+  def analyze(filename: String, labels: Set[String], test: TwitterAccount) = {
+    val c = LiblinearClassifier.loadFrom[String, String](filename)
+    val W = c.getWeights()
+    val d = featureExtractor.mkDatum(test, "unknown")
+    val counter = d.featuresCounter
+
+    val topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
+      (map, l) => map + (l -> W.get(l).get.toSeq.sortWith(_._2 > _._2)))
+
+    val dotProduct = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
+      (map, l) => {
+        val weightMap = W.get(l).get.toSeq.toMap
+        val feats = d.featuresCounter.toSeq
+        map + (l -> feats.filter(f => weightMap.contains(f._1))
+          .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
+        })
+
+    (topWeights, dotProduct)
+  }
 }
 
 object GenderClassifier {
@@ -77,7 +97,7 @@ object GenderClassifier {
       devData.values.toArray, testData.values.toArray)
 
     val writer = new BufferedWriter(new FileWriter(
-      config.getString("classifier") + "/gender/results" + 
+      config.getString("classifier") + "/gender/opt" + 
       fileExt + ".txt",true))
 
     val gridCbyK = Array.ofDim[Double](7,7)
@@ -105,9 +125,12 @@ object GenderClassifier {
             t.location, t.description, t.tweets.slice(0, numTweets))
         })
 
+      val opt = config.getString("classifiers.gender.model")
+      val fout = s"${opt}/svm_${args.mkString("")}_${_C}_${K}.dat"
+
       // Train with top K tweets
       gc.train(customAccounts, trainingLabels)
-      gc.subClassifier.saveTo(s"${config.getString("classifiers.gender.opt")}_${args.mkString("")}svm_${_C}_${K}.dat")
+      gc.subClassifier.saveTo(fout)
 
       val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
       pb.start()
@@ -118,7 +141,7 @@ object GenderClassifier {
       pb.stop()
 
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels, 
-        predictedLabels)
+        predictedLabels, testSet)
         
       val df = new java.text.DecimalFormat("#.###")
 
@@ -128,6 +151,11 @@ object GenderClassifier {
       println(s"Micro avg F-1 : ${df.format(microAvg)}")
       writer.write(s"C=${_C}, #K=${K}\n")
       writer.write(evalMeasures.mkString("\n"))
+      evalMeasures.keys.foreach(l => {
+        writer.write(l + "\n" + "FP:\n")
+        writer.write(s"${evalMeasures(l).FPAccounts.map(u => u.handle).mkString("\n")}\nFN:\n")
+        writer.write(s"${evalMeasures(l).FNAccounts.map(u => u.handle).mkString("\n")}\n")
+        })
       writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
       writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
       writer.flush()
