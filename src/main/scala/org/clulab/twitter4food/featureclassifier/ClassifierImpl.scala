@@ -20,6 +20,10 @@ class ClassifierImpl(
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
   var dataset = new RVFDataset[String, String]()
 
+  def addDatum(account: TwitterAccount, label: String) = {
+    dataset += featureExtractor.mkDatum(account, label)
+  }
+
   override def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
     assert(accounts.size == labels.size)
     // Clear current dataset if training on new one
@@ -32,7 +36,7 @@ class ClassifierImpl(
     
     // Populate dataset
     for (i <- accounts.indices) {
-      dataset += featureExtractor.mkDatum(accounts(i), labels(i))
+      addDatum(accounts(i), labels(i))
       pb.step()
     }
 
@@ -46,16 +50,9 @@ class ClassifierImpl(
       } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
-  def runTest(args: Array[String]) = {
+  def runTest(args: Array[String], ctype: String) = {
 
     val config = ConfigFactory.load()
-
-    var ctype = ""
-    this match {
-      case g: GenderClassifier => ctype = "gender"
-      case h: HumanClassifier  => ctype = "human"
-    }
-
     println("Loading training accounts...")
     val trainingData = FileUtils.load(config
       .getString(s"classifiers.$ctype.trainingData"))

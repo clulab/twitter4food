@@ -1,4 +1,4 @@
-package org.clulab.twitter4food.twitter4j
+package org.clulab.twitter4food.util
 
 import cmu.arktweetnlp._
 import cmu.arktweetnlp.Tagger._
@@ -15,7 +15,7 @@ object Tokenizer{
       tagger.tokenizeAndTag(text).asScala.toArray
     } catch {
       case e: Exception => {
-        print(s"Exception caused at: ${text}"); 
+        println(s"Exception caused at: ${text}"); 
         Array[TaggedToken]()
       }
     }

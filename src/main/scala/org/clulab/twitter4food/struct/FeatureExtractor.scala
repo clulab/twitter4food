@@ -2,8 +2,7 @@ package org.clulab.twitter4food.struct
 
 import edu.arizona.sista.learning.{Datum, RVFDatum}
 import edu.arizona.sista.struct.Counter
-import org.clulab.twitter4food.twitter4j.Tokenizer
-import org.clulab.twitter4food.util.TestUtils
+import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 
@@ -50,6 +49,11 @@ class FeatureExtractor (val useUnigrams:Boolean,
     words.foreach(word => counter.incrementCount(word, 1))
   }
 
+  def filterTags(tagTok: Array[TaggedToken]) = {
+    tagTok.filter(tt => !("@UGD,~$".contains(tt.tag))
+      && "#NVAT".contains(tt.tag))
+  }
+
   // TODO: Populate ngrams by filtering tokens based on tags.
 
   def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
@@ -65,12 +69,12 @@ class FeatureExtractor (val useUnigrams:Boolean,
       .fromFile(config.getString("classifiers.features.stopWords"))
       .getLines.toSet
 
-    setCounts(tokenSet(Tokenizer.annotate(account.description)), counter)
-    account.tweets.filter(t => t.lang != null && t.lang.equals("en")).foreach(tweet => {
+    setCounts(tokenSet(filterTags(Tokenizer.annotate(account.description.toLowerCase))), counter)
+    account.tweets.filter(t => t.lang != null
+      && t.lang.equals("en")).foreach(tweet => {
       if (tweet.text != null && !tweet.text.equals("")) {
-        val tokenAndTagSet = Tokenizer.annotate(tweet.text)
-          .filter(tagTok => !("@UGD~,$".contains(tagTok.tag) 
-            || stopWords.contains(tagTok.token)))
+        val tt = Tokenizer.annotate(tweet.text.toLowerCase)
+        val tokenAndTagSet = filterTags(tt).filter(x => !stopWords.contains(x.token))
         val tokens = tokenSet(tokenAndTagSet)
         val nGramSet = populateNGrams(n, tokens)
         setCounts(nGramSet, counter)
