@@ -2,6 +2,7 @@ package org.clulab.twitter4food.featureclassifier
 
 import edu.arizona.sista.learning._
 import edu.arizona.sista.struct.Counter
+import org.clulab.twitter4food.util._
 
 /**
   * Created by adikou on 1/22/16.
@@ -12,6 +13,16 @@ class HumanClassifier(
   useTopics: Boolean = false,  useDictionaries: Boolean = false,
   useEmbeddings: Boolean = false) extends ClassifierImpl(useUnigrams,
     useBigrams, useTopics, useDictionaries, useEmbeddings)
+
+object HumanClassifier {
+  def main(args: Array[String]) = {
+    val params = TestUtils.parseArgs(args)
+    val (api, config) = TestUtils.init(0, true)
+    val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
+      params.useTopics, params.useDictionaries, params.useEmbeddings)
+    hc.runTest(args)
+  }
+}
 
 /*
 class HumanClassifier extends FeatureClassifier {
