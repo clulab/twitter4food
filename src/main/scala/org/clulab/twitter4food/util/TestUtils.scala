@@ -58,9 +58,8 @@ object TestUtils {
     parser.parse(args, Config()).get
   }
 
-  def analyze(filename: String, labels: Set[String], test: TwitterAccount,
-    args: Array[String]) = {
-    val c = LiblinearClassifier.loadFrom[String, String](filename)
+  def analyze(c: LiblinearClassifier[String, String], labels: Set[String],
+    test: TwitterAccount, args: Array[String]) = {
     val params = parseArgs(args)
     val featureExtractor = new FeatureExtractor(params.useUnigrams, 
       params.useBigrams, params.useTopics,  params.useDictionaries,
@@ -80,6 +79,12 @@ object TestUtils {
         })
 
     (topWeights, dotProduct)
+  }
+
+  def analyze(filename: String, labels: Set[String], test: TwitterAccount,
+    args: Array[String]) = {
+    analyze(LiblinearClassifier.loadFrom[String, String](filename), labels,
+      test, args)
   }
 }
 
