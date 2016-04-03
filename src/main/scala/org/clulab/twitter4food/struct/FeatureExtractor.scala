@@ -5,6 +5,7 @@ import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.twitter4j.Tokenizer
 import org.clulab.twitter4food.util.TestUtils
 import cmu.arktweetnlp.Tagger._
+import com.typesafe.config.ConfigFactory
 
 /**
   * Created by Terron on 2/9/16.
@@ -15,7 +16,7 @@ class FeatureExtractor (val useUnigrams:Boolean,
   val useDictionaries:Boolean,
   val useEmbeddings:Boolean) { // TODO: add others, network?
 
-  val config = TestUtils.init(0, true)._2
+  val config = ConfigFactory.load()
 
   /** 
    * Additional method call for adding additional features 
