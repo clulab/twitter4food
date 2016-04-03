@@ -1,40 +1,17 @@
 package org.clulab.twitter4food.featureclassifier
 
-import java.util.regex.Pattern
-
 import edu.arizona.sista.learning._
-import edu.arizona.sista.processors.fastnlp.FastNLPProcessor
 import edu.arizona.sista.struct.Counter
-import org.clulab.twitter4food.struct.{FeatureExtractor, TwitterAccount}
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, Map, HashSet}
-import scala.io.Source
 
 /**
   * Created by adikou on 1/22/16.
   */
-class HumanClassifier extends FeatureClassifier {
-  var subClassifier:Option[Classifier[String, String]] = None // isEmpty, isDefined, get (to access the element explicitly), getOrElseCreate
 
-  val featureExtractor = new FeatureExtractor(true, false, false, false, false) // TODO: parameterize this with humanOrNot params
-
-  override def scoresOf(account: TwitterAccount): Counter[String] = {
-    if(subClassifier.isDefined) {
-      subClassifier.get.scoresOf(featureExtractor.mkDatum(account, ""))
-    } else {
-      throw new RuntimeException("ERROR: must train before using scoresOf!")
-    }
-  }
-
-  /**
-    * Training from a set of users
-    * Creates the subClassifier object as the output
-    */
-  override def train(accounts: Seq[TwitterAccount], labels: Seq[String]): Unit = {
-    // TODO: create RVFDataset from accounts
-    // TODO: actually train the subClassifier
-  }
-}
+class HumanClassifier(
+  useUnigrams: Boolean = true, useBigrams: Boolean = false,
+  useTopics: Boolean = false,  useDictionaries: Boolean = false,
+  useEmbeddings: Boolean = false) extends ClassifierImpl(useUnigrams,
+    useBigrams, useTopics, useDictionaries, useEmbeddings)
 
 /*
 class HumanClassifier extends FeatureClassifier {

@@ -7,62 +7,10 @@ import org.clulab.twitter4food.util._
 import java.io._
 
 class GenderClassifier(
-  val useUnigrams: Boolean = true,
-  val useBigrams: Boolean = false,
-  val useTopics: Boolean = false,
-  val useDictionaries: Boolean = false,
-  val useEmbeddings: Boolean = false) extends FeatureClassifier {
-
-
-  val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, 
-    useTopics, useDictionaries, useEmbeddings)
-  var subClassifier = new LinearSVMClassifier[String, String]()
-  var dataset = new RVFDataset[String, String]()
-
-  override def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
-    assert(accounts.size == labels.size)
-    // Clear current dataset if training on new one
-    dataset = new RVFDataset[String, String]()
- 
-    val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
-    pb.start()
-    pb.maxHint(accounts.size)
-    pb.setExtraMessage("Training...")
-    
-    // Populate dataset
-    for (i <- accounts.indices) {
-      dataset += featureExtractor.mkDatum(accounts(i), labels(i))
-      pb.step()
-    }
-
-    pb.stop()
-    subClassifier.train(dataset)
-  }
-
-  override def scoresOf(account: TwitterAccount): Counter[String] = {
-    subClassifier.scoresOf(featureExtractor.mkDatum(account, "unknown"))
-  }
-
-  def analyze(filename: String, labels: Set[String], test: TwitterAccount) = {
-    val c = LiblinearClassifier.loadFrom[String, String](filename)
-    val W = c.getWeights()
-    val d = featureExtractor.mkDatum(test, "unknown")
-    val counter = d.featuresCounter
-
-    val topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
-      (map, l) => map + (l -> W.get(l).get.toSeq.sortWith(_._2 > _._2)))
-
-    val dotProduct = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
-      (map, l) => {
-        val weightMap = W.get(l).get.toSeq.toMap
-        val feats = d.featuresCounter.toSeq
-        map + (l -> feats.filter(f => weightMap.contains(f._1))
-          .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
-        })
-
-    (topWeights, dotProduct)
-  }
-}
+  useUnigrams: Boolean = true, useBigrams: Boolean = false,
+  useTopics: Boolean = false,  useDictionaries: Boolean = false,
+  useEmbeddings: Boolean = false) extends ClassifierImpl(useUnigrams,
+    useBigrams, useTopics, useDictionaries, useEmbeddings)
 
 object GenderClassifier {
   def main(args: Array[String]): Unit = {
@@ -118,7 +66,7 @@ object GenderClassifier {
       
       println(s"Training with C=${_C} and top-${K} tweets")
 
-      gc.subClassifier = new LinearSVMClassifier[String, String](C=_C)
+      gc.subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
       val customAccounts = trainingSet.map(t => {
           val numTweets = Math.min(K, t.tweets.size)
           new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url, 
@@ -130,7 +78,7 @@ object GenderClassifier {
 
       // Train with top K tweets
       gc.train(customAccounts, trainingLabels)
-      gc.subClassifier.saveTo(fout)
+      gc.subClassifier.get.saveTo(fout)
 
       val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
       pb.start()
