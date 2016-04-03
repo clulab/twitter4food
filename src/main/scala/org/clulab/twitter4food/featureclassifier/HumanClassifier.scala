@@ -3,6 +3,7 @@ package org.clulab.twitter4food.featureclassifier
 import edu.arizona.sista.learning._
 import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.util._
+import org.clulab.twitter4food.struct.TwitterAccount
 
 /**
   * Created by adikou on 1/22/16.
@@ -12,7 +13,92 @@ class HumanClassifier(
   useUnigrams: Boolean = true, useBigrams: Boolean = false,
   useTopics: Boolean = false,  useDictionaries: Boolean = false,
   useEmbeddings: Boolean = false) extends ClassifierImpl(useUnigrams,
-    useBigrams, useTopics, useDictionaries, useEmbeddings)
+    useBigrams, useTopics, useDictionaries, useEmbeddings) {
+
+  override def addDatum(account: TwitterAccount, label: String) = {
+    customFeatures(account) match {
+      case Some(counter) => dataset += featureExtractor.mkDatum(account,
+        label, counter)
+      case None => dataset += featureExtractor.mkDatum(account, label)
+    }
+  }
+
+  def customFeatures(account: TwitterAccount): Option[Counter[String]] = {
+    val SINGULAR_PRONOUNS = Set("I", "me", "you", "she", "her", "he",
+                              "him", "it", "myself", "yourself", "itself",
+                              "himself", "herself", "self", "oneself")
+    val PLURAL_PRONOUNS = Set("we", "us", "they", "them", "ourselves",
+                            "yourselves", "themselves")
+
+    def isSingularPronoun(word: String) = SINGULAR_PRONOUNS.contains(word)
+    def isPluralPronoun(word: String) = PLURAL_PRONOUNS.contains(word)
+
+    val PERSON_CLASS = Set("person", "individual", "mortal", "self", "someone",
+                           "somebody", "soul")
+    val ORG_CLASS = Set("organisation", "organization", "establishment",
+                      "governance", "governing body", "administration",
+                      "arrangement", "constitution", "formation",
+                      "institution", "building", "edifice", "structure")
+
+    def intersection(A: Set[String], B: Set[String]) = A.intersect(B)
+    def isPersonClass(set: Set[String]) = !intersection(set, PERSON_CLASS).isEmpty
+    def isOrgClass(set: Set[String]) = !intersection(set, ORG_CLASS).isEmpty
+
+    def getSubFeatureType(word: String): String = {
+      val hyp = new HypernymSet()
+      var level = 0
+      var hSet = Set(word)
+      var hSubset = hyp.subHypernym(hSet)
+
+      while(level < 3 && !(isPersonClass(hSubset) || isOrgClass(hSubset))) {
+        hSet = hSubset
+        hSubset = hyp.subHypernym(hSet)
+        level += 1
+      }
+
+      val A = isPersonClass(hSubset)
+      val B = isOrgClass(hSubset)
+
+      if(A || B) {
+        if(A && B) {
+          val s1 = intersection(hSubset, PERSON_CLASS)
+          val s2 = intersection(hSubset, ORG_CLASS)
+
+          if(s1.size > s2.size) "humans"
+          else if(s2.size > s1.size) "org"
+          else if(scala.util.Random.nextInt(2) == 0) "human" else "org"
+        }
+        else if(A) "human"
+        else "org"
+      }
+      else ""
+    }
+
+    val nTags = Tokenizer.annotate(account.description)
+      .filter(tt => "NO".contains(tt.tag))
+    val (hCounts, oCounts) = nTags.foldLeft((0,0))(
+      (count, tagTok) => {
+        if(tagTok.tag.equals("O")) {
+          if(isSingularPronoun(tagTok.token)) (count._1 + 1, count._2)
+          else if(isPluralPronoun(tagTok.token)) (count._1, count._2 + 1)
+          else count
+        }
+        else {
+          getSubFeatureType(tagTok.token) match {
+            case "human" => (count._1 + 1, count._2)
+            case "org" => (count._1, count._2 + 1)
+            case _ => count
+          }
+        }
+      })
+
+    val counter = new Counter[String]()
+    counter.incrementCount("wn_human", hCounts)
+    counter.incrementCount("wn_org", oCounts)
+
+    if(!(hCounts == 0 && oCounts == 0)) Some(counter) else None
+  }
+}
 
 object HumanClassifier {
   def main(args: Array[String]) = {
@@ -20,185 +106,6 @@ object HumanClassifier {
     val (api, config) = TestUtils.init(0, true)
     val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
       params.useTopics, params.useDictionaries, params.useEmbeddings)
-    hc.runTest(args)
+    hc.runTest(args, "human")
   }
 }
-
-/*
-class HumanClassifier extends FeatureClassifier {
-
-  var dataset = new RVFDataset[String, String]()
-  var subClassifier = new LinearSVMClassifier[String, String]()
-  var labels = List("unknown", "human", "org")
-  var trainingLabels = mutable.Map.empty[String, String]
-  var trainingSet = ArrayBuffer.empty[TwitterAccount]
-
-  val UNKNOWN = 0
-  val HUMAN = 1
-  val ORG = 2
-
-  val DIR_RSC = "src/main/resources/"
-  val DIR_FEAT = "org/clulab/twitter4food/featureclassifier/human/"
-  val FILE_DEFAULT_TRAINING_SET = "DefaultTrainingSet.txt"
-  val FILE_DEFAULT_TRAINING_LABELS = "DefaultLabels.txt"
-  val FILE_HUMAN_NAMES = "HumanNames.txt"
-  val FILE_HUMAN_FEAT = "HumanFeatures.txt"
-  val FILE_ORG_NAMES = "OrgNames.txt"
-  val FILE_ORG_FEAT = "OrgFeatures.txt"
-
-  val numFeatures = 4
-  val FEAT_HUMAN_NAME = 0
-  val FEAT_ORG_NAME = 1
-  val FEAT_HUMAN_FEAT = 2
-  val FEAT_ORG_FEAT = 3
-  val features = new Array[mutable.HashSet[String]](numFeatures)
-
-  // TODO
-  // Overload constructor to tune SVM classifier hyperparameter C
-
-  def getFeaturesCounter(user: TwitterAccount): Counter[String] = {
-    val name = user.getName
-    val description = user.getDescription
-    val handle = user.getHandle
-
-    val p = Pattern.compile("[.,?!\"\\:']")
-    val m = p.matcher(description)
-    val desc = m.replaceAll(" ").toLowerCase.split("\\s+")
-
-    val counter = new Counter[String]()
-    val proc = new FastNLPProcessor()
-    val doc = proc.annotate(description)
-
-    var humanCounter = 0
-    var orgCounter = 0
-
-    println(s"Handle: $handle ")
-
-    for (i <- FEAT_HUMAN_NAME to FEAT_ORG_FEAT) {
-      val it = features(i).iterator
-      while (it.hasNext) {
-        val str = it.next.toLowerCase
-
-        if (i < FEAT_HUMAN_FEAT) {
-          if (str.contains(handle.substring(1).toLowerCase)
-            || handle.substring(1).toLowerCase.contains(str)) {
-            if (i == FEAT_HUMAN_NAME) humanCounter += 1 else orgCounter += 1
-          }
-
-          for (n <- name.toLowerCase.split("\\s+")) {
-            if (n.equals(str)) {
-              if (i == FEAT_HUMAN_NAME) humanCounter += 1 else orgCounter += 1
-            }
-          }
-        }
-
-        desc.foreach {
-          d => if (d.equals(str))
-            if (i == FEAT_HUMAN_FEAT) humanCounter += 1 else orgCounter += 1
-        }
-      }
-    }
-
-    counter.incrementCount(labels(HUMAN), humanCounter)
-    counter.incrementCount(labels(ORG), orgCounter)
-
-    val nounsAndVerbs = ArrayBuffer[String]()
-    for(s <- doc.sentences) {
-      val words = s.words
-      val tags = s.tags.get
-
-      for(i <- 0 until tags.length)
-        if(tags(i).matches("NN") || tags(i).matches("NNS")
-        || tags(i).matches("VB(.*)"))
-          nounsAndVerbs += words(i)
-    }
-
-    nounsAndVerbs.foreach(x => counter.incrementCount(x, 1))
-
-    counter
-  }
-
-  def populateDatum(user: TwitterAccount,
-                    isTrain: Boolean): Datum[String, String] = {
-    val label = if(!isTrain) labels(UNKNOWN)
-                else trainingLabels(user.getHandle)
-    new RVFDatum[String, String](label, getFeaturesCounter(user))
-  }
-
-  /** Training from a set of users */
-  override def train(users: Seq[TwitterAccount]) = {
-    users.foreach(user => dataset += populateDatum(user, isTrain = true))
-    subClassifier.train(dataset)
-  }
-
-  /** Use default training set */
-  override def train() = train(trainingSet)
-
-  /** Predicting the given feature (or a distribution of) for a given account */
-  override def classify(user: TwitterAccount): String = {
-    subClassifier.classOf(populateDatum(user, isTrain = false))
-  }
-
-  override def assignLabels(users: Seq[TwitterAccount]): Unit = {
-    val lines = Source.fromFile(DIR_RSC + DIR_FEAT +
-                                FILE_DEFAULT_TRAINING_LABELS).getLines.toList
-    for(line <- lines) {
-      val splits = line.split(",")
-      trainingLabels += (splits(0) -> splits(1).trim)
-    }
-  }
-
-  override def assignLabels() = assignLabels(trainingSet)
-
-  def loadTrainingSet() = {
-    val lines = Source.fromFile(DIR_RSC + DIR_FEAT + FILE_DEFAULT_TRAINING_SET)
-                      .getLines.toList
-    var count = 0
-    var account: TwitterAccount = null
-
-    lines foreach {
-      line => {
-        val str = line.split("\t")
-        if(str.nonEmpty) {
-          count match {
-            case 0 => account = new TwitterAccount()
-                      account.setHandle(str(0))
-                             .setUrl(str(1))
-            case 1 => account.setDescription(str(0))
-            case 2 => account.setName(str(0))
-                             .setLocation(str(1))
-                             .setLang(str(3))
-            case 3 => trainingSet += account
-          }
-        }
-
-        count += 1
-        count %= 4
-      }
-    }
-  }
-
-  def createFeatures() = {
-    for(i <- FEAT_HUMAN_NAME to FEAT_ORG_FEAT) {
-      var fin = DIR_RSC + DIR_FEAT
-      i match {
-        case FEAT_HUMAN_NAME => fin += FILE_HUMAN_NAMES
-        case FEAT_ORG_NAME => fin += FILE_ORG_NAMES
-        case FEAT_HUMAN_FEAT => fin += FILE_HUMAN_FEAT
-        case FEAT_ORG_FEAT => fin += FILE_ORG_FEAT
-      }
-
-      features(i) = new mutable.HashSet[String]()
-
-      val lines = Source.fromFile(fin).getLines.toList
-      lines.foreach(x => features(i) += x)
-    }
-  }
-
-  def init() = {
-    loadTrainingSet()
-    assignLabels()
-    createFeatures()
-  }
-}
-*/
