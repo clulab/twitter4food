@@ -6,6 +6,7 @@ import java.io._
 import com.typesafe.config.ConfigFactory
 import scala.reflect.ClassTag
 import scala.collection.mutable.ArrayBuffer
+import edu.arizona.sista.learning.LiblinearClassifier
 
 object TestUtils {
   def init(keyset: Int, isAppOnly: Boolean) = {
@@ -55,6 +56,30 @@ object TestUtils {
     }
 
     parser.parse(args, Config()).get
+  }
+
+  def analyze(filename: String, labels: Set[String], test: TwitterAccount,
+    args: Array[String]) = {
+    val c = LiblinearClassifier.loadFrom[String, String](filename)
+    val params = parseArgs(args)
+    val featureExtractor = new FeatureExtractor(params.useUnigrams, 
+      params.useBigrams, params.useTopics,  params.useDictionaries,
+      params.useEmbeddings)
+    val W = c.getWeights()
+    val d = featureExtractor.mkDatum(test, "unknown")
+
+    val topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
+      (map, l) => map + (l -> W.get(l).get.toSeq.sortWith(_._2 > _._2)))
+
+    val dotProduct = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
+      (map, l) => {
+        val weightMap = W.get(l).get.toSeq.toMap
+        val feats = d.featuresCounter.toSeq
+        map + (l -> feats.filter(f => weightMap.contains(f._1))
+          .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
+        })
+
+    (topWeights, dotProduct)
   }
 }
 
