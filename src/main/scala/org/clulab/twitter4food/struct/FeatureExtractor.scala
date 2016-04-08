@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.struct
 
 import edu.arizona.sista.learning.{Datum, RVFDatum}
-import edu.arizona.sista.struct.Counter
+import edu.arizona.sista.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
@@ -16,6 +16,7 @@ class FeatureExtractor (val useUnigrams:Boolean,
   val useEmbeddings:Boolean) { // TODO: add others, network?
 
   val config = ConfigFactory.load()
+  var lexicons: Option[Map[String, Seq[Lexicon[String]]]] = None
 
   /** 
    * Additional method call for adding additional features 
@@ -54,11 +55,12 @@ class FeatureExtractor (val useUnigrams:Boolean,
       && "#NVAT".contains(tt.tag))
   }
 
+  def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
+
   // TODO: Populate ngrams by filtering tokens based on tags.
 
   def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
-    val tokenSet = (tt: Array[TaggedToken]) => tt.map(t => t.token)
     val populateNGrams = (n: Int, text: Array[String]) => {
       text.sliding(n).toList.reverse
         .foldLeft(List[String]())((l, window) => window.mkString("_") :: l)
@@ -88,7 +90,32 @@ class FeatureExtractor (val useUnigrams:Boolean,
   }
 
   def dictionaries(account: TwitterAccount): Counter[String] = {
-    null
+    val counter = new Counter[String]()
+    if(lexicons.isDefined) {
+      lexicons.get foreach {
+        case (k, v) => {
+          v.foreach(lexicon => {
+            val desc = tokenSet(filterTags(Tokenizer
+              .annotate(account.description.toLowerCase)))
+            var nS = 0
+            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
+              counter.incrementCount(account.handle.toLowerCase.drop(1), 1)
+              nS += 1
+            }
+
+            account.name.toLowerCase.split("\\s+").foreach(n => {
+              if(lexicon.contains(n)) counter.incrementCount(n, 1)
+              nS += 1
+              })
+            val dS = desc.foldLeft(0)((s, d) => if(lexicon.contains(d)) s+1 else s)
+            counter.incrementCount(s"lex_$k", dS + nS)
+
+            // TODO: Configure lexicon count for tweets
+          })
+        }
+      }
+    } else throw new RuntimeException("Lexicons must be loaded first")
+    counter
   }
 
   def embeddings(account: TwitterAccount): Map[TwitterAccount, Array[Float]] = {

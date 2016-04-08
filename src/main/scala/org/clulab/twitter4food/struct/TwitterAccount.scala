@@ -18,4 +18,6 @@ class TwitterAccount (
   val location: String,
   val description: String,
   val tweets: Seq[Tweet]
-)
+) {
+  override def toString = s"@$handle: ($name, $description)"
+}
