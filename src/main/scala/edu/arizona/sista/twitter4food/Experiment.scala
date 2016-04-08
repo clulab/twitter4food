@@ -137,11 +137,12 @@ class Experiment(val parameters: ExperimentParameters,
         bias=parameters.useBias)
       case RBF_SVM => () => new LibSVMClassifier[L, String](RBFKernel, C=1.0)
       case Linear_SVM => () => new LibSVMClassifier[L, String](LinearKernel)
-      case RandomForest => () => new RandomForestClassifier[L,String](
+      case RandomForest => () => new RFClassifier[L,String](
         numTrees = 7,
-        featureSampleRatio = -1.0,
+        maxTreeDepth=parameters.maxTreeDepth.getOrElse(0)
+        //featureSampleRatio = -1.0,
         // featuresToForce=featuresToForce,
-        maxTreeDepth=parameters.maxTreeDepth.getOrElse(0))
+        )
     }
     val clf: Classifier[L,String] = parameters.baggingNClassifiers match {
       case None => mkClassifier()

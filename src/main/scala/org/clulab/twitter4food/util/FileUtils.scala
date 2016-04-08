@@ -9,8 +9,8 @@ import scala.collection.mutable.{ArrayBuffer, Map}
 
 object FileUtils {
     def saveToFile(users: Seq[TwitterAccount], labels: Seq[String],
-                   fileName: String) = {
-        val writer = new BufferedWriter(new FileWriter(new File(fileName)))
+                   fileName: String, append: Boolean = false) = {
+        val writer = new BufferedWriter(new FileWriter(fileName, append))
         assert(labels.size == users.size)
 
         val numValidAccounts = users.foldLeft(0)((s, u) => if (u != null) s + 1 else s)

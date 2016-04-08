@@ -16,14 +16,10 @@ class HumanClassifier(
     useBigrams, useTopics, useDictionaries, useEmbeddings) {
 
   override def addDatum(account: TwitterAccount, label: String) = {
-    customFeatures(account) match {
-      case Some(counter) => dataset += featureExtractor.mkDatum(account,
-        label, counter)
-      case None => dataset += featureExtractor.mkDatum(account, label)
-    }
+    dataset += featureExtractor.mkDatum(account, label, customFeatures(account))
   }
 
-  def customFeatures(account: TwitterAccount): Option[Counter[String]] = {
+  def customFeatures(account: TwitterAccount): Counter[String] = {
     val SINGULAR_PRONOUNS = Set("I", "me", "you", "she", "her", "he",
                               "him", "it", "myself", "yourself", "itself",
                               "himself", "herself", "self", "oneself")
@@ -96,7 +92,7 @@ class HumanClassifier(
     counter.incrementCount("wn_human", hCounts)
     counter.incrementCount("wn_org", oCounts)
 
-    if(!(hCounts == 0 && oCounts == 0)) Some(counter) else None
+    counter
   }
 }
 

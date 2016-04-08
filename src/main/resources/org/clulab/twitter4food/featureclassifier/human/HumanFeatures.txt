@@ -38,10 +38,6 @@ taoist
 daoist
 girl
 boy
-years old
-year old
-my
-I
 designer
 swimmer
 accountant

@@ -16,34 +16,37 @@ object SplitData extends App {
       })*/
 
   val accounts = scala.collection.mutable.Map[TwitterAccount, String]()
-  for(i <- 0 to 7)
-    accounts ++= FileUtils.load(config.getString("classifiers.gender.opt")+i+".txt")
+  val hlMap = TestUtils.loadHandles(config
+      .getString("classifiers.human.annotatedUsersFile")).keys.toSet
+  for(i <- 0 to 15)
+    accounts ++= FileUtils.load(config.getString("classifiers.human.opt")+i+".txt")
 
-  val (males, females) = accounts.foldLeft((List[(TwitterAccount, String)](),
+  val (human, org) = accounts.foldLeft((List[(TwitterAccount, String)](),
     List[(TwitterAccount, String)]()))(
     (list, account) => {
-      if(account._2.equals("M")) ((account._1, account._2) :: list._1, list._2)
+      if(account._2.equals("human")) ((account._1, account._2) :: list._1, list._2)
       else (list._1, (account._1, account._2) :: list._2)
       })
-  println(males.size + " " + females.size)
+  println(human.size + " " + org.size)
+  println(hlMap -- accounts.keys.map(_.handle).toSet)
   
-  val trainingSplit = males.slice(0, 270) ++ females.slice(0, 330)
+  val trainingSplit = human.slice(0, 256) ++ org.slice(0, 256)
   val trainData = trainingSplit.map(t => t._1)
   val trainLabels = trainingSplit.map(t => t._2)
 
-  val devSplit = males.slice(270, 360) ++ females.slice(330, 440)
+  val devSplit = human.slice(256, 288) ++ org.slice(256, 288)
   val devData = devSplit.map(t => t._1)
   val devLabels = devSplit.map(t => t._2)
 
 
-  val testSplit = males.slice(360, 450) ++ females.slice(440, 550)
+  val testSplit = human.slice(288, 320) ++ org.slice(288, 320)
   val testData = testSplit.map(t => t._1)
   val testLabels = testSplit.map(t => t._2)
 
 
   println(s"${trainingSplit.size}, ${devSplit.size}, ${testSplit.size}")
   val path1 = s"${config.getString("resources")}/${config.getString("default_package")}/"
-  val path = path1 + "featureclassifier/gender/"
+  val path = path1 + "featureclassifier/human/"
   
   val trainDataPath = path + "trainingData.txt"
   val devDataPath = path + "devData.txt"

@@ -3,7 +3,7 @@ package org.clulab.twitter4food.twitter4j
 import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, Map, Set}
 import com.typesafe.config.ConfigFactory
 
 /**
@@ -19,6 +19,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
 
   val AccountSleepTime = 5050
   val AppOnlySleepTime = 3050
+  val QueryOnlySleepTime = 2050
   val UserSleepTime = 5050
   val MaxTweetCount = 200
   val MaxPageCount = 16
@@ -55,9 +56,12 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   def sleep() = if(isAppOnly) Thread.sleep(AppOnlySleepTime) 
                 else Thread.sleep(UserSleepTime)
 
+  val option = (something: String) => if(something != null) something else ""
+  val minId = (tweets: Seq[Status]) => tweets.foldLeft(Long.MaxValue)(
+    (min, t) => if(t.getId < min) t.getId else min)
+
   def fetchAccount(handle: String, fetchTweets: Boolean = false,
                    fetchNetwork: Boolean = false): TwitterAccount = {
-    val option = (something: String) => if(something != null) something else ""
     var user: User = null
     try {
         user = twitter.showUser(handle)
@@ -91,10 +95,9 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
             tweetBuffer ++= tweets.map(x => new Tweet(option(x.getText), x.getId,
                                        option(x.getLang), x.getCreatedAt,
                                        user.getScreenName))
-            val minId = tweets.foldLeft(Long.MaxValue)((min, t) => 
-              if(t.getId < min) t.getId else min)
-              
-            page.setMaxId(minId-1)
+            val min = minId(tweets)
+
+            page.setMaxId(min-1)
             tweets = twitter.getUserTimeline(handle, page)
                               .toArray(new Array[Status](0))
             sleep()
@@ -111,5 +114,51 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
       account
     }
     else null
+  }
+
+  def search(keywords: Array[String]) = {
+    val seenHandles = Set[String]()
+    val results = Map[String, ArrayBuffer[Tweet]]()
+    var query = new Query()
+
+    keywords foreach {
+      k => {
+        query.setQuery(k)
+        query.setCount(100)
+        try {
+          var tweets = twitter.search(query).getTweets()
+            .toArray(new Array[Status](0))
+          
+          Thread.sleep(QueryOnlySleepTime)
+
+          while(!tweets.isEmpty) {
+            tweets.foreach(q => {
+              val handle = q.getUser.getScreenName
+              if(!seenHandles.contains(handle)) {
+                seenHandles += handle
+                results += handle -> new ArrayBuffer[Tweet]()
+                results(handle) += new Tweet(option(q.getText), q.getId, 
+                  option(q.getLang), q.getCreatedAt, handle)
+                }
+              else results(handle) += new Tweet(option(q.getText), q.getId,
+                option(q.getLang), q.getCreatedAt, handle)
+              })
+            val min = minId(tweets)
+            query.setMaxId(min-1)
+
+            tweets = twitter.search(query).getTweets()
+              .toArray(new Array[Status](0))
+
+            println(tweets.isEmpty)
+
+            Thread.sleep(QueryOnlySleepTime)
+          }
+        } catch {
+          case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+                                       println(s"ErrorMsg = ${te.getErrorMessage}")
+        }
+      }
+    }
+    results
   }
 }

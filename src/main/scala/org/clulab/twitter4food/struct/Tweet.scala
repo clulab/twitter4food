@@ -9,4 +9,6 @@ class Tweet (val text: String,
              val id: Long,
              val lang: String,
              val createdAt: java.util.Date,
-             val handle: String)
+             val handle: String) {
+  override def toString = s"@$handle: $text [$createdAt]"
+}
