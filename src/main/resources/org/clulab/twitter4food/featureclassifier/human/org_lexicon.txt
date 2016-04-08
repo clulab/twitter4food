@@ -1,0 +1,22 @@
+20
+S
+0 service
+1 retailer
+2 kitchen
+3 our
+4 we
+5 bar
+6 cafe
+7 cafeteria
+8 inn
+9 joint
+10 cantina
+11 canteen
+12 grill
+13 outlet
+14 mall
+15 diner
+16 pizzeria
+17 lunchroom
+18 nightclub
+19 fastfood

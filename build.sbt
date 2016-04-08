@@ -11,8 +11,8 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-  "org.clulab" %% "processors" % "5.7.3",
-  "org.clulab" %% "processors" % "5.7.3" classifier "models",
+  "org.clulab" %% "processors" % "5.8.2",
+  "org.clulab" %% "processors" % "5.8.2" classifier "models",
   "ch.qos.logback" % "logback-classic" % "1.0.10",
   "com.typesafe" % "config" % "1.2.1",
   "org.json" % "json" % "latest.integration",

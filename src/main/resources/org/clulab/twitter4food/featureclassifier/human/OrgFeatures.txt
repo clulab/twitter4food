@@ -1,7 +1,6 @@
 service
 retailer
 kitchen
-all over the world
 our
 we
 bar

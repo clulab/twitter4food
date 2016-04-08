@@ -1,11 +1,12 @@
 package org.clulab.twitter4food.featureclassifier
 
 import edu.arizona.sista.learning._
-import edu.arizona.sista.struct.Counter
+import edu.arizona.sista.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
 import java.io.{BufferedWriter, FileWriter}
 import com.typesafe.config.ConfigFactory
+import scala.collection.JavaConverters._
 
 class ClassifierImpl(
   val useUnigrams: Boolean = true,
@@ -22,6 +23,13 @@ class ClassifierImpl(
 
   def addDatum(account: TwitterAccount, label: String) = {
     dataset += featureExtractor.mkDatum(account, label)
+  }
+
+  def loadLexicons(lexiconMap: Map[String, Seq[String]]) = {
+    val l = lexiconMap map { 
+      case (k, v) => (k, v.map(Lexicon.loadFrom[String](_))) 
+    }
+    featureExtractor.lexicons = Some(l)
   }
 
   override def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
@@ -94,6 +102,12 @@ class ClassifierImpl(
       println(s"Training with C=${_C} and top-${K} tweets")
 
       subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
+      val labelSet = trainingLabels.toSet
+      val lexMap = labelSet.foldLeft(Map[String, Seq[String]]())(
+        (m, l) => m + (l -> 
+          config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
+
+      if(useDictionaries) loadLexicons(lexMap)
       val customAccounts = trainingSet.map(t => {
           val numTweets = Math.min(K, t.tweets.size)
           new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url, 
