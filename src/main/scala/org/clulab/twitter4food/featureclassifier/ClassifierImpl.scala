@@ -77,7 +77,8 @@ class ClassifierImpl(
     val customAccounts = trainingSet.map(t => {
       val numTweets = Math.min(K, t.tweets.size)
       new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url, 
-        t.location, t.description, t.tweets.slice(0, numTweets))
+        t.location, t.description, t.tweets.slice(0, numTweets), 
+        Seq[TwitterAccount]())
       })
 
     val opt = config.getString(s"classifiers.$ctype.model")

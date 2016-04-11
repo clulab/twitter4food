@@ -116,7 +116,10 @@ object OverweightDataExtraction {
                 if (!isFirst) {
                     // Only add accounts that are human
                     if (!(classification equals "Can't tell")) {
-                        val account = new TwitterAccount(accountInfo(0), accountInfo(1).toLong, accountInfo(2), accountInfo(3), null, accountInfo(4), description, tweets)
+                        val account = new TwitterAccount(accountInfo(0), 
+                            accountInfo(1).toLong, accountInfo(2), 
+                            accountInfo(3), null, accountInfo(4), description, 
+                            tweets, Seq[TwitterAccount]())
                         result = result + (account -> classification)
                         pb.step()
                     }
@@ -156,7 +159,10 @@ object OverweightDataExtraction {
 
         // Add last account that wasn't processed yet
         if (!(classification equals "Can't tell")) {
-            val account = new TwitterAccount(accountInfo(0), accountInfo(1).toLong, accountInfo(2), accountInfo(3), null, accountInfo(4), description, tweets)
+            val account = new TwitterAccount(accountInfo(0), 
+                accountInfo(1).toLong, accountInfo(2), 
+                accountInfo(3), null, accountInfo(4), 
+                description, tweets, Seq[TwitterAccount]())
             result = result + (account -> classification)
             pb.step()
         }
