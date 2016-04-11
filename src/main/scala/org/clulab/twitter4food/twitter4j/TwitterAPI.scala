@@ -4,6 +4,7 @@ import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 import scala.collection.mutable.{ArrayBuffer, Map, Set}
+import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
 
 /**
@@ -87,8 +88,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
       if(fetchTweets) {
         try {
           val page = new Paging(1, MaxTweetCount)
-          var tweets = twitter.getUserTimeline(handle, page)
-                                .toArray(new Array[Status](0))
+          var tweets = twitter.getUserTimeline(handle, page).asScala.toList
           sleep()
 
           while(!tweets.isEmpty) {
@@ -98,8 +98,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
             val min = minId(tweets)
 
             page.setMaxId(min-1)
-            tweets = twitter.getUserTimeline(handle, page)
-                              .toArray(new Array[Status](0))
+            tweets = twitter.getUserTimeline(handle, page).asScala.toList
             sleep()
             } 
         } catch {
@@ -143,15 +142,14 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   def search(keywords: Array[String]) = {
     val seenHandles = Set[String]()
     val results = Map[String, ArrayBuffer[Tweet]]()
-    var query = new Query()
 
     keywords foreach {
       k => {
-        query.setQuery(k)
+        var query = new Query(k)
         query.setCount(100)
+        query.setLang("en")
         try {
-          var tweets = twitter.search(query).getTweets()
-            .toArray(new Array[Status](0))
+          var tweets = twitter.search(query).getTweets().asScala.toList
           
           Thread.sleep(QueryOnlySleepTime)
 
@@ -170,8 +168,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
             val min = minId(tweets)
             query.setMaxId(min-1)
 
-            tweets = twitter.search(query).getTweets()
-              .toArray(new Array[Status](0))
+            tweets = twitter.search(query).getTweets().asScala.toList
 
             println(tweets.isEmpty)
 
