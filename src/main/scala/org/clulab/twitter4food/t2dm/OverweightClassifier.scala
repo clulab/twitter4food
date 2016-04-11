@@ -2,6 +2,7 @@ package org.clulab.twitter4food.t2dm
 
 import java.io.{BufferedWriter, FileWriter, PrintWriter}
 import java.nio.file.{Files, Paths}
+import com.typesafe.config.ConfigFactory
 
 import edu.arizona.sista.learning.{LiblinearClassifier, LinearSVMClassifier, RVFDataset}
 import edu.arizona.sista.struct.Counter
@@ -48,22 +49,24 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
         subClassifier.get.scoresOf(featureExtractor.mkDatum(account, "unknown"))
     }
 
-    def analyze(modelFile: String, labels: Set[String], test: TwitterAccount) = {
+    def analyze(modelFile: String, labels: Set[String], test: TwitterAccount, numTopWeights: Int, numTopScores: Int) = {
         val c = LiblinearClassifier.loadFrom[String, String](modelFile)
         val W = c.getWeights()
         val d = featureExtractor.mkDatum(test, "unknown")
         val counter = d.featuresCounter
 
-        val topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
+        var topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
             (map, l) => map + (l -> W.get(l).get.toSeq.sortWith(_._2 > _._2)))
+        topWeights = topWeights.slice(0, numTopWeights)
 
-        val dotProduct = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
+        var dotProduct = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
             (map, l) => {
                 val weightMap = W.get(l).get.toSeq.toMap
                 val feats = d.featuresCounter.toSeq
                 map + (l -> feats.filter(f => weightMap.contains(f._1))
                     .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
             })
+        dotProduct = dotProduct.slice(0, numTopScores)
 
         (topWeights, dotProduct)
     }
@@ -72,16 +75,33 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
 object OverweightClassifier {
 
     def main(args: Array[String]) {
+        // Parse args using standard Config
         val params = TestUtils.parseArgs(args)
         val (api, config) = TestUtils.init(0, true)
         val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams,
             params.useTopics, params.useDictionaries, params.useEmbeddings)
 
+//        // Parse args with custom config for this classifier
+//        case class CustomConfig(useHashtags:Boolean = false,
+//                          useActionWords:Boolean = false)
+//
+//        val parser = new scopt.OptionParser[CustomConfig]("classifier") {
+//            head("classifier", "0.x")
+//            opt[Unit]('h', "hashtags") action { (x, c) =>
+//                c.copy(useHashtags = true)} text("use hashtags")
+//            opt[Unit]('a', "actionWords") action { (x, c) =>
+//                c.copy(useActionWords = true)} text("use action words")
+//        }
+//
+//        val (customAPI, customConfig) = parser.parse(args, CustomConfig()).get
+
         val fileExt = args.mkString("")
         val modelFile = s"${config.getString("classifier")}/overweight/model/${fileExt}.dat"
 
+        val loadModel = false
+
         // Load classifier if model exists
-        if (Files.exists(Paths.get(modelFile))) {
+        if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
             println("Loading model from file...")
             val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
             oc.subClassifier = Some(cl)
@@ -123,14 +143,14 @@ object OverweightClassifier {
         println("False negatives:")
         evalMetric.FNAccounts.map(account => print(account.handle + "\t"))
         println("\n====")
-        outputAnalysis(config.getString("classifier") + "/overweight/results/errorAnalysisFN" +
-            fileExt + ".txt", modelFile, "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
+        outputAnalysis(config.getString("classifier") + "/overweight/results/r" + fileExt + "/analysisFN.txt",
+            modelFile, "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
 
         println("False positives:")
-        evalMetric.FNAccounts.map(account => print(account.handle + "\t"))
+        evalMetric.FPAccounts.map(account => print(account.handle + "\t"))
         println("\n====")
-        outputAnalysis(config.getString("classifier") + "/overweight/results/errorAnalysisFP" +
-            fileExt + ".txt", modelFile, "*** False positives ***\n\n", evalMetric.FNAccounts, oc)
+        outputAnalysis(config.getString("classifier") + "/overweight/results/r" + fileExt + "/analysisFP.txt",
+            modelFile, "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
 
         println("\nResults:")
         println(s"Precision: ${precision}")
@@ -142,34 +162,56 @@ object OverweightClassifier {
 
         // Save results
         val writer = new BufferedWriter(new FileWriter(
-            config.getString("classifier") + "/overweight/results/output" +
-                fileExt + ".txt", false))
+            config.getString("classifier") + "/overweight/results/r"+fileExt+"/analysisMetrics.txt", false))
         writer.write(s"Precision: ${precision}\n")
         writer.write(s"Recall: ${recall}\n")
         writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
         writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-        writer.write(s"Macro average: ${macroAvg}")
-        writer.write(s"Micro average: ${microAvg}")
+        writer.write(s"Macro average: ${macroAvg}\n")
+        writer.write(s"Micro average: ${microAvg}\n")
         writer.close()
 
     }
 
     private def outputAnalysis(outputFile:String, modelFile: String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {
         // Set progress bar
+        var numAccountsToPrint = 20
+        val numWeightsToPrint = 30
         val pb = new me.tongfei.progressbar.ProgressBar("outputAnalysis()", 100)
         pb.start()
-        pb.maxHint(accounts.size)
+        pb.maxHint(numAccountsToPrint)
         pb.setExtraMessage(header)
 
+        // Initialize writer
         val writer = new BufferedWriter(new FileWriter(outputFile, false))
         var isFirst = true
         writer.write(header)
+
+        // Iterate over accounts
         for (account <- accounts) {
-            val (topWeights, dotProduct) = oc.analyze(modelFile, Set[String]("Overweight"), account)
-            if (isFirst) {
-                writer.write("Top weights:\n")
-                for ((label, sequence) <- topWeights) {
-                    var numToPrint = 50
+            if (numAccountsToPrint > 0) {
+                // Analyze account
+                val (topWeights, dotProduct) = oc.analyze(modelFile, Set[String]("Overweight"),
+                    account, numWeightsToPrint, numWeightsToPrint)
+                // Only print the general weights on the features once
+                if (isFirst) {
+                    writer.write("Top weights:\n")
+                    for ((label, sequence) <- topWeights) {
+                        var numToPrint = numWeightsToPrint
+                        for ((feature, score) <- sequence) {
+                            if ((numToPrint > 0) && (score > 0.0)) {
+                                writer.write(s"${feature} -> ${score}\n")
+                                numToPrint = numToPrint - 1
+                            }
+                        }
+                    }
+                    isFirst = false
+                    writer.write("================================\n")
+                }
+                // Print hadamard product for every account
+                writer.write(s"Hadamard product for ${account.handle}:\n")
+                for ((label, sequence) <- dotProduct) {
+                    var numToPrint = numWeightsToPrint
                     for ((feature, score) <- sequence) {
                         if ((numToPrint > 0) && (score > 0.0)) {
                             writer.write(s"${feature} -> ${score}\n")
@@ -177,21 +219,10 @@ object OverweightClassifier {
                         }
                     }
                 }
-                isFirst = false
                 writer.write("================================\n")
             }
-            writer.write(s"Hadamard product for ${account.handle}:\n")
-            for ((label, sequence) <- dotProduct) {
-                var numToPrint = 50
-                for ((feature, score) <- sequence) {
-                    if ((numToPrint > 0) && (score > 0.0)) {
-                        writer.write(s"${feature} -> ${score}\n")
-                        numToPrint = numToPrint - 1
-                    }
-                }
-            }
-            writer.write("================================\n")
             pb.step()
+            numAccountsToPrint -= 1
         }
         writer.close
         pb.stop()
