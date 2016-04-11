@@ -20,6 +20,7 @@ class ClassifierImpl(
     useTopics, useDictionaries, useEmbeddings)
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
   var dataset = new RVFDataset[String, String]()
+  val config = ConfigFactory.load()
 
   def addDatum(account: TwitterAccount, label: String) = {
     dataset += featureExtractor.mkDatum(account, label)
@@ -58,9 +59,75 @@ class ClassifierImpl(
       } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
+  def _runTest(trainingSet: Seq[TwitterAccount], 
+      trainingLabels: Seq[String], 
+      testSet: Seq[TwitterAccount],
+      _C: Double,
+      K: Int,
+      ctype: String,
+      args: Array[String]) = {
+    
+    subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
+    val labelSet = trainingLabels.toSet
+    val lexMap = labelSet.foldLeft(Map[String, Seq[String]]())(
+      (m, l) => m + (l -> 
+        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
+
+    if(useDictionaries) loadLexicons(lexMap)
+    val customAccounts = trainingSet.map(t => {
+      val numTweets = Math.min(K, t.tweets.size)
+      new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url, 
+        t.location, t.description, t.tweets.slice(0, numTweets))
+      })
+
+    val opt = config.getString(s"classifiers.$ctype.model")
+    val fout = s"${opt}/svm_${args.mkString("")}_${_C}_${K}.dat"
+
+    // Train with top K tweets
+    train(customAccounts, trainingLabels)
+    subClassifier.get.saveTo(fout)
+
+    val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
+    pb.start()
+    pb.maxHint(testSet.size.toInt)
+    pb.setExtraMessage("Predicting...")
+
+    val predictedLabels = testSet.map(u => { pb.step(); classify(u); })
+    pb.stop()
+
+    predictedLabels
+  }
+
+  def _evaluate(testingLabels: Seq[String],
+    predictedLabels: Seq[String], 
+    testSet: Seq[TwitterAccount],
+    writer: BufferedWriter, _C: Double, K: Int) = {
+    val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels, 
+        predictedLabels, testSet)
+        
+    val df = new java.text.DecimalFormat("#.###")
+
+    println(s"C=${_C}, #K=$K")
+    println(evalMeasures.mkString("\n"))
+    println(s"\nMacro avg F-1 : ${df.format(macroAvg)}")
+    println(s"Micro avg F-1 : ${df.format(microAvg)}")
+    writer.write(s"C=${_C}, #K=${K}\n")
+    writer.write(evalMeasures.mkString("\n"))
+    evalMeasures.keys.foreach(l => {
+      writer.write(l + "\n" + "FP:\n")
+      writer.write(s"${evalMeasures(l).FPAccounts.map(u => u.handle).mkString("\n")}\nFN:\n")
+      writer.write(s"${evalMeasures(l).FNAccounts.map(u => u.handle).mkString("\n")}\n")
+        })
+    writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
+    writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
+    writer.flush()
+
+    (evalMeasures, microAvg, macroAvg)
+
+  }
+
   def runTest(args: Array[String], ctype: String) = {
 
-    val config = ConfigFactory.load()
     println("Loading training accounts...")
     val trainingData = FileUtils.load(config
       .getString(s"classifiers.$ctype.trainingData"))
@@ -101,54 +168,12 @@ class ClassifierImpl(
       
       println(s"Training with C=${_C} and top-${K} tweets")
 
-      subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
-      val labelSet = trainingLabels.toSet
-      val lexMap = labelSet.foldLeft(Map[String, Seq[String]]())(
-        (m, l) => m + (l -> 
-          config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
-
-      if(useDictionaries) loadLexicons(lexMap)
-      val customAccounts = trainingSet.map(t => {
-          val numTweets = Math.min(K, t.tweets.size)
-          new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url, 
-            t.location, t.description, t.tweets.slice(0, numTweets))
-        })
-
-      val opt = config.getString(s"classifiers.$ctype.model")
-      val fout = s"${opt}/svm_${args.mkString("")}_${_C}_${K}.dat"
-
-      // Train with top K tweets
-      train(customAccounts, trainingLabels)
-      subClassifier.get.saveTo(fout)
-
-      val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
-      pb.start()
-      pb.maxHint(testSet.size.toInt)
-      pb.setExtraMessage("Testing...")
-
-      val predictedLabels = testSet.map(u => { pb.step(); classify(u); })
-      pb.stop()
-
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels, 
-        predictedLabels, testSet)
-        
-      val df = new java.text.DecimalFormat("#.###")
-
-      println(s"C=${_C}, #K=$K")
-      println(evalMeasures.mkString("\n"))
-      println(s"\nMacro avg F-1 : ${df.format(macroAvg)}")
-      println(s"Micro avg F-1 : ${df.format(microAvg)}")
-      writer.write(s"C=${_C}, #K=${K}\n")
-      writer.write(evalMeasures.mkString("\n"))
-      evalMeasures.keys.foreach(l => {
-        writer.write(l + "\n" + "FP:\n")
-        writer.write(s"${evalMeasures(l).FPAccounts.map(u => u.handle).mkString("\n")}\nFN:\n")
-        writer.write(s"${evalMeasures(l).FNAccounts.map(u => u.handle).mkString("\n")}\n")
-        })
-      writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
-      writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
-      writer.flush()
-
+      val predictedLabels = _runTest(trainingSet, trainingLabels,
+        testSet, _C, K, ctype, args)
+      
+      val (evalMeasures, microAvg, macroAvg) = _evaluate(testingLabels, 
+        predictedLabels, testSet, writer, _C, K)
+      
       microAvg
     }
 
@@ -185,6 +210,31 @@ class ClassifierImpl(
     writer.write("*****Test complete*****\n")
     writer.flush()
 
+    writer.close()
+  }
+
+  def predict(args: Array[String], ctype: String, testFile: String,
+    _C: Double, K: Int) = {
+    val allTrainData = FileUtils.load(config.getString(
+      s"classifiers.$ctype.allTrainData"))
+
+    val allTestData = FileUtils.load(testFile)
+
+    val allTrainAccounts = allTrainData.map(_._1).toArray
+    val allTrainLabels = allTrainData.map(_._2).toArray
+
+    val testAccounts = allTestData.map(_._1).toArray
+
+    val predictedLabels = _runTest(allTrainAccounts, allTrainLabels,
+        testAccounts, _C, K, ctype, args)
+
+    val writer = new BufferedWriter(new FileWriter(
+      config.getString(s"classifiers.$ctype.predictions")))
+
+    for(i <- testAccounts.indices) {
+      writer.write(s"${testAccounts(i).handle}\t${predictedLabels(i)}\n")
+      writer.flush()
+      }
     writer.close()
   }
 }
