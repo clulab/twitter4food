@@ -58,14 +58,11 @@ object TestUtils {
   }
 
   def analyze(c: LiblinearClassifier[String, String], labels: Set[String],
-    test: TwitterAccount, args: Array[String]): 
+    test: TwitterAccount, fe: FeatureExtractor): 
     (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
-    val params = parseArgs(args)
-    val featureExtractor = new FeatureExtractor(params.useUnigrams, 
-      params.useBigrams, params.useTopics,  params.useDictionaries,
-      params.useEmbeddings)
+    
     val W = c.getWeights()
-    val d = featureExtractor.mkDatum(test, "unknown")
+    val d = fe.mkDatum(test, "unknown")
 
     val topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
       (map, l) => map + (l -> W.get(l).get.toSeq.sortWith(_._2 > _._2)))
@@ -82,9 +79,9 @@ object TestUtils {
   }
 
   def analyze(filename: String, labels: Set[String], test: TwitterAccount,
-    args: Array[String]): 
+    fe: FeatureExtractor): 
     (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
     analyze(LiblinearClassifier.loadFrom[String, String](filename), labels,
-      test, args)
+      test, fe)
   }
 }

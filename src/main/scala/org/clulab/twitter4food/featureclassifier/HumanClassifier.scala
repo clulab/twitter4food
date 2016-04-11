@@ -102,6 +102,8 @@ object HumanClassifier {
     val (api, config) = TestUtils.init(0, true)
     val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
       params.useTopics, params.useDictionaries, params.useEmbeddings)
-    hc.runTest(args, "human")
+    //hc.runTest(args, "human")
+    hc.predict(args, "human", config.getString("classifiers.overweight.allTestData"),
+      0.001, 50)
   }
 }

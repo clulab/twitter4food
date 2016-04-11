@@ -7,12 +7,11 @@ object TestDownloadAccounts {
     val keyset = args(0).toInt
     val numWindows = args(1).toInt
     val (api, config) = TestUtils.init(keyset, true)
-    val hlMap = TestUtils.loadHandles(config
-      .getString("classifiers.human.annotatedUsersFile"))
+    val hlMap = TestUtils.loadHandles(s"${config.getString("classifier")}/overweight/ow_accounts.txt")
     val (subH, subL) = TestUtils.splitHandles(keyset, numWindows, hlMap)
     val accounts = TestUtils.fetchAccounts(api, subH, true)
 
     FileUtils.saveToFile(accounts, subL, 
-      config.getString("classifiers.human.opt")+keyset+".txt")
+      config.getString("classifiers.overweight.opt")+keyset+".txt")
   }
 }
