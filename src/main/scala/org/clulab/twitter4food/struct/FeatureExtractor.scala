@@ -55,10 +55,13 @@ class FeatureExtractor (val useUnigrams:Boolean,
       && "#NVAT".contains(tt.tag))
   }
 
+<<<<<<< Updated upstream
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
 
   // TODO: Populate ngrams by filtering tokens based on tags.
 
+=======
+>>>>>>> Stashed changes
   def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
     val populateNGrams = (n: Int, text: Array[String]) => {
@@ -90,6 +93,7 @@ class FeatureExtractor (val useUnigrams:Boolean,
   }
 
   def dictionaries(account: TwitterAccount): Counter[String] = {
+<<<<<<< Updated upstream
     val counter = new Counter[String]()
     if(lexicons.isDefined) {
       lexicons.get foreach {
@@ -116,6 +120,18 @@ class FeatureExtractor (val useUnigrams:Boolean,
       }
     } else throw new RuntimeException("Lexicons must be loaded first")
     counter
+=======
+    val foodWords = scala.io.Source
+        .fromFile(config.getString("classifiers.features.foodWords"))
+        .getLines.toSet
+    val hashtags = scala.io.Source
+        .fromFile(config.getString("classifiers.features.hashtags"))
+        .getLines.toSet
+
+    var counter = ngrams(1, account)
+    counter = counter.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
+    return counter
+>>>>>>> Stashed changes
   }
 
   def embeddings(account: TwitterAccount): Map[TwitterAccount, Array[Float]] = {
