@@ -72,7 +72,7 @@ object FileUtils {
                     if (numTweets == 0) {
                         val tweets = ArrayBuffer[Tweet]()
                         accounts += (new TwitterAccount(handle, id.toLong, name, lang,
-                            url, location, desc, tweets) -> label)
+                            url, location, desc, tweets, Seq[TwitterAccount]()) -> label)
                         count += 1
                         pb.step()
                     }
@@ -101,7 +101,7 @@ object FileUtils {
                     }
 
                     accounts += (new TwitterAccount(handle, id.toLong, name, lang,
-                        url, location, desc, tweets) -> label)
+                        url, location, desc, tweets, Seq[TwitterAccount]()) -> label)
                     pb.step()
             }
             count += 1;

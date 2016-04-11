@@ -44,9 +44,8 @@ object Followers {
         writer.close()
 
         // Labels are arbitrary for followers, so just use "follower"
-        var labels = List[String]()
-        for (_ <- 0 until accounts.size) {labels += "follower"}
-
+        val labels = accounts.toList.map(_ =>"followers")
+        
         FileUtils.saveToFile(accounts.toSeq, labels, accountsFile)
     }
 }
