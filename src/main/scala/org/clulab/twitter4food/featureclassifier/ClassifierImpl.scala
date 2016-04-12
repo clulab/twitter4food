@@ -13,11 +13,12 @@ class ClassifierImpl(
   val useBigrams: Boolean = false,
   val useTopics: Boolean = false,
   val useDictionaries: Boolean = false,
-  val useEmbeddings: Boolean = false) extends FeatureClassifier {
+  val useEmbeddings: Boolean = false,
+  val useCosineSim: Boolean = false) extends FeatureClassifier {
 
 
   val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, 
-    useTopics, useDictionaries, useEmbeddings)
+    useTopics, useDictionaries, useEmbeddings, useCosineSim)
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
   var dataset = new RVFDataset[String, String]()
   val config = ConfigFactory.load()

@@ -41,7 +41,6 @@ object FileUtils {
     }
 
     def load(fileName: String) = {
-        val numLines = scala.io.Source.fromFile(fileName).getLines.length
         val lines = scala.io.Source.fromFile(fileName).getLines
 
         /* Lazy declarations */
