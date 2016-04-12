@@ -1,9 +1,9 @@
 package org.clulab.twitter4food.t2dm
 
-import java.io.{BufferedWriter, FileWriter, PrintWriter}
+import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 import java.nio.file.{Files, Paths}
-import com.typesafe.config.ConfigFactory
 
+import com.typesafe.config.ConfigFactory
 import edu.arizona.sista.learning.{LiblinearClassifier, LinearSVMClassifier, RVFDataset}
 import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.featureclassifier.FeatureClassifier
@@ -17,9 +17,10 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
                            val useBigrams: Boolean = false,
                            val useTopics: Boolean = false,
                            val useDictionaries: Boolean = false,
-                           val useEmbeddings: Boolean = false) extends FeatureClassifier {
+                           val useEmbeddings: Boolean = false,
+                           val useCosineSim: Boolean) extends FeatureClassifier {
 
-    val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings)
+    val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings, useCosineSim)
     var subClassifier : Option[LiblinearClassifier[String, String]] = None
     var dataset = new RVFDataset[String, String]()
 
@@ -79,24 +80,10 @@ object OverweightClassifier {
         val params = TestUtils.parseArgs(args)
         val (api, config) = TestUtils.init(0, true)
         val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams,
-            params.useTopics, params.useDictionaries, params.useEmbeddings)
+            params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim)
 
-//        // Parse args with custom config for this classifier
-//        case class CustomConfig(useHashtags:Boolean = false,
-//                          useActionWords:Boolean = false)
-//
-//        val parser = new scopt.OptionParser[CustomConfig]("classifier") {
-//            head("classifier", "0.x")
-//            opt[Unit]('h', "hashtags") action { (x, c) =>
-//                c.copy(useHashtags = true)} text("use hashtags")
-//            opt[Unit]('a', "actionWords") action { (x, c) =>
-//                c.copy(useActionWords = true)} text("use action words")
-//        }
-//
-//        val (customAPI, customConfig) = parser.parse(args, CustomConfig()).get
-
-        val fileExt = args.mkString("")
-        val modelFile = s"${config.getString("classifier")}/overweight/model/${fileExt}.dat"
+        val fileExt = args.sorted.mkString("")
+        val modelFile = s"${config.getString("classifier")}/overweight/model/m${fileExt}.dat"
 
         val loadModel = false
 
@@ -140,17 +127,25 @@ object OverweightClassifier {
         val precision = evalMetric.P
         val recall = evalMetric.R
 
+        val outputDir = config.getString("classifier") + "/overweight/results/r" + fileExt
+        if (!Files.exists(Paths.get(outputDir))) {
+            if (new File(outputDir).mkdir())
+                println(s"Created output directory ${outputDir}")
+            else
+                println(s"ERROR: failed to create output directory ${outputDir}")
+        }
+
         println("False negatives:")
         evalMetric.FNAccounts.map(account => print(account.handle + "\t"))
         println("\n====")
-        outputAnalysis(config.getString("classifier") + "/overweight/results/r" + fileExt + "/analysisFN.txt",
-            modelFile, "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
+        outputAnalysis(outputDir + "/analysisFN.txt", modelFile,
+            "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
 
         println("False positives:")
         evalMetric.FPAccounts.map(account => print(account.handle + "\t"))
         println("\n====")
-        outputAnalysis(config.getString("classifier") + "/overweight/results/r" + fileExt + "/analysisFP.txt",
-            modelFile, "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
+        outputAnalysis(outputDir + "/analysisFP.txt", modelFile,
+            "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
 
         println("\nResults:")
         println(s"Precision: ${precision}")
