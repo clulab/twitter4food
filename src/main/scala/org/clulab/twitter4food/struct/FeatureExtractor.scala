@@ -9,14 +9,18 @@ import com.typesafe.config.ConfigFactory
 /**
   * Created by Terron on 2/9/16.
   */
-class FeatureExtractor (val useUnigrams:Boolean,
+class FeatureExtractor (
+  val useUnigrams:Boolean,
   val useBigrams:Boolean,
   val useTopics:Boolean,
   val useDictionaries:Boolean,
-  val useEmbeddings:Boolean) { // TODO: add others, network?
+  val useEmbeddings:Boolean,
+  val useCosineSim:Boolean) { // TODO: add others, network?
 
   val config = ConfigFactory.load()
   var lexicons: Option[Map[String, Seq[Lexicon[String]]]] = None
+  var idfTable: Option[Counter[String]] = None
+  var overweightVec: Option[Counter[String]] = None
 
   /** 
    * Additional method call for adding additional features 
@@ -41,7 +45,11 @@ class FeatureExtractor (val useUnigrams:Boolean,
       counter += topics(account)
     if (useDictionaries)
       counter += dictionaries(account)
-    if (useEmbeddings){} // TODO: how to add embeddings as a feature if not returning a counter?
+    if (useEmbeddings){
+
+    } // TODO: how to add embeddings as a feature if not returning a counter?
+    if (useCosineSim)
+      counter += cosineSim(account)
 
     return counter
   }
@@ -50,12 +58,14 @@ class FeatureExtractor (val useUnigrams:Boolean,
     words.foreach(word => counter.incrementCount(word, 1))
   }
 
-  def filterTags(tagTok: Array[TaggedToken]) = {
-    tagTok.filter(tt => !("@UGD,~$".contains(tt.tag))
-      && "#NVAT".contains(tt.tag))
-  }
-
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
+
+  def filterTags(tagTok: Array[TaggedToken]) = {
+    val stopWords = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+        .getLines.toSet
+    tagTok.filter(tt => !("@UGD,~$".contains(tt.tag))
+        && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
+  }
 
   // TODO: Populate ngrams by filtering tokens based on tags.
   def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
@@ -66,16 +76,12 @@ class FeatureExtractor (val useUnigrams:Boolean,
         .toArray
       }
 
-    val stopWords = scala.io.Source
-      .fromFile(config.getString("classifiers.features.stopWords"))
-      .getLines.toSet
-
     setCounts(tokenSet(filterTags(Tokenizer.annotate(account.description.toLowerCase))), counter)
     account.tweets.filter(t => t.lang != null
       && t.lang.equals("en")).foreach(tweet => {
       if (tweet.text != null && !tweet.text.equals("")) {
         val tt = Tokenizer.annotate(tweet.text.toLowerCase)
-        val tokenAndTagSet = filterTags(tt).filter(x => !stopWords.contains(x.token))
+        val tokenAndTagSet = filterTags(tt)
         val tokens = tokenSet(tokenAndTagSet)
         val nGramSet = populateNGrams(n, tokens)
         setCounts(nGramSet, counter)
@@ -132,11 +138,107 @@ class FeatureExtractor (val useUnigrams:Boolean,
     null
   }
 
-  // TODO: perhaps network should be handled by classifier?
-  // Network can be accessed recursively and other features can be extracted from there
-  //    def network(account: TwitterAccount): Unit = {
-  //
-  //    }
+  private def loadTFIDF(): Unit = {
+    // Initialize
+    val counter = new Counter[String]()
+    var i = 0
+    var N = 0
+    val randomFile = scala.io.Source.fromFile(config.getString("classifiers.features.random_tweets"))
+    val randomLines = randomFile.getLines.toList
+    randomFile.close()
+
+    // Start progress bar
+    val pb = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
+    pb.start()
+    pb.maxHint(randomFile.getLines.length/3)
+    pb.setExtraMessage("Loading idf table of tweets...")
+
+    // Iterate over file
+    for (line <- randomLines) {
+      // Actual tweet text is every third line
+      if (i % 3 == 2) {
+        // Filter words based on FeatureExtractor for consistency
+        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        var wordsSeen = Set[String]()
+        for (taggedToken <- taggedTokens) {
+          val token = taggedToken.token
+          if (!wordsSeen.contains(token))
+            counter.incrementCount(token)
+          else
+            wordsSeen += token
+        }
+        N += 1
+        pb.step()
+      }
+      i += 1
+      i %= 3
+    }
+
+    pb.stop()
+
+    counter.keySet.foreach(word => counter.setCount(word, scala.math.log(N / counter.getCount(word))))
+
+    idfTable = Some(counter)
+
+    // Do the same for overweight corpus, using idf table for idf value
+    val overweightCounter = new Counter[String]()
+    val overweightFile = scala.io.Source.fromFile(config.getString("classifiers.features.overweight_corpus"))
+    val overweightLines = overweightFile.getLines.toList
+    overweightFile.close()
+    i = 0
+
+    val pb2 = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
+    pb2.start()
+    pb2.maxHint(overweightFile.getLines.length/3)
+    pb2.setExtraMessage("Loading tfidf vector for overweight corpus...")
+
+    for (line <- overweightLines) {
+      if (i % 3 == 2) {
+        // No need to keep track of what's been seen since we're accumulating tf here
+        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        for (taggedToken <- taggedTokens) {
+          overweightCounter.incrementCount(taggedToken.token)
+        }
+        pb2.step()
+      }
+      i += 1
+      i %= 3
+    }
+
+    pb.stop()
+
+    println("Loading overweight corpus finished!")
+
+    overweightCounter.keySet.foreach(
+      word => overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    )
+    overweightVec = Some(overweightCounter)
+  }
+
+  def cosineSim(account: TwitterAccount): Counter[String] = {
+    if (!idfTable.isDefined || !overweightVec.isDefined) {
+      loadTFIDF()
+    }
+    // Accumulate tfidf scores of words in this account
+    def addToVec(vec:Counter[String], text:String) = {
+      val taggedTokens = filterTags(Tokenizer.annotate(text.toLowerCase))
+      taggedTokens.foreach(tagTok => vec.incrementCount(tagTok.token))
+    }
+    // Get tf
+    val accountVec = new Counter[String]()
+    addToVec(accountVec, account.description)
+    account.tweets.foreach(tweet => addToVec(accountVec, tweet.text))
+    // Convert to tfidf using idf from table
+    accountVec.keySet.foreach(
+      word => accountVec.setCount(word, math.log(accountVec.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    )
+
+    // Calculate cosine similarity
+    val result = new Counter[String]()
+    result.setCount("cosineSim", accountVec.dotProduct(overweightVec.get) / (accountVec.l2Norm * overweightVec.get.l2Norm))
+
+    result
+  }
 
   // TODO: higher-level features, to be extracted from specific feature classifiers, also handled in meta classifier?
 }

@@ -38,7 +38,8 @@ object TestUtils {
       useBigrams: Boolean = false,
       useTopics: Boolean = false,
       useDictionaries: Boolean = false,
-      useEmbeddings: Boolean = false)
+      useEmbeddings: Boolean = false,
+      useCosineSim: Boolean = false)
 
     val parser = new scopt.OptionParser[Config]("classifier") {
       head("classifier", "0.x")
@@ -52,6 +53,8 @@ object TestUtils {
         c.copy(useDictionaries = true)} text("use dictionaries")
       opt[Unit]('e', "embeddings") action { (x, c) =>
         c.copy(useEmbeddings = true)} text("use embeddings")
+      opt[Unit]('c', "cosineSim") action { (x, c) =>
+        c.copy(useCosineSim = true)} text("use cosine similarity")
     }
 
     parser.parse(args, Config()).get

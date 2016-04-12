@@ -110,15 +110,20 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
       var accounts = List[TwitterAccount]()
 
       if (fetchNetwork) {
-        // Retrieve friends with bidirectional relationship
-        val followers = twitter.getFollowersIDs(id).getIDs
+        // Retrieve friends with bidirectional relationship as followers
+        val followers = twitter.getFollowersIDs(id, 5000, 5000).getIDs // 5000 is maximum on cursor and count
         val activeFollowers = followers.filter(target => twitter.showFriendship(id, target).isTargetFollowedBySource)
-        var numToRetrieve = 5
+        var numToRetrieve = 4
         var i = 0
         // Iterate over active followers
         while (numToRetrieve > 0 && i < activeFollowers.length) {
           // Get follower account
           val follower = twitter.showUser(activeFollowers(i))
+
+          Thread.sleep(AccountSleepTime)
+
+          // TODO classify as human or not
+
           if (follower != null && follower.getStatus != null) {
             // Recursively fetch the account, only getting tweets (NOT NETWORK)
             val toAdd = fetchAccount(follower.getScreenName, true, false)
