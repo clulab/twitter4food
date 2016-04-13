@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.struct
 
+import java.io.{BufferedReader, FileReader}
+
 import edu.arizona.sista.learning.{Datum, RVFDatum}
 import edu.arizona.sista.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
@@ -61,8 +63,9 @@ class FeatureExtractor (
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
 
   def filterTags(tagTok: Array[TaggedToken]) = {
-    val stopWords = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-        .getLines.toSet
+    val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+    val stopWords = stopWordsFile.getLines.toSet
+    stopWordsFile.close
     tagTok.filter(tt => !("@UGD,~$".contains(tt.tag))
         && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
   }
@@ -122,12 +125,15 @@ class FeatureExtractor (
       }
     } else throw new RuntimeException("Lexicons must be loaded first")
     
-    val foodWords = scala.io.Source
+    val foodWordsFile = scala.io.Source
         .fromFile(config.getString("classifiers.features.foodWords"))
-        .getLines.toSet
-    val hashtags = scala.io.Source
+    val foodWords = foodWordsFile.getLines.toSet
+    foodWordsFile.close
+
+    val hashtagsFile = scala.io.Source
         .fromFile(config.getString("classifiers.features.hashtags"))
-        .getLines.toSet
+    val hashtags = hashtagsFile.getLines.toSet
+    hashtagsFile.close
 
     //var counter = ngrams(1, account)
     counter = counter.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
@@ -143,18 +149,20 @@ class FeatureExtractor (
     val counter = new Counter[String]()
     var i = 0
     var N = 0
-    val randomFile = scala.io.Source.fromFile(config.getString("classifiers.features.random_tweets"))
-    val randomLines = randomFile.getLines.toList
-    randomFile.close()
+    var randomFile = new BufferedReader(new FileReader(config.getString("classifiers.features.random_tweets")))
+    var numLines = 0
+    while (randomFile.readLine() != null) numLines += 1
+    randomFile = new BufferedReader(new FileReader(config.getString("classifiers.features.random_tweets")))
 
     // Start progress bar
     val pb = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
     pb.start()
-    pb.maxHint(randomFile.getLines.length/3)
+    pb.maxHint(numLines/3)
     pb.setExtraMessage("Loading idf table of tweets...")
 
     // Iterate over file
-    for (line <- randomLines) {
+    var line = ""
+    while ( { line = randomFile.readLine ; line != null } ) {
       // Actual tweet text is every third line
       if (i % 3 == 2) {
         // Filter words based on FeatureExtractor for consistency
@@ -174,6 +182,7 @@ class FeatureExtractor (
       i %= 3
     }
 
+    randomFile.close()
     pb.stop()
 
     counter.keySet.foreach(word => counter.setCount(word, scala.math.log(N / counter.getCount(word))))
@@ -182,17 +191,21 @@ class FeatureExtractor (
 
     // Do the same for overweight corpus, using idf table for idf value
     val overweightCounter = new Counter[String]()
-    val overweightFile = scala.io.Source.fromFile(config.getString("classifiers.features.overweight_corpus"))
-    val overweightLines = overweightFile.getLines.toList
-    overweightFile.close()
-    i = 0
+    var overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
+    numLines = 0
+    while (overweightFile.readLine() != null) numLines += 1
+    overweightFile.close
+
+    overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
 
     val pb2 = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
     pb2.start()
-    pb2.maxHint(overweightFile.getLines.length/3)
+    pb2.maxHint(numLines/3)
     pb2.setExtraMessage("Loading tfidf vector for overweight corpus...")
 
-    for (line <- overweightLines) {
+    i = 0
+    line = ""
+    while ( { line = overweightFile.readLine ; line != null } ) {
       if (i % 3 == 2) {
         // No need to keep track of what's been seen since we're accumulating tf here
         val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
@@ -205,9 +218,8 @@ class FeatureExtractor (
       i %= 3
     }
 
+    overweightFile.close
     pb.stop()
-
-    println("Loading overweight corpus finished!")
 
     overweightCounter.keySet.foreach(
       word => overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))

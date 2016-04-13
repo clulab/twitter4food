@@ -24,7 +24,7 @@ object Followers {
 
         for (line <- scala.io.Source.fromFile(inputFile).getLines) {
             val elements = line.split("\t")
-            val handle = elements(0).substring(1)
+            val handle = elements(0).substring(1) // remove @ symbol
             val label = elements(1)
 
             var account: TwitterAccount = null
