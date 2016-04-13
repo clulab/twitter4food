@@ -3,9 +3,11 @@ package org.clulab.twitter4food.twitter4j
 import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
+
 import scala.collection.mutable.{ArrayBuffer, Map, Set}
 import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
+import org.clulab.twitter4food.featureclassifier.HumanClassifier
 
 /**
   * Wrapper for Twitter4J
@@ -48,6 +50,9 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   }
 
   val twitter = new TwitterFactory(cb.build()).getInstance
+
+  private val humanClassifier = new HumanClassifier(useUnigrams = true, useDictionaries = true)
+//  private var isTrained = false
 
   // TODO: Convert to assertEquals from JUnit
 
@@ -110,6 +115,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
       var accounts = List[TwitterAccount]()
 
       if (fetchNetwork) {
+
         // Retrieve friends with bidirectional relationship as followers
         val followers = twitter.getFollowersIDs(id, 5000, 5000).getIDs // 5000 is maximum on cursor and count
         val activeFollowers = followers.filter(target => twitter.showFriendship(id, target).isTargetFollowedBySource)
