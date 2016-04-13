@@ -41,7 +41,8 @@ object FileUtils {
     }
 
     def load(fileName: String) = {
-        val lines = scala.io.Source.fromFile(fileName).getLines
+        val file = scala.io.Source.fromFile(fileName)
+        val lines = file.getLines
 
         /* Lazy declarations */
         var count = 0
@@ -106,6 +107,7 @@ object FileUtils {
             count += 1;
             count %= 5;
         }
+        file.close
         pb.stop()
         accounts
     }
