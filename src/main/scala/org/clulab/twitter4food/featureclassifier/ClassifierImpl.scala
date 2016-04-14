@@ -60,13 +60,12 @@ class ClassifierImpl(
       } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
-  def _runTest(trainingSet: Seq[TwitterAccount], 
-      trainingLabels: Seq[String], 
-      testSet: Seq[TwitterAccount],
-      _C: Double,
-      K: Int,
-      ctype: String,
-      args: Array[String]) = {
+  def _train(trainingSet: Seq[TwitterAccount],
+    trainingLabels: Seq[String],
+    _C: Double,
+    K: Int,
+    ctype: String,
+    args: Array[String]) = {
     
     subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
     val labelSet = trainingLabels.toSet
@@ -88,7 +87,10 @@ class ClassifierImpl(
     // Train with top K tweets
     train(customAccounts, trainingLabels)
     subClassifier.get.saveTo(fout)
+  }
 
+  def _test(testSet: Seq[TwitterAccount]) = {
+    
     val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
     pb.start()
     pb.maxHint(testSet.size.toInt)
@@ -170,9 +172,9 @@ class ClassifierImpl(
       
       println(s"Training with C=${_C} and top-${K} tweets")
 
-      val predictedLabels = _runTest(trainingSet, trainingLabels,
-        testSet, _C, K, ctype, args)
-      
+      _train(trainingSet, trainingLabels,_C, K, ctype, args)
+      val predictedLabels = _test(testSet)
+
       val (evalMeasures, microAvg, macroAvg) = _evaluate(testingLabels, 
         predictedLabels, testSet, writer, _C, K)
       
@@ -215,26 +217,34 @@ class ClassifierImpl(
     writer.close()
   }
 
-  def predict(args: Array[String], ctype: String, testFile: String,
-    _C: Double, K: Int) = {
+  def learn(args: Array[String], ctype: String, _C: Double, K: Int) = {
     val allTrainData = FileUtils.load(config.getString(
       s"classifiers.$ctype.allTrainData"))
-
-    val allTestData = FileUtils.load(testFile)
 
     val allTrainAccounts = allTrainData.map(_._1).toArray
     val allTrainLabels = allTrainData.map(_._2).toArray
 
+    _train(allTrainAccounts, allTrainLabels, _C, K, ctype, args)
+
+  }
+
+  def predict(test: TwitterAccount) = _test(Array(test))
+
+  def predict(tests: Seq[TwitterAccount]) = _test(tests)
+
+  def predict(testFile: String) = {
+    
+    val allTestData = FileUtils.load(testFile)
     val testAccounts = allTestData.map(_._1).toArray
 
-    val predictedLabels = _runTest(allTrainAccounts, allTrainLabels,
-        testAccounts, _C, K, ctype, args)
+    val predictedLabels = _test(testAccounts)
+  }
 
-    val writer = new BufferedWriter(new FileWriter(
-      config.getString(s"classifiers.$ctype.predictions")))
+  def saveTo(tests: Seq[TwitterAccount], labels: Seq[String], file: String) = {
+    val writer = new BufferedWriter(new FileWriter(file))
 
-    for(i <- testAccounts.indices) {
-      writer.write(s"${testAccounts(i).handle}\t${predictedLabels(i)}\n")
+    for(i <- tests.indices) {
+      writer.write(s"${tests(i).handle}\t${labels(i)}\n")
       writer.flush()
       }
     writer.close()
