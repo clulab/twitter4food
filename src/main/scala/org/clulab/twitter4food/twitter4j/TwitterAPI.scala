@@ -33,6 +33,8 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   val keys = scala.io.Source.fromFile(keysFilePath)
                             .getLines.toList.slice(4*keyset, 4*(keyset+1))
                             .map(x => x.split("\t")(1))
+
+  System.setProperty("twitter4j.loggerFactory", "twitter4j.NullLoggerFactory")
   /* Application-only OAuth */                            
   if(!isAppOnly) {
     cb.setDebugEnabled(false)
