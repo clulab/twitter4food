@@ -12,39 +12,82 @@ import twitter4j.TwitterException
   */
 object Followers {
     def main(args: Array[String]) {
-        val (api, config) = TestUtils.init(7, true)
+
+        val numProcesses = 8
+
+        // Parse keySet value from args
+        var keySet: Int = -1
+        if (args.length == 1) {
+            keySet = args(0).toInt
+        } else {
+            println("Usage: Followers [keySetValue]")
+            System.exit(1)
+        }
+
+        // Check to make sure keySet is valid
+        if (keySet < 0 || keySet > numProcesses-1) {
+            println(s"keySet must be in range [0,${numProcesses-1}]")
+            System.exit(1)
+        }
+
+        val (api, config) = TestUtils.init(keySet, true)
         // Input
-        val inputFile = config.getString("classifiers.overweight.labels")
+        var inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.labels"))
+        val numLines = inputFile.getLines.length
+        inputFile.close()
+        inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.labels"))
+
+        val window = numLines / numProcesses
+
         // Output
-        val relationsFile = config.getString("classifiers.features.followerRelations")
-        val accountsFile = config.getString("classifiers.features.followerAccounts")
+        val relationsFile = config.getString("classifiers.features.followerRelations") + "-" + keySet + ".txt"
+        val accountsFile = config.getString("classifiers.features.followerAccounts") + "-" + keySet + ".txt"
 
         val writer = new BufferedWriter(new FileWriter(relationsFile, false))
         var accounts = Set[TwitterAccount]()
 
-        for (line <- scala.io.Source.fromFile(inputFile).getLines) {
-            val elements = line.split("\t")
-            val handle = elements(0).substring(1) // remove @ symbol
-            val label = elements(1)
+        // Set progress bar
+        val pb = new me.tongfei.progressbar.ProgressBar("Followers", 100)
+        pb.start()
+        pb.maxHint(window)
+        pb.setExtraMessage("Downloading active followers...")
 
-            var account: TwitterAccount = null
-            try {
-                account = api.fetchAccount(handle, true, false) // fetchTweets is true
-            } catch {
-                case te: TwitterException => // ignore suspended accounts
+        var i = 0
+        for (line <- inputFile.getLines) {
+            if ( i >= keySet * window && i < (keySet + 1) * window ) {
+                val elements = line.split("\t")
+                val handle = elements(0).substring(1) // remove @ symbol
+                val label = elements(1)
+
+                var account: TwitterAccount = null
+                try {
+                    account = api.fetchAccount(handle, false, false) // no need to fetch anything, just confirming existence
+                } catch {
+                    case te: TwitterException => // ignore suspended accounts
+                }
+                // Only include accounts that are in English
+                if ((account != null) && (account.lang equals "en")) {
+                    val toWrite = api.fetchAccount(handle, false, true) // now only fetch network, not tweets
+                    // Add active followers to list of accounts to be written to file
+                    toWrite.activeFollowers.foreach(ta => accounts += ta)
+                    // Write this account and its 4 active followers to separate file
+                    writer.write(toWrite.handle + "\t")
+                    writer.write(toWrite.activeFollowers.map(a => a.handle).mkString("\t") + "\n")
+
+                    println(s"handle: ${toWrite.handle}, activeFollowers: ${toWrite.activeFollowers.map(a => a.handle).mkString(", ")}")
+                }
+
+                pb.step()
             }
-            // Only include accounts that are in English
-            if (account != null && (account.lang equals "en")) {
-                val account = api.fetchAccount(handle, false, true)
-                accounts += account
-                writer.write(account.handle + "\t")
-                writer.write(account.activeFollowers.map(a => a.handle).mkString("\t") + "\n")
-            }
+
+            i += 1
         }
+        pb.stop()
         writer.close()
+        inputFile.close()
 
         // Labels are arbitrary for followers, so just use "follower"
-        val labels = accounts.toList.map(_ =>"followers")
+        val labels = accounts.toList.map(_ => "follower")
         
         FileUtils.saveToFile(accounts.toSeq, labels, accountsFile)
     }
