@@ -3,7 +3,7 @@ package org.clulab.twitter4food.struct
 import java.io.{BufferedReader, FileReader}
 
 import edu.arizona.sista.learning.{Datum, RVFDatum}
-import edu.arizona.sista.struct.{Counter, Lexicon}
+import edu.arizona.sista.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
@@ -17,7 +17,7 @@ class FeatureExtractor (
   val useTopics:Boolean,
   val useDictionaries:Boolean,
   val useEmbeddings:Boolean,
-  val useCosineSim:Boolean) { // TODO: add others, network?
+  val useCosineSim:Boolean) {
 
   val config = ConfigFactory.load()
   var lexicons: Option[Map[String, Seq[Lexicon[String]]]] = None
@@ -70,7 +70,6 @@ class FeatureExtractor (
         && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
   }
 
-  // TODO: Populate ngrams by filtering tokens based on tags.
   def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
     val populateNGrams = (n: Int, text: Array[String]) => {
@@ -99,32 +98,33 @@ class FeatureExtractor (
 
   def dictionaries(account: TwitterAccount): Counter[String] = {
 
-    var counter = new Counter[String]()
-    if(lexicons.isDefined) {
-      lexicons.get foreach {
-        case (k, v) => {
-          v.foreach(lexicon => {
-            val desc = tokenSet(filterTags(Tokenizer
-              .annotate(account.description.toLowerCase)))
-            var nS = 0
-            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
-              counter.incrementCount(account.handle.toLowerCase.drop(1), 1)
-              nS += 1
-            }
+//    var counter = new Counter[String]()
+//    if(lexicons.isDefined) {
+//      lexicons.get foreach {
+//        case (k, v) => {
+//          v.foreach(lexicon => {
+//            val desc = tokenSet(filterTags(Tokenizer
+//              .annotate(account.description.toLowerCase)))
+//            var nS = 0
+//            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
+//              counter.incrementCount(account.handle.toLowerCase.drop(1), 1)
+//              nS += 1
+//            }
+//
+//            account.name.toLowerCase.split("\\s+").foreach(n => {
+//              if(lexicon.contains(n)) counter.incrementCount(n, 1)
+//              nS += 1
+//              })
+//            val dS = desc.foldLeft(0)((s, d) => if(lexicon.contains(d)) s+1 else s)
+//            counter.incrementCount(s"lex_$k", dS + nS)
+//
+//            // TODO: Configure lexicon count for tweets
+//          })
+//        }
+//      }
+//    } else throw new RuntimeException("Lexicons must be loaded first")
 
-            account.name.toLowerCase.split("\\s+").foreach(n => {
-              if(lexicon.contains(n)) counter.incrementCount(n, 1)
-              nS += 1
-              })
-            val dS = desc.foldLeft(0)((s, d) => if(lexicon.contains(d)) s+1 else s)
-            counter.incrementCount(s"lex_$k", dS + nS)
-
-            // TODO: Configure lexicon count for tweets
-          })
-        }
-      }
-    } else throw new RuntimeException("Lexicons must be loaded first")
-    
+    // Load dictionaries
     val foodWordsFile = scala.io.Source
         .fromFile(config.getString("classifiers.features.foodWords"))
     val foodWords = foodWordsFile.getLines.toSet
@@ -135,9 +135,14 @@ class FeatureExtractor (
     val hashtags = hashtagsFile.getLines.toSet
     hashtagsFile.close
 
-    //var counter = ngrams(1, account)
-    counter = counter.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
-    counter
+    // Filter ngrams
+    var temp = ngrams(1, account)
+    temp = temp.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
+
+    // Copy into counter with prefix to indicate this is a different feature
+    val result = new Counter[String]()
+    temp.keySet.foreach( word => result.setCount("dict_" + word, temp.getCount(word)))
+    result
   }
 
   def embeddings(account: TwitterAccount): Map[TwitterAccount, Array[Float]] = {
@@ -146,7 +151,7 @@ class FeatureExtractor (
 
   private def loadTFIDF(): Unit = {
     // Initialize
-    val counter = new Counter[String]()
+    val randomCounter = new Counter[String]()
     var i = 0
     var N = 0
     var randomFile = new BufferedReader(new FileReader(config.getString("classifiers.features.random_tweets")))
@@ -171,7 +176,7 @@ class FeatureExtractor (
         for (taggedToken <- taggedTokens) {
           val token = taggedToken.token
           if (!wordsSeen.contains(token))
-            counter.incrementCount(token)
+            randomCounter.incrementCount(token)
           else
             wordsSeen += token
         }
@@ -185,9 +190,9 @@ class FeatureExtractor (
     randomFile.close()
     pb.stop()
 
-    counter.keySet.foreach(word => counter.setCount(word, scala.math.log(N / counter.getCount(word))))
+    randomCounter.keySet.foreach(word => randomCounter.setCount(word, scala.math.log(N / randomCounter.getCount(word))))
 
-    idfTable = Some(counter)
+    idfTable = Some(randomCounter)
 
     // Do the same for overweight corpus, using idf table for idf value
     val overweightCounter = new Counter[String]()
@@ -247,10 +252,8 @@ class FeatureExtractor (
 
     // Calculate cosine similarity
     val result = new Counter[String]()
-    result.setCount("cosineSim", accountVec.dotProduct(overweightVec.get) / (accountVec.l2Norm * overweightVec.get.l2Norm))
+    result.setCount("cosineSim", Counters.cosine(accountVec, overweightVec.get))
 
     result
   }
-
-  // TODO: higher-level features, to be extracted from specific feature classifiers, also handled in meta classifier?
 }

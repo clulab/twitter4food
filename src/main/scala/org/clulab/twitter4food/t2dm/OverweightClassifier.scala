@@ -85,7 +85,12 @@ object OverweightClassifier {
         val fileExt = args.sorted.mkString("")
         val modelFile = s"${config.getString("classifier")}/overweight/model/m${fileExt}.dat"
 
-        val loadModel = false
+        // Allow user to specify if model should be loaded or overwritten
+        var loadModel = false
+        print("\n\nLoad model from existing file? (yes/no) ")
+        val answer = scala.io.StdIn.readLine()
+        if (answer.toLowerCase.charAt(0) == 'y')
+            loadModel = true
 
         // Load classifier if model exists
         if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
@@ -186,12 +191,12 @@ object OverweightClassifier {
         for (account <- accounts) {
             if (numAccountsToPrint > 0) {
                 // Analyze account
-                val (topWeights, dotProduct) = oc.analyze(modelFile, Set[String]("Overweight"),
+                val (topWeights, dotProduct) = oc.analyze(modelFile, Set[String]("Overweight", "Not overweight"),
                     account, numWeightsToPrint, numWeightsToPrint)
                 // Only print the general weights on the features once
                 if (isFirst) {
-                    writer.write("Top weights:\n")
                     for ((label, sequence) <- topWeights) {
+                        writer.write(s"Top weights for ${label}:\n")
                         var numToPrint = numWeightsToPrint
                         for ((feature, score) <- sequence) {
                             if ((numToPrint > 0) && (score > 0.0)) {
@@ -199,18 +204,20 @@ object OverweightClassifier {
                                 numToPrint = numToPrint - 1
                             }
                         }
+                        writer.write("================================\n")
                     }
                     isFirst = false
-                    writer.write("================================\n")
                 }
                 // Print hadamard product for every account
                 writer.write(s"Hadamard product for ${account.handle}:\n")
                 for ((label, sequence) <- dotProduct) {
-                    var numToPrint = numWeightsToPrint
-                    for ((feature, score) <- sequence) {
-                        if ((numToPrint > 0) && (score > 0.0)) {
-                            writer.write(s"${feature} -> ${score}\n")
-                            numToPrint = numToPrint - 1
+                    if (label equals "Overweight") {
+                        var numToPrint = numWeightsToPrint
+                        for ((feature, score) <- sequence) {
+                            if ((numToPrint > 0) && (score > 0.0)) {
+                                writer.write(s"${feature} -> ${score}\n")
+                                numToPrint = numToPrint - 1
+                            }
                         }
                     }
                 }

@@ -53,10 +53,9 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
 
   val twitter = new TwitterFactory(cb.build()).getInstance
 
-  private val humanClassifier = new HumanClassifier(useUnigrams = true, useDictionaries = true)
+  // TODO use human classifier to predict if active followers are human (is this necessary?????)
+//  private val humanClassifier = new HumanClassifier(useUnigrams = true, useDictionaries = true)
 //  private var isTrained = false
-
-  // TODO: Convert to assertEquals from JUnit
 
   if(isAppOnly) 
     assert(twitter.getOAuth2Token().getTokenType() == "bearer")
@@ -119,7 +118,10 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
       if (fetchNetwork) {
 
         // Retrieve friends with bidirectional relationship as followers
-        val followers = twitter.getFollowersIDs(id, 5000, 5000).getIDs // 5000 is maximum on cursor and count
+        val followers = twitter.getFollowersIDs(id, -1, 5000).getIDs // 5000 is maximum on cursor and count
+
+        Thread.sleep(AccountSleepTime)
+
         val activeFollowers = followers.filter(target => twitter.showFriendship(id, target).isTargetFollowedBySource)
         var numToRetrieve = 4
         var i = 0
@@ -129,8 +131,6 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
           val follower = twitter.showUser(activeFollowers(i))
 
           Thread.sleep(AccountSleepTime)
-
-          // TODO classify as human or not
 
           if (follower != null && follower.getStatus != null) {
             // Recursively fetch the account, only getting tweets (NOT NETWORK)
@@ -145,7 +145,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
       }
 
       val account = new TwitterAccount(handle, id, name, language, url, 
-        location, description, tweetBuffer.toSeq, accounts)
+        location, description, tweetBuffer, accounts)
 
       account
     }
