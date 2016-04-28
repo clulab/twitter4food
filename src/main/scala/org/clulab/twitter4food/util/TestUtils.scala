@@ -21,8 +21,10 @@ object TestUtils {
   def splitHandles[T: ClassTag](keyset: Int, numWindows: Int, 
     collection: Map[T, String]): (Array[T], Array[String]) = {
     val window = collection.size/numWindows
-    val subHandles = collection.keys.slice(keyset*window, (keyset+1)*window)
-      .toArray
+    val lower = keyset*window
+    val upper = if(keyset == numWindows-1) collection.size 
+                else (keyset+1)*window
+    val subHandles = collection.keys.slice(lower, upper).toArray
     val subLabels = subHandles.map(k => collection(k))
 
     (subHandles -> subLabels)
@@ -30,7 +32,15 @@ object TestUtils {
 
   def fetchAccounts(api: TwitterAPI, handles: Seq[String], 
     fetchTweets: Boolean) = {
-    handles.map(h => api.fetchAccount(h, fetchTweets))
+    val pb = new me.tongfei.progressbar.ProgressBar("fetchAccounts", 100)
+    pb.start()
+
+    pb.maxHint(handles.size)
+    pb.setExtraMessage("Downloading ...")
+    val accounts = handles.map(h => { 
+      pb.step(); api.fetchAccount(h, fetchTweets); })
+    pb.stop()
+    accounts
   }
 
   def parseArgs(args: Array[String]) = {
