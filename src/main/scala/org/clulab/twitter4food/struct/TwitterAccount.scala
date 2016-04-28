@@ -20,5 +20,5 @@ class TwitterAccount (
   val tweets: Seq[Tweet],
   val activeFollowers: Seq[TwitterAccount]) {
 
-  override def toString = s"@$handle: ($name, $description)"
+  override def toString = s"$handle: ($name, $description)"
 }
