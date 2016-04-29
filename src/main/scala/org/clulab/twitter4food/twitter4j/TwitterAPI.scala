@@ -68,9 +68,12 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
     (min, t) => if(t.getId < min) t.getId else min)
 
   def fetchAccount(handle: String, fetchTweets: Boolean = false,
-                   fetchNetwork: Boolean = false): TwitterAccount = {
+                   fetchNetwork: Boolean = false, isID: Boolean = false): TwitterAccount = {
     var user: User = null
     try {
+      if (isID)
+        user = twitter.showUser(handle.toLong)
+      else
         user = twitter.showUser(handle)
     } catch {
         case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
@@ -120,25 +123,19 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
         // Retrieve friends with bidirectional relationship as followers
         val followers = twitter.getFollowersIDs(id, -1, 5000).getIDs // 5000 is maximum on cursor and count
 
-        Thread.sleep(AccountSleepTime)
+        Thread.sleep(1000*60) // one minute per getFollowers
 
-        val activeFollowers = followers.filter(target => twitter.showFriendship(id, target).isTargetFollowedBySource)
+        val activeFollowers = followers.filter(target =>  {sleep(); twitter.showFriendship(id, target).isTargetFollowedBySource})
         var numToRetrieve = 4
         var i = 0
         // Iterate over active followers
         while (numToRetrieve > 0 && i < activeFollowers.length) {
           // Get follower account
-          val follower = twitter.showUser(activeFollowers(i))
-
-          Thread.sleep(AccountSleepTime)
-
-          if (follower != null && follower.getStatus != null) {
-            // Recursively fetch the account, only getting tweets (NOT NETWORK)
-            val toAdd = fetchAccount(follower.getScreenName, true, false)
-            if (toAdd != null) {
-              accounts = toAdd :: accounts
-              numToRetrieve -= 1
-            }
+          // Recursively fetch the account, only getting tweets (NOT NETWORK)
+          val follower = fetchAccount(activeFollowers(i).toString, fetchTweets=true, fetchNetwork=false, isID=true)
+          if (follower != null) {
+            accounts = follower :: accounts
+            numToRetrieve -= 1
           }
           i += 1
         }

@@ -13,7 +13,7 @@ import twitter4j.TwitterException
 object Followers {
     def main(args: Array[String]) {
 
-        val numProcesses = 8
+        val numProcesses = 16
 
         // Parse keySet value from args
         var keySet: Int = -1
@@ -59,25 +59,22 @@ object Followers {
                 val handle = elements(0).substring(1) // remove @ symbol
                 val label = elements(1)
 
-                var account: TwitterAccount = null
-                try {
-                    account = api.fetchAccount(handle, false, false) // no need to fetch anything, just confirming existence
-                } catch {
-                    case te: TwitterException => // ignore suspended accounts
-                }
-                // Only include accounts that are in English
-                if ((account != null) && (account.lang equals "en")) {
-                    val toWrite = api.fetchAccount(handle, false, true) // now only fetch network, not tweets
-                    // Add active followers to list of accounts to be written to file
-                    toWrite.activeFollowers.foreach(ta => accounts += ta)
-                    // Write this account and its 4 active followers to separate file
-                    writer.write(toWrite.handle + "\t")
-                    writer.write(toWrite.activeFollowers.map(a => a.handle).mkString("\t") + "\n")
+                if (!(label equals "Can't tell")) {
+                    var account: TwitterAccount = api.fetchAccount(handle, false, true)
+                    println(s"account: ${account.toString}")
+                    // Only include accounts that are in English
+                    if ((account != null) && (account.lang equals "en")) {
+                        // Add active followers to list of accounts to be written to file
+                        account.activeFollowers.foreach(ta => accounts += ta)
+                        // Write this account and its 4 active followers to separate file
+                        writer.write(account.handle + "\t")
+                        writer.write(account.activeFollowers.map(a => a.handle).mkString("\t") + "\n")
 
-                    println(s"handle: ${toWrite.handle}, activeFollowers: ${toWrite.activeFollowers.map(a => a.handle).mkString(", ")}")
-                }
+                        println(s"handle: ${account.handle}, activeFollowers: ${account.activeFollowers.map(a => a.handle).mkString(", ")}")
+                    }
 
-                pb.step()
+                    pb.step()
+                }
             }
 
             i += 1
