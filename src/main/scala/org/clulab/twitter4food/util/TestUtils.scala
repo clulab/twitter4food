@@ -8,8 +8,8 @@ import scala.collection.mutable.ArrayBuffer
 import edu.arizona.sista.learning.LiblinearClassifier
 
 object TestUtils {
-  def init(keyset: Int, isAppOnly: Boolean) = {
-    (new TwitterAPI(keyset, isAppOnly), ConfigFactory.load())
+  def init(keyset: Int) = {
+    (new TwitterAPI(keyset), ConfigFactory.load())
   }
 
   def loadHandles(fileName: String) = {

@@ -18,7 +18,7 @@ import org.clulab.twitter4food.featureclassifier.HumanClassifier
   * Owner: @nlpcpu and Dane Bell
   */
 
-class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
+class TwitterAPI(keyset: Int) {
 
   val AccountSleepTime = 5050
   val AppOnlySleepTime = 3050
@@ -27,48 +27,66 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
   val MaxTweetCount = 200
   val MaxPageCount = 16
 
-  val config = ConfigFactory.load()
-  val cb = new ConfigurationBuilder()
-  val keysFilePath = config.getString("twitter4j.api_keys")
-  val keys = scala.io.Source.fromFile(keysFilePath)
+  private val UserOnly = 0
+  private val AppOnly = 1
+
+  private val config = ConfigFactory.load()
+  private val cb1 = new ConfigurationBuilder()
+  private val cb2 = new ConfigurationBuilder()
+  private val keysFilePath = config.getString("twitter4j.api_keys")
+  private val keys = scala.io.Source.fromFile(keysFilePath)
                             .getLines.toList.slice(4*keyset, 4*(keyset+1))
                             .map(x => x.split("\t")(1))
 
-  System.setProperty("twitter4j.loggerFactory", "twitter4j.NullLoggerFactory")
-  /* Application-only OAuth */                            
-  if(!isAppOnly) {
-    cb.setDebugEnabled(false)
-      .setOAuthConsumerKey(keys(0))
-      .setOAuthConsumerSecret(keys(1))
-      .setOAuthAccessToken(keys(2))
-      .setOAuthAccessTokenSecret(keys(3))
-  }
-  
-  else {
-    cb.setApplicationOnlyAuthEnabled(true)
-      .setDebugEnabled(false)
-      .setOAuthConsumerKey(keys(0))
-      .setOAuthConsumerSecret(keys(1))
-  }
+  private val RateLimitChart = Map("showUser" -> Array(180, 180),
+    "getUserTimeline" -> Array(180, 300), "getFollowersIDs" -> Array(15, 15),
+    "showFriendship" -> Array(180, 15), "search" -> Array(180, 450))
 
-  val twitter = new TwitterFactory(cb.build()).getInstance
+  System.setProperty("twitter4j.loggerFactory", "twitter4j.NullLoggerFactory")
+  /* User-only OAuth */
+  cb1.setDebugEnabled(false)
+    .setOAuthConsumerKey(keys(0))
+    .setOAuthConsumerSecret(keys(1))
+    .setOAuthAccessToken(keys(2))
+    .setOAuthAccessTokenSecret(keys(3))
+
+  val userOnlyTwitter = new TwitterFactory(cb1.build()).getInstance
+
+  /* Application-only OAuth */
+  cb2.setApplicationOnlyAuthEnabled(true)
+    .setDebugEnabled(false)
+    .setOAuthConsumerKey(keys(0))
+    .setOAuthConsumerSecret(keys(1))
+
+  val appOnlyTwitter = new TwitterFactory(cb2.build()).getInstance
 
   // TODO use human classifier to predict if active followers are human (is this necessary?????)
-//  private val humanClassifier = new HumanClassifier(useUnigrams = true, useDictionaries = true)
-//  private var isTrained = false
+  //  private val humanClassifier = new HumanClassifier(useUnigrams = true, useDictionaries = true)
+  //  private var isTrained = false
 
-  if(isAppOnly) 
-    assert(twitter.getOAuth2Token().getTokenType() == "bearer")
+  assert(appOnlyTwitter.getOAuth2Token().getTokenType() == "bearer")
 
-  def sleep() = if(isAppOnly) Thread.sleep(AppOnlySleepTime) 
-                else Thread.sleep(UserSleepTime)
+  private def calcSleepTime(numGetsPer15: Int) = (60*15/numGetsPer15 * 1000)+20
 
-  val option = (something: String) => if(something != null) something else ""
-  val minId = (tweets: Seq[Status]) => tweets.foldLeft(Long.MaxValue)(
+  private def sleep(method: String, isAppOnly: Boolean = true) = {
+    val DEBUG = false
+    val idx = if(isAppOnly) AppOnly else UserOnly
+    val sleepTime = calcSleepTime(RateLimitChart(method)(idx))
+
+    if(DEBUG) println(s"$method call sleeping for ${sleepTime/1000.0} seconds")
+    Thread.sleep(sleepTime)
+  }
+
+  private val option = (something: String) => if(something != null) something else ""
+  private val minId = (tweets: Seq[Status]) => tweets.foldLeft(Long.MaxValue)(
     (min, t) => if(t.getId < min) t.getId else min)
+  private val sanitizeHandle = (h: String) => if(h(0) == '@') h else "@"+h
 
-  def fetchAccount(handle: String, fetchTweets: Boolean = false,
-                   fetchNetwork: Boolean = false, isID: Boolean = false): TwitterAccount = {
+  def fetchAccount(_handle: String, fetchTweets: Boolean = false,
+                   fetchNetwork: Boolean = false, isID: Boolean = false,
+                   isAppOnly: Boolean = true): TwitterAccount = {
+    val twitter = if(isAppOnly) appOnlyTwitter else userOnlyTwitter
+    val handle = if(!isID) sanitizeHandle(_handle) else _handle
     var user: User = null
     try {
       if (isID)
@@ -80,7 +98,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
                                    println(s"ErrorMsg = ${te.getErrorMessage}")
     }
 
-    Thread.sleep(AccountSleepTime)
+    sleep("showUser", isAppOnly)
 
     /** User is protected */
     if(user != null && user.getStatus != null) {
@@ -98,60 +116,90 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
         try {
           val page = new Paging(1, MaxTweetCount)
           var tweets = twitter.getUserTimeline(handle, page).asScala.toList
-          sleep()
+          sleep("getUserTimeline", isAppOnly)
 
           while(!tweets.isEmpty) {
             tweetBuffer ++= tweets.map(x => new Tweet(option(x.getText), x.getId,
                                        option(x.getLang), x.getCreatedAt,
-                                       user.getScreenName))
+                                       sanitizeHandle(user.getScreenName)))
             val min = minId(tweets)
 
             page.setMaxId(min-1)
             tweets = twitter.getUserTimeline(handle, page).asScala.toList
-            sleep()
+            sleep("getUserTimeline", isAppOnly)
             } 
         } catch {
           case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-                                          println(s"ErrorMsg = ${te.getErrorMessage}")
+                                       println(s"ErrorMsg = ${te.getErrorMessage}")
         }
       }
 
-      var accounts = List[TwitterAccount]()
+      var followers = List[TwitterAccount]()
 
       if (fetchNetwork) {
+        // Query the user. Sort by decreasing number of interactions
+        val candidates = search(Array(handle)).toSeq
+          .sortWith(_._2.size > _._2.size).map(_._1)
 
-        // Retrieve friends with bidirectional relationship as followers
-        val followers = twitter.getFollowersIDs(id, -1, 5000).getIDs // 5000 is maximum on cursor and count
+        // Sleep for user-only sleep time
+        println(s"Checking for follower status")
+        val addActiveFollowers = (_count: Int, users: Seq[String],
+          isID: Boolean) => {
 
-        Thread.sleep(1000*60) // one minute per getFollowers
+          // Iterate over activeUsers and followers.
+          var i = 0
+          var count = _count
+          while (count > 0 && i < users.length) {
+            // Get follower account
+            // Recursively fetch the account, only getting tweets (NOT NETWORK)
+            val tgt = users(i)
+            val condition = isID match {
+              case true => userOnlyTwitter.showFriendship(id, tgt.toLong)
+                .isTargetFollowedBySource
+              case false => userOnlyTwitter.showFriendship(handle, tgt)
+                .isTargetFollowedBySource
+              }
 
-        val activeFollowers = followers.filter(target =>  {sleep(); twitter.showFriendship(id, target).isTargetFollowedBySource})
-        var numToRetrieve = 4
-        var i = 0
-        // Iterate over active followers
-        while (numToRetrieve > 0 && i < activeFollowers.length) {
-          // Get follower account
-          // Recursively fetch the account, only getting tweets (NOT NETWORK)
-          val follower = fetchAccount(activeFollowers(i).toString, fetchTweets=true, fetchNetwork=false, isID=true)
-          if (follower != null) {
-            accounts = follower :: accounts
-            numToRetrieve -= 1
+            sleep("showFriendship", isAppOnly=false)
+
+            val follower = if(condition) fetchAccount(tgt,
+              fetchTweets=true, fetchNetwork=false, isID)
+              else null
+
+            if(follower != null) {
+              followers = follower :: followers
+              count -= 1
+            }
+            i += 1
           }
-          i += 1
+        }
+
+        val numToRetrieve = 4
+        addActiveFollowers(numToRetrieve, candidates, false)
+
+        if(followers.size < 4) {
+          // Not enough mentions. Fall back on followers
+          // Retrieve friends with bidirectional relationship as followers
+          // 5000 is maximum on cursor and count
+
+          val _followerIDs = addActiveFollowers(numToRetrieve - followers.size,
+            twitter.getFollowersIDs(id, -1, 5000).getIDs.map(_.toString), true)
+          sleep("getFollowersIDs", isAppOnly) //one minute per getFollowers
         }
       }
 
       val account = new TwitterAccount(handle, id, name, language, url, 
-        location, description, tweetBuffer, accounts)
+        location, description, tweetBuffer, followers)
 
       account
     }
     else null
   }
 
-  def search(keywords: Array[String]) = {
+  def search(keywords: Array[String], isAppOnly: Boolean = true) = {
     val seenHandles = Set[String]()
     val results = Map[String, ArrayBuffer[Tweet]]()
+    val twitter = if(isAppOnly) appOnlyTwitter else userOnlyTwitter
 
     keywords foreach {
       k => {
@@ -161,11 +209,11 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
         try {
           var tweets = twitter.search(query).getTweets().asScala.toList
           
-          Thread.sleep(QueryOnlySleepTime)
+          sleep("search", isAppOnly)
 
           while(!tweets.isEmpty) {
             tweets.foreach(q => {
-              val handle = q.getUser.getScreenName
+              val handle = sanitizeHandle(q.getUser.getScreenName)
               if(!seenHandles.contains(handle)) {
                 seenHandles += handle
                 results += handle -> new ArrayBuffer[Tweet]()
@@ -180,9 +228,7 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
 
             tweets = twitter.search(query).getTweets().asScala.toList
 
-            println(tweets.isEmpty)
-
-            Thread.sleep(QueryOnlySleepTime)
+            sleep("search", isAppOnly)
           }
         } catch {
           case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
@@ -190,6 +236,6 @@ class TwitterAPI(keyset: Int, isAppOnly: Boolean) {
         }
       }
     }
-    results
+    results.map{ case (k,v) => (k, v.toArray) }
   }
 }

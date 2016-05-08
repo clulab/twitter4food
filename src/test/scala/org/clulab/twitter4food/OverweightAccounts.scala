@@ -35,9 +35,10 @@ object OverweightAccounts {
 
     val tweets = buf.toArray
     val pos_kw = Array("#fatguyproblems", "#fatgirlproblems", "#fatguytweets",
-      "#effyourbodystandards", "#fatgirltweets", "#plussize")
+      "#effyourbodystandards", "#fatgirltweets", "#plussize").map(_.toLowerCase)
     val neg_kw = Array("#nsfw", "#milf", "#bbw", "#mature", "#NSFW", "#model", 
-      "#fashion", "#porn", "#clothes", "#sex", "#sexy", "#shopping", "ass")
+      "#fashion", "#porn", "#clothes", "#sex", "#sexy", "#shopping",
+      "ass").map(_.toLowerCase)
     val subTweets = filter(pos_kw, neg_kw, tweets)
     pos_kw.foreach(k => {
       println(s"$k: ${subTweets.foldLeft(0)((s,t) => if(t.text.contains(k)) s+1 else s)}")

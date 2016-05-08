@@ -30,7 +30,7 @@ object Followers {
             System.exit(1)
         }
 
-        val (api, config) = TestUtils.init(keySet, true)
+        val (api, config) = TestUtils.init(keySet)
         // Input
         var inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.labels"))
         val numLines = inputFile.getLines.length
