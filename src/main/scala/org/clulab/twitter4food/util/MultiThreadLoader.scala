@@ -34,7 +34,7 @@ class ThreadRunner(handles: Seq[String], isAppOnly: Boolean,
   fetchTweets: Boolean, N: Int) extends Callable[Seq[TwitterAccount]] {
   def call(): Seq[TwitterAccount] = {
     val id = Thread.currentThread.getId.toInt % N
-    val (api, config) = TestUtils.init(id, isAppOnly)
+    val (api, config) = TestUtils.init(id)
     val hlMap = handles.foldLeft(Map[String, String]())(
       (map, h) => map + (h -> ""))
     val (subH, subL) = TestUtils.splitHandles(id, N, hlMap)

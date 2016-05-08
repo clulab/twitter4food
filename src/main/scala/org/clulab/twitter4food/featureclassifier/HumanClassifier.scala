@@ -99,7 +99,7 @@ class HumanClassifier(
 object HumanClassifier {
   def main(args: Array[String]) = {
     val params = TestUtils.parseArgs(args)
-    val (api, config) = TestUtils.init(0, true)
+    val (api, config) = TestUtils.init(0)
     val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
       params.useTopics, params.useDictionaries, params.useEmbeddings)
     //hc.runTest(args, "human")

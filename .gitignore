@@ -31,3 +31,4 @@ src/main/resources/org/clulab/twitter4food/featureclassifier/gender/devData.txt
 src/main/resources/org/clulab/twitter4food/featureclassifier/gender/testData.txt
 
 src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweight_sample_4Apr2016.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts.txt
