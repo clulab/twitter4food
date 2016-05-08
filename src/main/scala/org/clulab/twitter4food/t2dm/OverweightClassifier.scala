@@ -78,7 +78,7 @@ object OverweightClassifier {
     def main(args: Array[String]) {
         // Parse args using standard Config
         val params = TestUtils.parseArgs(args)
-        val (api, config) = TestUtils.init(0, true)
+        val (api, config) = TestUtils.init(0)
         val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams,
             params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim)
 
