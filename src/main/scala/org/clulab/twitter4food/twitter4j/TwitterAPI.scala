@@ -82,17 +82,17 @@ class TwitterAPI(keyset: Int) {
     (min, t) => if(t.getId < min) t.getId else min)
   private val sanitizeHandle = (h: String) => if(h(0) == '@') h else "@"+h
 
-  def fetchAccount(_handle: String, fetchTweets: Boolean = false,
+  def fetchAccount(h: String, fetchTweets: Boolean = false,
                    fetchNetwork: Boolean = false, isID: Boolean = false,
                    isAppOnly: Boolean = true): TwitterAccount = {
     val twitter = if(isAppOnly) appOnlyTwitter else userOnlyTwitter
-    val handle = if(!isID) sanitizeHandle(_handle) else _handle
+    val _handle = if(!isID) sanitizeHandle(h) else h
     var user: User = null
     try {
       if (isID)
-        user = twitter.showUser(handle.toLong)
+        user = twitter.showUser(_handle.toLong)
       else
-        user = twitter.showUser(handle)
+        user = twitter.showUser(_handle)
     } catch {
         case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
                                    println(s"ErrorMsg = ${te.getErrorMessage}")
@@ -102,6 +102,7 @@ class TwitterAPI(keyset: Int) {
 
     /** User is protected */
     if(user != null && user.getStatus != null) {
+      val handle = sanitizeHandle(user.getScreenName)
       val id = user.getId
       val name = option(user.getName)
       val language = option(user.getLang)
