@@ -50,16 +50,22 @@ class OverweightClassifier(val useUnigrams: Boolean = true,
         subClassifier.get.scoresOf(featureExtractor.mkDatum(account, "unknown"))
     }
 
-    def analyze(modelFile: String, labels: Set[String], test: TwitterAccount, numTopWeights: Int, numTopScores: Int) = {
+    def analyze(modelFile: String, labels: Set[String], test: TwitterAccount, numTopWeights: Int, numTopScores: Int) :
+        (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
         val c = LiblinearClassifier.loadFrom[String, String](modelFile)
         val W = c.getWeights()
         val d = featureExtractor.mkDatum(test, "unknown")
         val counter = d.featuresCounter
 
+        // topWeights results in a map of labels (in this case "Overweight" or "Not overweight")
+        // to a sequence of feature labels to their respective weights, sorted to give the
+        // top weights of the features for the given label
         var topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
             (map, l) => map + (l -> W.get(l).get.toSeq.sortWith(_._2 > _._2)))
         topWeights = topWeights.slice(0, numTopWeights)
 
+        // dotProduct is structured the same way as topWeights, but applies the Hadamard
+        // product to the weights of each label's features
         var dotProduct = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
             (map, l) => {
                 val weightMap = W.get(l).get.toSeq.toMap
@@ -86,11 +92,11 @@ object OverweightClassifier {
         val modelFile = s"${config.getString("classifier")}/overweight/model/m${fileExt}.dat"
 
         // Allow user to specify if model should be loaded or overwritten
-        var loadModel = false
-        print("\n\nLoad model from existing file? (yes/no) ")
+        var loadModel = true
+        print("\n\nOverwrite existing file? (yes/no) ")
         val answer = scala.io.StdIn.readLine()
-        if (answer.toLowerCase.charAt(0) == 'y')
-            loadModel = true
+        if (answer.toLowerCase.charAt(0) == 'n')
+            loadModel = false
 
         // Load classifier if model exists
         if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
@@ -140,6 +146,7 @@ object OverweightClassifier {
                 println(s"ERROR: failed to create output directory ${outputDir}")
         }
 
+        // Perform analysis on false negatives and false positives
         println("False negatives:")
         evalMetric.FNAccounts.map(account => print(account.handle + "\t"))
         println("\n====")

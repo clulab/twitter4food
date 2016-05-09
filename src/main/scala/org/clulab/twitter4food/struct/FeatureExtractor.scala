@@ -62,6 +62,7 @@ class FeatureExtractor (
 
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
 
+  // NOTE: all features that run over description and tweets should probably apply this for consistency
   def filterTags(tagTok: Array[TaggedToken]) = {
     val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
     val stopWords = stopWordsFile.getLines.toSet
@@ -70,15 +71,20 @@ class FeatureExtractor (
         && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
   }
 
+  // Gets the ngrams of an account, from their description and tweets
   def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
+
+    // Extract ngrams
     val populateNGrams = (n: Int, text: Array[String]) => {
       text.sliding(n).toList.reverse
         .foldLeft(List[String]())((l, window) => window.mkString("_") :: l)
         .toArray
       }
 
+    // Filter ngrams by their POS tags
     setCounts(tokenSet(filterTags(Tokenizer.annotate(account.description.toLowerCase))), counter)
+    // Filter further by ensuring we get English tweets and non-empty strings
     account.tweets.filter(t => t.lang != null
       && t.lang.equals("en")).foreach(tweet => {
       if (tweet.text != null && !tweet.text.equals("")) {
@@ -149,6 +155,7 @@ class FeatureExtractor (
     null
   }
 
+  // Loads the idf table for the database of random tweets
   private def loadTFIDF(): Unit = {
     // Initialize
     val randomCounter = new Counter[String]()
@@ -232,6 +239,7 @@ class FeatureExtractor (
     overweightVec = Some(overweightCounter)
   }
 
+  // Calculate the cosine sim of the account's tfidf vector with the overweight corpus's tfidf vector
   def cosineSim(account: TwitterAccount): Counter[String] = {
     if (!idfTable.isDefined || !overweightVec.isDefined) {
       loadTFIDF()
