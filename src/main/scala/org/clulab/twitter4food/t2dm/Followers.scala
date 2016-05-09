@@ -11,6 +11,8 @@ import twitter4j.TwitterException
   * Created by Terron on 4/6/16.
   */
 object Followers {
+
+    // A script for downloading the tweets of active followers of the account in our database
     def main(args: Array[String]) {
 
         val numProcesses = 16
