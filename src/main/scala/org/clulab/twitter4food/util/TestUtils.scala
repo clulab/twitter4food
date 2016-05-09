@@ -31,14 +31,17 @@ object TestUtils {
   }
 
   def fetchAccounts(api: TwitterAPI, handles: Seq[String], 
-    fetchTweets: Boolean) = {
+    fT: Boolean, fN: Boolean, appOnly: Boolean) = {
     val pb = new me.tongfei.progressbar.ProgressBar("fetchAccounts", 100)
     pb.start()
 
     pb.maxHint(handles.size)
     pb.setExtraMessage("Downloading ...")
     val accounts = handles.map(h => { 
-      pb.step(); api.fetchAccount(h, fetchTweets); })
+      val account = api.fetchAccount(h, fetchTweets = fT, fetchNetwork = fN,
+        isAppOnly = appOnly)
+      pb.step(); account
+      })
     pb.stop()
     accounts
   }
