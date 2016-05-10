@@ -4,7 +4,7 @@ import java.io.{BufferedReader, FileReader}
 
 import edu.arizona.sista.learning.{Datum, RVFDatum}
 import edu.arizona.sista.struct.{Counter, Counters, Lexicon}
-import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
+import org.clulab.twitter4food.util.{FileUtils, TestUtils, Tokenizer}
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 
@@ -17,12 +17,22 @@ class FeatureExtractor (
   val useTopics:Boolean,
   val useDictionaries:Boolean,
   val useEmbeddings:Boolean,
-  val useCosineSim:Boolean) {
+  val useCosineSim:Boolean,
+  val useFollowers:Boolean) {
 
   val config = ConfigFactory.load()
+
+  // Dictionaries
   var lexicons: Option[Map[String, Seq[Lexicon[String]]]] = None
+
+  // Embeddings
   var idfTable: Option[Counter[String]] = None
   var overweightVec: Option[Counter[String]] = None
+
+  // Followers
+  val relationsFile = config.getString("classifiers.features.followerRelations") + ".txt"
+  val accountsFile = config.getString("classifiers.features.followerAccounts") + ".txt"
+  val followerAccounts = if (useFollowers) FileUtils.load(accountsFile) else Map[TwitterAccount, String]()
 
   /** 
    * Additional method call for adding additional features 
@@ -52,6 +62,8 @@ class FeatureExtractor (
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
       counter += cosineSim(account)
+    if (useFollowers)
+      counter += followers(account)
 
     return counter
   }
@@ -96,6 +108,54 @@ class FeatureExtractor (
       }
     })
     return counter
+  }
+
+  def followers(account: TwitterAccount): Counter[String] = {
+    // Find this account's active followers
+    var followerHandles = Array[String]()
+    for (line <- scala.io.Source.fromFile(relationsFile).getLines) {
+      val handles = line.split("\t")
+      if (handles(0) equals account.handle) {
+        followerHandles = handles.slice(1, handles.length)
+      }
+    }
+
+    // Find the TwitterAccount object corresponding to these handles
+    val followers = followerHandles.map(f => {
+      var toReturn: TwitterAccount = null
+      followerAccounts.keys.foreach(fa => {
+        if (fa.handle equals f) toReturn = fa
+      })
+      toReturn
+    })
+
+    // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
+    val appendPrefix = (prefix: String, counter: Counter[String]) => {
+      val temp = new Counter[String]()
+      for ((label, score) <- counter)
+        temp.setCount(prefix + label, score)
+      temp
+    }
+
+    // Aggregate the counter for the followers using the other features being used
+    val followerCounter = new Counter[String]()
+    val prefix = "follower_"
+    for (follower <- followers) {
+      if (useUnigrams)
+        followerCounter += appendPrefix(prefix, ngrams(1, follower))
+      if (useBigrams)
+        followerCounter += appendPrefix(prefix, ngrams(2, follower))
+      if (useTopics)
+        followerCounter += appendPrefix(prefix, topics(follower))
+      if (useDictionaries)
+        followerCounter += appendPrefix(prefix, dictionaries(follower))
+      if (useEmbeddings){
+        // TODO
+      }
+      if (useCosineSim)
+        followerCounter += appendPrefix(prefix, cosineSim(follower))
+    }
+    followerCounter
   }
 
   def topics(account: TwitterAccount): Counter[String] = {
