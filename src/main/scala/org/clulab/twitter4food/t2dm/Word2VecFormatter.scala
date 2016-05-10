@@ -7,11 +7,12 @@ import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
 
 /**
   * Created by Terron on 4/28/16.
+  *
+  * A simple script for parsing a file of tweets and writing to a file of aggregate text
+  * for the w2v C script. Assumes every third line is a tweet, as is standard for this project.
   */
 object Word2VecFormatter {
 
-    // A simple script for parsing a file of tweets and writing to a file of aggregate text
-    // for the w2v C script. Assumes every third line is a tweet, as is standard for this project
     def main(args: Array[String]) {
         val (_, config) = TestUtils.init(0)
         val overweightFile = scala.io.Source.fromFile(config.getString("classifiers.features.overweight_corpus"))
