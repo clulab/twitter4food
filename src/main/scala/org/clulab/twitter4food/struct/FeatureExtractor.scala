@@ -132,7 +132,7 @@ class FeatureExtractor (
     // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
     val appendPrefix = (prefix: String, counter: Counter[String]) => {
       val temp = new Counter[String]()
-      for ((label, score) <- counter)
+      for ((label, score) <- counter.toSeq)
         temp.setCount(prefix + label, score)
       temp
     }
