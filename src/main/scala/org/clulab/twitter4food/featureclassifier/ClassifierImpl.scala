@@ -61,14 +61,20 @@ class ClassifierImpl(
       } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
+  def setClassifier(newClassifier: LiblinearClassifier[String, String]): Unit = {
+    subClassifier = Some(newClassifier)
+  }
+
   def _train(trainingSet: Seq[TwitterAccount],
     trainingLabels: Seq[String],
     _C: Double,
     K: Int,
     ctype: String,
     args: Array[String]) = {
-    
-    subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
+
+    // User should set their custom classifier before training, otherwise this default is used
+    if (!subClassifier.isDefined)
+      subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
     val labelSet = trainingLabels.toSet
     val lexMap = labelSet.foldLeft(Map[String, Seq[String]]())(
       (m, l) => m + (l -> 

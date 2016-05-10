@@ -10,6 +10,13 @@ import com.typesafe.config.ConfigFactory
 
 /**
   * Created by Terron on 2/9/16.
+  *
+  * Designed to be used in tandem with a classifier, with the features
+  * to be included "turned on" with the inputted parameters. The features
+  * listed here are fairly general - custom features can be added with
+  * the polymorphic mkDatum function.
+  *
+  * All parameters are flags for which features should be used.
   */
 class FeatureExtractor (
   val useUnigrams:Boolean,
@@ -36,17 +43,29 @@ class FeatureExtractor (
 
   /** 
    * Additional method call for adding additional features 
-   * outside of what's presented here
+   * outside of what's presented here.
    */
   def mkDatum(account: TwitterAccount, label: String, 
     counter: Counter[String]): Datum[String, String] = {
     new RVFDatum[String, String](label, mkFeatures(account) + counter)
   }
 
+  /**
+    * Ultimately what should be called by the classifier when training.
+    *
+    * @param account TwitterAccount to extract features from
+    * @param label Classification label associated with this account
+    */
   def mkDatum(account: TwitterAccount, label: String): Datum[String, String] = {
     new RVFDatum[String, String](label, mkFeatures(account))
   }
 
+  /**
+    * Generates the feature counter for this account
+    *
+    * @param account
+    * @return Counter of all features signified by constructor flags
+      */
   def mkFeatures(account: TwitterAccount): Counter[String] = {
     var counter = new Counter[String]
     if (useUnigrams)
@@ -65,7 +84,7 @@ class FeatureExtractor (
     if (useFollowers)
       counter += followers(account)
 
-    return counter
+    counter
   }
 
   def setCounts(words: Seq[String], counter: Counter[String]) = {
@@ -83,7 +102,12 @@ class FeatureExtractor (
         && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
   }
 
-  // Gets the ngrams of an account, from their description and tweets
+  /**
+    * Adds ngrams from account's description and tweets with raw frequencies as weights.
+    * @param n Degree of n-gram (e.g. 1 refers to unigrams)
+    * @param account
+      * @return counter
+      */
   def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
 
@@ -107,9 +131,15 @@ class FeatureExtractor (
         setCounts(nGramSet, counter)
       }
     })
-    return counter
+    counter
   }
 
+  /**
+    * Adds the flagged features onto counter with "follower_" prefixed
+    * onto each label, effectively serving as domain adaptation.
+    * @param account
+    * @return counter
+      */
   def followers(account: TwitterAccount): Counter[String] = {
     // Find this account's active followers
     var followerHandles = Array[String]()
@@ -141,19 +171,7 @@ class FeatureExtractor (
     val followerCounter = new Counter[String]()
     val prefix = "follower_"
     for (follower <- followers) {
-      if (useUnigrams)
-        followerCounter += appendPrefix(prefix, ngrams(1, follower))
-      if (useBigrams)
-        followerCounter += appendPrefix(prefix, ngrams(2, follower))
-      if (useTopics)
-        followerCounter += appendPrefix(prefix, topics(follower))
-      if (useDictionaries)
-        followerCounter += appendPrefix(prefix, dictionaries(follower))
-      if (useEmbeddings){
-        // TODO
-      }
-      if (useCosineSim)
-        followerCounter += appendPrefix(prefix, cosineSim(follower))
+      followerCounter += appendPrefix(prefix, mkFeatures(follower))
     }
     followerCounter
   }
@@ -162,6 +180,11 @@ class FeatureExtractor (
     null
   }
 
+  /**
+    * Functions like unigrams but constrained to words in dictionaries.
+    * @param account
+    * @return counter
+      */
   def dictionaries(account: TwitterAccount): Counter[String] = {
 
 //    var counter = new Counter[String]()
@@ -299,7 +322,13 @@ class FeatureExtractor (
     overweightVec = Some(overweightCounter)
   }
 
-  // Calculate the cosine sim of the account's tfidf vector with the overweight corpus's tfidf vector
+  /**
+    * A single feature (that is, a counter with the singular entry ("cosineSim" -> cosineSim).
+    * Calculates the cosine similarity between the TFIDF vector of the account's description
+    * and tweets and the TFIDF vector of the overweight corpus.
+    * @param account
+    * @return counter
+      */
   def cosineSim(account: TwitterAccount): Counter[String] = {
     if (!idfTable.isDefined || !overweightVec.isDefined) {
       loadTFIDF()

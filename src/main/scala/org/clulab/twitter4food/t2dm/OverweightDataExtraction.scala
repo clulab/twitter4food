@@ -12,6 +12,11 @@ import scala.io.Source
 
 /**
   * Created by Terron on 2/17/16.
+  *
+  * A script for downloading the tweets of a file of twitter handles.
+  * The file is assumed to have the format of
+  * [handle]\t[classificationLabel]
+  * on each line.
   */
 object OverweightDataExtraction {
     def main(args: Array[String]) {
