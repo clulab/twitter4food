@@ -33,21 +33,31 @@ object OverweightClassifier {
             params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim)
 
         val fileExt = args.mkString("").replace("-", "").sorted
-        val modelFile = s"${config.getString("classifier")}/overweight/model/m${fileExt}.dat"
 
-        // Allow user to specify if model should be loaded or overwritten
-        var loadModel = true
-        print("\n\nOverwrite existing file? (yes/no) ")
-        val answer = scala.io.StdIn.readLine()
-        if (answer.toLowerCase.charAt(0) == 'n')
-            loadModel = false
+        val outputDir = config.getString("classifier") + "/overweight/results/r" + fileExt
+        if (!Files.exists(Paths.get(outputDir))) {
+            if (new File(outputDir).mkdir())
+                println(s"Created output directory ${outputDir}")
+            else
+                println(s"ERROR: failed to create output directory ${outputDir}")
+        }
 
-        // Load classifier if model exists
-        if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
-            println("Loading model from file...")
-            val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
-            oc.subClassifier = Some(cl)
-        } else {
+        oc.runTest(args, "overweight", outputDir + "/results.txt")
+//        val modelFile = s"${config.getString("classifier")}/overweight/model/m${fileExt}.dat"
+
+//        // Allow user to specify if model should be loaded or overwritten
+//        var loadModel = true
+//        print("\n\nOverwrite existing file? (yes/no) ")
+//        val answer = scala.io.StdIn.readLine()
+//        if (answer.toLowerCase.charAt(0) == 'n')
+//            loadModel = false
+//
+//        // Load classifier if model exists
+//        if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
+//            println("Loading model from file...")
+//            val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
+//            oc.subClassifier = Some(cl)
+//        } else {
 //            println("Loading training accounts...")
 //            val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
 //
@@ -55,7 +65,7 @@ object OverweightClassifier {
 //            println("Training classifier...")
 //            oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
 //            oc.subClassifier.get.saveTo(modelFile)
-        }
+//        }
 
 //        println("Loading dev accounts...")
 //        val devData = FileUtils.load(config.getString("classifiers.overweight.devData"))
@@ -81,14 +91,6 @@ object OverweightClassifier {
 //        val evalMetric = evalMeasures("Overweight")
 //        val precision = evalMetric.P
 //        val recall = evalMetric.R
-
-        val outputDir = config.getString("classifier") + "/overweight/results/r" + fileExt
-        if (!Files.exists(Paths.get(outputDir))) {
-            if (new File(outputDir).mkdir())
-                println(s"Created output directory ${outputDir}")
-            else
-                println(s"ERROR: failed to create output directory ${outputDir}")
-        }
 
 //        // Perform analysis on false negatives and false positives
 //        println("False negatives:")
