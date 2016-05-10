@@ -9,6 +9,7 @@ core/*.iml
 # sbt specific
 dist/*
 target/
+lib/WordNet-3.0/
 lib_managed/
 src_managed/
 project/boot/

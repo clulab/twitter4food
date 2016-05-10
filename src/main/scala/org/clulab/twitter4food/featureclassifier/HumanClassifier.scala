@@ -5,20 +5,34 @@ import edu.arizona.sista.struct.Counter
 import org.clulab.twitter4food.util._
 import org.clulab.twitter4food.struct.TwitterAccount
 
-/**
-  * Created by adikou on 1/22/16.
+/** Classifier to predict if a given twitter account represents an organization
+  * or an individual. Implements a customFeatures method to parse the account
+  * description and count #(words) that fall in person/organization Synset
+  * @author adikou 
+  * @date 01-22-16.
   */
 
 class HumanClassifier(
   useUnigrams: Boolean = true, useBigrams: Boolean = false,
   useTopics: Boolean = false,  useDictionaries: Boolean = false,
-  useEmbeddings: Boolean = false) extends ClassifierImpl(useUnigrams,
-    useBigrams, useTopics, useDictionaries, useEmbeddings) {
+  useEmbeddings: Boolean = false, useFollowers: Boolean = false) 
+  extends ClassifierImpl(useUnigrams,
+    useBigrams, useTopics, useDictionaries, useEmbeddings, useFollowers) {
 
+  /** Add Datum[String, String] with custom counter
+    * @param account base twitter account
+    * @param label Associated label "human" or "org"
+    * @return Unit
+    */
   override def addDatum(account: TwitterAccount, label: String) = {
     dataset += featureExtractor.mkDatum(account, label, customFeatures(account))
   }
 
+  /** Add a custom feature counter for the account based on description
+    * @param account Twitter account
+    * @return counter custom Counter[String] that keeps a count of "wn_human"
+    *         and "wn_org" based on #(words) in person/organization Synset
+    */
   def customFeatures(account: TwitterAccount): Counter[String] = {
     val SINGULAR_PRONOUNS = Set("I", "me", "you", "she", "her", "he",
                               "him", "it", "myself", "yourself", "itself",
@@ -40,6 +54,11 @@ class HumanClassifier(
     def isPersonClass(set: Set[String]) = !intersection(set, PERSON_CLASS).isEmpty
     def isOrgClass(set: Set[String]) = !intersection(set, ORG_CLASS).isEmpty
 
+    /** Recurse each synset until synset becomes too generic, or one or more
+      * synset reaches person/org synset.
+      * @param word Description word
+      * @return label "human", "org" or ""
+      */
     def getSubFeatureType(word: String): String = {
       val hyp = new HypernymSet()
       var level = 0
@@ -70,8 +89,11 @@ class HumanClassifier(
       else ""
     }
 
+    /** Noun tags only */
     val nTags = Tokenizer.annotate(account.description)
       .filter(tt => "NO".contains(tt.tag))
+    
+    /** Count #(human) and #(org) features */
     val (hCounts, oCounts) = nTags.foldLeft((0,0))(
       (count, tagTok) => {
         if(tagTok.tag.equals("O")) {
