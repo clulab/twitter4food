@@ -36,6 +36,7 @@ class ThreadRunner(handles: Seq[String], isAppOnly: Boolean,
   extends Callable[Seq[TwitterAccount]] {
   def call(): Seq[TwitterAccount] = {
     val id = Thread.currentThread.getId.toInt % N
+    println(s"${id}, ${N}")
     val (api, config) = TestUtils.init(id)
     val hlMap = handles.foldLeft(Map[String, String]())(
       (map, h) => map + (h -> ""))
