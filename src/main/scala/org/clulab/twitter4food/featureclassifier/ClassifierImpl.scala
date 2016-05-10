@@ -82,7 +82,7 @@ class ClassifierImpl(
       })
 
     val opt = config.getString(s"classifiers.$ctype.model")
-    val fout = s"${opt}/svm_${args.mkString("")}_${_C}_${K}.dat"
+    val fout = s"${opt}/svm_${args.mkString("").replace("-", "").sorted}_${_C}_${K}.dat"
 
     // Train with top K tweets
     train(customAccounts, trainingLabels)
@@ -130,7 +130,7 @@ class ClassifierImpl(
 
   }
 
-  def runTest(args: Array[String], ctype: String) = {
+  def runTest(args: Array[String], ctype: String, outputFile: String = null) = {
 
     println("Loading training accounts...")
     val trainingData = FileUtils.load(config
@@ -142,7 +142,7 @@ class ClassifierImpl(
     val testData = FileUtils.load(config
       .getString(s"classifiers.$ctype.testData"))
 
-    val fileExt = args.mkString("")
+    val fileExt = args.mkString("").replace("-", "").sorted
     val tweetFolds = Array(10, 50, 100, 500, 1000, 2000, 5000)
     val cFolds = Array(0.001, 0.01, 0.1, 1, 10, 100, 1000)
     
@@ -157,9 +157,11 @@ class ClassifierImpl(
     val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray, 
       devData.values.toArray, testData.values.toArray)
 
+    var writerFile = if (outputFile != null) outputFile else config.getString("classifier") + s"/$ctype/output-" +
+        fileExt + ".txt"
+
     val writer = new BufferedWriter(new FileWriter(
-      config.getString("classifier") + s"/$ctype/opt" + 
-      fileExt + ".txt",true))
+      writerFile, true))
 
     val gridCbyK = Array.ofDim[Double](7,7)
     
