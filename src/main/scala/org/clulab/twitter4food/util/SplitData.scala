@@ -1,5 +1,6 @@
 package org.clulab.twitter4food.util
 
+import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.struct.TwitterAccount
 
 import scala.collection.mutable.Map
@@ -9,11 +10,13 @@ import scala.collection.mutable.Map
   */
 object SplitData {
     def main(args: Array[String]) {
-        val inputFile = "overweightData.txt"
+        val config = ConfigFactory.load
 
-        val trainingFile = "overweightTraining.txt"
-        val devFile = "overweightDev.txt"
-        val testFile = "overweightTest.txt"
+        val inputFile = config.getString("classifiers.overweight.data")
+
+        val trainingFile = config.getString("classifiers.overweight.trainingData")
+        val devFile = config.getString("classifiers.overweight.devData")
+        val testFile = config.getString("classifiers.overweight.testData")
 
         println(s"Reading in data from ${inputFile}")
         val labeledAccounts = FileUtils.load(inputFile)
