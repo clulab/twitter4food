@@ -1,12 +1,10 @@
-import random
-
 # input file
-full = open("overweightDataFull.txt", 'r')
+full = open("/data/nlp/corpora/twitter4food/overweightData/overweightDataFull.txt", 'r')
 
 # UNCOMMENT THESE AND THE LINES AT THE END TO WRITE TO THE FILES
-# trainFile = open("overweightTrain.txt", 'w')
+trainFile = open("overweightTrain.txt", 'w')
 # devFile = open("overweightDev.txt", 'w')
-# testFile = open("overweightTest.txt", 'w')
+testFile = open("overweightTest.txt", 'w')
 
 overweight = []
 notOverweight = []
