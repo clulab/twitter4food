@@ -16,7 +16,7 @@ object OverweightAccounts {
   }
 
   def main(args: Array[String]): Unit = {
-    val config = TestUtils.init(0, true)._2
+    val config = TestUtils.init(0)._2
     val lines = scala.io.Source.fromFile(
       config.getString("classifiers.overweight.stream")).getLines.toList
     var count = 0
@@ -40,17 +40,23 @@ object OverweightAccounts {
       "#fashion", "#porn", "#clothes", "#sex", "#sexy", "#shopping",
       "ass").map(_.toLowerCase)
     val subTweets = filter(pos_kw, neg_kw, tweets)
-    pos_kw.foreach(k => {
+    val htagHandles =  pos_kw.map(k => {
       println(s"$k: ${subTweets.foldLeft(0)((s,t) => if(t.text.contains(k)) s+1 else s)}")
+      (k, subTweets.foldLeft(Set[String]())((s,t) => if(t.text.contains(k)) s + t.handle else s))
       })
 
     val handles = subTweets.foldLeft(Set[String]())((h, l) => h + l.handle)
     val bw = new BufferedWriter(new FileWriter(
-      s"${config.getString("classifier")}/overweight/ow_accounts.txt"))
-    
+      s"${config.getString("classifier")}/overweight/ow_accounts_" +
+      s"${(new java.util.Date()).toString.replace(" ", "_")}.txt"))
+    val bw2 = new BufferedWriter(new FileWriter(
+      s"${config.getString("classifier")}/overweight/ow_accounts_"+
+      s"${(new java.util.Date()).toString.replace(" ", "_")}_2.txt"))
     try {
       handles.foreach(h => bw.write(s"$h\tUNK\n"))
+      htagHandles.foreach{case (t,h) => bw2.write(s"$t\n${h.map(_+"\tUNK").mkString("\n")}\n")}
       bw.flush()
+      bw2.flush()
       } catch {
         case e: IOException =>
       }

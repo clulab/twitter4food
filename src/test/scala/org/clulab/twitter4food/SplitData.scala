@@ -7,7 +7,7 @@ import org.clulab.twitter4food.util._
 import org.clulab.twitter4food.struct._
 
 object SplitData extends App {
-  val (api, config) = TestUtils.init(0, true)
+  val (api, config) = TestUtils.init(0)
   /*val accounts = Source.fromFile(config.getString("classifiers.gender.trainingFile"))
     .getLines.toList
   val (males, females) = accounts.reverse.foldLeft((List[String](), List[String]()))(

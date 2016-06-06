@@ -10,7 +10,7 @@ object TestFileUtils {
   def main(args: Array[String]): Unit = {
     val keyset = args(0).toInt
     val numWindows = args(1).toInt
-    val api = new TwitterAPI(keyset, isAppOnly=true)
+    val api = new TwitterAPI(keyset)
     val config = ConfigFactory.load()
     val allAccounts = scala.io.Source.fromFile(
       config.getString("classifiers.gender.annotatedUsersFile")).getLines
