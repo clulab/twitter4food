@@ -155,10 +155,15 @@ class TwitterAPI(keyset: Int) {
             // Recursively fetch the account, only getting tweets (NOT NETWORK)
             val tgt = users(i)
             val condition = isID match {
-              case true => userOnlyTwitter.showFriendship(id, tgt.toLong)
-                .isTargetFollowedBySource
-              case false => userOnlyTwitter.showFriendship(handle, tgt)
-                .isTargetFollowedBySource
+              try {
+                case true => userOnlyTwitter.showFriendship(id, tgt.toLong)
+                  .isTargetFollowedBySource
+                case false => userOnlyTwitter.showFriendship(handle, tgt)
+                  .isTargetFollowedBySource
+                  } catch {
+                    case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+                                                 println(s"ErrorMsg = ${te.getErrorMessage}")
+                  }
               }
 
             sleep("showFriendship", isAppOnly=false)
@@ -182,9 +187,13 @@ class TwitterAPI(keyset: Int) {
           // Not enough mentions. Fall back on followers
           // Retrieve friends with bidirectional relationship as followers
           // 5000 is maximum on cursor and count
-
-          val _followerIDs = addActiveFollowers(numToRetrieve - followers.size,
+          try {
+            val _followerIDs = addActiveFollowers(numToRetrieve - followers.size,
             twitter.getFollowersIDs(id, -1, 5000).getIDs.map(_.toString), true)
+            } catch {
+              case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+                                       println(s"ErrorMsg = ${te.getErrorMessage}")
+            }
           sleep("getFollowersIDs", isAppOnly) //one minute per getFollowers
         }
       }
