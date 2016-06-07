@@ -38,7 +38,7 @@ object OverweightClassifier {
 
         val fileExt = args.mkString("").replace("-", "").sorted
 
-        val outputDir = config.getString("classifier") + "/overweight/results/r" + fileExt
+        val outputDir = config.getString("classifier") + "/overweight/results/" + fileExt
         if (!Files.exists(Paths.get(outputDir))) {
             if (new File(outputDir).mkdir())
                 println(s"Created output directory ${outputDir}")
@@ -47,21 +47,35 @@ object OverweightClassifier {
         }
 
 //        oc.runTest(args, "overweight", outputDir + "/results.txt")
-        val modelFile = s"${config.getString("classifier")}/overweight/model/m${fileExt}.dat"
+        val modelFile = s"${config.getString("classifier")}/overweight/model/${fileExt}.dat"
 
         // Allow user to specify if model should be loaded or overwritten
-        var loadModel = true
-        print("\n\nOverwrite existing file? (yes/no) ")
-        val answer = scala.io.StdIn.readLine()
-        if (answer.toLowerCase.charAt(0) == 'n')
-            loadModel = false
+        var loadModel = false
+        print("\n\nOverwrite existing model file? (yes/no) ")
+        var answer = scala.io.StdIn.readLine()
+        if (answer.toLowerCase.charAt(0) == 'n') {
+            loadModel = true
+            println("\tUse existing model file")
+        } else
+            println("\tOverwrite existing model file")
+
+
+        var testOnDev = true
+        print("Partition to test on? (dev/test) ")
+        answer = scala.io.StdIn.readLine()
+        if (answer.toLowerCase.charAt(0) == 't') {
+            testOnDev = false
+            println("\tTraining on train+dev, testing on test")
+        } else
+            println("\tTraining on train, testing on dev\n\n")
+
 
         // Load classifier if model exists
         if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
             println("Loading model from file...")
             val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
             oc.subClassifier = Some(cl)
-        } else {
+        } else if (testOnDev) {
             println("Loading training accounts...")
             val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
 
@@ -70,28 +84,45 @@ object OverweightClassifier {
             oc.setClassifier(new L1LinearSVMClassifier[String, String]())
             oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
             oc.subClassifier.get.saveTo(modelFile)
-        }
+        } else {
+            println("Loading training accounts...")
+            val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
+            println("Loading dev accounts...")
+            val devData = FileUtils.load(config.getString("classifiers.overweight.devData"))
 
-        println("Loading dev accounts...")
-        val devData = FileUtils.load(config.getString("classifiers.overweight.devData"))
-//        println("Loading test accounts...")
-//        val testAccounts = FileUtils.load(config.getString("classifiers.overweight.testData"))
+            val toTrainOn = trainingData ++ devData
+
+            // Train classifier and save model to file
+            println("Training classifier...")
+            oc.setClassifier(new L1LinearSVMClassifier[String, String]())
+            oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq)
+            oc.subClassifier.get.saveTo(modelFile)
+        }
+        
+        var testSet : scala.collection.mutable.Map[TwitterAccount, String] = null
+        if (testOnDev) {
+            println("Loading dev accounts...")
+            testSet = FileUtils.load(config.getString("classifiers.overweight.devData"))
+        } else {
+            println("Loading test accounts...")
+            testSet = FileUtils.load(config.getString("classifiers.overweight.testData"))
+        }
 
         // Set progress bar
         val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
         pb.start()
-        pb.maxHint(devData.size)
+        pb.maxHint(testSet.size)
         pb.setExtraMessage("Testing on dev accounts...")
 
         // Classify accounts
-        val devLabels = devData.values.toSeq
-        val predictedLabels = devData.keys.toSeq.map(u => { pb.step(); oc.classify(u); })
+        val testSetLabels = testSet.values.toSeq
+        val predictedLabels = testSet.keys.toSeq.map(u => { pb.step(); oc.classify(u); })
 
         pb.stop()
 
         // Print results
-        val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(devLabels, predictedLabels,
-            devData.keys.toSeq)
+        val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testSetLabels, predictedLabels,
+            testSet.keys.toSeq)
 
         val evalMetric = evalMeasures("Overweight")
         val precision = evalMetric.P
@@ -119,8 +150,7 @@ object OverweightClassifier {
         println(s"Micro average: ${microAvg}")
 
         // Save results
-        val writer = new BufferedWriter(new FileWriter(
-            config.getString("classifier") + "/overweight/results/r"+fileExt+"/analysisMetrics.txt", false))
+        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
         writer.write(s"Precision: ${precision}\n")
         writer.write(s"Recall: ${recall}\n")
         writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
