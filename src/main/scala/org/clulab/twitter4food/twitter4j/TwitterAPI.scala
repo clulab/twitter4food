@@ -154,24 +154,24 @@ class TwitterAPI(keyset: Int) {
             // Get follower account
             // Recursively fetch the account, only getting tweets (NOT NETWORK)
             val tgt = users(i)
-            val condition = isID match {
-              try {
-                case true => userOnlyTwitter.showFriendship(id, tgt.toLong)
+            var condition = false
+            try {
+              condition = if(isID) userOnlyTwitter.showFriendship(id, tgt.toLong)
+                .isTargetFollowedBySource
+                else userOnlyTwitter.showFriendship(handle, tgt)
                   .isTargetFollowedBySource
-                case false => userOnlyTwitter.showFriendship(handle, tgt)
-                  .isTargetFollowedBySource
-                  } catch {
-                    case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-                                                 println(s"ErrorMsg = ${te.getErrorMessage}")
-                  }
-              }
 
-            sleep("showFriendship", isAppOnly=false)
+              sleep("showFriendship", isAppOnly=false)
+
+            } catch {
+              case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+                                           println(s"ErrorMsg = ${te.getErrorMessage}")
+            }
 
             val follower = if(condition) fetchAccount(tgt,
               fetchTweets=true, fetchNetwork=false, isID)
               else null
-
+            
             if(follower != null) {
               followers = follower :: followers
               count -= 1
