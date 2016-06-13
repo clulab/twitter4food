@@ -55,8 +55,8 @@ class HumanClassifier(
                       "institution", "building", "edifice", "structure")
 
     def intersection(A: Set[String], B: Set[String]) = A.intersect(B)
-    def isPersonClass(set: Set[String]) = !intersection(set, PERSON_CLASS).isEmpty
-    def isOrgClass(set: Set[String]) = !intersection(set, ORG_CLASS).isEmpty
+    def isPersonClass(set: Set[String]) = intersection(set, PERSON_CLASS).nonEmpty
+    def isOrgClass(set: Set[String]) = intersection(set, ORG_CLASS).nonEmpty
 
     /** Recurse each synset until synset becomes too generic, or one or more
       * synset reaches person/org synset.
