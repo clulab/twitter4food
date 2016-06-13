@@ -13,11 +13,15 @@ import org.clulab.twitter4food.struct.TwitterAccount
   */
 
 class HumanClassifier(
-  useUnigrams: Boolean = true, useBigrams: Boolean = false,
-  useTopics: Boolean = false,  useDictionaries: Boolean = false,
-  useEmbeddings: Boolean = false, useFollowers: Boolean = false) 
-  extends ClassifierImpl(useUnigrams,
-    useBigrams, useTopics, useDictionaries, useEmbeddings, useFollowers) {
+    useUnigrams: Boolean = true,
+    useBigrams: Boolean = false,
+    useTopics: Boolean = false,
+    useDictionaries: Boolean = false,
+    useEmbeddings: Boolean = false,
+    useFollowers: Boolean = false,
+    datumScaling: Boolean = false,
+    featureScaling: Boolean = false)
+  extends ClassifierImpl {
 
   /** Add Datum[String, String] with custom counter
     * @param account base twitter account
