@@ -28,7 +28,9 @@ class ClassifierImpl(
   val useDictionaries: Boolean = false,
   val useEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
-  val useFollowers: Boolean = false) extends FeatureClassifier {
+  val useFollowers: Boolean = false,
+  val datumScaling: Boolean = false,
+  val featureScaling: Boolean = false) extends FeatureClassifier {
 
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, 
@@ -88,6 +90,10 @@ class ClassifierImpl(
     }
     
     pb.stop()
+
+    // normalize in place
+    if (featureScaling) {Datasets.svmScaleDataset(dataset, 0.0, 1.0); dataset}
+    else if (datumScaling) DatasetNormalization.scaleByDatum(dataset, 0.0, 1.0)
 
     // Train the classifier
     subClassifier.get.train(dataset)
