@@ -36,7 +36,7 @@ object TestUtils {
     val subHandles = collection.keys.slice(lower, upper).toArray
     val subLabels = subHandles.map(k => collection(k))
 
-    (subHandles -> subLabels)
+    subHandles -> subLabels
   }
 
   def fetchAccounts(api: TwitterAPI, handles: Seq[String], 
