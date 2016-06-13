@@ -21,7 +21,6 @@ class GenderClassifier(
 object GenderClassifier {
   def main(args: Array[String]): Unit = {
     val params = TestUtils.parseArgs(args)
-    val (api, config) = TestUtils.init(0)
     val gc = new GenderClassifier(params.useUnigrams, params.useBigrams,
       params.useTopics, params.useDictionaries, params.useEmbeddings)
     gc.runTest(args, "gender")

@@ -14,7 +14,6 @@ import scala.collection.mutable.Map
   */
 trait FeatureClassifier {
 
-
   def train(accounts: Seq[TwitterAccount], labels:Seq[String])
 
   def classify(account: TwitterAccount): String = {

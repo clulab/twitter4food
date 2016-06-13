@@ -70,7 +70,7 @@ class ClassifierImpl(
     * @param labels: Sequence of annotated labels for each account
     * @return Unit
     */
-  override def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
+  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
     assert(accounts.size == labels.size)
     
     // Clear current dataset if training on new one
@@ -79,7 +79,7 @@ class ClassifierImpl(
     val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
     pb.start()
     pb.maxHint(accounts.size)
-    pb.setExtraMessage("Training...")
+    pb.setExtraMessage("Populating...")
     
     // Populate dataset
     accounts.toArray zip labels foreach {
