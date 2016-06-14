@@ -89,7 +89,10 @@ object Followers {
 
         toFetch.foreach(follower => {
             println(s"Fetching ${follower}...")
-            followers += api.fetchAccount(h=follower, fetchTweets=false, fetchNetwork=true)
+            val fetchedAccount = api.fetchAccount(h=follower, fetchTweets=false, fetchNetwork=true)
+            if (fetchedAccount != null) {
+                fetchedAccount.activeFollowers.foreach(f => followers += f)
+            }
             pb.step
         } )
         pb.stop
