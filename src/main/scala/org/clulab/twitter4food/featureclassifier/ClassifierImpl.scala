@@ -92,7 +92,8 @@ class ClassifierImpl(
     pb.stop()
 
     // normalize in place
-    if (featureScaling) {Datasets.svmScaleDataset(dataset, 0.0, 1.0); dataset}
+    if (featureScaling && datumScaling) println("Only feature or datum scaling allowed, not both. Feature scaling...")
+    if (featureScaling) Datasets.svmScaleDataset(dataset, 0.0, 1.0)
     else if (datumScaling) DatasetNormalization.scaleByDatum(dataset, 0.0, 1.0)
 
     // Train the classifier
