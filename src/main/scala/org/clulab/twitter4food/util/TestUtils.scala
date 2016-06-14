@@ -4,10 +4,20 @@ import org.clulab.twitter4food.twitter4j._
 import org.clulab.twitter4food.struct._
 import com.typesafe.config.ConfigFactory
 import scala.reflect.ClassTag
-import scala.collection.mutable.ArrayBuffer
 import edu.arizona.sista.learning.LiblinearClassifier
 
 object TestUtils {
+  case class Config(
+      useUnigrams: Boolean = false,
+      useBigrams: Boolean = false,
+      useTopics: Boolean = false,
+      useDictionaries: Boolean = false,
+      useEmbeddings: Boolean = false,
+      useCosineSim: Boolean = false,
+      useFollowers: Boolean = false,
+      datumScaling: Boolean = false,
+      featureScaling: Boolean = false)
+
   def init(keyset: Int) = {
     (new TwitterAPI(keyset), ConfigFactory.load())
   }
@@ -27,7 +37,7 @@ object TestUtils {
     val subHandles = collection.keys.slice(lower, upper).toArray
     val subLabels = subHandles.map(k => collection(k))
 
-    (subHandles -> subLabels)
+    subHandles -> subLabels
   }
 
   def fetchAccounts(api: TwitterAPI, handles: Seq[String], 
@@ -46,31 +56,27 @@ object TestUtils {
     accounts
   }
 
-  def parseArgs(args: Array[String]) = {
-    case class Config(useUnigrams: Boolean = false, 
-      useBigrams: Boolean = false,
-      useTopics: Boolean = false,
-      useDictionaries: Boolean = false,
-      useEmbeddings: Boolean = false,
-      useCosineSim: Boolean = false,
-      useFollowers: Boolean = false)
-
+  def parseArgs(args: Array[String]): Config = {
     val parser = new scopt.OptionParser[Config]("classifier") {
       head("classifier", "0.x")
       opt[Unit]('u', "unigrams") action { (x, c) =>
-        c.copy(useUnigrams = true)} text("use unigrams")
+        c.copy(useUnigrams = true)} text "use unigrams"
       opt[Unit]('b', "bigrams") action { (x, c) =>
-        c.copy(useBigrams = true)} text("use bigrams")
+        c.copy(useBigrams = true)} text "use bigrams"
       opt[Unit]('t', "topics") action { (x, c) =>
-        c.copy(useTopics = true)} text("use topics")                
+        c.copy(useTopics = true)} text "use topics"
       opt[Unit]('d', "dictionaries") action { (x, c) =>
-        c.copy(useDictionaries = true)} text("use dictionaries")
+        c.copy(useDictionaries = true)} text "use dictionaries"
       opt[Unit]('e', "embeddings") action { (x, c) =>
-        c.copy(useEmbeddings = true)} text("use embeddings")
+        c.copy(useEmbeddings = true)} text "use embeddings"
       opt[Unit]('c', "cosineSim") action { (x, c) =>
-        c.copy(useCosineSim = true)} text("use cosine similarity")
+        c.copy(useCosineSim = true)} text "use cosine similarity"
       opt[Unit]('f', "followers") action { (x, c) =>
-        c.copy(useFollowers = true)} text("use followers")
+        c.copy(useFollowers = true)} text "use followers"
+      opt[Unit]('D', "datumScaling") action { (x, c) =>
+        c.copy(datumScaling = true)} text "use datum scaling"
+      opt[Unit]('F', "featureScaling") action { (x, c) =>
+        c.copy(featureScaling = true)} text "use feature scaling"
     }
 
     parser.parse(args, Config()).get
