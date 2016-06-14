@@ -37,8 +37,8 @@ class FeatureExtractor (
   var overweightVec: Option[Counter[String]] = None
 
   // Followers
-  val relationsFile = config.getString("classifiers.features.followerRelations") + ".txt"
-  val accountsFile = config.getString("classifiers.features.followerAccounts") + ".txt"
+  val relationsFile = config.getString("classifiers.features.followerRelations")
+  val accountsFile = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFile) else Map[TwitterAccount, String]()
 
   /** 
@@ -81,10 +81,40 @@ class FeatureExtractor (
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
       counter += cosineSim(account)
-    if (useFollowers)
+    if (useFollowers) {
+      counter += appendPrefix("main_", counter)
       counter += followers(account)
+    }
 
     counter
+  }
+
+  def mkFeaturesFollowers(account: TwitterAccount): Counter[String] = {
+    var counter = new Counter[String]
+    if (useUnigrams)
+      counter += ngrams(1, account)
+    if (useBigrams)
+      counter += ngrams(2, account)
+    if (useTopics)
+      counter += topics(account)
+    if (useDictionaries)
+      counter += dictionaries(account)
+    if (useEmbeddings){
+
+    } // TODO: how to add embeddings as a feature if not returning a counter?
+    if (useCosineSim)
+      counter += cosineSim(account)
+    // Calling mkFeatures on followers will end up being endlessly recursive
+
+    counter
+  }
+
+  // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
+  def appendPrefix (prefix: String, counter: Counter[String]): Counter[String] = {
+    val temp = new Counter[String]()
+    for ((label, score) <- counter.toSeq)
+      temp.setCount(prefix + label, score)
+    temp
   }
 
   def setCounts(words: Seq[String], counter: Counter[String]) = {
@@ -142,13 +172,14 @@ class FeatureExtractor (
       */
   def followers(account: TwitterAccount): Counter[String] = {
     // Find this account's active followers
-    var followerHandles = Array[String]()
-    for (line <- scala.io.Source.fromFile(relationsFile).getLines) {
-      val handles = line.split("\t")
-      if (handles(0) equals account.handle) {
-        followerHandles = handles.slice(1, handles.length)
-      }
-    }
+//    var followerHandles = Array[String]()
+//    for (line <- scala.io.Source.fromFile(relationsFile).getLines) {
+//      val handles = line.split("\t")
+//      if (handles(0) equals account.handle) {
+//        followerHandles = handles.slice(1, handles.length)
+//      }
+//    }
+    var followerHandles = account.activeFollowers
 
     // Find the TwitterAccount object corresponding to these handles
     val followers = followerHandles.map(f => {
@@ -159,20 +190,13 @@ class FeatureExtractor (
       toReturn
     })
 
-    // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
-    val appendPrefix = (prefix: String, counter: Counter[String]) => {
-      val temp = new Counter[String]()
-      for ((label, score) <- counter.toSeq)
-        temp.setCount(prefix + label, score)
-      temp
-    }
-
     // Aggregate the counter for the followers using the other features being used
     val followerCounter = new Counter[String]()
-    val prefix = "follower_"
     for (follower <- followers) {
-      followerCounter += appendPrefix(prefix, mkFeatures(follower))
+      followerCounter += mkFeaturesFollowers(follower)
+      followerCounter += appendPrefix("follower_", mkFeaturesFollowers(follower))
     }
+
     followerCounter
   }
 

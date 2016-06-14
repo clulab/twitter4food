@@ -52,7 +52,8 @@ object TestUtils {
       useTopics: Boolean = false,
       useDictionaries: Boolean = false,
       useEmbeddings: Boolean = false,
-      useCosineSim: Boolean = false)
+      useCosineSim: Boolean = false,
+      useFollowers: Boolean = false)
 
     val parser = new scopt.OptionParser[Config]("classifier") {
       head("classifier", "0.x")
@@ -68,6 +69,8 @@ object TestUtils {
         c.copy(useEmbeddings = true)} text("use embeddings")
       opt[Unit]('c', "cosineSim") action { (x, c) =>
         c.copy(useCosineSim = true)} text("use cosine similarity")
+      opt[Unit]('f', "followers") action { (x, c) =>
+        c.copy(useFollowers = true)} text("use followers")
     }
 
     parser.parse(args, Config()).get
