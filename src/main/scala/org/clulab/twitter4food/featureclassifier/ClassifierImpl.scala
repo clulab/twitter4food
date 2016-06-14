@@ -60,12 +60,12 @@ class ClassifierImpl(
     */
   def loadLexicons(lexiconMap: Map[String, Seq[String]]) = {
     val l = lexiconMap map { 
-      case (k, v) => (k, v.map(Lexicon.loadFrom[String](_))) 
+      case (k, v) => (k, v.map(Lexicon.loadFrom[String]))
     }
     featureExtractor.lexicons = Some(l)
   }
 
-  /** Sequentially adds a datum of (label, mkDatum(account))
+  /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
     * @param accounts: Sequence of training accounts
     * @param labels: Sequence of annotated labels for each account
     * @return Unit
