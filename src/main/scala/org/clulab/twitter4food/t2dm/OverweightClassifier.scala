@@ -22,8 +22,9 @@ class OverweightClassifier(useUnigrams: Boolean = true,
                            useTopics: Boolean = false,
                            useDictionaries: Boolean = false,
                            useEmbeddings: Boolean = false,
-                           useCosineSim: Boolean) extends ClassifierImpl(
-                                useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings, useCosineSim) {
+                           useCosineSim: Boolean = false,
+                           useFollowers: Boolean = false ) extends ClassifierImpl(
+                                useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers) {
 
 }
 
@@ -33,8 +34,30 @@ object OverweightClassifier {
         // Parse args using standard Config
         val params = TestUtils.parseArgs(args)
         val config = ConfigFactory.load
+
+        // Allow user to specify if model should be loaded or overwritten
+        var loadModel = false
+        print("\n\nOverwrite existing model file? (yes/no) ")
+        var answer = scala.io.StdIn.readLine()
+        if (answer.toLowerCase.charAt(0) == 'n') {
+            loadModel = true
+            println("\tUse existing model file")
+        } else
+            println("\tOverwrite existing model file")
+
+        var testOnDev = true
+        print("Partition to test on? (dev/test) ")
+        answer = scala.io.StdIn.readLine()
+        if (answer.toLowerCase.charAt(0) == 't') {
+            testOnDev = false
+            println("\tTraining on train+dev, testing on test")
+        } else
+            println("\tTraining on train, testing on dev\n\n")
+
+
+        // Instantiate classifer after prompts in case followers are being used (file takes a long time to load)
         val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams,
-            params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim)
+            params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers)
 
         val fileExt = args.mkString("").replace("-", "").sorted
 
@@ -48,27 +71,6 @@ object OverweightClassifier {
 
 //        oc.runTest(args, "overweight", outputDir + "/results.txt")
         val modelFile = s"${config.getString("classifier")}/overweight/model/${fileExt}.dat"
-
-        // Allow user to specify if model should be loaded or overwritten
-        var loadModel = false
-        print("\n\nOverwrite existing model file? (yes/no) ")
-        var answer = scala.io.StdIn.readLine()
-        if (answer.toLowerCase.charAt(0) == 'n') {
-            loadModel = true
-            println("\tUse existing model file")
-        } else
-            println("\tOverwrite existing model file")
-
-
-        var testOnDev = true
-        print("Partition to test on? (dev/test) ")
-        answer = scala.io.StdIn.readLine()
-        if (answer.toLowerCase.charAt(0) == 't') {
-            testOnDev = false
-            println("\tTraining on train+dev, testing on test")
-        } else
-            println("\tTraining on train, testing on dev\n\n")
-
 
         // Load classifier if model exists
         if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
