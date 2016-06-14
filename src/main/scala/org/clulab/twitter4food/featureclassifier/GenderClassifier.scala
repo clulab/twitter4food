@@ -12,18 +12,23 @@ import java.io._
   * @date 03-13-2016
   */
 class GenderClassifier(
-  useUnigrams: Boolean = true, useBigrams: Boolean = false,
-  useTopics: Boolean = false,  useDictionaries: Boolean = false,
-  useEmbeddings: Boolean = false, useFollowers: Boolean = false) 
-  extends ClassifierImpl(useUnigrams, useBigrams, useTopics, 
-    useDictionaries, useEmbeddings, useFollowers)
+    useUnigrams: Boolean = true,
+    useBigrams: Boolean = false,
+    useTopics: Boolean = false,
+    useDictionaries: Boolean = false,
+    useEmbeddings: Boolean = false,
+    useFollowers: Boolean = false,
+    datumScaling: Boolean = false,
+    featureScaling: Boolean = false)
+  extends ClassifierImpl
 
 object GenderClassifier {
   def main(args: Array[String]): Unit = {
     val params = TestUtils.parseArgs(args)
-    val (api, config) = TestUtils.init(0)
+    TestUtils.init(0)
     val gc = new GenderClassifier(params.useUnigrams, params.useBigrams,
-      params.useTopics, params.useDictionaries, params.useEmbeddings)
+      params.useTopics, params.useDictionaries, params.useEmbeddings,
+      params.datumScaling, params.featureScaling)
     gc.runTest(args, "gender")
   }
 }
