@@ -17,16 +17,17 @@ import org.clulab.twitter4food.util.{Eval, EvalMetric, FileUtils, TestUtils}
   *
   * All parameters are consistent with those in FeatureExtractor
   */
-class OverweightClassifier(useUnigrams: Boolean = true,
-                           useBigrams: Boolean = false,
-                           useTopics: Boolean = false,
-                           useDictionaries: Boolean = false,
-                           useEmbeddings: Boolean = false,
-                           useCosineSim: Boolean = false,
-                           useFollowers: Boolean = false ) extends ClassifierImpl(
-                                useUnigrams, useBigrams, useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers) {
-
-}
+class OverweightClassifier(
+    useUnigrams: Boolean = true,
+    useBigrams: Boolean = false,
+    useTopics: Boolean = false,
+    useDictionaries: Boolean = false,
+    useEmbeddings: Boolean = false,
+    useCosineSim: Boolean = false,
+    useFollowers: Boolean = false,
+    datumScaling: Boolean = false,
+    featureScaling: Boolean = false)
+  extends ClassifierImpl
 
 object OverweightClassifier {
 
@@ -56,8 +57,9 @@ object OverweightClassifier {
 
 
         // Instantiate classifer after prompts in case followers are being used (file takes a long time to load)
-        val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams,
-            params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers)
+        val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams, params.useTopics,
+          params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers, params.datumScaling,
+          params.featureScaling)
 
         val fileExt = args.mkString("").replace("-", "").sorted
 

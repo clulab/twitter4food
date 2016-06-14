@@ -13,11 +13,15 @@ import org.clulab.twitter4food.struct.TwitterAccount
   */
 
 class HumanClassifier(
-  useUnigrams: Boolean = true, useBigrams: Boolean = false,
-  useTopics: Boolean = false,  useDictionaries: Boolean = false,
-  useEmbeddings: Boolean = false, useFollowers: Boolean = false) 
-  extends ClassifierImpl(useUnigrams,
-    useBigrams, useTopics, useDictionaries, useEmbeddings, useFollowers) {
+    useUnigrams: Boolean = true,
+    useBigrams: Boolean = false,
+    useTopics: Boolean = false,
+    useDictionaries: Boolean = false,
+    useEmbeddings: Boolean = false,
+    useFollowers: Boolean = false,
+    datumScaling: Boolean = false,
+    featureScaling: Boolean = false)
+  extends ClassifierImpl {
 
   /** Add Datum[String, String] with custom counter
     * @param account base twitter account
@@ -51,8 +55,8 @@ class HumanClassifier(
                       "institution", "building", "edifice", "structure")
 
     def intersection(A: Set[String], B: Set[String]) = A.intersect(B)
-    def isPersonClass(set: Set[String]) = !intersection(set, PERSON_CLASS).isEmpty
-    def isOrgClass(set: Set[String]) = !intersection(set, ORG_CLASS).isEmpty
+    def isPersonClass(set: Set[String]) = intersection(set, PERSON_CLASS).nonEmpty
+    def isOrgClass(set: Set[String]) = intersection(set, ORG_CLASS).nonEmpty
 
     /** Recurse each synset until synset becomes too generic, or one or more
       * synset reaches person/org synset.
