@@ -4,7 +4,7 @@ import java.io.{File, PrintWriter, Serializable}
 import java.util.ArrayList
 
 import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
-import cc.mallet.topics.{LDA, ParallelTopicModel}
+import cc.mallet.topics.ParallelTopicModel
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.util.FileUtils
@@ -51,7 +51,7 @@ object LDA {
 
   def mkInstance(tokens: Seq[String], tokenFilter: (Seq[String] => Seq[String]) = filterStopWords): Instance = {
     val t = tokenFilter(tokens map stripHashtag)
-    new Instance(new TokenSequence(t.map(new Token(_))), null, null, null)
+    new Instance(new TokenSequence(t.map(new Token(_)).toArray), null, null, null)
   }
 
   def filterStopWords(tokens: Seq[String]): Seq[String] = tokens filterNot stopWords.contains
