@@ -3,6 +3,11 @@ package org.clulab.twitter4food.featureclassifier
 import edu.arizona.sista.learning.{Datasets, RVFDataset, RVFDatum, ScaleRange}
 import edu.arizona.sista.struct.Counter
 
+/**
+  * @author danebell
+  * @date 06-10-2016
+  */
+
 object DatasetNormalization {
   /** The actual scaling formula taken from svm-scale
     * Copied from edu.arizona.sista.learning.Datasets
