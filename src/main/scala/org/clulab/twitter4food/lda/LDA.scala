@@ -7,7 +7,7 @@ import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.ParallelTopicModel
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 
 import scala.io.Source
 
@@ -111,15 +111,18 @@ object LDA {
 
     val config = ConfigFactory.load
 
+    val fe = new org.clulab.twitter4food.struct.FeatureExtractor(false,false,false,false,false,false,false)
+
     val tweets = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
       .keys
       .par
       .flatMap(_.tweets
-        .map(_.text
-          .split("\\s+")
-          .toSeq
-          .map(_.toLowerCase())))
-      .seq
+        .map(tweet =>
+          fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
+            .map(_.token)
+            .toSeq
+        )
+      ).seq
 
     println(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
 
