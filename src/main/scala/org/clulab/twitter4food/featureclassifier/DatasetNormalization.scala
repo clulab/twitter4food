@@ -1,6 +1,6 @@
 package org.clulab.twitter4food.featureclassifier
 
-import edu.arizona.sista.learning.{RVFDataset, RVFDatum, ScaleRange}
+import edu.arizona.sista.learning.{Datasets, RVFDataset, RVFDatum, ScaleRange}
 import edu.arizona.sista.struct.Counter
 
 object DatasetNormalization {
@@ -14,7 +14,15 @@ object DatasetNormalization {
     lower + (upper - lower) * (value - min) / (max - min)
   }
 
-  def scaleByDatum[L, F](dataset:RVFDataset[L, F], lower:Double, upper:Double): Unit = {
+  /**
+    * Scale each [[RVFDatum]] in an [[RVFDataset]] in place according to its own maximum feature value
+    * @param dataset dataset to be normalized (in place)
+    * @param lower lower bound of normalized values (e.g. -1 or 0), inclusive
+    * @param upper upper bound of normalized values (e.g. 1), inclusive
+    * @tparam L label type
+    * @tparam F feature type
+    */
+  def scaleByDatum[L,F](dataset:RVFDataset[L,F], lower:Double, upper:Double): Unit = {
     // scan the dataset once and keep track of min/max for each feature
     for(i <- dataset.indices) {
       val datumMin = dataset.values(i).min
@@ -25,5 +33,16 @@ object DatasetNormalization {
     }
   }
 
+  /**
+    * Scale each feature in an [[RVFDataset]] in place according to the minimum and maximum values of the feature
+    * @param dataset dataset to be normalized (in place)
+    * @param lower lower bound of normalized values (e.g. -1 or 0), inclusive
+    * @param upper upper bound of normalized values (e.g. 1), inclusive
+    * @tparam L label type
+    * @tparam F feature type
+    */
+  def scaleByFeature[L,F](dataset:RVFDataset[L,F], lower:Double, upper:Double): Unit = {
+    Datasets.svmScaleDataset(dataset, lower, upper)
+  }
 }
 
