@@ -114,7 +114,11 @@ object LDA {
     val tweets = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
       .keys
       .par
-      .flatMap(_.tweets.map(_.text.split("\\s+").toSeq))
+      .flatMap(_.tweets
+        .map(_.text
+          .split("\\s+")
+          .toSeq
+          .map(_.toLowerCase())))
       .seq
 
     println(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
