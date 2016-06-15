@@ -123,7 +123,7 @@ object LDA {
     val textOutFile = new PrintWriter(new File(config.getString("lda.modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.txt"""))
 
     for {
-      topic <- 0 to params.numTopics // which topic
+      topic <- 0 until params.numTopics // which topic
       iterator = topicModel.get(topic).iterator()
     } {
       val wds = for {
