@@ -117,6 +117,8 @@ object LDA {
       .flatMap(_.tweets.map(_.text.split("\\s+").toSeq))
       .seq
 
+    println(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
+
     val (lda, alphabet) = LDA.train(tweets, params.numTopics, params.numIterations)
     val topicModel = lda.model.getSortedWords
 
