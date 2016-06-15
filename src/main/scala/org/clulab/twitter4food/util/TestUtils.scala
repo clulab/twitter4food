@@ -14,6 +14,7 @@ object TestUtils {
       useDictionaries: Boolean = false,
       useEmbeddings: Boolean = false,
       useCosineSim: Boolean = false,
+      useFollowers: Boolean = false,
       datumScaling: Boolean = false,
       featureScaling: Boolean = false)
 
@@ -70,9 +71,11 @@ object TestUtils {
         c.copy(useEmbeddings = true)} text "use embeddings"
       opt[Unit]('c', "cosineSim") action { (x, c) =>
         c.copy(useCosineSim = true)} text "use cosine similarity"
-      opt[Unit]('m', "datumScaling") action { (x, c) =>
+      opt[Unit]('f', "followers") action { (x, c) =>
+        c.copy(useFollowers = true)} text "use followers"
+      opt[Unit]('D', "datumScaling") action { (x, c) =>
         c.copy(datumScaling = true)} text "use datum scaling"
-      opt[Unit]('f', "featureScaling") action { (x, c) =>
+      opt[Unit]('F', "featureScaling") action { (x, c) =>
         c.copy(featureScaling = true)} text "use feature scaling"
     }
 
