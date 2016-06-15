@@ -106,7 +106,10 @@ object LDA {
       }
       parser.parse(args, Config()).get
     }
+
     val params = parseArgs(args)
+
+    val config = ConfigFactory.load
 
     val tweets = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
       .keys
@@ -117,7 +120,7 @@ object LDA {
     val (lda, alphabet) = LDA.train(tweets, params.numTopics, params.numIterations)
     val topicModel = lda.model.getSortedWords
 
-    val textOutFile = new PrintWriter(new File(ConfigFactory.parseString("modelDir") + s"""lda_${params.numTopics}t_${params.numIterations}i.txt"""))
+    val textOutFile = new PrintWriter(new File(config.getString("lda.modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.txt"""))
 
     for {
       topic <- 0 to params.numTopics // which topic
@@ -132,6 +135,6 @@ object LDA {
     }
 
     // save the model itself
-    save(lda, ConfigFactory.parseString("modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.model""")
+    save(lda, config.getString("lda.modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.model""")
   }
 }
