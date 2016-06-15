@@ -132,6 +132,6 @@ object LDA {
     }
 
     // save the model itself
-    save(lda, ConfigFactory.parseString("modelDir") + s"""lda_${params.numTopics}t_${params.numIterations}i.model""")
+    save(lda, ConfigFactory.parseString("modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.model""")
   }
 }
