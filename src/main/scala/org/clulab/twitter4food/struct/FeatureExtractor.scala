@@ -135,6 +135,7 @@ class FeatureExtractor (
 
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
+    *
     * @param n Degree of n-gram (e.g. 1 refers to unigrams)
     * @param account
     * @return counter
@@ -168,20 +169,17 @@ class FeatureExtractor (
   /**
     * Adds the flagged features onto counter with "follower_" prefixed
     * onto each label, effectively serving as domain adaptation.
+    *
     * @param account
     * @return counter
     */
   def followers(account: TwitterAccount, followee: Counter[String]): Counter[String] = {
-    val followerHandles = account.activeFollowers
+    val followerHandles = account.activeFollowers.map(_.handle)
 
     // Find the TwitterAccount object corresponding to these handles
-    val followers = followerHandles.map(f => {
-      var toReturn: TwitterAccount = null
-      followerAccounts.keys.foreach(fa => {
-        if (fa.handle equals f) toReturn = fa
-      })
-      toReturn
-    })
+    val followers: Seq[TwitterAccount] = (for (fh <- followerHandles) yield {
+      followerAccounts.keys.find(fa => fa.handle == fh)
+    }).flatten
 
     // Aggregate the counter for the followers using the other features being used
     val followerCounter = new Counter[String]()
@@ -200,6 +198,7 @@ class FeatureExtractor (
 
   /**
     * Functions like unigrams but constrained to words in dictionaries.
+    *
     * @param account
     * @return counter
     */
@@ -344,6 +343,7 @@ class FeatureExtractor (
     * A single feature (that is, a counter with the singular entry ("cosineSim" -> cosineSim).
     * Calculates the cosine similarity between the TFIDF vector of the account's description
     * and tweets and the TFIDF vector of the overweight corpus.
+    *
     * @param account
     * @return counter
     */
