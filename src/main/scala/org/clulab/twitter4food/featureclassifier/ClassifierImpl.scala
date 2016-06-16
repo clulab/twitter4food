@@ -11,11 +11,11 @@ import scala.collection.JavaConverters._
 /** Implementation of the FeatureClassifier trait that contains the
   * nitty-gritty of creating FeatureExtractors, adding datums,
   * training and testing of datasets (with hyperparameter tuning).
-  * 
+  *
   * Specific subclassifiers would extend ClassifierImpl with fixed
   * configuration to tweak usage of unigrams, bigrams, topics, embeddings,
   * cosine similarity, and follower features. 
-  * 
+  *
   * @author adikou
   * @author tishihara
   * @date 04-02-2016
@@ -33,7 +33,7 @@ class ClassifierImpl(
   val featureScaling: Boolean = false) extends FeatureClassifier {
 
   /** featureExtractor instance local to each classifier */
-  val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams, 
+  val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams,
     useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers)
 
   /** subClassifier that does the actual training over {@link dataset} */
@@ -59,7 +59,7 @@ class ClassifierImpl(
     * @return Unit
     */
   def loadLexicons(lexiconMap: Map[String, Seq[String]]) = {
-    val l = lexiconMap map { 
+    val l = lexiconMap map {
       case (k, v) => (k, v.map(Lexicon.loadFrom[String]))
     }
     featureExtractor.lexicons = Some(l)
@@ -72,15 +72,15 @@ class ClassifierImpl(
     */
   def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
     assert(accounts.size == labels.size)
-    
+
     // Clear current dataset if training on new one
     dataset = new RVFDataset[String, String]()
- 
+
     val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
     pb.start()
     pb.maxHint(accounts.size)
     pb.setExtraMessage("Populating...")
-    
+
     // Populate dataset
     accounts.toArray zip labels foreach {
       case (parAccount, label) => {
@@ -88,14 +88,14 @@ class ClassifierImpl(
         pb.step()
       }
     }
-    
+
     pb.stop()
 
     // normalize in place
     if (featureScaling && datumScaling) println("Only feature or datum scaling allowed, not both. Datum scaling...")
 
-    if (datumScaling) DatasetNormalization.scaleByDatum(dataset, 0.0, 1.0)
-    else if (featureScaling) DatasetNormalization.scaleByFeature(dataset, 0.0, 1.0)
+    if (datumScaling) Normalization.scaleByDatum(dataset, 0.0, 1.0)
+    else if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
 
     // Train the classifier
     subClassifier.get.train(dataset)
@@ -140,7 +140,7 @@ class ClassifierImpl(
     K: Int,
     ctype: String,
     args: Array[String]) = {
-    
+
     subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
     val labelSet = trainingLabels.toSet
 
@@ -148,7 +148,7 @@ class ClassifierImpl(
     if(useDictionaries) {
       // For each label, populate list of lexicon filepaths from config
       val lexMap = labelSet.foldLeft(Map[String, Seq[String]]())(
-      (m, l) => m + (l -> 
+      (m, l) => m + (l ->
         config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
 
       loadLexicons(lexMap)
@@ -157,8 +157,8 @@ class ClassifierImpl(
     // Skim only top-K tweets for each account
     val customAccounts = trainingSet.map(t => {
       val numTweets = Math.min(K, t.tweets.size)
-      new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url, 
-        t.location, t.description, t.tweets.slice(0, numTweets), 
+      new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url,
+        t.location, t.description, t.tweets.slice(0, numTweets),
         Seq[TwitterAccount]())
       })
 
@@ -176,7 +176,7 @@ class ClassifierImpl(
     * @return predictedLabels sequence of predicted labels
     */
   def _test(testSet: Seq[TwitterAccount]): Seq[String] = {
-    
+
     val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
     pb.start()
     pb.maxHint(testSet.size.toInt)
@@ -185,7 +185,7 @@ class ClassifierImpl(
     val predictedLabels = testSet.toArray.map(u => {
       val label = classify(u); pb.step(); label
       }).toSeq
-    
+
     pb.stop()
 
     predictedLabels
@@ -204,12 +204,12 @@ class ClassifierImpl(
     * @return (evalMeasures, microAvg, macroAvg) tuple to track performance
     */
   def _evaluate(testingLabels: Seq[String],
-    predictedLabels: Seq[String], 
+    predictedLabels: Seq[String],
     testSet: Seq[TwitterAccount],
     writer: BufferedWriter, _C: Double, K: Int) = {
-    val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels, 
+    val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels,
         predictedLabels, testSet)
-        
+
     val df = new java.text.DecimalFormat("#.###")
 
     println(s"C=${_C}, #K=$K")
@@ -255,19 +255,19 @@ class ClassifierImpl(
     val fileExt = args.mkString("").replace("-", "").sorted
     val tweetFolds = Array(10, 50, 100, 500, 1000, 2000, 5000)
     val cFolds = Array(0.001, 0.01, 0.1, 1, 10, 100, 1000)
-    
+
     /*
      * (i)  Tune parameters 
      * (ii) Pick top-K tweets
      */
 
-    val (trainUsers, devUsers, testUsers) = (trainingData.keys.toArray, 
+    val (trainUsers, devUsers, testUsers) = (trainingData.keys.toArray,
       devData.keys.toArray, testData.keys.toArray)
 
-    val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray, 
+    val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray,
       devData.values.toArray, testData.values.toArray)
 
-    var writerFile = if (outputFile != null) outputFile 
+    var writerFile = if (outputFile != null) outputFile
       else config.getString("classifier") + s"/$ctype/output-" +
         fileExt + ".txt"
 
@@ -276,10 +276,10 @@ class ClassifierImpl(
 
     // Values for accuracies for C * K
     val gridCbyK = Array.ofDim[Double](7,7)
-    
+
     /** For a given classifier, load its associated train, dev, and test
       * accounts, and write results to file.
-      * @param trainingSet 
+      * @param trainingSet
       * @param trainingLabels
       * @param testingSet
       * @param testingLabels
@@ -287,29 +287,29 @@ class ClassifierImpl(
       * @param K threshold for top-K tweets for each user
       * @return microAvg micro-average aggregated over each label
       */
-    val unitTest = (trainingSet: Seq[TwitterAccount], 
-      trainingLabels: Seq[String], 
+    val unitTest = (trainingSet: Seq[TwitterAccount],
+      trainingLabels: Seq[String],
       testingSet: Seq[TwitterAccount],
       testingLabels: Seq[String],
       _C: Double,
       K: Int) => {
-      
+
       println(s"Training with C=${_C} and top-${K} tweets")
 
       _train(trainingSet, trainingLabels,_C, K, ctype, args)
       val predictedLabels = _test(testingSet)
 
-      val (evalMeasures, microAvg, macroAvg) = _evaluate(testingLabels, 
+      val (evalMeasures, microAvg, macroAvg) = _evaluate(testingLabels,
         predictedLabels, testingSet, writer, _C, K)
-      
+
       microAvg
     }
 
     for(i <- cFolds.indices) {
-      val _C = cFolds(i)       
+      val _C = cFolds(i)
       for(j <- tweetFolds.indices) {
-        val K = tweetFolds(j) 
-        gridCbyK(i)(j) = unitTest(trainUsers, trainLabels, 
+        val K = tweetFolds(j)
+        gridCbyK(i)(j) = unitTest(trainUsers, trainLabels,
           devUsers, devLabels, _C, K)
       }
     }
@@ -331,7 +331,7 @@ class ClassifierImpl(
     writer.flush()
 
     // Final run on test Set
-    unitTest(trainUsers ++ devUsers, trainLabels ++ devLabels, 
+    unitTest(trainUsers ++ devUsers, trainLabels ++ devLabels,
       testUsers, testLabels, cFolds(iMax), tweetFolds(jMax))
 
     println("*****Test complete*****")
@@ -368,7 +368,7 @@ class ClassifierImpl(
   def predict(tests: Seq[TwitterAccount]) = _test(tests)
 
   def predict(testFile: String) = {
-    
+
     val allTestData = FileUtils.load(testFile)
     val testAccounts = allTestData.map(_._1).toArray
 

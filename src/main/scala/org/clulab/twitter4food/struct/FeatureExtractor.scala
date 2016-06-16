@@ -4,7 +4,8 @@ import java.io.{BufferedReader, FileReader}
 
 import edu.arizona.sista.learning.{Datum, RVFDatum}
 import edu.arizona.sista.struct.{Counter, Counters, Lexicon}
-import org.clulab.twitter4food.util.{FileUtils, TestUtils, Tokenizer}
+import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
+import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 
@@ -83,7 +84,7 @@ class FeatureExtractor (
       counter += cosineSim(account)
     if (useFollowers) {
       counter += appendPrefix("main_", counter)
-      counter += followers(account)
+      counter += followers(account, counter)
     }
 
     counter
@@ -170,16 +171,8 @@ class FeatureExtractor (
     * @param account
     * @return counter
     */
-  def followers(account: TwitterAccount): Counter[String] = {
-    // Find this account's active followers
-//    var followerHandles = Array[String]()
-//    for (line <- scala.io.Source.fromFile(relationsFile).getLines) {
-//      val handles = line.split("\t")
-//      if (handles(0) equals account.handle) {
-//        followerHandles = handles.slice(1, handles.length)
-//      }
-//    }
-    var followerHandles = account.activeFollowers
+  def followers(account: TwitterAccount, followee: Counter[String]): Counter[String] = {
+    val followerHandles = account.activeFollowers
 
     // Find the TwitterAccount object corresponding to these handles
     val followers = followerHandles.map(f => {
@@ -193,8 +186,9 @@ class FeatureExtractor (
     // Aggregate the counter for the followers using the other features being used
     val followerCounter = new Counter[String]()
     for (follower <- followers) {
-      followerCounter += mkFeaturesFollowers(follower)
-      followerCounter += appendPrefix("follower_", mkFeaturesFollowers(follower))
+      val followerFeatures = scaleByCounter(mkFeaturesFollowers(follower), followee)
+      followerCounter += followerFeatures
+      followerCounter += appendPrefix("follower_", followerFeatures)
     }
 
     followerCounter

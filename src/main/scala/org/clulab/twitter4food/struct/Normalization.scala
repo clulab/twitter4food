@@ -1,6 +1,6 @@
-package org.clulab.twitter4food.featureclassifier
+package org.clulab.twitter4food.struct
 
-import edu.arizona.sista.learning.{Datasets, RVFDataset, RVFDatum, ScaleRange}
+import edu.arizona.sista.learning.{Datasets, RVFDataset, RVFDatum}
 import edu.arizona.sista.struct.Counter
 
 /**
@@ -8,7 +8,7 @@ import edu.arizona.sista.struct.Counter
   * @date 06-10-2016
   */
 
-object DatasetNormalization {
+object Normalization {
   /** The actual scaling formula taken from svm-scale
     * Copied from edu.arizona.sista.learning.Datasets
     * */
@@ -49,5 +49,14 @@ object DatasetNormalization {
   def scaleByFeature[L,F](dataset:RVFDataset[L,F], lower:Double, upper:Double): Unit = {
     Datasets.svmScaleDataset(dataset, lower, upper)
   }
+
+  /**
+    * Scale a [[Counter]] to have the same total size as a reference [[Counter]]
+    * @param toScale a [[Counter]] that we want to normalize to another [[Counter]]'s size.
+    * @param scaleBy the reference [[Counter]]
+    * @tparam T the type of the [[Counter]]s, e.g. [[String]]
+    * @return toScale, scaled by size of scaleBy
+    */
+  def scaleByCounter[T](toScale:Counter[T], scaleBy:Counter[T]): Counter[T] = toScale * (scaleBy.getTotal / toScale.getTotal)
 }
 
