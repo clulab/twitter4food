@@ -80,7 +80,7 @@ class FeatureExtractor (
     * @return Counter of all features signified by constructor flags
     */
   def mkFeatures(account: TwitterAccount): Counter[String] = {
-    var counter = new Counter[String]
+    val counter = new Counter[String]
     if (useUnigrams)
       counter += ngrams(1, account)
     if (useBigrams)
@@ -94,9 +94,21 @@ class FeatureExtractor (
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
       counter += cosineSim(account)
+
+    scaleByDatum(counter, 0.0, 1.0)
+
     if (useFollowers) {
-      counter += appendPrefix("main_", counter)
-      counter += followers(account, counter)
+      // make deep copy of counter, range 0-1
+      val mc = new Counter[String]
+      counter.toSeq.foreach(kv => mc.setCount(kv._1, kv._2))
+
+      val fc = followers(account)
+      scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
+
+      counter += fc
+      scaleByDatum(counter, 0.0, 1.0) // combined main and followers features range 0-1
+
+      counter += appendPrefix("followers_", fc) + appendPrefix("main_", mc)
     }
 
     counter
@@ -179,15 +191,14 @@ class FeatureExtractor (
   }
 
   /**
-    * Adds the flagged features onto counter with "follower_" prefixed
-    * onto each label, effectively serving as domain adaptation.
+    * Adds the flagged features to a new counter for domain adaptation.
     *
     * @param account
     * @return counter
     */
-  def followers(account: TwitterAccount, followee: Counter[String]): Counter[String] = {
+  def followers(account: TwitterAccount): Counter[String] = {
     // Find this account's active followers
-    var followerHandles = handleToRelations(account.handle)
+    val followerHandles = handleToRelations(account.handle)
 
     // Find the TwitterAccount object corresponding to these handles
     val followers = followerHandles.map(f => {
@@ -197,9 +208,7 @@ class FeatureExtractor (
     // Aggregate the counter for the followers using the other features being used
     val followerCounter = new Counter[String]()
     for (follower <- followers) {
-      val followerFeatures = scaleByCounter(mkFeaturesFollowers(follower), followee)
-      followerCounter += followerFeatures
-      followerCounter += appendPrefix("follower-", followerFeatures)
+      followerCounter += mkFeaturesFollowers(follower)
     }
 
     followerCounter
