@@ -37,7 +37,7 @@ class ClassifierImpl(
     useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers)
 
   /** subClassifier that does the actual training over {@link dataset} */
-  var subClassifier: Option[LiblinearClassifier[String, String]] = None
+  var subClassifier: Option[Classifier[String, String]] = None
 
   /** Real-valued dataset that stores Datum[String, String] */
   var dataset = new RVFDataset[String, String]()
@@ -118,7 +118,7 @@ class ClassifierImpl(
     * @param newClassifier LiblinearClassifier to use
     * @return Unit
     */
-  def setClassifier(newClassifier: LiblinearClassifier[String, String]): Unit = {
+  def setClassifier(newClassifier: Classifier[String, String]): Unit = {
     subClassifier = Some(newClassifier)
   }
 
@@ -141,7 +141,7 @@ class ClassifierImpl(
     ctype: String,
     args: Array[String]) = {
 
-    subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
+    subClassifier = Some(new RFClassifier[String, String]())
     val labelSet = trainingLabels.toSet
 
     // Load lexicons before calling train

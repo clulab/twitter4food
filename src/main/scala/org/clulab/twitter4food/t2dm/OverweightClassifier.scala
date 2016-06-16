@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 import org.slf4j.LoggerFactory
 
 import com.typesafe.config.ConfigFactory
-import edu.arizona.sista.learning.{L1LinearSVMClassifier, LiblinearClassifier, LinearSVMClassifier, RVFDataset}
+import edu.arizona.sista.learning.{RFClassifier, L1LinearSVMClassifier, LiblinearClassifier, LinearSVMClassifier, RVFDataset}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
@@ -87,7 +87,7 @@ object OverweightClassifier {
 
       // Train classifier and save model to file
       logger.info("Training classifier...")
-      oc.setClassifier(new L1LinearSVMClassifier[String, String]())
+      oc.setClassifier(new RFClassifier[String, String]())
       oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
       oc.subClassifier.get.saveTo(modelFile)
     } else {
