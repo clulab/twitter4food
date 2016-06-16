@@ -36,11 +36,11 @@ object SplitNames {
     val mfbWriter = new BufferedWriter(new FileWriter("/work/adityak/both.firstlast"))
 
     mfoWriter.write(mFirstOnly.mkString("\n"))
-    ffoWriter.write(mFirstOnly.mkString("\n"))
-    mffoWriter.write(mFirstOnly.mkString("\n"))
-    mbWriter.write(mFirstOnly.mkString("\n"))
-    fbWriter.write(mFirstOnly.mkString("\n"))
-    mfbWriter.write(mFirstOnly.mkString("\n"))
+    ffoWriter.write(fFirstOnly.mkString("\n"))
+    mffoWriter.write(mfFirstOnly.mkString("\n"))
+    mbWriter.write(mBoth.mkString("\n"))
+    fbWriter.write(fBoth.mkString("\n"))
+    mfbWriter.write(mfBoth.mkString("\n"))
 
     mfoWriter.close()
     ffoWriter.close()
