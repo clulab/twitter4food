@@ -7,7 +7,11 @@ import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
+
+import edu.arizona.sista.utils.Serializer
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
+import org.clulab.twitter4food.struct._
+import org.slf4j.LoggerFactory
 
 import scala.io.Source
 
@@ -34,6 +38,8 @@ class LDA(val model: ParallelTopicModel, val pipe: SerialPipes) extends Serializ
 }
 
 object LDA {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   val config = ConfigFactory.load
   val stopWords: Set[String] = try {
@@ -95,9 +101,9 @@ object LDA {
     (lda, alphabet)
   }
 
-  def load(filename: String): LDA = edu.arizona.sista.utils.Serializer.load[LDA](filename)
+  def load(filename: String): LDA = Serializer.load[LDA](filename)
 
-  def save(lda: LDA, filename: String): Unit = edu.arizona.sista.utils.Serializer.save[LDA](lda, filename)
+  def save(lda: LDA, filename: String): Unit = Serializer.save[LDA](lda, filename)
 
   def main(args: Array[String]) = {
     def parseArgs(args: Array[String]): Config = {
@@ -119,7 +125,9 @@ object LDA {
 
     val config = ConfigFactory.load
 
-    val fe = new org.clulab.twitter4food.struct.FeatureExtractor(false,false,false,false,false,false,false)
+    val fe = new FeatureExtractor
+
+    logger.info(s"Loading and filtering tweets...")
 
     val tweets = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
       .keys
@@ -132,9 +140,12 @@ object LDA {
         )
       ).seq
 
-    println(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
+    logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
 
     val (lda, alphabet) = LDA.train(tweets, params.numTopics, params.numIterations)
+
+    logger.info(s"Exporting model...")
+
     val topicModel = lda.model.getSortedWords
 
     val textOutFile = new PrintWriter(new File(config.getString("lda.modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.txt"""))
