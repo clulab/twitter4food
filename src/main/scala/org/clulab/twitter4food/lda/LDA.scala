@@ -66,16 +66,24 @@ object LDA {
 
     val instances = new InstanceList (pipe)
 
+    val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
+    pb.start
+    pb.maxHint(tokensList.size)
+    pb.setExtraMessage("Populating...")
+
     for (tokens <- tokensList) {
       instances.addThruPipe(mkInstance(tokens))
+      pb.step
     }
+    pb.stop
+
     val model = new ParallelTopicModel(numTopics, 2.0, 0.01)
 
     model.addInstances(instances)
 
     // Use two parallel samplers, which each look at one half the corpus and combine
     //  statistics after every iteration.
-    model.setNumThreads(8)
+    model.setNumThreads(2)
 
     // System.out.printf("running for %d iterations", numIterations)
     model.setNumIterations(numIterations)
