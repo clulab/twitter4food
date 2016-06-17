@@ -4,7 +4,7 @@ import java.io.{File, PrintWriter, Serializable}
 import java.util.ArrayList
 
 import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
-import cc.mallet.topics.ParallelTopicModel
+import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
@@ -142,6 +142,13 @@ object LDA {
       } yield alphabet.lookupObject(idCountPair.getID).toString
       textOutFile.write(s"""(${wds.mkString(", ")})\n""")
     }
+
+    if (config.getBoolean("lda.verbose")) {
+      val diag = new TopicModelDiagnostics(lda.model, 10)
+      textOutFile.write("\n" + diag.toString)
+    }
+
+    textOutFile.close()
 
     // save the model itself
     save(lda, config.getString("lda.modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.model""")
