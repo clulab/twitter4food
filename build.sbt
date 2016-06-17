@@ -13,7 +13,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
   "org.clulab" %% "processors" % "5.8.2",
   "org.clulab" %% "processors" % "5.8.2" classifier "models",
-  "ch.qos.logback" % "logback-classic" % "1.0.10",
+  "ch.qos.logback" % "logback-classic" % "1.1.7",
   "com.typesafe" % "config" % "1.2.1",
   "org.json" % "json" % "latest.integration",
   "org.twitter4j" % "twitter4j-core" % "4.0.4",
