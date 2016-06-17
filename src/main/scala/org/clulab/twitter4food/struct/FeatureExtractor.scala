@@ -19,13 +19,13 @@ import com.typesafe.config.ConfigFactory
   * All parameters are flags for which features should be used.
   */
 class FeatureExtractor (
-                         val useUnigrams:Boolean,
-                         val useBigrams:Boolean,
-                         val useTopics:Boolean,
-                         val useDictionaries:Boolean,
-                         val useEmbeddings:Boolean,
-                         val useCosineSim:Boolean,
-                         val useFollowers:Boolean) {
+  val useUnigrams:Boolean = false,
+  val useBigrams:Boolean = false,
+  val useTopics:Boolean = false,
+  val useDictionaries:Boolean = false,
+  val useEmbeddings:Boolean = false,
+  val useCosineSim:Boolean = false,
+  val useFollowers:Boolean = false) {
 
   val config = ConfigFactory.load()
 
