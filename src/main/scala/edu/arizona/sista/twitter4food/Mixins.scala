@@ -1,6 +1,6 @@
 package edu.arizona.sista.twitter4food
 
-import edu.arizona.sista.struct._
+import org.clulab.struct._
 import scala.util.matching.Regex
 import scala.collection.Set
 import java.text.DecimalFormat

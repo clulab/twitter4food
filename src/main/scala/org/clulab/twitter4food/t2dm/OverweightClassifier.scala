@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 import org.slf4j.LoggerFactory
 
 import com.typesafe.config.ConfigFactory
-import edu.arizona.sista.learning.{L1LinearSVMClassifier, LiblinearClassifier, LinearSVMClassifier, RVFDataset}
+import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier, LinearSVMClassifier, RVFDataset}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
