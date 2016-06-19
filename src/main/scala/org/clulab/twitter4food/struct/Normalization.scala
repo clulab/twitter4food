@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.struct
 
-import edu.arizona.sista.learning.{Datasets, RVFDataset, RVFDatum}
-import edu.arizona.sista.struct.Counter
+import org.clulab.learning.{Datasets, RVFDataset, RVFDatum}
+import org.clulab.struct.Counter
 
 /**
   * @author danebell

@@ -5,10 +5,10 @@ import scala.util.Random
 import collection.JavaConversions._
 import java.util.ArrayList
 import java.io.{File, PrintWriter}
-import edu.arizona.sista.struct.Counter
+import org.clulab.struct.Counter
 import Mixins._
-import edu.arizona.sista.learning._
-import edu.arizona.sista.utils.EvaluationStatistics
+import org.clulab.learning._
+import org.clulab.utils.EvaluationStatistics
 
 /**
  * Created by dfried on 4/16/14.

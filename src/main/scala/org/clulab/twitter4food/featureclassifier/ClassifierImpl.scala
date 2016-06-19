@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.featureclassifier
 
-import edu.arizona.sista.learning._
-import edu.arizona.sista.struct.{Counter, Lexicon}
+import org.clulab.learning._
+import org.clulab.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
 import java.io.{BufferedWriter, FileWriter}

@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.featureclassifier
 
-import edu.arizona.sista.learning.{Classifier, LinearSVMClassifier, RVFDataset}
-import edu.arizona.sista.struct.Counter
+import org.clulab.learning.{Classifier, LinearSVMClassifier, RVFDataset}
+import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct.TwitterAccount
 
 import scala.collection.mutable.ArrayBuffer

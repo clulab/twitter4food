@@ -3,7 +3,7 @@ package edu.arizona.sista.twitter4food
 import java.util.{Calendar, Date, ArrayList, TimeZone}
 import java.text.SimpleDateFormat
 import collection.JavaConversions._
-import edu.arizona.sista.processors.corenlp._
+import org.clulab.processors.corenlp._
 import Mixins._
 import scala.util.matching.Regex
 import scala.concurrent._
