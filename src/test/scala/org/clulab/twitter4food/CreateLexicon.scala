@@ -1,6 +1,6 @@
 package org.clulab.twitter4food
 
-import edu.arizona.sista.struct.Lexicon
+import org.clulab.struct.Lexicon
 
 object CreateLexicon {
   def main(args: Array[String]) = {

@@ -2,8 +2,8 @@ package org.clulab.twitter4food.struct
 
 import java.io.{BufferedReader, FileReader}
 
-import edu.arizona.sista.learning.{Datum, RVFDatum}
-import edu.arizona.sista.struct.{Counter, Counters, Lexicon}
+import org.clulab.learning.{Datum, RVFDatum}
+import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._

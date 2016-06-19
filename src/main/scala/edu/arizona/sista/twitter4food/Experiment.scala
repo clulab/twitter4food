@@ -1,7 +1,7 @@
 package edu.arizona.sista.twitter4food
 
-import edu.arizona.sista.learning._
-import edu.arizona.sista.struct._
+import org.clulab.learning._
+import org.clulab.struct._
 import Utils._
 import java.io._
 import java.util.Properties
@@ -13,7 +13,7 @@ import Mixins._
 import de.bwaldvogel.liblinear.SolverType
 import scala.io.Source
 import collection.JavaConversions._
-import edu.arizona.sista.utils.EvaluationStatistics
+import org.clulab.utils.EvaluationStatistics
 
 /**
  * Created by dfried on 1/14/14.

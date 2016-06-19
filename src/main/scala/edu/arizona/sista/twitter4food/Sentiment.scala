@@ -9,8 +9,8 @@ import edu.stanford.nlp.util.CoreMap
 import edu.stanford.nlp.trees.Tree
 // import edu.stanford.nlp.rnn._
 
-import edu.arizona.sista.processors.corenlp.CoreNLPProcessor
-import edu.arizona.sista.processors.Sentence
+import org.clulab.processors.corenlp.CoreNLPProcessor
+import org.clulab.processors.Sentence
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation
 
 /**

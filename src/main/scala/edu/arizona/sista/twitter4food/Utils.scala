@@ -8,7 +8,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.util.matching.Regex
 import concurrent.Future
 import concurrent.ExecutionContext.Implicits.global
-import edu.arizona.sista.struct.Counter
+import org.clulab.struct.Counter
 import Mixins._
 
 /**

@@ -1,16 +1,16 @@
 package edu.arizona.sista.twitter4food
 
 import java.io._
-import edu.arizona.sista.learning._
+import org.clulab.learning._
 import Mixins._
 import scala.util.Random
-import edu.arizona.sista.processors.corenlp._
+import org.clulab.processors.corenlp._
 import scala.io.Source
 import scala.throws
 import collection.JavaConversions._
 
 import SentimentClassifier._
-import edu.arizona.sista.struct._
+import org.clulab.struct._
 
 object SentimentClassifier {
 

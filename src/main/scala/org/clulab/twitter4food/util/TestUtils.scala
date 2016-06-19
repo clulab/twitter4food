@@ -4,7 +4,7 @@ import org.clulab.twitter4food.twitter4j._
 import org.clulab.twitter4food.struct._
 import com.typesafe.config.ConfigFactory
 import scala.reflect.ClassTag
-import edu.arizona.sista.learning.LiblinearClassifier
+import org.clulab.learning.LiblinearClassifier
 
 object TestUtils {
   case class Config(
