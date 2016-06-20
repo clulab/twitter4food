@@ -10,7 +10,7 @@ object Tokenizer{
   tagger.loadModel(modelFileName)
 
   /* Returns Array[TaggedToken] which has members tag, token */
-  def annotate(text: String) = {
+  def annotate(text: String): Array[TaggedToken] = {
     try {
       tagger.tokenizeAndTag(text).asScala.toArray
     } catch {

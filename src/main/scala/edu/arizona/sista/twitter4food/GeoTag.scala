@@ -1,6 +1,6 @@
 package edu.arizona.sista.twitter4food
 
-import edu.arizona.sista.struct.Counter
+import org.clulab.struct.Counter
 import java.util.regex.Pattern
 import scala.collection.mutable.ListBuffer
 import java.io.{FileWriter, PrintWriter}

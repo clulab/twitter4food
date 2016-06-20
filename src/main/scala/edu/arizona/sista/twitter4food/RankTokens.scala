@@ -1,9 +1,9 @@
 package edu.arizona.sista.twitter4food
 
-import edu.arizona.sista.processors.corenlp.CoreNLPProcessor
-import edu.arizona.sista.struct.Counter
+import org.clulab.processors.corenlp.CoreNLPProcessor
+import org.clulab.struct.Counter
 import scala.collection.mutable
-import edu.arizona.sista.processors.Document
+import org.clulab.processors.Document
 
 /**
  * Ranks tokens such as hashtags based on their frequency and/or PMI with food tweets

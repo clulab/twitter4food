@@ -1,9 +1,9 @@
 package edu.arizona.sista.twitter4food
 
-import edu.arizona.sista.struct._
+import org.clulab.struct._
 
 import Mixins._
-import edu.arizona.sista.learning._
+import org.clulab.learning._
 import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.Set
