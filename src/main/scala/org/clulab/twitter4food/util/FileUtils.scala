@@ -52,8 +52,10 @@ object FileUtils {
         val accounts = Map[TwitterAccount, String]()
         val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
         pb.start()
-        pb.maxHint(lines.next.toInt)
-        pb.setExtraMessage("Loading...")
+        if(lines.hasNext) {
+          pb.maxHint(lines.next.toInt)
+          pb.setExtraMessage("Loading...")
+        }
 
         while (lines.hasNext) {
             val line = lines.next
