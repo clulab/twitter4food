@@ -1,6 +1,6 @@
 package edu.arizona.sista.twitter4food
 
-import edu.arizona.sista.struct._
+import org.clulab.struct._
 import Mixins._
 import scala.collection._
 import java.io.{OutputStream, PrintStream, File, PrintWriter}
