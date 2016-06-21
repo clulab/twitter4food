@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.struct
 
-import edu.arizona.sista.learning.{Datasets, RVFDataset, RVFDatum}
-import edu.arizona.sista.struct.Counter
+import org.clulab.learning.{Datasets, RVFDataset, RVFDatum}
+import org.clulab.struct.Counter
 
 /**
   * @author danebell
@@ -20,8 +20,8 @@ object Normalization {
   }
 
   /**
-    * Scale each [[RVFDatum]] in an [[RVFDataset]] in place according to its own maximum feature value
-    * @param dataset dataset to be normalized (in place)
+    * Scale each [[RVFDatum]] in an [[RVFDataset]] in place according to its own minimum and maximum feature values
+    * @param dataset [[RVFDataset]] to be normalized (in place)
     * @param lower lower bound of normalized values (e.g. -1 or 0), inclusive
     * @param upper upper bound of normalized values (e.g. 1), inclusive
     * @tparam L label type
@@ -37,6 +37,20 @@ object Normalization {
       }
     }
   }
+
+  /**
+    * Scale each value of a [[Counter]] in place according to the Counter's minimum and maximum values
+    * @param counter [[Counter]] to be normalized (in place)
+    * @param lower lower bound of normalized values (e.g. -1 or 0), inclusive
+    * @param upper upper bound of normalized values (e.g. 1), inclusive
+    * @tparam T Type of the [[Counter]] keys, e.g. [[String]]
+    */
+  def scaleByDatum[T](counter:Counter[T], lower:Double, upper:Double): Unit = {
+    counter.keySet.foreach(k =>
+      counter.setCount(k,
+        scale(counter.getCount(k), counter.argMin._2, counter.argMax._2, lower, upper)))
+  }
+
 
   /**
     * Scale each feature in an [[RVFDataset]] in place according to the minimum and maximum values of the feature
@@ -57,6 +71,17 @@ object Normalization {
     * @tparam T the type of the [[Counter]]s, e.g. [[String]]
     * @return toScale, scaled by size of scaleBy
     */
-  def scaleByCounter[T](toScale:Counter[T], scaleBy:Counter[T]): Counter[T] = toScale * (scaleBy.getTotal / toScale.getTotal)
+  def scaleByCounter[T](toScale:Counter[T], scaleBy:Counter[T]): Counter[T] = {
+    toScale * (scaleBy.getTotal / toScale.getTotal)
+  }
+
+  /**
+    * Scale a [[Counter]] so that the sum of all the values in it will equal 1
+    * @param counter [[Counter]] to be scaled (in place)
+    * @tparam T Type of the [[Counter]] keys, e.g. [[String]]
+    */
+  def scaleToUnitLength[T](counter:Counter[T]): Unit = {
+    counter.keySet.foreach(k => counter.setCount(k, counter.proportion(k)))
+  }
 }
 
