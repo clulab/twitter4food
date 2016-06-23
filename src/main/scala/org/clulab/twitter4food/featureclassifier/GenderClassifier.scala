@@ -27,7 +27,7 @@ object GenderClassifier {
     val params = TestUtils.parseArgs(args)
     TestUtils.init(0)
     val gc = new GenderClassifier(params.useUnigrams, params.useBigrams,
-      params.useTopics, params.useDictionaries, params.useEmbeddings,
+      params.useTopics, params.useDictionaries, params.useEmbeddings, params.useFollowers,
       params.datumScaling, params.featureScaling)
     gc.runTest(args, "gender")
   }

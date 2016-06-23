@@ -7,10 +7,9 @@ import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
-
-import edu.arizona.sista.utils.Serializer
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct._
+import org.clulab.utils.Serializer
 import org.slf4j.LoggerFactory
 
 import scala.io.Source
@@ -148,7 +147,8 @@ object LDA {
 
     val topicModel = lda.model.getSortedWords
 
-    val textOutFile = new PrintWriter(new File(config.getString("lda.modelDir") + s"""/lda_${params.numTopics}t_${params.numIterations}i.txt"""))
+    val textOutFile = new PrintWriter(new File(config.getString("lda.modelDir") +
+      s"""/lda_${params.numTopics}t_${params.numIterations}i.txt"""))
 
     for {
       topic <- 0 until params.numTopics // which topic
