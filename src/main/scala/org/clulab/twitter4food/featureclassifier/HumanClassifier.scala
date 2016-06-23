@@ -18,10 +18,21 @@ class HumanClassifier(
     useTopics: Boolean = false,
     useDictionaries: Boolean = false,
     useEmbeddings: Boolean = false,
+    useCosineSim: Boolean = false,
     useFollowers: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false)
-  extends ClassifierImpl {
+  extends ClassifierImpl(
+    useUnigrams: Boolean,
+    useBigrams: Boolean,
+    useTopics: Boolean,
+    useDictionaries: Boolean,
+    useEmbeddings: Boolean,
+    useCosineSim: Boolean,
+    useFollowers: Boolean,
+    datumScaling: Boolean,
+    featureScaling: Boolean
+  ) {
 
   /** Add Datum[String, String] with custom counter
     * @param account base twitter account
