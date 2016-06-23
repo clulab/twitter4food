@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 import org.slf4j.LoggerFactory
 
 import com.typesafe.config.ConfigFactory
-import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier, LinearSVMClassifier, RVFDataset}
+import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier, LinearSVMClassifier}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
@@ -18,15 +18,15 @@ import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
   * All parameters are consistent with those in FeatureExtractor
   */
 class OverweightClassifier(
-                            useUnigrams: Boolean = true,
-                            useBigrams: Boolean = false,
-                            useTopics: Boolean = false,
-                            useDictionaries: Boolean = false,
-                            useEmbeddings: Boolean = false,
-                            useCosineSim: Boolean = false,
-                            useFollowers: Boolean = false,
-                            datumScaling: Boolean = false,
-                            featureScaling: Boolean = false)
+    useUnigrams: Boolean = true,
+    useBigrams: Boolean = false,
+    useTopics: Boolean = false,
+    useDictionaries: Boolean = false,
+    useEmbeddings: Boolean = false,
+    useCosineSim: Boolean = false,
+    useFollowers: Boolean = false,
+    datumScaling: Boolean = false,
+    featureScaling: Boolean = false)
   extends ClassifierImpl
 
 object OverweightClassifier {
@@ -60,8 +60,8 @@ object OverweightClassifier {
 
     // Instantiate classifer after prompts in case followers are being used (file takes a long time to load)
     val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams, params.useTopics,
-      params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers, params.datumScaling,
-      params.featureScaling)
+      params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers,
+      params.datumScaling, params.featureScaling)
 
     val fileExt = args.mkString("").replace("-", "").sorted
 

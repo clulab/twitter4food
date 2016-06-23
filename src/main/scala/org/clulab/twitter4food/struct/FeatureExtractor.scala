@@ -8,6 +8,7 @@ import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
+import org.clulab.twitter4food.lda.LDA
 
 /**
   * Created by Terron on 2/9/16.
@@ -20,15 +21,20 @@ import com.typesafe.config.ConfigFactory
   * All parameters are flags for which features should be used.
   */
 class FeatureExtractor (
-  val useUnigrams:Boolean = false,
-  val useBigrams:Boolean = false,
-  val useTopics:Boolean = false,
-  val useDictionaries:Boolean = false,
-  val useEmbeddings:Boolean = false,
-  val useCosineSim:Boolean = false,
-  val useFollowers:Boolean = false) {
+  val useUnigrams: Boolean = false,
+  val useBigrams: Boolean = false,
+  val useTopics: Boolean = false,
+  val useDictionaries: Boolean = false,
+  val useEmbeddings: Boolean = false,
+  val useCosineSim: Boolean = false,
+  val useFollowers: Boolean = false) {
 
   val config = ConfigFactory.load()
+
+  // LDA topic model
+  var topicModel: Option[LDA] = if (useTopics) {
+    Some(LDA.load(config.getString("lda.topicModel")))
+  } else None
 
   // Dictionaries
   var lexicons: Option[Map[String, Seq[Lexicon[String]]]] = None
@@ -215,7 +221,16 @@ class FeatureExtractor (
   }
 
   def topics(account: TwitterAccount): Counter[String] = {
-    null
+    // no topic model available
+    if(topicModel.isEmpty) return null
+
+    val tm = topicModel.get
+    val topics = new Counter[String]
+    account.tweets.foreach{ tweet =>
+      val tokens = filterTags(Tokenizer.annotate(tweet.text.toLowerCase)).map(_.token)
+      topics.incrementCount("topic_" + tm.mostLikelyTopic(tokens))
+    }
+    topics
   }
 
   /**
