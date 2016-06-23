@@ -9,6 +9,7 @@ import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.lda.LDA
+import org.slf4j.LoggerFactory
 
 /**
   * Created by Terron on 2/9/16.
@@ -30,6 +31,14 @@ class FeatureExtractor (
   val useFollowers: Boolean = false) {
 
   val config = ConfigFactory.load()
+  val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
+  logger.info(s"useUnigrams=${useUnigrams}, " +
+      s"useBigrams=${useBigrams}, " +
+      s"useTopics=${useTopics}, " +
+      s"useDictionaries=${useDictionaries}, " +
+      s"useEmbeddings=${useEmbeddings}, " +
+      s"useCosineSim=${useCosineSim}, " +
+      s"useFollowers=${useFollowers}")
 
   // LDA topic model
   var topicModel: Option[LDA] = if (useTopics) {
@@ -204,17 +213,18 @@ class FeatureExtractor (
     */
   def followers(account: TwitterAccount): Counter[String] = {
     // Find this account's active followers
-    val followerHandles = handleToRelations(account.handle)
+    val followerHandles = if (handleToRelations.contains(account.handle)) handleToRelations(account.handle) else List[String]()
 
     // Find the TwitterAccount object corresponding to these handles
     val followers = followerHandles.map(f => {
-      handleToFollower(f)
+      if (handleToFollower.contains(f)) handleToFollower(f) else null
     })
 
     // Aggregate the counter for the followers using the other features being used
     val followerCounter = new Counter[String]()
     for (follower <- followers) {
-      followerCounter += mkFeaturesFollowers(follower)
+      if (follower != null)
+        followerCounter += mkFeaturesFollowers(follower)
     }
 
     followerCounter

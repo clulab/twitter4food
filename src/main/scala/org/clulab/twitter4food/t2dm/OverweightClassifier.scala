@@ -27,7 +27,16 @@ class OverweightClassifier(
     useFollowers: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false)
-  extends ClassifierImpl
+  extends ClassifierImpl(
+    useUnigrams,
+    useBigrams,
+    useTopics,
+    useDictionaries,
+    useEmbeddings,
+    useCosineSim,
+    useFollowers,
+    datumScaling,
+    featureScaling)
 
 object OverweightClassifier {
 

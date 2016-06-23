@@ -5,7 +5,9 @@ import org.clulab.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
 import java.io.{BufferedWriter, FileWriter}
+
 import com.typesafe.config.ConfigFactory
+
 import scala.collection.JavaConverters._
 
 /** Implementation of the FeatureClassifier trait that contains the
@@ -22,15 +24,15 @@ import scala.collection.JavaConverters._
   */
 
 class ClassifierImpl(
-  val useUnigrams: Boolean = true,
-  val useBigrams: Boolean = false,
-  val useTopics: Boolean = false,
-  val useDictionaries: Boolean = false,
-  val useEmbeddings: Boolean = false,
-  val useCosineSim: Boolean = false,
-  val useFollowers: Boolean = false,
-  val datumScaling: Boolean = false,
-  val featureScaling: Boolean = false) extends FeatureClassifier {
+  val useUnigrams: Boolean,
+  val useBigrams: Boolean,
+  val useTopics: Boolean,
+  val useDictionaries: Boolean,
+  val useEmbeddings: Boolean,
+  val useCosineSim: Boolean,
+  val useFollowers: Boolean,
+  val datumScaling: Boolean,
+  val featureScaling: Boolean) extends FeatureClassifier {
 
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams,
