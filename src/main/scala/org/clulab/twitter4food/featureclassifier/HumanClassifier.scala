@@ -1,6 +1,5 @@
 package org.clulab.twitter4food.featureclassifier
 
-import org.clulab.learning._
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.util._
 import org.clulab.twitter4food.struct.TwitterAccount
@@ -127,7 +126,8 @@ object HumanClassifier {
     val params = TestUtils.parseArgs(args)
     val (api, config) = TestUtils.init(0)
     val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
-      params.useTopics, params.useDictionaries, params.useEmbeddings)
+      params.useTopics, params.useDictionaries, params.useEmbeddings, params.useFollowers,
+      params.datumScaling, params.featureScaling)
     //hc.runTest(args, "human")
     hc.learn(args, "human", 0.001, 50)
     val predictedLabels = hc.predict(config.getString("classifiers.overweight.allTestData"))
