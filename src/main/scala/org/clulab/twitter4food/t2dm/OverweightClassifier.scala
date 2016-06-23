@@ -18,16 +18,25 @@ import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
   * All parameters are consistent with those in FeatureExtractor
   */
 class OverweightClassifier(
-                            useUnigrams: Boolean = true,
-                            useBigrams: Boolean = false,
-                            useTopics: Boolean = false,
-                            useDictionaries: Boolean = false,
-                            useEmbeddings: Boolean = false,
-                            useCosineSim: Boolean = false,
-                            useFollowers: Boolean = false,
-                            datumScaling: Boolean = false,
-                            featureScaling: Boolean = false)
-  extends ClassifierImpl
+                            useUnigrams: Boolean,
+                            useBigrams: Boolean,
+                            useTopics: Boolean,
+                            useDictionaries: Boolean,
+                            useEmbeddings: Boolean,
+                            useCosineSim: Boolean,
+                            useFollowers: Boolean,
+                            datumScaling: Boolean,
+                            featureScaling: Boolean)
+  extends ClassifierImpl(
+    useUnigrams: Boolean,
+    useBigrams: Boolean,
+    useTopics: Boolean,
+    useDictionaries: Boolean,
+    useEmbeddings: Boolean,
+    useCosineSim: Boolean,
+    useFollowers: Boolean,
+    datumScaling: Boolean,
+    featureScaling: Boolean)
 
 object OverweightClassifier {
 
