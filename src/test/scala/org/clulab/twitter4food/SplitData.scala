@@ -15,12 +15,10 @@ object SplitData extends App {
       if(a.split("\t")(2).equals("M")) (a::l._1, l._2) else (l._1, a::l._2)
       })*/
 
-  val accounts = scala.collection.mutable.Map[TwitterAccount, String]()
   val hlMap = TestUtils.loadHandles(config
       .getString("classifiers.human.annotatedUsersFile")).keys.toSet
-  for(i <- 0 to 15)
-    accounts ++= FileUtils.load(config.getString("classifiers.human.opt")+i+".txt")
 
+  val accounts = FileUtils.load(config.getString("classifiers.human.allTrainData"))
   val (human, org) = accounts.foldLeft((List[(TwitterAccount, String)](),
     List[(TwitterAccount, String)]()))(
     (list, account) => {
@@ -45,8 +43,9 @@ object SplitData extends App {
 
 
   println(s"${trainingSplit.size}, ${devSplit.size}, ${testSplit.size}")
-  val path1 = s"${config.getString("resources")}/${config.getString("default_package")}/"
-  val path = path1 + "featureclassifier/human/"
+  /*val path1 = s"${config.getString("resources")}/${config.getString("default_package")}/"
+  val path = path1 + "featureclassifier/human/"*/
+  val path = config.getString("server_path") + "/human/"
   
   val trainDataPath = path + "trainingData.txt"
   val devDataPath = path + "devData.txt"
