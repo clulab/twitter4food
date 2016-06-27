@@ -23,11 +23,12 @@ object OverweightAccounts {
     var handle = ""
     var text = ""
     val buf = new ArrayBuffer[Tweet]()
+    val today = new java.util.Date()
 
     lines.foreach(line =>{
       count match {
         case 0 => handle = line.split("\t")(0)
-        case 2 => buf += new Tweet(line, -1, "", new java.util.Date(), handle)
+        case 2 => buf += new Tweet(line, -1, "", today, handle)
         case _ =>
         }
       count += 1; count %= 3;
@@ -38,7 +39,9 @@ object OverweightAccounts {
       "#effyourbodystandards", "#fatgirltweets", "#plussize").map(_.toLowerCase)
     val neg_kw = Array("#nsfw", "#milf", "#bbw", "#mature", "#NSFW", "#model", 
       "#fashion", "#porn", "#clothes", "#sex", "#sexy", "#shopping",
-      "ass").map(_.toLowerCase)
+      "ass", "#fingering", "#thick", "cum", "horny", "booty", "#bigbooty",
+      "dick", "#video", "#busty", "#anal", "#lesbians", "nude", "#nakedselfie",
+      "slut", "erotic", "boutique").map(_.toLowerCase)
     val subTweets = filter(pos_kw, neg_kw, tweets)
     val htagHandles =  pos_kw.map(k => {
       println(s"$k: ${subTweets.foldLeft(0)((s,t) => if(t.text.contains(k)) s+1 else s)}")
@@ -48,10 +51,11 @@ object OverweightAccounts {
     val handles = subTweets.foldLeft(Set[String]())((h, l) => h + l.handle)
     val bw = new BufferedWriter(new FileWriter(
       s"${config.getString("classifier")}/overweight/ow_accounts_" +
-      s"${(new java.util.Date()).toString.replace(" ", "_")}.txt"))
+      s"${today.toString.replace(" ", "_")}.txt"))
     val bw2 = new BufferedWriter(new FileWriter(
       s"${config.getString("classifier")}/overweight/ow_accounts_"+
-      s"${(new java.util.Date()).toString.replace(" ", "_")}_2.txt"))
+      s"${today.toString.replace(" ", "_")}_2.txt"))
+    
     try {
       handles.foreach(h => bw.write(s"$h\tUNK\n"))
       htagHandles.foreach{case (t,h) => bw2.write(s"$t\n${h.map(_+"\tUNK").mkString("\n")}\n")}
