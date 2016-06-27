@@ -174,6 +174,11 @@ object OverweightClassifier {
     writer.write(s"Micro average: ${microAvg}\n")
     writer.close()
 
+    // Save individual predictions for bootstrap significance
+    val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+    predicted.write(s"gold\tpred\n")
+    testSetLabels.zip(predictedLabels).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
+    predicted.close()
   }
 
   private def outputAnalysis(outputFile:String, modelFile: String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {
