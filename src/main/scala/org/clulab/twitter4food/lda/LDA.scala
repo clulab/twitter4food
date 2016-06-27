@@ -128,7 +128,7 @@ object LDA {
 
     logger.info(s"Loading and filtering tweets...")
 
-    val tweets = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
+    val tweets = FileUtils.load(config.getString("lda.trainingData"))
       .keys
       .par
       .flatMap(_.tweets
