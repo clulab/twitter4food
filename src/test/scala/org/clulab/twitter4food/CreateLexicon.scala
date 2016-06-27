@@ -9,8 +9,5 @@ object CreateLexicon {
     val lex = new Lexicon[String]
     lines.foreach(l => lex.add(l.split("\\s+")(0).toLowerCase))
     lex.saveTo(args(1))
-
-    val _lex = Lexicon.loadFrom[String](args(1))
-    assert(lex == _lex)
   }
 }
