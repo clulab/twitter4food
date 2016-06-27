@@ -7,6 +7,7 @@ import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
+import edu.arizona.sista.twitter4food.TweetParser._
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct._
 import org.clulab.utils.Serializer
@@ -107,37 +108,38 @@ object LDA {
   def main(args: Array[String]) = {
     def parseArgs(args: Array[String]): Config = {
       val parser = new scopt.OptionParser[Config]("lda") {
-        head("lda", "0.x")
-
         opt[Int]('t', "topics") action { (x, c) =>
           c.copy(numTopics = x)} text "number of topics to produce"
-
         opt[Int]('i', "iterations") action { (x, c) =>
           c.copy(numIterations = x)} text "number of LDA iterations to run"
-
         help("help") text "prints this usage text"
       }
       parser.parse(args, Config()).get
     }
 
     val params = parseArgs(args)
-
     val config = ConfigFactory.load
-
     val fe = new FeatureExtractor
 
     logger.info(s"Loading and filtering tweets...")
 
-    val tweets = FileUtils.load(config.getString("lda.trainingData"))
-      .keys
-      .par
-      .flatMap(_.tweets
-        .map(tweet =>
-          fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
-            .map(_.token)
-            .toSeq
-        )
-      ).seq
+//    val tweets = FileUtils.load(config.getString("lda.2lineTrainingData"))
+//      .keys
+//      .par
+//      .flatMap(_.tweets
+//        .map(tweet =>
+//          fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
+//            .map(_.token)
+//            .toSeq
+//        )
+//      ).seq
+
+    val oldTweets = parallelParseTweetFile(config.getString("lda.3lineTrainingData"))
+    val tweets = oldTweets.map(tweet =>
+      fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
+        .map(_.token)
+        .toSeq
+    )
 
     logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
 
