@@ -256,6 +256,11 @@ class FeatureExtractor (
     followerCounter
   }
 
+  /**
+    * Add a feature for each topic in the topic model, and count instances in the account's tweets
+    * @param account a single [[TwitterAccount]] for topic modeling
+    * @return a [[Counter]] of topics for this account
+    */
   def topics(account: TwitterAccount): Counter[String] = {
     // no topic model available
     if(topicModel.isEmpty) return null
