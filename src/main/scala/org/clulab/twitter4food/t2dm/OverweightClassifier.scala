@@ -67,7 +67,7 @@ object OverweightClassifier {
       println("\tTraining on train, testing on dev\n\n")
 
 
-    // Instantiate classifer after prompts in case followers are being used (file takes a long time to load)
+    // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
     val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams, params.useTopics,
       params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers,
       params.datumScaling, params.featureScaling)
