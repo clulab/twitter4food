@@ -146,6 +146,9 @@ class FeatureExtractor (
 
       counter += fc
 
+      // combined scores should range 0-1 if datumScaling
+      if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
+
       counter += appendPrefix("followers_", fc) + appendPrefix("main_", mc)
     }
 
