@@ -28,7 +28,8 @@ class FeatureExtractor (
   val useDictionaries: Boolean = false,
   val useEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
-  val useFollowers: Boolean = false) {
+  val useFollowers: Boolean = false,
+  val datumScaling: Boolean = false) {
 
   val config = ConfigFactory.load()
   val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
@@ -38,7 +39,9 @@ class FeatureExtractor (
       s"useDictionaries=${useDictionaries}, " +
       s"useEmbeddings=${useEmbeddings}, " +
       s"useCosineSim=${useCosineSim}, " +
-      s"useFollowers=${useFollowers}")
+      s"useFollowers=${useFollowers}, " +
+      s"datumScaling=${datumScaling}"
+  )
 
   // LDA topic model
   var topicModel: Option[LDA] = if (useTopics) {
@@ -110,7 +113,8 @@ class FeatureExtractor (
     if (useCosineSim)
       counter += cosineSim(account)
 
-    scaleByDatum(counter, 0.0, 1.0)
+    // must scaleByDatum now to keep scaling distinct from follower features
+    if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
 
     if (useFollowers) {
       // make deep copy of counter, range 0-1
@@ -118,10 +122,13 @@ class FeatureExtractor (
       counter.toSeq.foreach(kv => mc.setCount(kv._1, kv._2))
 
       val fc = followers(account)
-      scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
+
+      // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
+      // feature count as the main features
+      if (datumScaling) scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
+      else scaleByCounter(fc, mc)
 
       counter += fc
-      scaleByDatum(counter, 0.0, 1.0) // combined main and followers features range 0-1
 
       counter += appendPrefix("followers_", fc) + appendPrefix("main_", mc)
     }

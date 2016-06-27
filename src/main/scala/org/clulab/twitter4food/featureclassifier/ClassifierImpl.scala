@@ -36,7 +36,7 @@ class ClassifierImpl(
 
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams,
-    useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers)
+    useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers, datumScaling)
 
   /** subClassifier that does the actual training over {@link dataset} */
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
@@ -93,11 +93,8 @@ class ClassifierImpl(
 
     pb.stop()
 
-    // normalize in place
-    if (featureScaling && datumScaling) println("Only feature or datum scaling allowed, not both. Datum scaling...")
-
-    if (datumScaling) Normalization.scaleByDatum(dataset, 0.0, 1.0)
-    else if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
+    // normalize in place by feature (see FeatureExtractor for scaling by datum)
+    if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
 
     // Train the classifier
     subClassifier.get.train(dataset)

@@ -65,14 +65,14 @@ object Normalization {
   }
 
   /**
-    * Scale a [[Counter]] to have the same total size as a reference [[Counter]]
+    * Scale a [[Counter]] in place to have the same total size as a reference [[Counter]]
     * @param toScale a [[Counter]] that we want to normalize to another [[Counter]]'s size.
     * @param scaleBy the reference [[Counter]]
     * @tparam T the type of the [[Counter]]s, e.g. [[String]]
-    * @return toScale, scaled by size of scaleBy
     */
-  def scaleByCounter[T](toScale:Counter[T], scaleBy:Counter[T]): Counter[T] = {
-    toScale * (scaleBy.getTotal / toScale.getTotal)
+  def scaleByCounter[T](toScale:Counter[T], scaleBy:Counter[T]): Unit = {
+    val scaled = toScale * (scaleBy.getTotal / toScale.getTotal)
+    toScale.keySet.foreach(k => toScale.setCount(k, scaled.getCount(k)))
   }
 
   /**
