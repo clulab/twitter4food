@@ -5,7 +5,9 @@ import org.clulab.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
 import java.io.{BufferedWriter, FileWriter}
+
 import com.typesafe.config.ConfigFactory
+
 import scala.collection.JavaConverters._
 
 /** Implementation of the FeatureClassifier trait that contains the
@@ -22,19 +24,19 @@ import scala.collection.JavaConverters._
   */
 
 class ClassifierImpl(
-  val useUnigrams: Boolean = true,
-  val useBigrams: Boolean = false,
-  val useTopics: Boolean = false,
-  val useDictionaries: Boolean = false,
-  val useEmbeddings: Boolean = false,
-  val useCosineSim: Boolean = false,
-  val useFollowers: Boolean = false,
-  val datumScaling: Boolean = false,
-  val featureScaling: Boolean = false) extends FeatureClassifier {
+  val useUnigrams: Boolean,
+  val useBigrams: Boolean,
+  val useTopics: Boolean,
+  val useDictionaries: Boolean,
+  val useEmbeddings: Boolean,
+  val useCosineSim: Boolean,
+  val useFollowers: Boolean,
+  val datumScaling: Boolean,
+  val featureScaling: Boolean) extends FeatureClassifier {
 
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams,
-    useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers)
+    useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers, datumScaling)
 
   /** subClassifier that does the actual training over {@link dataset} */
   var subClassifier: Option[Classifier[String, String]] = None
@@ -54,15 +56,16 @@ class ClassifierImpl(
     this.synchronized { dataset += featureExtractor.mkDatum(account, label) }
   }
 
-  /** Reads a sequence of filenames for each label as a sequence of lexicons
-    * @param lexiconMap A map of (label -> sequence of filenames)
-    * @return Unit
+  /** Populates list of lexicons from config file. Separate function
+    * for easy testing.
+    * @param labelSet Set of labels
+    * @param ctype Type of classifier
+    * @return map of label -> Seq of lexicon file names
     */
-  def loadLexicons(lexiconMap: Map[String, Seq[String]]) = {
-    val l = lexiconMap map {
-      case (k, v) => (k, v.map(Lexicon.loadFrom[String]))
-    }
-    featureExtractor.lexicons = Some(l)
+  def populateLexiconList(labelSet: Set[String], ctype: String) = {
+    labelSet.foldLeft(Map[String, Seq[String]]())(
+      (m, l) => m + (l ->
+        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
   }
 
   /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
@@ -91,11 +94,8 @@ class ClassifierImpl(
 
     pb.stop()
 
-    // normalize in place
-    if (featureScaling && datumScaling) println("Only feature or datum scaling allowed, not both. Datum scaling...")
-
-    if (datumScaling) Normalization.scaleByDatum(dataset, 0.0, 1.0)
-    else if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
+    // normalize in place by feature (see FeatureExtractor for scaling by datum)
+    if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
 
     // Train the classifier
     subClassifier.get.train(dataset)
@@ -147,11 +147,8 @@ class ClassifierImpl(
     // Load lexicons before calling train
     if(useDictionaries) {
       // For each label, populate list of lexicon filepaths from config
-      val lexMap = labelSet.foldLeft(Map[String, Seq[String]]())(
-      (m, l) => m + (l ->
-        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
-
-      loadLexicons(lexMap)
+      val lexMap = populateLexiconList(labelSet, ctype)
+      this.featureExtractor.setLexicons(lexMap)
     }
 
     // Skim only top-K tweets for each account
@@ -253,8 +250,8 @@ class ClassifierImpl(
       .getString(s"classifiers.$ctype.testData"))
 
     val fileExt = args.mkString("").replace("-", "").sorted
-    val tweetFolds = Array(10, 50, 100, 500, 1000, 2000, 5000)
-    val cFolds = Array(0.001, 0.01, 0.1, 1, 10, 100, 1000)
+    val tweetFolds = Array(100, 500, 1000, 5000)
+    val cFolds = Array(0.001, 0.1, 10, 1000)
 
     /*
      * (i)  Tune parameters 
@@ -275,7 +272,7 @@ class ClassifierImpl(
       writerFile, true))
 
     // Values for accuracies for C * K
-    val gridCbyK = Array.ofDim[Double](7,7)
+    val gridCbyK = Array.ofDim[Double](4,4)
 
     /** For a given classifier, load its associated train, dev, and test
       * accounts, and write results to file.

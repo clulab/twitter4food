@@ -18,16 +18,25 @@ import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
   * All parameters are consistent with those in FeatureExtractor
   */
 class OverweightClassifier(
-                            useUnigrams: Boolean = true,
-                            useBigrams: Boolean = false,
-                            useTopics: Boolean = false,
-                            useDictionaries: Boolean = false,
-                            useEmbeddings: Boolean = false,
-                            useCosineSim: Boolean = false,
-                            useFollowers: Boolean = false,
-                            datumScaling: Boolean = false,
-                            featureScaling: Boolean = false)
-  extends ClassifierImpl
+    useUnigrams: Boolean = true,
+    useBigrams: Boolean = false,
+    useTopics: Boolean = false,
+    useDictionaries: Boolean = false,
+    useEmbeddings: Boolean = false,
+    useCosineSim: Boolean = false,
+    useFollowers: Boolean = false,
+    datumScaling: Boolean = false,
+    featureScaling: Boolean = false)
+  extends ClassifierImpl(
+    useUnigrams,
+    useBigrams,
+    useTopics,
+    useDictionaries,
+    useEmbeddings,
+    useCosineSim,
+    useFollowers,
+    datumScaling,
+    featureScaling)
 
 object OverweightClassifier {
 
@@ -58,10 +67,10 @@ object OverweightClassifier {
       println("\tTraining on train, testing on dev\n\n")
 
 
-    // Instantiate classifer after prompts in case followers are being used (file takes a long time to load)
+    // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
     val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams, params.useTopics,
-      params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers, params.datumScaling,
-      params.featureScaling)
+      params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers,
+      params.datumScaling, params.featureScaling)
 
     val fileExt = args.mkString("").replace("-", "").sorted
 
@@ -165,6 +174,11 @@ object OverweightClassifier {
     writer.write(s"Micro average: ${microAvg}\n")
     writer.close()
 
+    // Save individual predictions for bootstrap significance
+    val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+    predicted.write(s"gold\tpred\n")
+    testSetLabels.zip(predictedLabels).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
+    predicted.close()
   }
 
   private def outputAnalysis(outputFile:String, modelFile: String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {

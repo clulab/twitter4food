@@ -8,6 +8,8 @@ import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
+import org.clulab.twitter4food.lda.LDA
+import org.slf4j.LoggerFactory
 
 /**
   * Created by Terron on 2/9/16.
@@ -20,18 +22,35 @@ import com.typesafe.config.ConfigFactory
   * All parameters are flags for which features should be used.
   */
 class FeatureExtractor (
-                         val useUnigrams:Boolean,
-                         val useBigrams:Boolean,
-                         val useTopics:Boolean,
-                         val useDictionaries:Boolean,
-                         val useEmbeddings:Boolean,
-                         val useCosineSim:Boolean,
-                         val useFollowers:Boolean) {
+  val useUnigrams: Boolean = false,
+  val useBigrams: Boolean = false,
+  val useTopics: Boolean = false,
+  val useDictionaries: Boolean = false,
+  val useEmbeddings: Boolean = false,
+  val useCosineSim: Boolean = false,
+  val useFollowers: Boolean = false,
+  val datumScaling: Boolean = false) {
 
   val config = ConfigFactory.load()
+  val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
+  logger.info(s"useUnigrams=${useUnigrams}, " +
+      s"useBigrams=${useBigrams}, " +
+      s"useTopics=${useTopics}, " +
+      s"useDictionaries=${useDictionaries}, " +
+      s"useEmbeddings=${useEmbeddings}, " +
+      s"useCosineSim=${useCosineSim}, " +
+      s"useFollowers=${useFollowers}, " +
+      s"datumScaling=${datumScaling}"
+  )
 
-  // Dictionaries
-  var lexicons: Option[Map[String, Seq[Lexicon[String]]]] = None
+  // LDA topic model
+  var topicModel: Option[LDA] = if (useTopics) {
+    Some(LDA.load(config.getString("lda.topicModel")))
+  } else None
+
+  // Dictionaries : Map[Label -> Map[LexiconName -> Lexicon]]
+  // Messy, but useful data structure.
+  var lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = None
 
   // Embeddings
   var idfTable: Option[Counter[String]] = None
@@ -53,6 +72,21 @@ class FeatureExtractor (
   var handleToFollower = Map[String, TwitterAccount]()
   for ((account, _) <- followerAccounts)
     handleToFollower += (account.handle -> account)
+
+  /** Reads a sequence of filenames for each label as a sequence of lexicons
+    * @param lexiconMap A map of (label -> sequence of filenames)
+    * @return Unit
+    */
+  def setLexicons(lexiconMap: Map[String, Seq[String]]) = {
+    val l = lexiconMap map {
+      case (k, v) => (k, v.map(fileName => {
+        val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
+          fileName.indexOf("."))
+        (lexName, Lexicon.loadFrom[String](fileName))
+      }).toMap)
+    }
+    this.lexicons = Some(l)
+  }
 
   /**
     * Additional method call for adding additional features
@@ -95,7 +129,8 @@ class FeatureExtractor (
     if (useCosineSim)
       counter += cosineSim(account)
 
-    scaleByDatum(counter, 0.0, 1.0)
+    // must scaleByDatum now to keep scaling distinct from follower features
+    if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
 
     if (useFollowers) {
       // make deep copy of counter, range 0-1
@@ -103,10 +138,16 @@ class FeatureExtractor (
       counter.toSeq.foreach(kv => mc.setCount(kv._1, kv._2))
 
       val fc = followers(account)
-      scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
+
+      // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
+      // feature count as the main features
+      if (datumScaling) scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
+      else scaleByCounter(fc, mc)
 
       counter += fc
-      scaleByDatum(counter, 0.0, 1.0) // combined main and followers features range 0-1
+
+      // combined scores should range 0-1 if datumScaling
+      if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
 
       counter += appendPrefix("followers_", fc) + appendPrefix("main_", mc)
     }
@@ -149,7 +190,7 @@ class FeatureExtractor (
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
 
   // NOTE: all features that run over description and tweets should probably apply this for consistency
-  def filterTags(tagTok: Array[TaggedToken]) = {
+  def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
     val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
     val stopWords = stopWordsFile.getLines.toSet
     stopWordsFile.close
@@ -198,78 +239,114 @@ class FeatureExtractor (
     */
   def followers(account: TwitterAccount): Counter[String] = {
     // Find this account's active followers
-    val followerHandles = handleToRelations(account.handle)
+    val followerHandles = if (handleToRelations.contains(account.handle)) handleToRelations(account.handle) else List[String]()
 
     // Find the TwitterAccount object corresponding to these handles
     val followers = followerHandles.map(f => {
-      handleToFollower(f)
+      if (handleToFollower.contains(f)) handleToFollower(f) else null
     })
 
     // Aggregate the counter for the followers using the other features being used
     val followerCounter = new Counter[String]()
     for (follower <- followers) {
-      followerCounter += mkFeaturesFollowers(follower)
+      if (follower != null)
+        followerCounter += mkFeaturesFollowers(follower)
     }
 
     followerCounter
   }
 
+  /**
+    * Add a feature for each topic in the topic model, and count instances in the account's tweets
+    * @param account a single [[TwitterAccount]] for topic modeling
+    * @return a [[Counter]] of topics for this account
+    */
   def topics(account: TwitterAccount): Counter[String] = {
-    null
+    // no topic model available
+    if(topicModel.isEmpty) return null
+
+    val tm = topicModel.get
+    val topics = new Counter[String]
+    account.tweets.foreach{ tweet =>
+      val tokens = filterTags(Tokenizer.annotate(tweet.text.toLowerCase)).map(_.token)
+      topics.incrementCount("topic_" + tm.mostLikelyTopic(tokens))
+    }
+    topics
   }
 
   /**
     * Functions like unigrams but constrained to words in dictionaries.
-    *
+    * NOTE: Adding classifier wise dictionaries since the number of classifiers
+    *       is very manageable. -@adikou 
     * @param account
-    * @return counter
+    * @return counter - Return one counter fine-tuned for a particular classifier
     */
   def dictionaries(account: TwitterAccount): Counter[String] = {
-
-    //    var counter = new Counter[String]()
-    //    if(lexicons.isDefined) {
-    //      lexicons.get foreach {
-    //        case (k, v) => {
-    //          v.foreach(lexicon => {
-    //            val desc = tokenSet(filterTags(Tokenizer
-    //              .annotate(account.description.toLowerCase)))
-    //            var nS = 0
-    //            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
-    //              counter.incrementCount(account.handle.toLowerCase.drop(1), 1)
-    //              nS += 1
-    //            }
-    //
-    //            account.name.toLowerCase.split("\\s+").foreach(n => {
-    //              if(lexicon.contains(n)) counter.incrementCount(n, 1)
-    //              nS += 1
-    //              })
-    //            val dS = desc.foldLeft(0)((s, d) => if(lexicon.contains(d)) s+1 else s)
-    //            counter.incrementCount(s"lex_$k", dS + nS)
-    //
-    //            // TODO: Configure lexicon count for tweets
-    //          })
-    //        }
-    //      }
-    //    } else throw new RuntimeException("Lexicons must be loaded first")
-
-    // Load dictionaries
-    val foodWordsFile = scala.io.Source
-      .fromFile(config.getString("classifiers.features.foodWords"))
-    val foodWords = foodWordsFile.getLines.toSet
-    foodWordsFile.close
-
-    val hashtagsFile = scala.io.Source
-      .fromFile(config.getString("classifiers.features.hashtags"))
-    val hashtags = hashtagsFile.getLines.toSet
-    hashtagsFile.close
-
-    // Filter ngrams
-    var temp = ngrams(1, account)
-    temp = temp.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
-
-    // Copy into counter with prefix to indicate this is a different feature
     val result = new Counter[String]()
-    temp.keySet.foreach( word => result.setCount("dict_" + word, temp.getCount(word)))
+    if(!lexicons.isDefined) return result
+    
+    // Classifier type
+    val cType = lexicons.get.keys.head match {
+      case "M" | "F" => "gender"
+      case "Overweight" | "Not Overweight" => "overweight"
+      case "human" | "org" => "human"
+      case "asian" | "hispanic" | "white" | "black" => "race"
+    }
+
+    if((cType equals "human") || (cType equals "gender")) {
+      lexicons.get foreach {
+        case (k, v) => {
+          v foreach {
+            case (lexName, lexicon) => {
+            val desc = tokenSet(filterTags(Tokenizer
+              .annotate(account.description.toLowerCase)))
+            var nS = 0
+              
+            account.name.toLowerCase.split("\\s+").foreach(n => {
+              if(lexicon.contains(n)) {
+                nS += 1
+              }
+            })
+            
+            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
+              nS += 1
+            }
+            
+            val dS = if(!lexName.contains("name_")) {
+              desc.foldLeft(0)((s, d) => {
+                if(lexicon.contains(d)) s+1 else s
+              })
+            }
+            else 0
+
+            if(dS + nS > 0) result.incrementCount(s"lex_${k}_${lexName}", dS + nS)
+            }
+          }
+        }
+      }
+    }
+    else if(cType equals "race") {
+
+    }
+    else if(cType equals "overweight") {
+        // Load dictionaries
+      val foodWordsFile = scala.io.Source
+        .fromFile(config.getString("classifiers.features.foodWords"))
+      val foodWords = foodWordsFile.getLines.toSet
+      foodWordsFile.close
+
+      val hashtagsFile = scala.io.Source
+        .fromFile(config.getString("classifiers.features.hashtags"))
+      val hashtags = hashtagsFile.getLines.toSet
+      hashtagsFile.close
+
+      // Filter ngrams
+      var temp = ngrams(1, account)
+      temp = temp.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
+
+      // Copy into counter with prefix to indicate this is a different feature
+      temp.keySet.foreach( word => result.setCount("dict_" + word, temp.getCount(word)))
+    }
     result
   }
 

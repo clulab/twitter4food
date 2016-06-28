@@ -4,9 +4,6 @@ import org.clulab.learning.{Classifier, LinearSVMClassifier, RVFDataset}
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct.TwitterAccount
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Map
-
 /**
   * Trait to be implemented by all feature classifiers
   * User: mihais

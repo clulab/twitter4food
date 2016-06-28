@@ -1,10 +1,11 @@
 @takitokitchen	org
 @Nutriphys	org
 @HighlandParkMkt	org
-@720Media	org
 @EmporiumThai	org
 @traykitchen	org
 @SunsetSmoothie	org
+@alimentum1	org
+@Rialto02138	org
 @JimsCountryEats	org
 @HogandRocks	org
 @Reds_Place	org
@@ -28,7 +29,6 @@
 @yogajoy11	org
 @CoonamessettInn	org
 @DanielasNYC	org
-@VTpeanutbutter	org
 @WhiskeyKitchen	org
 @Schillecis	org
 @JaaliBean	org
