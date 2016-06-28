@@ -7,8 +7,8 @@ import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
-import edu.arizona.sista.twitter4food.TweetParser._
-import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
+import org.clulab.twitter4food.util.Tokenizer
+import org.clulab.twitter4food.util.FileUtils._
 import org.clulab.twitter4food.struct._
 import org.clulab.utils.Serializer
 import org.slf4j.LoggerFactory
@@ -134,12 +134,13 @@ object LDA {
 //        )
 //      ).seq
 
-    val oldTweets = parallelParseTweetFile(config.getString("lda.3lineTrainingData"))
-    val tweets = oldTweets.map(tweet =>
-      fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
-        .map(_.token)
-        .toSeq
-    )
+
+    val tweets = loadSingletonTexts(config.getString("lda.3lineTrainingData"))
+      .map(tweet =>
+        fe.filterTags(Tokenizer.annotate(tweet.toLowerCase))
+          .map(_.token)
+          .toSeq
+      )
 
     logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
 
