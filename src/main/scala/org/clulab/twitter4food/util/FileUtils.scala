@@ -119,12 +119,11 @@ object FileUtils {
 
     val texts = new ArrayBuffer[String]()
 
-    /* Lazy declarations */
     var count = 0
     val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
     pb.start()
     if(lines.hasNext) {
-      //pb.maxHint(lines.next.toInt)
+      pb.maxHint(lines.length)
       pb.setExtraMessage("Loading...")
     }
     while (lines.hasNext) {
