@@ -124,7 +124,7 @@ object FileUtils {
     val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
     pb.start()
     if(lines.hasNext) {
-      pb.maxHint(lines.next.toInt)
+      //pb.maxHint(lines.next.toInt)
       pb.setExtraMessage("Loading...")
     }
     while (lines.hasNext) {
