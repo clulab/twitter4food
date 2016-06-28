@@ -9,6 +9,7 @@ import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.util.Tokenizer
 import org.clulab.twitter4food.util.FileUtils._
+import org.clulab.twitter4food.util.Filter._
 import org.clulab.twitter4food.struct._
 import org.clulab.utils.Serializer
 import org.slf4j.LoggerFactory
@@ -134,8 +135,7 @@ object LDA {
 //        )
 //      ).seq
 
-
-    val tweets = loadSingletonTexts(config.getString("lda.3lineTrainingData"))
+    val tweets = spamFilter(loadSingletonTexts(config.getString("lda.3lineTrainingData")))
       .map(tweet =>
         fe.filterTags(Tokenizer.annotate(tweet.toLowerCase))
           .map(_.token)
