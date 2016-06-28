@@ -132,6 +132,7 @@ object FileUtils {
 
       count match {
         case 2 => texts.append(line)
+        case firstTwo => () // ignore first two lines of each triple
       }
       count += 1
       count %= 3
