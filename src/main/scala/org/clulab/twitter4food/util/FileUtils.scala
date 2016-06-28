@@ -138,7 +138,7 @@ object FileUtils {
       pb.step()
     }
     pb.stop()
-    
+
     texts
   }
 }
