@@ -109,7 +109,7 @@ object OverweightClassifier {
 
       // Train classifier and save model to file
       logger.info("Training classifier...")
-      oc.setClassifier(new L1LinearSVMClassifier[String, String]())
+      oc.setClassifier(new RFClassifier[String, String]())
       oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq)
       oc.subClassifier.get.saveTo(modelFile)
     }
