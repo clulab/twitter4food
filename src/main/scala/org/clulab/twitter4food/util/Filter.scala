@@ -16,11 +16,12 @@ object Filter {
     spamWordsFile.close
 
     val okTweets = for (tweet <- tweets) yield {
-      if (tweet.split("[\\s\\#]+").toSet.intersect(spamWords).isEmpty) Some(tweet)
+      if (tweet.toLowerCase.split("[\\s\\#]+").toSet.intersect(spamWords).isEmpty) Some(tweet)
       else None
     }
     val ret = okTweets.flatten
-    println(s"Eliminated ${tweets.length - ret.length} of ${tweets.length} (${(tweets.length - ret.length) / tweets.length})")
+    println(s"Eliminated ${tweets.length - ret.length} of ${tweets.length} " +
+      s"(${(tweets.length - ret.length) / tweets.length.toFloat})")
     ret
   }
 }
