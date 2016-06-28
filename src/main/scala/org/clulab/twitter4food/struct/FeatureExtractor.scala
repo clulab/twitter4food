@@ -34,13 +34,13 @@ class FeatureExtractor (
   val config = ConfigFactory.load()
   val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
   logger.info(s"useUnigrams=${useUnigrams}, " +
-      s"useBigrams=${useBigrams}, " +
-      s"useTopics=${useTopics}, " +
-      s"useDictionaries=${useDictionaries}, " +
-      s"useEmbeddings=${useEmbeddings}, " +
-      s"useCosineSim=${useCosineSim}, " +
-      s"useFollowers=${useFollowers}, " +
-      s"datumScaling=${datumScaling}"
+    s"useBigrams=${useBigrams}, " +
+    s"useTopics=${useTopics}, " +
+    s"useDictionaries=${useDictionaries}, " +
+    s"useEmbeddings=${useEmbeddings}, " +
+    s"useCosineSim=${useCosineSim}, " +
+    s"useFollowers=${useFollowers}, " +
+    s"datumScaling=${datumScaling}"
   )
 
   // LDA topic model
@@ -93,7 +93,7 @@ class FeatureExtractor (
     * outside of what's presented here.
     */
   def mkDatum(account: TwitterAccount, label: String,
-              counter: Counter[String]): Datum[String, String] = {
+    counter: Counter[String]): Datum[String, String] = {
     new RVFDatum[String, String](label, mkFeatures(account) + counter)
   }
 
@@ -200,7 +200,7 @@ class FeatureExtractor (
 
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
- *
+    *
     * @param n Degree of n-gram (e.g. 1 refers to unigrams)
     * @param account
     * @return counter
@@ -284,7 +284,7 @@ class FeatureExtractor (
   def dictionaries(account: TwitterAccount): Counter[String] = {
     val result = new Counter[String]()
     if(!lexicons.isDefined) return result
-    
+
     // Classifier type
     val cType = lexicons.get.keys.head match {
       case "M" | "F" => "gender"
@@ -298,28 +298,28 @@ class FeatureExtractor (
         case (k, v) => {
           v foreach {
             case (lexName, lexicon) => {
-            val desc = tokenSet(filterTags(Tokenizer
-              .annotate(account.description.toLowerCase)))
-            var nS = 0
-              
-            account.name.toLowerCase.split("\\s+").foreach(n => {
-              if(lexicon.contains(n)) {
+              val desc = tokenSet(filterTags(Tokenizer
+                .annotate(account.description.toLowerCase)))
+              var nS = 0
+
+              account.name.toLowerCase.split("\\s+").foreach(n => {
+                if(lexicon.contains(n)) {
+                  nS += 1
+                }
+              })
+
+              if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
                 nS += 1
               }
-            })
-            
-            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
-              nS += 1
-            }
-            
-            val dS = if(!lexName.contains("name_")) {
-              desc.foldLeft(0)((s, d) => {
-                if(lexicon.contains(d)) s+1 else s
-              })
-            }
-            else 0
 
-            if(dS + nS > 0) result.incrementCount(s"lex_${k}_${lexName}", dS + nS)
+              val dS = if(!lexName.contains("name_")) {
+                desc.foldLeft(0)((s, d) => {
+                  if(lexicon.contains(d)) s+1 else s
+                })
+              }
+              else 0
+
+              if(dS + nS > 0) result.incrementCount(s"lex_${k}_${lexName}", dS + nS)
             }
           }
         }
@@ -329,7 +329,7 @@ class FeatureExtractor (
 
     }
     else if(cType equals "overweight") {
-        // Load dictionaries
+      // Load dictionaries
       val foodWordsFile = scala.io.Source
         .fromFile(config.getString("classifiers.features.foodWords"))
       val foodWords = foodWordsFile.getLines.toSet
