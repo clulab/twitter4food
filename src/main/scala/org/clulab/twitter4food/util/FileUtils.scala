@@ -115,30 +115,30 @@ object FileUtils {
 
   def loadSingletonTexts(fileName: String): Seq[String] = {
     val file = scala.io.Source.fromFile(fileName)
-    val lines = file.getLines
+    val lines = file.getLines.toList
+    file.close
 
     val texts = new ArrayBuffer[String]()
 
     var count = 0
     val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
     pb.start()
-    if(lines.hasNext) {
-      pb.maxHint(lines.size)
-      pb.setExtraMessage("Loading...")
-    }
-    while (lines.hasNext) {
-      val line = lines.next.stripLineEnd
+    pb.maxHint(lines.length)
+    pb.setExtraMessage("Loading...")
 
+
+    lines.foreach { line =>
       count match {
-        case 2 => texts.append(line)
+        case 2 => texts.append(line.stripLineEnd)
         case firstTwo => () // ignore first two lines of each triple
       }
       count += 1
       count %= 3
-    }
-    file.close
-    pb.stop()
 
+      pb.step()
+    }
+    pb.stop()
+    
     texts
   }
 }
