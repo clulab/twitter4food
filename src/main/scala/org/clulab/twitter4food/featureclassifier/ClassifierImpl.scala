@@ -160,7 +160,7 @@ class ClassifierImpl(
       })
 
     val opt = config.getString(s"classifiers.$ctype.model")
-    val fout = s"${opt}/svm_${args.mkString("").replace("-", "").sorted}_${_C}_${K}.dat"
+    val fout = s"$opt/svm_${args.mkString("").replace("-", "").sorted}_${_C}_$K.dat"
 
     // Train with top K tweets
     train(customAccounts, trainingLabels)
@@ -176,12 +176,14 @@ class ClassifierImpl(
 
     val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
     pb.start()
-    pb.maxHint(testSet.size.toInt)
+    pb.maxHint(testSet.length)
     pb.setExtraMessage("Predicting...")
 
-    val predictedLabels = testSet.toArray.map(u => {
-      val label = classify(u); pb.step(); label
-      }).toSeq
+    val predictedLabels = testSet.map{u =>
+      val label = classify(u)
+      pb.step()
+      label
+    }
 
     pb.stop()
 
@@ -213,7 +215,7 @@ class ClassifierImpl(
     println(evalMeasures.mkString("\n"))
     println(s"\nMacro avg F-1 : ${df.format(macroAvg)}")
     println(s"Micro avg F-1 : ${df.format(microAvg)}")
-    writer.write(s"C=${_C}, #K=${K}\n")
+    writer.write(s"C=${_C}, #K=$K\n")
     writer.write(evalMeasures.mkString("\n"))
     evalMeasures.keys.foreach(l => {
       writer.write(s"\nl\nFP:\n")
@@ -264,7 +266,7 @@ class ClassifierImpl(
     val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray,
       devData.values.toArray, testData.values.toArray)
 
-    var writerFile = if (outputFile != null) outputFile
+    val writerFile = if (outputFile != null) outputFile
       else config.getString("classifier") + s"/$ctype/output-" +
         fileExt + ".txt"
 
@@ -317,7 +319,8 @@ class ClassifierImpl(
       for(j <- gridCbyK(i).indices)
         if(gridCbyK(i)(j) > max) {
           max = gridCbyK(i)(j)
-          iMax = i; jMax = j
+          iMax = i
+          jMax = j
         }
 
     println(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}")
@@ -349,8 +352,8 @@ class ClassifierImpl(
     val allTrainData = FileUtils.load(config.getString(
       s"classifiers.$ctype.allTrainData"))
 
-    val allTrainAccounts = allTrainData.map(_._1).toArray
-    val allTrainLabels = allTrainData.map(_._2).toArray
+    val allTrainAccounts = allTrainData.keys.toArray
+    val allTrainLabels = allTrainData.values.toArray
 
     _train(allTrainAccounts, allTrainLabels, _C, K, ctype, args)
 
@@ -367,7 +370,7 @@ class ClassifierImpl(
   def predict(testFile: String) = {
 
     val allTestData = FileUtils.load(testFile)
-    val testAccounts = allTestData.map(_._1).toArray
+    val testAccounts = allTestData.keys.toArray
 
     val predictedLabels = _test(testAccounts)
   }
