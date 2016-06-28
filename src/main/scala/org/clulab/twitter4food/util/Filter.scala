@@ -11,7 +11,10 @@ object Filter {
     * @return
     */
   def spamFilter(tweets: Seq[String]): Seq[String] = {
-    def spamWords = scala.io.Source.fromFile(config.getString("spam_words")).getLines.map(_.stripLineEnd).toSet
+    val spamWordsFile = scala.io.Source.fromFile(config.getString("spam_words"))
+    val spamWords = spamWordsFile.getLines.map(_.stripLineEnd).toSet
+    spamWordsFile.close
+
     val okTweets = for (tweet <- tweets) yield {
       if (tweet.split("[\\s\\#]+").toSet.intersect(spamWords).isEmpty) Some(tweet)
       else None
