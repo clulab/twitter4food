@@ -16,6 +16,8 @@ object Filter {
       if (tweet.split("[\\s\\#]+").toSet.intersect(spamWords).isEmpty) Some(tweet)
       else None
     }
-    okTweets.flatten
+    val ret = okTweets.flatten
+    println(s"Eliminated ${tweets.length - ret.length} of ${tweets.length} (${(tweets.length - ret.length) / tweets.length})")
+    ret
   }
 }
