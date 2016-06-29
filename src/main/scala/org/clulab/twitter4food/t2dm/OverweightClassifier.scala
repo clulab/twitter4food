@@ -98,7 +98,7 @@ object OverweightClassifier {
       logger.info("Training classifier...")
       oc.setClassifier(new RFClassifier[String, String]())
       oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
-      oc.subClassifier.get.saveTo(modelFile)
+      // oc.subClassifier.get.saveTo(modelFile)
     } else {
       logger.info("Loading training accounts...")
       val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
@@ -111,7 +111,7 @@ object OverweightClassifier {
       logger.info("Training classifier...")
       oc.setClassifier(new RFClassifier[String, String]())
       oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq)
-      oc.subClassifier.get.saveTo(modelFile)
+      // oc.subClassifier.get.saveTo(modelFile)
     }
 
     var testSet : scala.collection.mutable.Map[TwitterAccount, String] = null
