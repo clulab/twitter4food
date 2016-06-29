@@ -12,7 +12,15 @@ import scala.util.Random
   */
 object BootstrapSignificance {
 
+  /**
+    * Micro F1, i.e. harmonic mean of precision and recall across all items regardless of true class.
+    * This biases the results toward larger classes, which may be the desired behavior.
+    * @param gold true labels
+    * @param pred predicted labels
+    * @return micro F1 (0.0 - 1.0 range)
+    */
   def microF1(gold: Seq[String], pred: Seq[String]): Double = {
+    assert(gold.length == pred.length)
     val tp: Double = (for (i <- gold.indices) yield if (gold(i) == pred(i)) 1 else 0).sum
     val fn: Double = (for {
       lbl <- gold.distinct
@@ -25,7 +33,41 @@ object BootstrapSignificance {
       if gold(i) != lbl && pred(i) == lbl
     } yield 1).sum
 
-    2.0 * tp / (2 * tp + fn + fp)
+    if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
+  }
+
+  /**
+    * Macro F1, i.e. harmonic mean of precision and recall is calculated for each class, then these are averaged.
+    * This makes every class as "important," in that the score is not biased by the size of the class.
+    * @param gold true labels
+    * @param pred predicted labels
+    * @return macro F1 (0.0 - 1.0 range)
+    */
+  def macroF1(gold: Seq[String], pred: Seq[String]): Double = {
+    assert(gold.length == pred.length)
+    val labels = gold.distinct
+
+    val tps = for {
+      lbl <- labels
+      tpForLabel = (for (i <- gold.indices) yield if (gold(i) == pred(i) && gold(i) == lbl) 1.0 else 0.0).sum
+    } yield tpForLabel
+
+    val fns = for {
+      lbl <- gold.distinct
+      fnForLabel = (for (i <- gold.indices) yield if (gold(i) == lbl && pred(i) != lbl) 1.0 else 0.0).sum
+    } yield fnForLabel
+
+    val fps = for {
+      lbl <- gold.distinct
+      fpForLabel = (for (i <- gold.indices) yield if (gold(i) != lbl && pred(i) == lbl) 1.0 else 0.0).sum
+    } yield fpForLabel
+
+    // problematic if the number of classes is huge
+    val tp: Double = tps.sum / tps.length
+    val fn: Double = fns.sum / fns.length
+    val fp: Double = fps.sum / fps.length
+
+    if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
   }
 
   def main(args: Seq[String]) = {
