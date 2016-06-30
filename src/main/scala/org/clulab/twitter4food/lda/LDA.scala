@@ -128,11 +128,14 @@ object LDA {
       val twoLines: Seq[String] = for {
         df <- config.getStringList("lda.2lineTrainingData")
         d = FileUtils.load(df)
-      } yield d.keys.flatMap(_.tweets).map(_.text)
+        englishOnly = d.keys.filter(_.lang == "en")
+      } yield englishOnly.flatMap(_.tweets).map(_.text)
+
       val threeLines: Seq[String] = for {
         df <- config.getStringList("lda.3lineTrainingData")
         d = FileUtils.loadSingletonTexts(df)
       } yield d
+
       twoLines ++ threeLines
     }
 
