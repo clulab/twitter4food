@@ -33,14 +33,14 @@ class FeatureExtractor (
 
   val config = ConfigFactory.load()
   val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
-  logger.info(s"useUnigrams=${useUnigrams}, " +
-      s"useBigrams=${useBigrams}, " +
-      s"useTopics=${useTopics}, " +
-      s"useDictionaries=${useDictionaries}, " +
-      s"useEmbeddings=${useEmbeddings}, " +
-      s"useCosineSim=${useCosineSim}, " +
-      s"useFollowers=${useFollowers}, " +
-      s"datumScaling=${datumScaling}"
+  logger.info(s"useUnigrams=$useUnigrams, " +
+    s"useBigrams=$useBigrams, " +
+    s"useTopics=$useTopics, " +
+    s"useDictionaries=$useDictionaries, " +
+    s"useEmbeddings=$useEmbeddings, " +
+    s"useCosineSim=$useCosineSim, " +
+    s"useFollowers=$useFollowers, " +
+    s"datumScaling=$datumScaling"
   )
 
   // LDA topic model
@@ -93,7 +93,7 @@ class FeatureExtractor (
     * outside of what's presented here.
     */
   def mkDatum(account: TwitterAccount, label: String,
-              counter: Counter[String]): Datum[String, String] = {
+    counter: Counter[String]): Datum[String, String] = {
     new RVFDatum[String, String](label, mkFeatures(account) + counter)
   }
 
@@ -195,13 +195,13 @@ class FeatureExtractor (
     val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
     val stopWords = stopWordsFile.getLines.toSet
     stopWordsFile.close
-    tagTok.filter(tt => !("@UGD,~$".contains(tt.tag))
+    tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
       && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
   }
 
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
- *
+    *
     * @param n Degree of n-gram (e.g. 1 refers to unigrams)
     * @param account
     * @return counter
@@ -264,7 +264,7 @@ class FeatureExtractor (
     */
   def topics(account: TwitterAccount): Counter[String] = {
     // no topic model available
-    if(topicModel.isEmpty) return null
+    if (topicModel.isEmpty) return null
 
     val tm = topicModel.get
     val topics = new Counter[String]
@@ -284,8 +284,8 @@ class FeatureExtractor (
     */
   def dictionaries(account: TwitterAccount): Counter[String] = {
     val result = new Counter[String]()
-    if(!lexicons.isDefined) return result
-    
+    if(lexicons.isEmpty) return result
+
     // Classifier type
     val cType = lexicons.get.keys.head match {
       case "M" | "F" => "gender"
@@ -296,39 +296,37 @@ class FeatureExtractor (
 
     if((cType equals "human") || (cType equals "gender")) {
       lexicons.get foreach {
-        case (k, v) => {
+        case (k, v) =>
           v foreach {
-            case (lexName, lexicon) => {
-            val desc = tokenSet(filterTags(Tokenizer
-              .annotate(account.description.toLowerCase)))
-            var nS = 0
-              
-            account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
-              case (n, i) => {
-                // If first name
-                println(n)
-                if (i == 0 & lexicon.contains(n)) nS += 1
-                else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
+            case (lexName, lexicon) =>
+              val desc = tokenSet(filterTags(Tokenizer
+                .annotate(account.description.toLowerCase)))
+              var nS = 0
+
+              account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
+                case (n, i) =>
+                  // If first name
+                  println(n)
+                  if (i == 0 & lexicon.contains(n)) nS += 1
+                  else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
               }
-            }
 
-            // Check substrings for handles
-            val matches = lexicon.keySet.filter(account.handle.toLowerCase.drop(1).contains(_))
-            nS += matches.size
-            
-            val dS = if (!lexName.contains("name")) desc.count(lexicon.contains) else 0
+              // Check substrings for handles
+              val matches = lexicon.keySet.filter(account.handle.toLowerCase.drop(1).contains(_))
+              nS += matches.size
 
-            if(dS + nS > 0) result.incrementCount(s"lex_${k}_${lexName}", dS + nS)
-            }
+              val dS = if (!lexName.contains("name")) desc.count(lexicon.contains) else 0
+
+              if(dS + nS > 0) result.incrementCount(s"lex_${k}_$lexName", dS + nS)
+
           }
-        }
       }
     }
     else if(cType equals "race") {
 
     }
     else if(cType equals "overweight") {
-        // Load dictionaries
+      // Load dictionaries
       val foodWordsFile = scala.io.Source
         .fromFile(config.getString("classifiers.features.foodWords"))
       val foodWords = foodWordsFile.getLines.toSet
@@ -397,7 +395,7 @@ class FeatureExtractor (
     var overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
     numLines = 0
     while (overweightFile.readLine() != null) numLines += 1
-    overweightFile.close
+    overweightFile.close()
 
     overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
 
@@ -412,20 +410,18 @@ class FeatureExtractor (
       if (i % 3 == 2) {
         // No need to keep track of what's been seen since we're accumulating tf here
         val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        for (taggedToken <- taggedTokens) {
-          overweightCounter.incrementCount(taggedToken.token)
-        }
+        taggedTokens.foreach(tt => overweightCounter.incrementCount(tt.token))
         pb2.step()
       }
       i += 1
       i %= 3
     }
 
-    overweightFile.close
+    overweightFile.close()
     pb.stop()
 
-    overweightCounter.keySet.foreach(
-      word => overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    overweightCounter.keySet.foreach(word =>
+      overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
     )
     overweightVec = Some(overweightCounter)
   }
@@ -439,7 +435,7 @@ class FeatureExtractor (
     * @return counter
     */
   def cosineSim(account: TwitterAccount): Counter[String] = {
-    if (!idfTable.isDefined || !overweightVec.isDefined) {
+    if (idfTable.isEmpty || overweightVec.isEmpty) {
       loadTFIDF()
     }
     // Accumulate tfidf scores of words in this account
@@ -452,8 +448,8 @@ class FeatureExtractor (
     addToVec(accountVec, account.description)
     account.tweets.foreach(tweet => addToVec(accountVec, tweet.text))
     // Convert to tfidf using idf from table
-    accountVec.keySet.foreach(
-      word => accountVec.setCount(word, math.log(accountVec.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    accountVec.keySet.foreach(word =>
+      accountVec.setCount(word, math.log(accountVec.getCount(word)) * (1 + idfTable.get.getCount(word)))
     )
 
     // Calculate cosine similarity
