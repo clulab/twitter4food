@@ -113,7 +113,7 @@ object FileUtils {
     accounts
   }
 
-  def loadSingletonTexts(fileName: String): Seq[String] = {
+  def loadSingletonTexts(fileName: String, englishOnly: Boolean = true): Seq[String] = {
     val file = scala.io.Source.fromFile(fileName)
     val lines = file.getLines.toList
     file.close
@@ -121,15 +121,16 @@ object FileUtils {
     val texts = new ArrayBuffer[String]()
 
     var count = 0
+    var lang = ""
     val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
     pb.start()
     pb.maxHint(lines.length)
     pb.setExtraMessage("Loading...")
 
-
     lines.foreach { line =>
       count match {
-        case 2 => texts.append(line.stripLineEnd)
+        case 0 => lang = line.stripLineEnd.split("\t").last
+        case 2 => if (lang == "en") texts.append(line.stripLineEnd)
         case firstTwo => () // ignore first two lines of each triple
       }
       count += 1
