@@ -377,14 +377,7 @@ class FeatureExtractor (
       if (i % 3 == 2) {
         // Filter words based on FeatureExtractor for consistency
         val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        var wordsSeen = Set[String]()
-        for (taggedToken <- taggedTokens) {
-          val token = taggedToken.token
-          if (!wordsSeen.contains(token))
-            randomCounter.incrementCount(token)
-          else
-            wordsSeen += token
-        }
+        taggedTokens.map(_.token).distinct.foreach(token => randomCounter.incrementCount(token))
         N += 1
         pb.step()
       }
