@@ -142,7 +142,7 @@ object BootstrapSignificance {
     println("model\tpval")
     betterThanBaseline.foreach{
       case (featureSet, isBetter) =>
-        println(s"$featureSet\t${isBetter.sum / reps}")
+        println(s"$featureSet\t${1.0 - isBetter.sum / reps.toDouble}")
     }
   }
 }
