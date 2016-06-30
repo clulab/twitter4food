@@ -124,30 +124,31 @@ object LDA {
 
     logger.info(s"Loading and filtering tweets...")
 
-    val tweetsRaw = FileUtils.load(config.getString("lda.2lineTrainingData")).keys.toSeq
+    val tweetsRaw = {
+      val twoLines: Seq[String] = for {
+        df <- config.getStringList("lda.2lineTrainingData")
+        d = FileUtils.load(df)
+      } yield d.keys.flatMap(_.tweets).map(_.text)
+      val threeLines: Seq[String] = for {
+        df <- config.getStringList("lda.3lineTrainingData")
+        d = FileUtils.loadSingletonTexts(df)
+      } yield d
+      twoLines ++ threeLines
+    }
 
     val pb = new me.tongfei.progressbar.ProgressBar("LDA", 100)
     pb.start()
-    pb.maxHint(tweetsRaw.map(_.tweets.length).sum)
+    pb.maxHint(tweetsRaw.length)
     pb.setExtraMessage("Parsing and filtering...")
 
     val tweets = tweetsRaw
       .par
-      .flatMap{_.tweets
-        .map { tweet =>
-          pb.step()
-          fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
-            .map(_.token)
-            .toSeq
-        }
+      .map { tweet =>
+        pb.step()
+        fe.filterTags(Tokenizer.annotate(tweet.toLowerCase))
+          .map(_.token)
+          .toSeq
       }.seq
-
-//    val tweets = spamFilter(loadSingletonTexts(config.getString("lda.3lineTrainingData")))
-//      .map(tweet =>
-//        fe.filterTags(Tokenizer.annotate(tweet.toLowerCase))
-//          .map(_.token)
-//          .toSeq
-//      )
 
     pb.stop()
 
