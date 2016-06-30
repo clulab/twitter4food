@@ -7,7 +7,7 @@ import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.util.Tokenizer
+import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.util.FileUtils._
 import org.clulab.twitter4food.util.Filter._
 import org.clulab.twitter4food.struct._
@@ -124,23 +124,23 @@ object LDA {
 
     logger.info(s"Loading and filtering tweets...")
 
-//    val tweets = FileUtils.load(config.getString("lda.2lineTrainingData"))
-//      .keys
-//      .par
-//      .flatMap(_.tweets
-//        .map(tweet =>
-//          fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
-//            .map(_.token)
-//            .toSeq
-//        )
-//      ).seq
+    val tweets = FileUtils.load(config.getString("lda.2lineTrainingData"))
+      .keys
+      .par
+      .flatMap(_.tweets
+        .map(tweet =>
+          fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
+            .map(_.token)
+            .toSeq
+        )
+      ).seq
 
-    val tweets = spamFilter(loadSingletonTexts(config.getString("lda.3lineTrainingData")))
-      .map(tweet =>
-        fe.filterTags(Tokenizer.annotate(tweet.toLowerCase))
-          .map(_.token)
-          .toSeq
-      )
+//    val tweets = spamFilter(loadSingletonTexts(config.getString("lda.3lineTrainingData")))
+//      .map(tweet =>
+//        fe.filterTags(Tokenizer.annotate(tweet.toLowerCase))
+//          .map(_.token)
+//          .toSeq
+//      )
 
     logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
 
