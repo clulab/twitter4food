@@ -289,7 +289,7 @@ class FeatureExtractor (
     // Classifier type
     val cType = lexicons.get.keys.head match {
       case "M" | "F" => "gender"
-      case "Overweight" | "Not Overweight" => "overweight"
+      case "Overweight" | "Not overweight" => "overweight"
       case "human" | "org" => "human"
       case "asian" | "hispanic" | "white" | "black" => "race"
     }
@@ -303,17 +303,26 @@ class FeatureExtractor (
               .annotate(account.description.toLowerCase)))
             var nS = 0
               
-            account.name.toLowerCase.split("\\s+").foreach(n => {
-              if(lexicon.contains(n)) {
-                nS += 1
+            account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
+              case (n, i) => {
+                // If first name
+                println(n)
+                if(i == 0) {
+                  if(lexicon.contains(n)) { nS += 1 }
+                }
+                else {
+                  if(lexName.contains("last")) {
+                    if(lexicon.contains(n)) { nS += 1 }
+                  }
+                }
               }
-            })
-            
-            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
-              nS += 1
             }
+
+            // Check substrings for handles
+            val matches = lexicon.keySet.filter(account.handle.toLowerCase.drop(1).contains(_))
+            nS += matches.size
             
-            val dS = if(!lexName.contains("name_")) {
+            val dS = if(!lexName.contains("name")) {
               desc.foldLeft(0)((s, d) => {
                 if(lexicon.contains(d)) s+1 else s
               })
