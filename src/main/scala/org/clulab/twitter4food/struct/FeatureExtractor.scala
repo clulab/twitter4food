@@ -307,14 +307,8 @@ class FeatureExtractor (
               case (n, i) => {
                 // If first name
                 println(n)
-                if(i == 0) {
-                  if(lexicon.contains(n)) { nS += 1 }
-                }
-                else {
-                  if(lexName.contains("last")) {
-                    if(lexicon.contains(n)) { nS += 1 }
-                  }
-                }
+                if (i == 0 & lexicon.contains(n)) nS += 1
+                else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
               }
             }
 
@@ -322,12 +316,7 @@ class FeatureExtractor (
             val matches = lexicon.keySet.filter(account.handle.toLowerCase.drop(1).contains(_))
             nS += matches.size
             
-            val dS = if(!lexName.contains("name")) {
-              desc.foldLeft(0)((s, d) => {
-                if(lexicon.contains(d)) s+1 else s
-              })
-            }
-            else 0
+            val dS = if (!lexName.contains("name")) desc.count(lexicon.contains) else 0
 
             if(dS + nS > 0) result.incrementCount(s"lex_${k}_${lexName}", dS + nS)
             }
