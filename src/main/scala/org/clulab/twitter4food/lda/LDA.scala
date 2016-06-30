@@ -3,6 +3,8 @@ package org.clulab.twitter4food.lda
 import java.io.{File, PrintWriter, Serializable}
 import java.util.ArrayList
 
+import scala.collection.JavaConversions.asScalaBuffer
+
 import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
@@ -125,18 +127,19 @@ object LDA {
     logger.info(s"Loading and filtering tweets...")
 
     val tweetsRaw = {
-      val twoLines: Seq[String] = for {
-        df <- config.getStringList("lda.2lineTrainingData")
-        d = FileUtils.load(df)
-        englishOnly = d.keys.filter(_.lang == "en")
-      } yield englishOnly.flatMap(_.tweets).map(_.text)
+      val twoLines = for {
+        df <- asScalaBuffer(config.getStringList("lda.2lineTrainingData")).toList
+      } yield {
+        val d = FileUtils.load(df)
+        val englishOnly = d.keys.filter(_.lang == "en")
+        englishOnly.flatMap(_.tweets).map(_.text)
+      }
 
-      val threeLines: Seq[String] = for {
-        df <- config.getStringList("lda.3lineTrainingData")
-        d = FileUtils.loadSingletonTexts(df)
-      } yield d
+      val threeLines = for {
+        df <- asScalaBuffer(config.getStringList("lda.3lineTrainingData")).toList
+      } yield FileUtils.loadSingletonTexts(df)
 
-      twoLines ++ threeLines
+      twoLines.flatten ++ threeLines.flatten
     }
 
     val pb = new me.tongfei.progressbar.ProgressBar("LDA", 100)
