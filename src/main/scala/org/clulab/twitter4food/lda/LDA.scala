@@ -124,16 +124,23 @@ object LDA {
 
     logger.info(s"Loading and filtering tweets...")
 
-    val tweets = FileUtils.load(config.getString("lda.2lineTrainingData"))
-      .keys
+    val tweetsRaw = FileUtils.load(config.getString("lda.2lineTrainingData")).keys.toSeq
+
+    val pb = new me.tongfei.progressbar.ProgressBar("LDA", 100)
+    pb.start()
+    pb.maxHint(tweetsRaw.map(_.tweets.length).sum)
+    pb.setExtraMessage("Parsing and filtering...")
+
+    val tweets = tweetsRaw
       .par
-      .flatMap(_.tweets
-        .map(tweet =>
+      .flatMap{_.tweets
+        .map { tweet =>
+          pb.step()
           fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
             .map(_.token)
             .toSeq
-        )
-      ).seq
+        }
+      }.seq
 
 //    val tweets = spamFilter(loadSingletonTexts(config.getString("lda.3lineTrainingData")))
 //      .map(tweet =>
@@ -141,6 +148,8 @@ object LDA {
 //          .map(_.token)
 //          .toSeq
 //      )
+
+    pb.stop()
 
     logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
 
