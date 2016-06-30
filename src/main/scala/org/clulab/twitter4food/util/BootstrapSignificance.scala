@@ -37,7 +37,7 @@ object BootstrapSignificance {
   }
 
   /**
-    * Macro F1, i.e. harmonic mean of precision and recall is calculated for each class, then these are averaged.
+    * The harmonic mean of precision and recall is calculated for each class, then these are averaged.
     * This makes every class as "important," in that the score is not biased by the size of the class.
     * @param gold true labels
     * @param pred predicted labels
@@ -109,6 +109,7 @@ object BootstrapSignificance {
       .filterKeys(_ != baselineFeatures)
       .map(featureSet => featureSet._1 -> featureSet._2.unzip._2)
 
+    // initialize a buffer for tracking whether each model's F1 exceeds the baseline
     val betterThanBaseline: Map[String, scala.collection.mutable.ListBuffer[Double]] = (for {
       key <- comparable.keys
     } yield key -> new scala.collection.mutable.ListBuffer[Double]).toMap
@@ -118,6 +119,7 @@ object BootstrapSignificance {
     pb.maxHint(reps * betterThanBaseline.size)
     pb.setExtraMessage("sampling...")
 
+    // for each rep, randomly sample indices once, then compare the baseline's F1 to each other model's
     // TODO: Can we make this more efficient? Indexing is on IndexedSeq, so constant time per index
     for {
       i <- 0 until reps
