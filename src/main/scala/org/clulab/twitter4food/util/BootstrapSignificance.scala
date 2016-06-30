@@ -113,6 +113,11 @@ object BootstrapSignificance {
       key <- comparable.keys
     } yield key -> new scala.collection.mutable.ListBuffer[Double]).toMap
 
+    val pb = new me.tongfei.progressbar.ProgressBar("bootstrap", 100)
+    pb.start()
+    pb.maxHint(reps * betterThanBaseline.size)
+    pb.setExtraMessage("sampling...")
+
     // TODO: Can we make this more efficient? Indexing is on IndexedSeq, so constant time per index
     for {
       i <- 0 until reps
@@ -126,7 +131,16 @@ object BootstrapSignificance {
       val baselineF1 = microF1(sampleGold, sampleBase)
       val predF1 = microF1(sampleGold, samplePred)
       betterThanBaseline(featureSet)(i) = if (predF1 > baselineF1) 1.0 else 0.0
+      pb.step()
     }
 
+    pb.stop()
+
+    // print out results
+    println("model\tpval")
+    betterThanBaseline.foreach{
+      case (featureSet, isBetter) =>
+        println(s"$featureSet\t${isBetter.sum / reps}")
+    }
   }
 }
