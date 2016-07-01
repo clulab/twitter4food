@@ -1,9 +1,11 @@
 package org.clulab.twitter4food.util
 
+import com.typesafe.config.ConfigFactory
 import edu.smu.tspell.wordnet._
 
 class HypernymSet {
-  System.setProperty("wordnet.database.dir", "lib/WordNet-3.0/dict/")
+  val config = ConfigFactory.load()
+  System.setProperty("wordnet.database.dir", config.getString("wordnet"))
   val db = WordNetDatabase.getFileInstance
   
   def getHypernyms(word: String): Set[String] = {
