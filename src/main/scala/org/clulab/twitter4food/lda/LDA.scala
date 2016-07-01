@@ -130,8 +130,8 @@ object LDA {
       val twoLines = for {
         df <- asScalaBuffer(config.getStringList("lda.2lineTrainingData")).toList
       } yield {
-        val d = FileUtils.load(df)
-        val englishOnly = d.keys.filter(_.lang == "en")
+        val d: Map[TwitterAccount, String] = FileUtils.load(df).toMap
+        val englishOnly: Iterable[TwitterAccount] = d.keys.filter(_.lang == "en")
         englishOnly.flatMap(_.tweets).map(_.text)
       }
 
