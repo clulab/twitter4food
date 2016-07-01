@@ -158,7 +158,7 @@ object LDA {
 
     pb.stop()
 
-    logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
+    logger.info(s"Modeling topics from ${tweets.size} tweets")
 
     val (lda, alphabet) = LDA.train(tweets, params.numTopics, params.numIterations)
 
