@@ -33,14 +33,14 @@ class FeatureExtractor (
 
   val config = ConfigFactory.load()
   val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
-  logger.info(s"useUnigrams=${useUnigrams}, " +
-      s"useBigrams=${useBigrams}, " +
-      s"useTopics=${useTopics}, " +
-      s"useDictionaries=${useDictionaries}, " +
-      s"useEmbeddings=${useEmbeddings}, " +
-      s"useCosineSim=${useCosineSim}, " +
-      s"useFollowers=${useFollowers}, " +
-      s"datumScaling=${datumScaling}"
+  logger.info(s"useUnigrams=$useUnigrams, " +
+    s"useBigrams=$useBigrams, " +
+    s"useTopics=$useTopics, " +
+    s"useDictionaries=$useDictionaries, " +
+    s"useEmbeddings=$useEmbeddings, " +
+    s"useCosineSim=$useCosineSim, " +
+    s"useFollowers=$useFollowers, " +
+    s"datumScaling=$datumScaling"
   )
 
   // LDA topic model
@@ -73,7 +73,13 @@ class FeatureExtractor (
   for ((account, _) <- followerAccounts)
     handleToFollower += (account.handle -> account)
 
+  /**
+    * Copy a [[Counter]] so it's not accidentally overwritten
+    */
+  def copyCounter[T](counter: Counter[T]): Counter[T] = counter.map(kv => kv._2)
+
   /** Reads a sequence of filenames for each label as a sequence of lexicons
+    *
     * @param lexiconMap A map of (label -> sequence of filenames)
     * @return Unit
     */
@@ -93,7 +99,7 @@ class FeatureExtractor (
     * outside of what's presented here.
     */
   def mkDatum(account: TwitterAccount, label: String,
-              counter: Counter[String]): Datum[String, String] = {
+    counter: Counter[String]): Datum[String, String] = {
     new RVFDatum[String, String](label, mkFeatures(account) + counter)
   }
 
@@ -115,22 +121,43 @@ class FeatureExtractor (
     */
   def mkFeatures(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
-    if (useUnigrams)
-      counter += ngrams(1, account)
+
+    // Only English tweets with words
+    val filteredTweets = account.tweets.filter { t =>
+      t.lang != null & t.lang == "en" &
+        t.text != null & t.text != ""
+    }
+    // Filter out stopwords
+    val tweets = for {
+      t <- filteredTweets
+    } yield {
+      val tt = Tokenizer.annotate(t.text.toLowerCase)
+      filterTags(tt).map(_.token)
+    }
+    // Same for description
+    val description = filterTags(Tokenizer.annotate(account.description.toLowerCase)).map(_.token)
+
+    var unigrams: Option[Counter[String]] = None
+
+    if (useUnigrams) {
+      unigrams = Some(ngrams(1, tweets, description))
+      counter += unigrams.get
+    }
     if (useBigrams)
-      counter += ngrams(2, account)
+      counter += ngrams(2, tweets, description)
     if (useTopics)
-      counter += topics(account)
+      counter += topics(tweets)
     if (useDictionaries)
-      counter += dictionaries(account)
+      counter += dictionaries(tweets, description, account, unigrams)
     if (useEmbeddings){
 
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
-      counter += cosineSim(account)
+      counter += cosineSim(unigrams, tweets, description)
 
     // must scaleByDatum now to keep scaling distinct from follower features
-    if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
+    if (datumScaling)
+      scaleByDatum(counter, 0.0, 1.0)
 
     if (useFollowers) {
       // make deep copy of counter, range 0-1
@@ -149,7 +176,7 @@ class FeatureExtractor (
       // combined scores should range 0-1 if datumScaling
       if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
 
-      counter += appendPrefix("followers_", fc) + appendPrefix("main_", mc)
+      counter += appendPrefix("follower-", fc) + appendPrefix("main-", mc)
     }
 
     // remove zero values for sparse rep
@@ -158,19 +185,36 @@ class FeatureExtractor (
 
   def mkFeaturesFollowers(account: TwitterAccount): Counter[String] = {
     var counter = new Counter[String]
-    if (useUnigrams)
-      counter += ngrams(1, account)
+    val filteredTweets = account.tweets.filter { t =>
+      t.lang != null & t.lang == "en" &
+        t.text != null & t.text != ""
+    }
+    val tweets = for {
+      t <- filteredTweets
+    } yield {
+      val tt = Tokenizer.annotate(t.text.toLowerCase)
+      filterTags(tt).map(_.token)
+    }
+    // Same for description
+    val description = filterTags(Tokenizer.annotate(account.description.toLowerCase)).map(_.token)
+
+    var unigrams: Option[Counter[String]] = None
+
+    if (useUnigrams) {
+      unigrams = Some(ngrams(1, tweets, description))
+      counter += unigrams.get
+    }
     if (useBigrams)
-      counter += ngrams(2, account)
+      counter += ngrams(2, tweets, description)
     if (useTopics)
-      counter += topics(account)
+      counter += topics(tweets)
     if (useDictionaries)
-      counter += dictionaries(account)
+      counter += dictionaries(tweets, description, account, unigrams)
     if (useEmbeddings){
 
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
-      counter += cosineSim(account)
+      counter += cosineSim(unigrams, tweets, description)
     // Calling mkFeatures on followers will end up being endlessly recursive
 
     counter
@@ -195,47 +239,43 @@ class FeatureExtractor (
     val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
     val stopWords = stopWordsFile.getLines.toSet
     stopWordsFile.close
-    tagTok.filter(tt => !("@UGD,~$".contains(tt.tag))
+    tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
       && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
   }
 
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
- *
+    *
     * @param n Degree of n-gram (e.g. 1 refers to unigrams)
-    * @param account
+    * @param description Text description of [[TwitterAccount]]
     * @return counter
     */
-  def ngrams(n: Int, account: TwitterAccount): Counter[String] = {
+  def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
 
     // Extract ngrams
     val populateNGrams = (n: Int, text: Array[String]) => {
       text.sliding(n).toList.reverse
-        .foldLeft(List[String]())((l, window) => window.mkString("_") :: l)
+        .foldLeft(List[String]())((l, window) => window.mkString(" ") :: l)
         .toArray
     }
 
     // Filter ngrams by their POS tags
-    setCounts(tokenSet(filterTags(Tokenizer.annotate(account.description.toLowerCase))), counter)
+    setCounts(populateNGrams(n, description), counter)
+
     // Filter further by ensuring we get English tweets and non-empty strings
-    account.tweets.filter(t => t.lang != null
-      && t.lang.equals("en")).foreach(tweet => {
-      if (tweet.text != null && !tweet.text.equals("")) {
-        val tt = Tokenizer.annotate(tweet.text.toLowerCase)
-        val tokenAndTagSet = filterTags(tt)
-        val tokens = tokenSet(tokenAndTagSet)
-        val nGramSet = populateNGrams(n, tokens)
-        setCounts(nGramSet, counter)
-      }
-    })
+    tweets.foreach{ tweet =>
+      val nGramSet = populateNGrams(n, tweet)
+      setCounts(nGramSet, counter)
+    }
+
     counter
   }
 
   /**
     * Adds the flagged features to a new counter for domain adaptation.
     *
-    * @param account
+    * @param account [[TwitterAccount]] whose followers will be annotated
     * @return counter
     */
   def followers(account: TwitterAccount): Counter[String] = {
@@ -259,78 +299,75 @@ class FeatureExtractor (
 
   /**
     * Add a feature for each topic in the topic model, and count instances in the account's tweets
-    * @param account a single [[TwitterAccount]] for topic modeling
+    *
+    * @param tweets Tokenized, filtered [[Tweet]] text
     * @return a [[Counter]] of topics for this account
     */
-  def topics(account: TwitterAccount): Counter[String] = {
+  def topics(tweets: Seq[Array[String]]): Counter[String] = {
     // no topic model available
-    if(topicModel.isEmpty) return null
+    if (topicModel.isEmpty) return null
 
     val tm = topicModel.get
     val topics = new Counter[String]
-    account.tweets.foreach{ tweet =>
-      val tokens = filterTags(Tokenizer.annotate(tweet.text.toLowerCase)).map(_.token)
-      topics.incrementCount("topic_" + tm.mostLikelyTopic(tokens))
-    }
+    tweets.foreach(tweet => topics.incrementCount("topic_" + tm.mostLikelyTopic(tweet)))
+
     topics
   }
 
   /**
     * Functions like unigrams but constrained to words in dictionaries.
     * NOTE: Adding classifier wise dictionaries since the number of classifiers
-    *       is very manageable. -@adikou 
-    * @param account
+    *       is very manageable. -@adikou
+    *
     * @return counter - Return one counter fine-tuned for a particular classifier
     */
-  def dictionaries(account: TwitterAccount): Counter[String] = {
+  def dictionaries(tweets: Seq[Array[String]],
+    description: Array[String],
+    account: TwitterAccount,
+    ngramCounter: Option[Counter[String]]): Counter[String] = {
+
     val result = new Counter[String]()
-    if(!lexicons.isDefined) return result
-    
+    if(lexicons.isEmpty) return result
+
     // Classifier type
     val cType = lexicons.get.keys.head match {
       case "M" | "F" => "gender"
-      case "Overweight" | "Not Overweight" => "overweight"
+      case "Overweight" | "Not overweight" => "overweight"
       case "human" | "org" => "human"
       case "asian" | "hispanic" | "white" | "black" => "race"
     }
 
     if((cType equals "human") || (cType equals "gender")) {
       lexicons.get foreach {
-        case (k, v) => {
+        case (k, v) =>
           v foreach {
-            case (lexName, lexicon) => {
-            val desc = tokenSet(filterTags(Tokenizer
-              .annotate(account.description.toLowerCase)))
-            var nS = 0
-              
-            account.name.toLowerCase.split("\\s+").foreach(n => {
-              if(lexicon.contains(n)) {
-                nS += 1
-              }
-            })
-            
-            if(lexicon.contains(account.handle.toLowerCase.drop(1))) {
-              nS += 1
-            }
-            
-            val dS = if(!lexName.contains("name_")) {
-              desc.foldLeft(0)((s, d) => {
-                if(lexicon.contains(d)) s+1 else s
-              })
-            }
-            else 0
+            case (lexName, lexicon) =>
+              var nS = 0
 
-            if(dS + nS > 0) result.incrementCount(s"lex_${k}_${lexName}", dS + nS)
-            }
+              account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
+                case (n, i) =>
+                  // If first name
+                  println(n)
+                  if (i == 0 & lexicon.contains(n)) nS += 1
+                  else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
+              }
+
+              // Check substrings for handles
+              val matches = lexicon.keySet.filter(account.handle.toLowerCase.drop(1).contains(_))
+              nS += matches.size
+
+              val dS = if (!lexName.contains("name")) description.count(lexicon.contains) else 0
+
+              if(dS + nS > 0) result.incrementCount(s"lex_${k}_$lexName", dS + nS)
+
           }
-        }
       }
     }
     else if(cType equals "race") {
 
     }
     else if(cType equals "overweight") {
-        // Load dictionaries
+      // Load dictionaries
       val foodWordsFile = scala.io.Source
         .fromFile(config.getString("classifiers.features.foodWords"))
       val foodWords = foodWordsFile.getLines.toSet
@@ -342,7 +379,7 @@ class FeatureExtractor (
       hashtagsFile.close
 
       // Filter ngrams
-      var temp = ngrams(1, account)
+      var temp = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
       temp = temp.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
 
       // Copy into counter with prefix to indicate this is a different feature
@@ -379,14 +416,7 @@ class FeatureExtractor (
       if (i % 3 == 2) {
         // Filter words based on FeatureExtractor for consistency
         val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        var wordsSeen = Set[String]()
-        for (taggedToken <- taggedTokens) {
-          val token = taggedToken.token
-          if (!wordsSeen.contains(token))
-            randomCounter.incrementCount(token)
-          else
-            wordsSeen += token
-        }
+        taggedTokens.map(_.token).distinct.foreach(token => randomCounter.incrementCount(token))
         N += 1
         pb.step()
       }
@@ -406,7 +436,7 @@ class FeatureExtractor (
     var overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
     numLines = 0
     while (overweightFile.readLine() != null) numLines += 1
-    overweightFile.close
+    overweightFile.close()
 
     overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
 
@@ -421,20 +451,18 @@ class FeatureExtractor (
       if (i % 3 == 2) {
         // No need to keep track of what's been seen since we're accumulating tf here
         val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        for (taggedToken <- taggedTokens) {
-          overweightCounter.incrementCount(taggedToken.token)
-        }
+        taggedTokens.foreach(tt => overweightCounter.incrementCount(tt.token))
         pb2.step()
       }
       i += 1
       i %= 3
     }
 
-    overweightFile.close
+    overweightFile.close()
     pb.stop()
 
-    overweightCounter.keySet.foreach(
-      word => overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    overweightCounter.keySet.foreach(word =>
+      overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
     )
     overweightVec = Some(overweightCounter)
   }
@@ -444,25 +472,17 @@ class FeatureExtractor (
     * Calculates the cosine similarity between the TFIDF vector of the account's description
     * and tweets and the TFIDF vector of the overweight corpus.
     *
-    * @param account
     * @return counter
     */
-  def cosineSim(account: TwitterAccount): Counter[String] = {
-    if (!idfTable.isDefined || !overweightVec.isDefined) {
-      loadTFIDF()
-    }
-    // Accumulate tfidf scores of words in this account
-    def addToVec(vec:Counter[String], text:String) = {
-      val taggedTokens = filterTags(Tokenizer.annotate(text.toLowerCase))
-      taggedTokens.foreach(tagTok => vec.incrementCount(tagTok.token))
-    }
-    // Get tf
-    val accountVec = new Counter[String]()
-    addToVec(accountVec, account.description)
-    account.tweets.foreach(tweet => addToVec(accountVec, tweet.text))
-    // Convert to tfidf using idf from table
-    accountVec.keySet.foreach(
-      word => accountVec.setCount(word, math.log(accountVec.getCount(word)) * (1 + idfTable.get.getCount(word)))
+  def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Array[String]],
+    description: Array[String]): Counter[String] = {
+
+    if (idfTable.isEmpty || overweightVec.isEmpty) loadTFIDF()
+
+    val accountVec = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
+
+    accountVec.keySet.foreach(word =>
+      accountVec.setCount(word, math.log(accountVec.getCount(word)) * (1 + idfTable.get.getCount(word)))
     )
 
     // Calculate cosine similarity
