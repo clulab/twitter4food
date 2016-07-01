@@ -10,8 +10,6 @@ import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
-import org.clulab.twitter4food.util.FileUtils._
-import org.clulab.twitter4food.util.Filter._
 import org.clulab.twitter4food.struct._
 import org.clulab.utils.Serializer
 import org.slf4j.LoggerFactory
