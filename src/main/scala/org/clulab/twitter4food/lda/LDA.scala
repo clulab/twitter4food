@@ -145,7 +145,7 @@ object LDA {
     val pb = new me.tongfei.progressbar.ProgressBar("LDA", 100)
     pb.start()
     pb.maxHint(tweetsRaw.length)
-    pb.setExtraMessage("Parsing and filtering...")
+    pb.setExtraMessage("Tokenizing...")
 
     val tweets = tweetsRaw
       .par
