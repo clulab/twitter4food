@@ -2,6 +2,7 @@ package org.clulab.twitter4food.t2dm
 
 import java.io.{BufferedWriter, FileWriter}
 
+import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.twitter4j.TwitterAPI
 import org.clulab.twitter4food.util.{FileUtils, MultiThreadLoader, TestUtils}
@@ -15,6 +16,11 @@ import twitter4j.TwitterException
 object Followers {
 
     def main(args: Array[String]) {
+
+        if (args(0) equals "new") {
+            followersForNewAccounts()
+            sys.exit(0)
+        }
 
         val numProcesses = 16
         val keySet = args(0).toInt
@@ -118,5 +124,45 @@ object Followers {
         FileUtils.saveToFile(followers.toSeq, labels, accountsFile)
 
         println("Follower accounts written to file!")
+    }
+
+    def followersForNewAccounts(): Unit = {
+        val config = ConfigFactory.load
+        // Get handles (not their followers) from current followerRelations file
+        val current = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations")).getLines.map(line => line.split("\t")(0)).toSet
+        println(s"Loaded ${current.size} accounts from followerRelations!")
+
+        // Get handle from updated handle file, excluding "Can't tell" labels
+        val all = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles")).getLines.map(line => {
+            if (!line.split("\t")(1).equals("Can't tell"))
+                line.split("\t")(0)
+            else
+                null
+        }).filter(s => s != null).toSet
+        println(s"Loaded ${all.size} accounts from handles file!")
+
+        // Filter in the new accounts
+        val toExtract = all.filter(handle => !current.contains(handle))
+        println(s"Downloading follower information for ${toExtract.size} new accounts!")
+
+        // Download followers
+        val api = new TwitterAPI(2)
+        var followers = List[TwitterAccount]()
+
+        val pb = new me.tongfei.progressbar.ProgressBar("Followers", 100)
+        pb.start()
+        pb.maxHint(toExtract.size)
+        pb.setExtraMessage(s"Downloading...")
+
+        for (handle <- toExtract) {
+            val account = api.fetchAccount(h=handle, fetchTweets=false, fetchNetwork=true)
+            if (account != null)
+                account.activeFollowers.foreach(f => followers = f :: followers)
+            pb.step
+        }
+        pb.stop
+
+        // At the risk of overwriting followerRelations, create tmp file to be moved via command line after
+        FileUtils.saveToFile(followers, followers.map(_ => "follower"), "tmp.txt")
     }
 }
