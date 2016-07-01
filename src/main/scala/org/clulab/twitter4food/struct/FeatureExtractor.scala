@@ -73,7 +73,13 @@ class FeatureExtractor (
   for ((account, _) <- followerAccounts)
     handleToFollower += (account.handle -> account)
 
+  /**
+    * Copy a [[Counter]] so it's not accidentally overwritten
+    */
+  def copyCounter[T](counter: Counter[T]): Counter[T] = counter.map(kv => kv._2)
+
   /** Reads a sequence of filenames for each label as a sequence of lexicons
+    *
     * @param lexiconMap A map of (label -> sequence of filenames)
     * @return Unit
     */
