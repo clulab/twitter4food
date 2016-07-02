@@ -26,5 +26,6 @@ libraryDependencies ++= Seq(
   "cc.mallet" % "mallet" % "2.0.8",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
   "com.github.scopt" %% "scopt" % "3.4.0",
-  "me.tongfei" % "progressbar" % "0.4.0"
+  "me.tongfei" % "progressbar" % "0.4.0",
+  "edu.cmu.cs" % "ark-tweet-nlp" % "0.3.2"
 )
