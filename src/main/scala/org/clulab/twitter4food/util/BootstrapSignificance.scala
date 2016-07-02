@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory
 
 import scala.util.Random
 
+class BootstrapSignificance
+
 /**
   * Test for one-tailed statistical significance of all systems compared to a named baseline
   */
@@ -71,7 +73,7 @@ object BootstrapSignificance {
   }
 
   def main(args: Seq[String]) = {
-    val logger = LoggerFactory.getLogger("BootstrapSignificance")
+    val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
 
     val baselineFeatures = config.getString("classifiers.overweight.baseline")
