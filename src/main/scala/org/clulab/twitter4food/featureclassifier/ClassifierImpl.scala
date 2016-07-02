@@ -7,6 +7,7 @@ import org.clulab.twitter4food.util._
 import java.io.{BufferedWriter, FileWriter}
 
 import com.typesafe.config.ConfigFactory
+import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 
@@ -46,6 +47,8 @@ class ClassifierImpl(
 
   /** config file that fetches filepaths */
   val config = ConfigFactory.load()
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   /** Adds (label, Datum[String, String] to {@link dataset})
     * @param account TwitterAccount to make a datum out of.
@@ -160,7 +163,9 @@ class ClassifierImpl(
       })
 
     val opt = config.getString(s"classifiers.$ctype.model")
-    val fout = s"${opt}/svm_${args.mkString("").replace("-", "").sorted}_${_C}_${K}.dat"
+    val fout = s"$opt/svm_${args.mkString("").replace("-", "").sorted}_${_C}_$K.dat"
+
+    logger.info(s"Training on ${customAccounts.length} accounts, ${customAccounts.map(_.tweets.length).sum} tweets")
 
     // Train with top K tweets
     train(customAccounts, trainingLabels)
@@ -173,6 +178,8 @@ class ClassifierImpl(
     * @return predictedLabels sequence of predicted labels
     */
   def _test(testSet: Seq[TwitterAccount]): Seq[String] = {
+
+    logger.info(s"Training on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
 
     val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
     pb.start()
