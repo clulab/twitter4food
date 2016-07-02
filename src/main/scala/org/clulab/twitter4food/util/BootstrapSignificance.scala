@@ -72,7 +72,7 @@ object BootstrapSignificance {
     if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
   }
 
-  def main(args: Seq[String]) = {
+  def main(args: Array[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
 
