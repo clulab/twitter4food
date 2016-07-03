@@ -165,7 +165,7 @@ object BootstrapSignificance {
 
     // print out results
     println("model\tpval")
-    betterThanBaseline.foreach{
+    betterThanBaseline.sortBy(_._1).foreach{
       case (featureSet, isBetter) =>
         println(f"$featureSet\t${1.0 - isBetter.sum / params.repetitions.toDouble}%1.4f")
     }
