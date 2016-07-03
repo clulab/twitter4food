@@ -96,7 +96,7 @@ object OverweightClassifier {
 
       // Train classifier and save model to file
       logger.info("Training classifier...")
-      oc.setClassifier(new RFClassifier[String, String](howManyFeaturesPerNode = RFClassifier.featuresPerNodeTwoThirds))
+      oc.setClassifier(new RFClassifier[String, String](howManyFeaturesPerNode = numFeats => (0.1 * numFeats).toInt))
       oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
       // oc.subClassifier.get.saveTo(modelFile)
     } else {
@@ -109,7 +109,7 @@ object OverweightClassifier {
 
       // Train classifier and save model to file
       logger.info("Training classifier...")
-      oc.setClassifier(new RFClassifier[String, String](howManyFeaturesPerNode = RFClassifier.featuresPerNodeTwoThirds))
+      oc.setClassifier(new RFClassifier[String, String](howManyFeaturesPerNode = numFeats => (0.1 * numFeats).toInt))
       oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq)
       // oc.subClassifier.get.saveTo(modelFile)
     }
