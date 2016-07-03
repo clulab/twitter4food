@@ -91,7 +91,13 @@ object BootstrapSignificance {
         folder <- folders.toSeq
         if folder.list.contains("predicted.txt")
         predFile = scala.io.Source.fromFile(folder.getPath + "/predicted.txt")
-        preds = predFile.getLines.map(_.stripLineEnd.split("\t")).map(line => (line(0), line(1))).toIndexedSeq
+        preds = predFile
+          .getLines
+          .map(_.stripLineEnd.split("\t"))
+          .map(line => (line(0), line(1)))
+          .toIndexedSeq
+          .tail
+          .sortBy(_._1)
       } yield folder.getName -> preds).toMap
 
     // If the baseline is not present, we can't compare against it.
@@ -122,7 +128,6 @@ object BootstrapSignificance {
     pb.setExtraMessage("sampling...")
 
     // for each rep, randomly sample indices once, then compare the baseline's F1 to each other model's
-    // TODO: Can we make this more efficient? Indexing is on IndexedSeq, so constant time per index
     for {
       i <- 0 until reps
       sampleIdx = for (j <- gold.indices) yield Random.nextInt(gold.length - 1) // random sample with replacement
