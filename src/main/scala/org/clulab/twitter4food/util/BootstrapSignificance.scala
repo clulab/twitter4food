@@ -89,7 +89,7 @@ object BootstrapSignificance {
     // IndexedSeq for very frequent indexing later
     val predictionsWithGold: Map[String, IndexedSeq[(String, String)]] = (for {
         folder <- folders.toSeq
-        if folder.list.contains("predictions.txt")
+        if folder.list.contains("predicted.txt")
         predFile = scala.io.Source.fromFile(folder.getPath + "/predictions.txt")
         preds = predFile.getLines.map(_.stripLineEnd.split("\t")).map(line => (line(0), line(1))).toIndexedSeq
       } yield folder.getName -> preds).toMap
