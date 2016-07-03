@@ -139,7 +139,7 @@ object BootstrapSignificance {
     } {
       val baselineF1 = microF1(sampleGold, sampleBase)
       val predF1 = microF1(sampleGold, samplePred)
-      betterThanBaseline(featureSet)(i) = if (predF1 > baselineF1) 1.0 else 0.0
+      betterThanBaseline(featureSet).append(if (predF1 > baselineF1) 1.0 else 0.0)
       pb.step()
     }
 
