@@ -14,6 +14,8 @@ class BootstrapSignificance
   */
 object BootstrapSignificance {
 
+  case class Config(useMicroF1:Boolean = false, useMacroF1:Boolean = false, repetitions:Int = 10000)
+
   /**
     * Micro F1, i.e. harmonic mean of precision and recall across all items regardless of true class.
     * This biases the results toward larger classes, which may be the desired behavior.
@@ -73,12 +75,28 @@ object BootstrapSignificance {
   }
 
   def main(args: Array[String]): Unit = {
+    def parseArgs(args: Array[String]): Config = {
+      val parser = new scopt.OptionParser[Config]("bootstrapping") {
+        head("bootstrapping", "0.x")
+        opt[Unit]('i', "microF1") action { (x, c) =>
+          c.copy(useMicroF1 = true)} text "use microF1"
+        opt[Unit]('a', "macroF1") action { (x, c) =>
+          c.copy(useMacroF1 = true)} text "use macroF1"
+        opt[Int]('r', "repetitions") action { (x, c) =>
+          c.copy(repetitions = x) } text "number of repetitions in bootstrap"
+      }
+
+      parser.parse(args, Config()).get
+    }
+
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
 
     val baselineFeatures = config.getString("classifiers.overweight.baseline")
     val predictionDir = new File(config.getString("classifiers.overweight.results"))
-    val reps = if (args.nonEmpty) args.head.toInt else 10000
+    val params = parseArgs(args)
+    def scoreMetric(gold: Seq[String], pred: Seq[String]): Double =
+      if (params.useMicroF1 | !params.useMacroF1) microF1(gold, pred) else macroF1(gold, pred)
 
     // The directory of results files must exist
     assert(predictionDir.exists && predictionDir.isDirectory)
@@ -121,16 +139,16 @@ object BootstrapSignificance {
       key <- predictions.keys
     } yield key -> new scala.collection.mutable.ListBuffer[Double]).toMap
 
-    logger.info(s"repetitions: $reps, models: ${predictions.size}")
+    logger.info(s"repetitions: ${params.repetitions}, models: ${predictions.size}")
 
     val pb = new me.tongfei.progressbar.ProgressBar("bootstrap", 100)
     pb.start()
-    pb.maxHint(reps * betterThanBaseline.size)
+    pb.maxHint(params.repetitions * betterThanBaseline.size)
     pb.setExtraMessage("sampling...")
 
     // for each rep, randomly sample indices once, then compare the baseline's F1 to each other model's
     for {
-      i <- 0 until reps
+      i <- 0 until params.repetitions
       sampleIdx = for (j <- gold.indices) yield Random.nextInt(gold.length - 1) // random sample with replacement
       sampleGold = for (j <- sampleIdx) yield gold(j) // ground truth labels for sampled accts
       featureSet <- predictions.keys  // same sample applied to each eligible featureSet
@@ -138,8 +156,8 @@ object BootstrapSignificance {
       samplePred = for (j <- sampleIdx) yield pred(j) // comparison predictions for sampled accts
       sampleBase = for (j <- sampleIdx) yield baseline(j) // baseline predictions for sampled accts
     } {
-      val baselineF1 = microF1(sampleGold, sampleBase)
-      val predF1 = microF1(sampleGold, samplePred)
+      val baselineF1 = scoreMetric(sampleGold, sampleBase)
+      val predF1 = scoreMetric(sampleGold, samplePred)
       betterThanBaseline(featureSet).append(if (predF1 > baselineF1) 1.0 else 0.0)
       pb.step()
     }
@@ -150,7 +168,7 @@ object BootstrapSignificance {
     println("model\tpval")
     betterThanBaseline.foreach{
       case (featureSet, isBetter) =>
-        println(s"$featureSet\t${1.0 - isBetter.sum / reps.toDouble}")
+        println(s"$featureSet\t${1.0 - isBetter.sum / params.repetitions.toDouble}")
     }
   }
 }
