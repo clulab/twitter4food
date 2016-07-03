@@ -7,10 +7,9 @@ import org.slf4j.LoggerFactory
 
 import scala.util.Random
 
-class BootstrapSignificance
-
 /**
   * Test for one-tailed statistical significance of all systems compared to a named baseline
+  * @author Dane Bell
   */
 object BootstrapSignificance {
 
