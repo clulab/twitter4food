@@ -79,7 +79,6 @@ object BootstrapSignificance {
     val baselineFeatures = config.getString("classifiers.overweight.baseline")
     val predictionDir = new File(config.getString("classifiers.overweight.results"))
     val reps = if (args.nonEmpty) args.head.toInt else 10000
-    logger.info(s"repetitions: $reps")
 
     // The directory of results files must exist
     assert(predictionDir.exists && predictionDir.isDirectory)
@@ -96,8 +95,8 @@ object BootstrapSignificance {
           .map(_.stripLineEnd.split("\t"))
           .map(line => (line(0), line(1)))
           .toIndexedSeq
-          .tail
-          .sortBy(_._1)
+          .tail // first row is header info
+          .sortBy(_._1) // gold columns are in different orders, so sort
       } yield folder.getName -> preds).toMap
 
     // If the baseline is not present, we can't compare against it.
@@ -109,7 +108,7 @@ object BootstrapSignificance {
     val comparable = predictionsWithGold.filter(pred => pred._2.unzip._1 == gold)
     val incomparable = predictionsWithGold.keySet diff comparable.keySet
     if(incomparable.nonEmpty) {
-      logger.info(s"""$incomparable did not have the same gold annotations as baseline""")
+      logger.debug(s"""$incomparable did not have the same gold annotations as baseline""")
     }
 
     // Don't bother performing calculation of baseline against itself
@@ -119,8 +118,10 @@ object BootstrapSignificance {
 
     // initialize a buffer for tracking whether each model's F1 exceeds the baseline
     val betterThanBaseline: Map[String, scala.collection.mutable.ListBuffer[Double]] = (for {
-      key <- comparable.keys
+      key <- predictions.keys
     } yield key -> new scala.collection.mutable.ListBuffer[Double]).toMap
+
+    logger.info(s"repetitions: $reps, models: ${predictions.size}")
 
     val pb = new me.tongfei.progressbar.ProgressBar("bootstrap", 100)
     pb.start()
@@ -131,10 +132,10 @@ object BootstrapSignificance {
     for {
       i <- 0 until reps
       sampleIdx = for (j <- gold.indices) yield Random.nextInt(gold.length - 1) // random sample with replacement
-      sampleGold = for (j <- sampleIdx) yield gold(j)
+      sampleGold = for (j <- sampleIdx) yield gold(j) // ground truth labels for sampled accts
       featureSet <- predictions.keys  // same sample applied to each eligible featureSet
       pred = predictions(featureSet)
-      samplePred = for (j <- sampleIdx) yield pred(j) // predictions for sampled accts
+      samplePred = for (j <- sampleIdx) yield pred(j) // comparison predictions for sampled accts
       sampleBase = for (j <- sampleIdx) yield baseline(j) // baseline predictions for sampled accts
     } {
       val baselineF1 = microF1(sampleGold, sampleBase)
