@@ -124,20 +124,8 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
 
-    // Only English tweets with words
-    val filteredTweets = account.tweets.filter { t =>
-      t.lang != null & t.lang == "en" &
-        t.text != null & t.text != ""
-    }
-    // Filter out stopwords
-    val tweets = for {
-      t <- filteredTweets
-    } yield {
-      val tt = Tokenizer.annotate(t.text.toLowerCase)
-      filterTags(tt).map(_.token)
-    }
-    // Same for description
-    val description = filterTags(Tokenizer.annotate(account.description.toLowerCase)).map(_.token)
+    val tweets = for (t <- account.tweets) yield t.text.split(" ")
+    val description = account.description.split(" ")
 
     var unigrams: Option[Counter[String]] = None
 
