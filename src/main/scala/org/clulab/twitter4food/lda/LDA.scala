@@ -8,7 +8,7 @@ import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
-import org.clulab.twitter4food.struct._
+import org.clulab.twitter4food.struct.FeatureExtractor.filterTags
 import org.clulab.utils.Serializer
 import org.slf4j.LoggerFactory
 
@@ -124,8 +124,6 @@ object LDA {
 
     val config = ConfigFactory.load
 
-    val fe = new FeatureExtractor
-
     logger.info(s"Loading and filtering tweets...")
 
     val tweets = FileUtils.load(config.getString("lda.trainingData"))
@@ -133,7 +131,7 @@ object LDA {
       .par
       .flatMap(_.tweets
         .map(tweet =>
-          fe.filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
+          filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
             .map(_.token)
             .toSeq
         )
