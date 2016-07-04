@@ -23,7 +23,7 @@ object Tokenize {
     if (untokFile.exists & tokFile.exists & untokFile.lastModified() < tokFile.lastModified()) {
       logger.warn(s"$tokenizedFN is newer than ${args.head}!")
     }
-  
+
     val tokenizedTweetsWithLabels: Seq[(TwitterAccount, String)] = for {
       (account, lbl) <- accounts.toSeq
     } yield {
@@ -35,7 +35,7 @@ object Tokenize {
       )
 
       // Filter out stopwords
-      val filtered = for {
+      val filteredTweets = for {
         t <- englishTweets
       } yield {
         val tt = Tokenizer.annotate(t.text.toLowerCase)
@@ -43,8 +43,13 @@ object Tokenize {
         t.copy(text = ft)
       }
 
+      val tokenizedDescription = {
+        val tt = Tokenizer.annotate(account.description.toLowerCase)
+        filterTags(tt).map(_.token).mkString(" ")
+      }
+
       // Same account but with tokenized tweets
-      account.copy(tweets = filtered) -> lbl
+      account.copy(description = tokenizedDescription, tweets = filteredTweets) -> lbl
     }
 
     val (tokenizedTweets, labels) = tokenizedTweetsWithLabels.unzip
