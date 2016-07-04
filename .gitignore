@@ -38,3 +38,22 @@ src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accou
 src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts_Fri_Jun_03_10:36:35_MST_2016.txt
 src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts_Fri_Jun_03_10:36:35_MST_2016_2.txt
 
+src/main/resources/org/clulab/twitter4food/twitter4j/APIKeys.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTrain.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightTest.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweightDev.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/gender/trainingData.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/gender/devData.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/gender/testData.txt
+
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/overweight_sample_4Apr2016.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts_23May16.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts_23May16_2.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts_Fri_Jun_03_10:36:35_MST_2016.txt
+src/main/resources/org/clulab/twitter4food/featureclassifier/overweight/ow_accounts_Fri_Jun_03_10:36:35_MST_2016_2.txt
+
