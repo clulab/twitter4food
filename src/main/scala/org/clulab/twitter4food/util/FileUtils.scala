@@ -81,7 +81,7 @@ object FileUtils {
                 case 4 =>
                     val tweets = ArrayBuffer[Tweet]()
                     if (numTweets > 0) {
-                        var jCount = 0;
+                        var jCount = 0
                         val tweetLines = (line :: lines.slice(0, 2*numTweets - 1).toList).iterator
 
                         var tweetId, tweetLang = ""
@@ -97,8 +97,8 @@ object FileUtils {
                                 case 1 => tweets += new Tweet(tweetLine, tweetId.toLong,
                                     tweetLang, date, handle)
                             }
-                            jCount += 1;
-                            jCount %= 2;
+                            jCount += 1
+                            jCount %= 2
                         }
                     }
 
@@ -106,8 +106,8 @@ object FileUtils {
                         url, location, desc, tweets, Seq[TwitterAccount]()) -> label)
                     pb.step()
             }
-            count += 1;
-            count %= 5;
+            count += 1
+            count %= 5
         }
         file.close
         pb.stop()
