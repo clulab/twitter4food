@@ -219,11 +219,13 @@ object BootstrapSignificance {
     val aF1 = (for (k <- predictions.keys) yield k -> macroF1(gold, predictions(k))).toMap
 
     // print out results
-    println("model\tprecision\trecall\toverweight F1\tmicro F1\tmacro F1")
-    betterThanBaseline.toSeq.sortBy(_._1)foreach{
+    println("model\tprecision\trecall\toverweight F1\tmicro F1\tmacro F1\tpval")
+    betterThanBaseline.toSeq.sortBy(_._1).reverse.foreach{
       case (featureSet, isBetter) =>
-        println(f"$featureSet\t${1.0 - isBetter.sum / params.repetitions.toDouble}%1.4f\t${prec(featureSet)}%1.4f\t" +
-          f"${recall(featureSet)}%1.4f\t${owF1(featureSet)}%1.4f\t${iF1(featureSet)}%1.4f\t${aF1(featureSet)}%1.4f")
+        val baselineLabel = if (featureSet == baselineFeatures) " (baseline)" else ""
+        println(f"$featureSet$baselineLabel\t${prec(featureSet)}%1.4f\t${recall(featureSet)}%1.4f\t" +
+          f"${owF1(featureSet)}%1.4f\t${iF1(featureSet)}%1.4f\t${aF1(featureSet)}%1.4f\t" +
+          f"${1.0 - isBetter.sum / params.repetitions.toDouble}%1.4f")
     }
   }
 }
