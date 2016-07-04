@@ -61,7 +61,7 @@ object LDA {
 
   def filterStopWords(tokens: Seq[String]): Seq[String] = tokens filterNot stopWords.contains
 
-  def train(tokensList: Iterable[Seq[String]], numTopics: Int = 200, numIterations: Int = 2000): (LDA, Alphabet) = {
+  def train(tokensList: Seq[Array[String]], numTopics: Int = 200, numIterations: Int = 2000): (LDA, Alphabet) = {
     // Begin by importing documents from text to feature sequences
     val pipeList = new ArrayList[Pipe]
 
@@ -108,13 +108,10 @@ object LDA {
     def parseArgs(args: Array[String]): Config = {
       val parser = new scopt.OptionParser[Config]("lda") {
         head("lda", "0.x")
-
         opt[Int]('t', "topics") action { (x, c) =>
           c.copy(numTopics = x)} text "number of topics to produce"
-
         opt[Int]('i', "iterations") action { (x, c) =>
           c.copy(numIterations = x)} text "number of LDA iterations to run"
-
         help("help") text "prints this usage text"
       }
       parser.parse(args, Config()).get
@@ -128,14 +125,8 @@ object LDA {
 
     val tweets = FileUtils.load(config.getString("lda.trainingData"))
       .keys
-      .par
-      .flatMap(_.tweets
-        .map(tweet =>
-          filterTags(Tokenizer.annotate(tweet.text.toLowerCase))
-            .map(_.token)
-            .toSeq
-        )
-      ).seq
+      .flatMap(_.tweets.map(_.text.split(" ")))
+      .toSeq
 
     logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
 
