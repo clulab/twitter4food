@@ -31,8 +31,10 @@ class FeatureExtractor (
   val useFollowers: Boolean = false,
   val datumScaling: Boolean = false) {
 
+  import FeatureExtractor._
+
   val config = ConfigFactory.load()
-  val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
+  val logger = LoggerFactory.getLogger(this.getClass)
   logger.info(s"useUnigrams=$useUnigrams, " +
     s"useBigrams=$useBigrams, " +
     s"useTopics=$useTopics, " +
@@ -233,15 +235,6 @@ class FeatureExtractor (
   }
 
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
-
-  // NOTE: all features that run over description and tweets should probably apply this for consistency
-  def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
-    val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-    val stopWords = stopWordsFile.getLines.toSet
-    stopWordsFile.close
-    tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
-      && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
-  }
 
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
@@ -491,4 +484,19 @@ class FeatureExtractor (
 
     result
   }
+}
+
+object FeatureExtractor {
+  val config = ConfigFactory.load()
+  val logger = LoggerFactory.getLogger(this.getClass)
+
+  // NOTE: all features that run over description and tweets should probably apply this for consistency
+  def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
+    val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+    val stopWords = stopWordsFile.getLines.toSet
+    stopWordsFile.close
+    tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
+      && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
+  }
+
 }
