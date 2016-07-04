@@ -13,7 +13,11 @@ import scala.util.Random
   */
 object BootstrapSignificance {
 
-  case class Config(useMicroF1:Boolean = false, useMacroF1:Boolean = false, repetitions:Int = 10000)
+  case class Config(
+    useOverweightF1:Boolean = false,
+    useMicroF1:Boolean = false,
+    useMacroF1:Boolean = false,
+    repetitions:Int = 10000)
 
   /**
     * Micro F1, i.e. harmonic mean of precision and recall across all items regardless of true class.
@@ -73,10 +77,52 @@ object BootstrapSignificance {
     if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
   }
 
+  /**
+    * F1 score just for the Overweight class (neither micro nor macro averaging)
+    * @param gold true labels
+    * @param pred predicted labels
+    * @return F1 score (0.0 - 1.0 range)
+    */
+  def overweightF1(gold: Seq[String], pred: Seq[String]): Double = {
+    assert(gold.length == pred.length)
+    val tp = (for (i <- gold.indices) yield if (gold(i) == "Overweight" && pred(i) == "Overweight") 1.0 else 0.0).sum
+    val fp = (for (i <- gold.indices) yield if (gold(i) != "Overweight" && pred(i) == "Overweight") 1.0 else 0.0).sum
+    val fn = (for (i <- gold.indices) yield if (gold(i) == "Overweight" && pred(i) != "Overweight") 1.0 else 0.0).sum
+    if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
+  }
+
+  /**
+    * Recall just for the Overweight class
+    * @param gold true labels
+    * @param pred predicted labels
+    * @return recall score (0.0 - 1.0 range)
+    */
+  def owRecall(gold: Seq[String], pred: Seq[String]): Double = {
+    assert(gold.length == pred.length)
+    val owTrue = gold.indices.filter(ix => gold(ix) == "Overweight")
+    val owFound = owTrue.count(ix => pred(ix) == "Overweight")
+    owFound.toDouble / owTrue.length.toDouble
+  }
+
+  /**
+    * Precision just for the Overweight class
+    * @param gold true labels
+    * @param pred predicted labels
+    * @return precision score (0.0 - 1.0 range)
+    */
+  def owPrecision(gold: Seq[String], pred: Seq[String]): Double = {
+    assert(gold.length == pred.length)
+    val owFound = pred.indices.filter(ix => pred(ix) == "Overweight")
+    val owTrue = owFound.count(ix => gold(ix) == "Overweight")
+    owTrue.toDouble / owFound.length.toDouble
+  }
+
   def main(args: Array[String]): Unit = {
     def parseArgs(args: Array[String]): Config = {
       val parser = new scopt.OptionParser[Config]("bootstrapping") {
         head("bootstrapping", "0.x")
+        opt[Unit]('o', "overweightF1") action { (x, c) =>
+          c.copy(useOverweightF1 = true)} text "use only F1 for the overweight class"
         opt[Unit]('i', "microF1") action { (x, c) =>
           c.copy(useMicroF1 = true)} text "use microF1"
         opt[Unit]('a', "macroF1") action { (x, c) =>
@@ -94,8 +140,13 @@ object BootstrapSignificance {
     val baselineFeatures = config.getString("classifiers.overweight.baseline")
     val predictionDir = new File(config.getString("classifiers.overweight.results"))
     val params = parseArgs(args)
+
+    // Prefer overweightF1 >> microF1 >> macroF1
     def scoreMetric(gold: Seq[String], pred: Seq[String]): Double =
-      if (params.useMicroF1 | !params.useMacroF1) microF1(gold, pred) else macroF1(gold, pred)
+      if (params.useOverweightF1) overweightF1(gold, pred)
+      else if (params.useMicroF1) microF1(gold, pred)
+      else if (params.useMacroF1) macroF1(gold, pred)
+      else overweightF1(gold, pred)
 
     // The directory of results files must exist
     assert(predictionDir.exists && predictionDir.isDirectory)
@@ -128,10 +179,7 @@ object BootstrapSignificance {
       logger.debug(s"""$incomparable did not have the same gold annotations as baseline""")
     }
 
-    // Don't bother performing calculation of baseline against itself
-    val predictions = comparable
-      .filterKeys(_ != baselineFeatures)
-      .map(featureSet => featureSet._1 -> featureSet._2.unzip._2)
+    val predictions = comparable.map(featureSet => featureSet._1 -> featureSet._2.unzip._2)
 
     // initialize a buffer for tracking whether each model's F1 exceeds the baseline
     val betterThanBaseline: Map[String, scala.collection.mutable.ListBuffer[Double]] = (for {
@@ -163,11 +211,19 @@ object BootstrapSignificance {
 
     pb.stop()
 
+    // Calculate all stats just to be sure.
+    val prec = (for (k <- predictions.keys) yield k -> owPrecision(gold, predictions(k))).toMap
+    val recall = (for (k <- predictions.keys) yield k -> owRecall(gold, predictions(k))).toMap
+    val owF1 = (for (k <- predictions.keys) yield k -> overweightF1(gold, predictions(k))).toMap
+    val iF1 = (for (k <- predictions.keys) yield k -> microF1(gold, predictions(k))).toMap
+    val aF1 = (for (k <- predictions.keys) yield k -> macroF1(gold, predictions(k))).toMap
+
     // print out results
-    println("model\tpval")
+    println("model\tprecision\trecall\toverweight F1\tmicro F1\tmacro F1")
     betterThanBaseline.toSeq.sortBy(_._1)foreach{
       case (featureSet, isBetter) =>
-        println(f"$featureSet\t${1.0 - isBetter.sum / params.repetitions.toDouble}%1.4f")
+        println(f"$featureSet\t${1.0 - isBetter.sum / params.repetitions.toDouble}%1.4f\t${prec(featureSet)}%1.4f\t" +
+          f"${recall(featureSet)}%1.4f\t${owF1(featureSet)}%1.4f\t${iF1(featureSet)}%1.4f\t${aF1(featureSet)}%1.4f")
     }
   }
 }
