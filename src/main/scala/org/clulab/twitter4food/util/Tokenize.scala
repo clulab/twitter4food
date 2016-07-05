@@ -26,14 +26,14 @@ object Tokenize {
       logger.warn(s"$tokenizedFN is newer than ${args.head}!")
     }
 
-    val accounts = FileUtils.load(args.head)
+    val accounts = FileUtils.load(args.head).par
 
     val pb = new me.tongfei.progressbar.ProgressBar("Tokenize", 100)
     pb.start()
     pb.maxHint(accounts.size)
     pb.setExtraMessage("Tokenizing...")
 
-    val tokenizedTweetsWithLabels: Seq[(TwitterAccount, String)] = for {
+    val tokenizedTweetsWithLabels: Seq[(TwitterAccount, String)] = (for {
       (account, lbl) <- accounts.toSeq
     } yield {
 
@@ -61,7 +61,7 @@ object Tokenize {
 
       // Same account but with tokenized tweets
       account.copy(description = tokenizedDescription, tweets = filteredTweets) -> lbl
-    }
+    }).seq
 
     pb.stop
 
