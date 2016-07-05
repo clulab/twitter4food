@@ -87,13 +87,15 @@ class ClassifierImpl(
     pb.maxHint(accounts.size)
     pb.setExtraMessage("Populating...")
 
-    // Populate dataset
-    accounts.toArray zip labels foreach {
-      case (parAccount, label) => {
-        addDatum(parAccount, label)
+    // make datums
+    val datums = (accounts.toArray zip labels).par map {
+      case (account, label) => {
         pb.step()
+        featureExtractor.mkDatum(account, label)
       }
     }
+
+    datums.seq.foreach(datum => this.synchronized { dataset += datum })
 
     pb.stop()
 
