@@ -7,12 +7,11 @@ import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence}
 import cc.mallet.topics.{ParallelTopicModel, TopicModelDiagnostics}
 import cc.mallet.types._
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
-import org.clulab.twitter4food.struct.FeatureExtractor.filterTags
+import org.clulab.twitter4food.struct.FeatureExtractor._
+import org.clulab.twitter4food.util.FileUtils
 import org.clulab.utils.Serializer
 import org.slf4j.LoggerFactory
 
-import scala.io.Source
 
 /**
   * Create topics from Tweets using MALLET. Relies heavily on edu.arizona.sista.twitter4food.LDA by Daniel Fried.
@@ -41,12 +40,6 @@ object LDA {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   val config = ConfigFactory.load
-  val stopWords: Set[String] = try {
-    (Source.fromFile(config.getString("lda.stopWords")).getLines map(_.stripLineEnd)).toSet
-  } catch {
-    case _: Throwable => println("Stopword file not found!")
-      Set.empty[String]
-  }
 
   case class Config(numTopics:Int = 200, numIterations:Int = 100)
 
@@ -54,12 +47,10 @@ object LDA {
     if (token.startsWith("#")) token.substring(1, token.length) else token
   }
 
-  def mkInstance(tokens: Seq[String], tokenFilter: (Seq[String] => Seq[String]) = filterStopWords): Instance = {
-    val t = tokenFilter(tokens map stripHashtag)
+  def mkInstance(tokens: Seq[String], tokenFilter: (Array[String] => Array[String]) = filterStopWords): Instance = {
+    val t = tokenFilter(tokens map stripHashtag toArray)
     new Instance(new TokenSequence(t.map(new Token(_)).toArray), null, null, null)
   }
-
-  def filterStopWords(tokens: Seq[String]): Seq[String] = tokens filterNot stopWords.contains
 
   def train(tokensList: Seq[Array[String]], numTopics: Int = 200, numIterations: Int = 2000): (LDA, Alphabet) = {
     // Begin by importing documents from text to feature sequences
@@ -126,6 +117,7 @@ object LDA {
     val tweets = FileUtils.load(config.getString("lda.trainingData"))
       .keys
       .flatMap(_.tweets.map(_.text.split(" ")))
+      .map(filterStopWords)
       .toSeq
 
     logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
