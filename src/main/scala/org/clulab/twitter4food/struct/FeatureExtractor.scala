@@ -11,8 +11,6 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
-import scala.io.Source
-
 /**
   * Created by Terron on 2/9/16.
   *
@@ -131,8 +129,9 @@ class FeatureExtractor (
 
     var unigrams: Option[Counter[String]] = None
 
-    if (useUnigrams) {
+    if (useUnigrams | useDictionaries | useCosineSim)
       unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
+    if (useUnigrams) {
       counter += unigrams.get
     }
     if (useBigrams)
@@ -192,10 +191,10 @@ class FeatureExtractor (
 
     var unigrams: Option[Counter[String]] = None
 
-    if (useUnigrams) {
-      unigrams = Some(ngrams(1, tweets, description))
+    if (useUnigrams | useDictionaries | useCosineSim)
+      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
+    if (useUnigrams)
       counter += unigrams.get
-    }
     if (useBigrams)
       counter += ngrams(2, tweets, description)
     if (useTopics)
