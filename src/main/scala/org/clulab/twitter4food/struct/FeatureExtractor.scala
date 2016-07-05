@@ -11,6 +11,8 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
+import scala.io.Source
+
 /**
   * Created by Terron on 2/9/16.
   *
@@ -130,7 +132,7 @@ class FeatureExtractor (
     var unigrams: Option[Counter[String]] = None
 
     if (useUnigrams) {
-      unigrams = Some(ngrams(1, tweets, description))
+      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
       counter += unigrams.get
     }
     if (useBigrams)
@@ -477,14 +479,37 @@ class FeatureExtractor (
 object FeatureExtractor {
   val config = ConfigFactory.load()
   val logger = LoggerFactory.getLogger(this.getClass)
+  val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+  val stopWords = stopWordsFile.getLines.toSet
+  stopWordsFile.close
 
   // NOTE: all features that run over description and tweets should probably apply this for consistency
   def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
-    val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-    val stopWords = stopWordsFile.getLines.toSet
-    stopWordsFile.close
-    tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
-      && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
+    // val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+    // val stopWords = stopWordsFile.getLines.toSet
+    // stopWordsFile.close
+    // tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
+    // && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
+    val lumped = for (tt <- tagTok) yield {
+      (tt.token, tt.tag) match {
+        case (site, "U") =>
+          val url = new TaggedToken
+          url.token = "<URL>"
+          url.tag = "U"
+          Some(url)
+        case (handle, "@") =>
+          val atMention = new TaggedToken
+          atMention.token = "<@MENTION>"
+          atMention.tag = "@"
+          Some(atMention)
+        case (garbage, "G") => None
+        case (rt, "~") => None
+        case (token, tag) => Some(tt)
+      }
+    }
+    lumped.flatten
   }
+
+  def filterStopWords(tokens: Array[String]): Array[String] = tokens filterNot stopWords.contains
 
 }
