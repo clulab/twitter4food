@@ -46,38 +46,38 @@ object OverweightDataExtraction {
 
         for (line <- lines) {
             // Parse line
-//            val tuple = line.split("\t")
-//            val handle = tuple(0).substring(1) // ignore beginning '@'
-//            var classification = tuple(1)
-//            // Generalize classification
-//            if ((classification equals "OW") || (classification equals "OW*"))
-//                classification = "Overweight"
-//            else if ((classification equals "NO") || (classification equals "NO*"))
-//                classification = "Not overweight"
-//            else
-//                classification = null
+            val tuple = line.split("\t")
+            val handle = tuple(0).substring(1) // ignore beginning '@'
+            var classification = tuple(1)
+            // Generalize classification
+            if ((classification equals "OW") || (classification equals "OW*"))
+                classification = "Overweight"
+            else if ((classification equals "NO") || (classification equals "NO*"))
+                classification = "Not overweight"
+            else
+                classification = null
 
-            val classification = "follower"
-            val handles = line.split("\t").drop(1)
-            List(0, 1, 2, 3).par.foreach(key => {
-                if (key < handles.length) {
-                    val api = new TwitterAPI(key)
-                    val handle = handles(key)
-                    var account : TwitterAccount = null
-                    try {
-                        account = api.fetchAccount(h=handle, fetchTweets = true, fetchNetwork = false)
-                    } catch {
-                        case te: TwitterException => println(te.getErrorCode + " === " + te.getErrorMessage)
-                    }
-                    if (account != null) {
-                        accounts = account :: accounts
-                        labels = classification :: labels
-                    }
-                }
-
-
-                pb.step
-            })
+//            val classification = "follower"
+//            val handles = line.split("\t").drop(1)
+//            List(0, 1, 2, 3).par.foreach(key => {
+//                if (key < handles.length) {
+//                    val api = new TwitterAPI(key)
+//                    val handle = handles(key)
+//                    var account : TwitterAccount = null
+//                    try {
+//                        account = api.fetchAccount(h=handle, fetchTweets = true, fetchNetwork = false)
+//                    } catch {
+//                        case te: TwitterException => println(te.getErrorCode + " === " + te.getErrorMessage)
+//                    }
+//                    if (account != null) {
+//                        accounts = account :: accounts
+//                        labels = classification :: labels
+//                    }
+//                }
+//
+//
+//                pb.step
+//            })
 
 //            // Error checking for labels
 //            if (classification != null) {

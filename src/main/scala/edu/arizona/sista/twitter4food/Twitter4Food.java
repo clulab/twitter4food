@@ -1,10 +1,16 @@
 package edu.arizona.sista.twitter4food;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
 
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * User: mihais
@@ -24,26 +30,31 @@ public class Twitter4Food {
     final String output = args[1];
     final PrintWriter pw = new PrintWriter(new FileOutputStream(output, true));
 
+    Config config = ConfigFactory.load();
+    final String keysFilePath = config.getString("oldKeys");
+    final BufferedReader br = new BufferedReader(new FileReader(keysFilePath));
+    Map<String, String> oa = new HashMap<>();
+    String thisLine;
+    while((thisLine = br.readLine()) != null) {
+      String[] kv = thisLine.trim().split("\\t");
+      oa.put(kv[0], kv[1]);
+    }
+
     ConfigurationBuilder cb = new ConfigurationBuilder();
     cb.setDebugEnabled(false);
     if(cmd.equals("query")) {
       // app name: search4food
-      cb.setOAuthConsumerKey("kVBSYhPBoODKfVh8EimRA");
-      cb.setOAuthConsumerSecret("atsT3yQl7CiJ5SnWIrRKBECQvde9aS0cGb624kQG9VM");
-      cb.setOAuthAccessToken("1928309594-S5CP7RxkfKalWBLS9YWlFrMBzgvEbpNYZVL6Fv7");
-      cb.setOAuthAccessTokenSecret("DGMzwOzc1HldYdjpJ4xIQabsdlSzzMIdeYfGehqs");
-      // app name: search4food2
-      //cb.setOAuthConsumerKey("yE7D3rO2t2MTh8qJIVuRCQ");
-      //cb.setOAuthConsumerSecret("UxQ63nx6knphOfZsSdrSqGuIhKnoeFQPUGJFYXN2QU");
-      //cb.setOAuthAccessToken("1928309594-1BaKz4G9leasxJ8zcutjH40zxsUgSAxzNOLDLzJ");
-      //cb.setOAuthAccessTokenSecret("1fHLEA31PeIKNGjFFxLJkNDyFog8z70B8fvTubGbTYg");
+      cb.setOAuthConsumerKey(oa.get("QCK"));
+      cb.setOAuthConsumerSecret(oa.get("QCS"));
+      cb.setOAuthAccessToken(oa.get("QAT"));
+      cb.setOAuthAccessTokenSecret(oa.get("QATS"));
 
     } else if(cmd.equals("sample")) {
       // app name: search4food-sample
-      cb.setOAuthConsumerKey("KrQU3xjso30BRx2sujvV3w");
-      cb.setOAuthConsumerSecret("9A6oNBrX75HvCqZXn97xkyG0VmsE2FSndYPmq9wM");
-      cb.setOAuthAccessToken("1928309594-XHZrGhKh9aVKJPY3owtFt0eLBVdyi8Me5TFeRk3");
-      cb.setOAuthAccessTokenSecret("qb7HFwtyyMDZhu4QbfDoH7oSJbEBysbM21xoB2LCfdw");
+      cb.setOAuthConsumerKey(oa.get("SCK"));
+      cb.setOAuthConsumerSecret(oa.get("SCS"));
+      cb.setOAuthAccessToken(oa.get("SAT"));
+      cb.setOAuthAccessTokenSecret(oa.get("SATS"));
     }
 
     TwitterStream twitterStream = new TwitterStreamFactory(cb.build()).getInstance();
