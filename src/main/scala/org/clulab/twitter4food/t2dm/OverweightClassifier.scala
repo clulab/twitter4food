@@ -155,7 +155,7 @@ object OverweightClassifier {
       println("\n====")
       outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
     }
-    
+
     println("\nResults:")
     println(s"Precision: $precision")
     println(s"Recall: $recall")

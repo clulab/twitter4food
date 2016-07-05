@@ -111,6 +111,6 @@ object FileUtils {
         }
         file.close
         pb.stop()
-        accounts
+        accounts.toMap
     }
 }

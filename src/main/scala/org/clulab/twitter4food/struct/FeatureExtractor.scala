@@ -504,6 +504,7 @@ object FeatureExtractor {
           Some(atMention)
         case (garbage, "G") => None
         case (rt, "~") => None
+        case ("", tag) => None
         case (token, tag) => Some(tt)
       }
     }
