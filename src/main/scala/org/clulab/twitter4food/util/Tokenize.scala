@@ -12,7 +12,6 @@ object Tokenize {
     val logger = LoggerFactory.getLogger(this.getClass)
 
     if (args.length < 1) println("Please specify path and file to tokenize")
-    val accounts = FileUtils.load(args.head)
 
     val tokenizedFN = FilenameUtils.removeExtension(args.head) + "_tokenized.txt"
 
@@ -23,6 +22,13 @@ object Tokenize {
     if (untokFile.exists & tokFile.exists & untokFile.lastModified() < tokFile.lastModified()) {
       logger.warn(s"$tokenizedFN is newer than ${args.head}!")
     }
+
+    val accounts = FileUtils.load(args.head)
+
+    val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+    pb.start()
+    pb.maxHint(accounts.size)
+    pb.setExtraMessage("Tokenizing...")
 
     val tokenizedTweetsWithLabels: Seq[(TwitterAccount, String)] = for {
       (account, lbl) <- accounts.toSeq
@@ -48,9 +54,13 @@ object Tokenize {
         filterTags(tt).map(_.token).mkString(" ")
       }
 
+      pb.step
+
       // Same account but with tokenized tweets
       account.copy(description = tokenizedDescription, tweets = filteredTweets) -> lbl
     }
+
+    pb.stop
 
     val (tokenizedTweets, labels) = tokenizedTweetsWithLabels.unzip
 
