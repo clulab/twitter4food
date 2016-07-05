@@ -13,7 +13,9 @@ object Tokenize {
 
     if (args.length < 1) println("Please specify path and file to tokenize")
 
-    val tokenizedPath = FilenameUtils.getPathNoEndSeparator(args.head) + "_tokenized/"
+    val tokenizedPath = FilenameUtils.getPrefix(args.head) +
+      FilenameUtils.getPathNoEndSeparator(args.head) +
+      "_tokenized/"
     val tokenizedFN = tokenizedPath + FilenameUtils.getName(args.head)
 
     // check if untokenized file is older for appropriate warning
