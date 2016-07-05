@@ -83,7 +83,7 @@ object OverweightClassifier {
     }
 
     //        oc.runTest(args, "overweight", outputDir + "/results.txt")
-    val modelFile = s"${config.getString("classifier")}/overweight/model/${fileExt}.dat"
+    val modelFile = s"${config.getString("overweight")}/model/${fileExt}.dat"
 
     // Load classifier if model exists
     if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
@@ -143,17 +143,19 @@ object OverweightClassifier {
     val precision = evalMetric.P
     val recall = evalMetric.R
 
-    // Perform analysis on false negatives and false positives
-    println("False negatives:")
-    evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
-    println("\n====")
-    outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
+    if (params.fpnAnalysis & oc.subClassifier.nonEmpty) {
+      // Perform analysis on false negatives and false positives
+      println("False negatives:")
+      evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
+      println("\n====")
+      outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
 
-    println("False positives:")
-    evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
-    println("\n====")
-    outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
-
+      println("False positives:")
+      evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
+      println("\n====")
+      outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
+    }
+    
     println("\nResults:")
     println(s"Precision: $precision")
     println(s"Recall: $recall")
@@ -197,7 +199,7 @@ object OverweightClassifier {
     for (account <- accounts) {
       if (numAccountsToPrint > 0) {
         // Analyze account
-        val (topWeights, dotProduct) = TestUtils.analyze(oc.subClassifier.get, Set[String]("Overweight", "Not overweight"),
+        val (topWeights, dotProduct) = TestUtils.analyze(oc.subClassifier.get, Set("Overweight", "Not overweight"),
           account, oc.featureExtractor)
         // Only print the general weights on the features once
         if (isFirst) {
