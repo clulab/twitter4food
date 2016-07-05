@@ -13,7 +13,8 @@ object Tokenize {
 
     if (args.length < 1) println("Please specify path and file to tokenize")
 
-    val tokenizedFN = FilenameUtils.removeExtension(args.head) + "_tokenized.txt"
+    val tokenizedPath = FilenameUtils.getPathNoEndSeparator(args.head) + "_tokenized/"
+    val tokenizedFN = tokenizedPath + FilenameUtils.getName(args.head)
 
     // check if untokenized file is older for appropriate warning
     val untokFile = new File(args.head)
@@ -25,7 +26,7 @@ object Tokenize {
 
     val accounts = FileUtils.load(args.head)
 
-    val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+    val pb = new me.tongfei.progressbar.ProgressBar("Tokenize", 100)
     pb.start()
     pb.maxHint(accounts.size)
     pb.setExtraMessage("Tokenizing...")
