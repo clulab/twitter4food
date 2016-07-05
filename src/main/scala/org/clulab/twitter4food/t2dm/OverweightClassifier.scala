@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 import org.slf4j.LoggerFactory
 
 import com.typesafe.config.ConfigFactory
-import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier, LinearSVMClassifier}
+import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
@@ -18,15 +18,15 @@ import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
   * All parameters are consistent with those in FeatureExtractor
   */
 class OverweightClassifier(
-    useUnigrams: Boolean = true,
-    useBigrams: Boolean = false,
-    useTopics: Boolean = false,
-    useDictionaries: Boolean = false,
-    useEmbeddings: Boolean = false,
-    useCosineSim: Boolean = false,
-    useFollowers: Boolean = false,
-    datumScaling: Boolean = false,
-    featureScaling: Boolean = false)
+  useUnigrams: Boolean = true,
+  useBigrams: Boolean = false,
+  useTopics: Boolean = false,
+  useDictionaries: Boolean = false,
+  useEmbeddings: Boolean = false,
+  useCosineSim: Boolean = false,
+  useFollowers: Boolean = false,
+  datumScaling: Boolean = false,
+  featureScaling: Boolean = false)
   extends ClassifierImpl(
     useUnigrams,
     useBigrams,
@@ -77,9 +77,9 @@ object OverweightClassifier {
     val outputDir = config.getString("classifier") + "/overweight/results/" + fileExt
     if (!Files.exists(Paths.get(outputDir))) {
       if (new File(outputDir).mkdir())
-        logger.info(s"Created output directory ${outputDir}")
+        logger.info(s"Created output directory $outputDir")
       else
-        logger.info(s"ERROR: failed to create output directory ${outputDir}")
+        logger.info(s"ERROR: failed to create output directory $outputDir")
     }
 
     //        oc.runTest(args, "overweight", outputDir + "/results.txt")
@@ -145,33 +145,31 @@ object OverweightClassifier {
 
     // Perform analysis on false negatives and false positives
     println("False negatives:")
-    evalMetric.FNAccounts.map(account => print(account.handle + "\t"))
+    evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
     println("\n====")
-    outputAnalysis(outputDir + "/analysisFN.txt", modelFile,
-      "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
+    outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
 
     println("False positives:")
-    evalMetric.FPAccounts.map(account => print(account.handle + "\t"))
+    evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
     println("\n====")
-    outputAnalysis(outputDir + "/analysisFP.txt", modelFile,
-      "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
+    outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
 
     println("\nResults:")
-    println(s"Precision: ${precision}")
-    println(s"Recall: ${recall}")
+    println(s"Precision: $precision")
+    println(s"Recall: $recall")
     println(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}")
     println(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}")
-    println(s"Macro average: ${macroAvg}")
-    println(s"Micro average: ${microAvg}")
+    println(s"Macro average: $macroAvg")
+    println(s"Micro average: $microAvg")
 
     // Save results
     val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-    writer.write(s"Precision: ${precision}\n")
-    writer.write(s"Recall: ${recall}\n")
+    writer.write(s"Precision: $precision\n")
+    writer.write(s"Recall: $recall\n")
     writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
     writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-    writer.write(s"Macro average: ${macroAvg}\n")
-    writer.write(s"Micro average: ${microAvg}\n")
+    writer.write(s"Macro average: $macroAvg\n")
+    writer.write(s"Micro average: $microAvg\n")
     writer.close()
 
     // Save individual predictions for bootstrap significance
@@ -181,7 +179,7 @@ object OverweightClassifier {
     predicted.close()
   }
 
-  private def outputAnalysis(outputFile:String, modelFile: String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {
+  private def outputAnalysis(outputFile:String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {
     // Set progress bar
     var numAccountsToPrint = 20
     val numWeightsToPrint = 30
@@ -199,16 +197,16 @@ object OverweightClassifier {
     for (account <- accounts) {
       if (numAccountsToPrint > 0) {
         // Analyze account
-        val (topWeights, dotProduct) = TestUtils.analyze(modelFile, Set[String]("Overweight", "Not overweight"),
+        val (topWeights, dotProduct) = TestUtils.analyze(oc.subClassifier.get, Set[String]("Overweight", "Not overweight"),
           account, oc.featureExtractor)
         // Only print the general weights on the features once
         if (isFirst) {
           for ((label, sequence) <- topWeights) {
-            writer.write(s"Top weights for ${label}:\n")
+            writer.write(s"Top weights for $label:\n")
             var numToPrint = numWeightsToPrint
             for ((feature, score) <- sequence) {
               if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"${feature} -> ${score}\n")
+                writer.write(s"$feature -> $score\n")
                 numToPrint = numToPrint - 1
               }
             }
@@ -223,7 +221,7 @@ object OverweightClassifier {
             var numToPrint = numWeightsToPrint
             for ((feature, score) <- sequence) {
               if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"${feature} -> ${score}\n")
+                writer.write(s"$feature -> $score\n")
                 numToPrint = numToPrint - 1
               }
             }
