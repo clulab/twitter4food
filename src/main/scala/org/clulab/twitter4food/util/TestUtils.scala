@@ -8,15 +8,16 @@ import org.clulab.learning.LiblinearClassifier
 
 object TestUtils {
   case class Config(
-      useUnigrams: Boolean = false,
-      useBigrams: Boolean = false,
-      useTopics: Boolean = false,
-      useDictionaries: Boolean = false,
-      useEmbeddings: Boolean = false,
-      useCosineSim: Boolean = false,
-      useFollowers: Boolean = false,
-      datumScaling: Boolean = false,
-      featureScaling: Boolean = false)
+    useUnigrams: Boolean = false,
+    useBigrams: Boolean = false,
+    useTopics: Boolean = false,
+    useDictionaries: Boolean = false,
+    useEmbeddings: Boolean = false,
+    useCosineSim: Boolean = false,
+    useFollowers: Boolean = false,
+    datumScaling: Boolean = false,
+    featureScaling: Boolean = false,
+    fpnAnalysis: Boolean = false)
 
   def init(keyset: Int) = {
     (new TwitterAPI(keyset), ConfigFactory.load())
@@ -77,6 +78,8 @@ object TestUtils {
         c.copy(datumScaling = true)} text "use datum scaling"
       opt[Unit]('F', "featureScaling") action { (x, c) =>
         c.copy(featureScaling = true)} text "use feature scaling"
+      opt[Unit]('a', "analysis") action { (x, c) =>
+        c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"
     }
 
     parser.parse(args, Config()).get
