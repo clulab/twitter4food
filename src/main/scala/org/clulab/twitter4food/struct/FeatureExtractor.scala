@@ -236,10 +236,8 @@ class FeatureExtractor (
     val counter = new Counter[String]
 
     // Extract ngrams
-    val populateNGrams = (n: Int, text: Array[String]) => {
-      text.sliding(n).toList.reverse
-        .foldLeft(List[String]())((l, window) => window.mkString(" ") :: l)
-        .toArray
+    def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
+      text.sliding(n).toList.map(ngram => ngram.mkString(" "))
     }
 
     // Filter ngrams by their POS tags
@@ -247,8 +245,7 @@ class FeatureExtractor (
 
     // Filter further by ensuring we get English tweets and non-empty strings
     tweets.foreach{ tweet =>
-      val nGramSet = populateNGrams(n, tweet)
-      setCounts(nGramSet, counter)
+      setCounts(populateNGrams(n, tweet), counter)
     }
 
     counter
