@@ -220,7 +220,7 @@ class ClassifierImpl(
     println(evalMeasures.mkString("\n"))
     println(s"\nMacro avg F-1 : ${df.format(macroAvg)}")
     println(s"Micro avg F-1 : ${df.format(microAvg)}")
-    writer.write(s"C=${_C}, #K=${K}\n")
+    writer.write(s"C=${_C}, #K=$K\n")
     writer.write(evalMeasures.mkString("\n"))
     evalMeasures.keys.foreach(l => {
       writer.write(s"\nl\nFP:\n")
@@ -271,7 +271,7 @@ class ClassifierImpl(
     val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray,
       devData.values.toArray, testData.values.toArray)
 
-    var writerFile = if (outputFile != null) outputFile
+    val writerFile = if (outputFile != null) outputFile
       else config.getString("classifier") + s"/$ctype/output-" +
         fileExt + ".txt"
 
@@ -298,7 +298,7 @@ class ClassifierImpl(
       _C: Double,
       K: Int) => {
 
-      println(s"Training with C=${_C} and top-${K} tweets")
+      println(s"Training with C=${_C} and top-$K tweets")
 
       _train(trainingSet, trainingLabels,_C, K, ctype, args)
       val predictedLabels = _test(testingSet)
@@ -356,8 +356,8 @@ class ClassifierImpl(
     val allTrainData = FileUtils.load(config.getString(
       s"classifiers.$ctype.allTrainData"))
 
-    val allTrainAccounts = allTrainData.map(_._1).toArray
-    val allTrainLabels = allTrainData.map(_._2).toArray
+    val allTrainAccounts = allTrainData.keys.toArray
+    val allTrainLabels = allTrainData.values.toArray
 
     _train(allTrainAccounts, allTrainLabels, _C, K, ctype, args)
 
@@ -374,7 +374,7 @@ class ClassifierImpl(
   def predict(testFile: String) = {
 
     val allTestData = FileUtils.load(testFile)
-    val testAccounts = allTestData.map(_._1).toArray
+    val testAccounts = allTestData.keys.toArray
 
     val predictedLabels = _test(testAccounts)
   }
