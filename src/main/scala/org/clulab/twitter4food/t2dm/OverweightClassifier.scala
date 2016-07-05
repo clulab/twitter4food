@@ -114,13 +114,12 @@ object OverweightClassifier {
       oc.subClassifier.get.saveTo(modelFile)
     }
 
-    var testSet : scala.collection.mutable.Map[TwitterAccount, String] = null
-    if (testOnDev) {
+    val testSet: Map[TwitterAccount, String] = if (testOnDev) {
       logger.info("Loading dev accounts...")
-      testSet = FileUtils.load(config.getString("classifiers.overweight.devData"))
+      FileUtils.load(config.getString("classifiers.overweight.devData"))
     } else {
       logger.info("Loading test accounts...")
-      testSet = FileUtils.load(config.getString("classifiers.overweight.testData"))
+      FileUtils.load(config.getString("classifiers.overweight.testData"))
     }
 
     // Set progress bar
