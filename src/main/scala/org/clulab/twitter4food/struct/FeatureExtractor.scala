@@ -498,6 +498,11 @@ object FeatureExtractor {
           atMention.token = "<@MENTION>"
           atMention.tag = "@"
           Some(atMention)
+        case (number, "$") =>
+          val atMention = new TaggedToken
+          atMention.token = "<NUMBER>"
+          atMention.tag = "$"
+          Some(atMention)
         case (garbage, "G") => None
         case (rt, "~") => None
         case ("", tag) => None
