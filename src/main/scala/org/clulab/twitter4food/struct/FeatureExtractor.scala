@@ -8,6 +8,7 @@ import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
+import org.clulab.twitter4food.featureclassifier.HumanClassifier
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
@@ -262,15 +263,9 @@ class FeatureExtractor (
     val followerHandles = if (handleToRelations.contains(account.handle)) handleToRelations(account.handle) else List[String]()
 
     // Find the TwitterAccount object corresponding to these handles
-    val followers = followerHandles.map(f => {
-      if (handleToFollower.contains(f)) handleToFollower(f) else null
-    })
-
-    // Aggregate the counter for the followers using the other features being used
-    val followerCounters = for (follower <- followers) yield {
-      if (follower != null)
-        mkFeaturesFollowers(follower)
-    }
+    val followers = followerHandles.flatMap(f =>
+      if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
+    )
 
     val hon = try {
       Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
@@ -281,28 +276,37 @@ class FeatureExtractor (
     }
 
     val filtered = if (hon.nonEmpty) {
-      val humans = followers.map(account => hon.get.classOf(account))
-    }
+      val hc = new HumanClassifier() // assume we're using unigrams only
+      hc.subClassifier = hon
+      val humanPredicted = (followers, hc._test(followers)).zipped
+      humanPredicted.filter{ case (follower, predicted) => predicted == "human"}._1
+    } else followers
+
+    // Aggregate the counter for the followers using the other features being used
+    val followerCounters = for (follower <- filtered.par) yield mkFeaturesFollowers(follower)
+
+    val followerCounter = new Counter[String]
+    followerCounters.seq.foreach(fc => followerCounter += fc)
 
     followerCounter
   }
 
-/**
-  * Add a feature for each topic in the topic model, and count instances in the account's tweets
-  *
-  * @param tweets Tokenized, filtered [[Tweet]] text
-  * @return a [[Counter]] of topics for this account
-  */
-def topics(tweets: Seq[Array[String]]): Counter[String] = {
-  // no topic model available
-  if (topicModel.isEmpty) return null
+  /**
+    * Add a feature for each topic in the topic model, and count instances in the account's tweets
+    *
+    * @param tweets Tokenized, filtered [[Tweet]] text
+    * @return a [[Counter]] of topics for this account
+    */
+  def topics(tweets: Seq[Array[String]]): Counter[String] = {
+    // no topic model available
+    if (topicModel.isEmpty) return null
 
-  val tm = topicModel.get
-  val topics = new Counter[String]
-  tweets.foreach(tweet => topics.incrementCount("topic_" + tm.mostLikelyTopic(tweet)))
+    val tm = topicModel.get
+    val topics = new Counter[String]
+    tweets.foreach(tweet => topics.incrementCount("topic_" + tm.mostLikelyTopic(tweet)))
 
-  topics
-}
+    topics
+  }
 
   /**
     * Functions like unigrams but constrained to words in dictionaries.
@@ -312,150 +316,150 @@ def topics(tweets: Seq[Array[String]]): Counter[String] = {
     * @return counter - Return one counter fine-tuned for a particular classifier
     */
   def dictionaries(tweets: Seq[Array[String]],
-  description: Array[String],
-  account: TwitterAccount,
-  ngramCounter: Option[Counter[String]]): Counter[String] = {
+    description: Array[String],
+    account: TwitterAccount,
+    ngramCounter: Option[Counter[String]]): Counter[String] = {
 
-  val result = new Counter[String]()
-  if(lexicons.isEmpty) return result
+    val result = new Counter[String]()
+    if(lexicons.isEmpty) return result
 
-  // Classifier type
-  val cType = lexicons.get.keys.head match {
-  case "M" | "F" => "gender"
-  case "Overweight" | "Not overweight" => "overweight"
-  case "human" | "org" => "human"
-  case "asian" | "hispanic" | "white" | "black" => "race"
-}
+    // Classifier type
+    val cType = lexicons.get.keys.head match {
+      case "M" | "F" => "gender"
+      case "Overweight" | "Not overweight" => "overweight"
+      case "human" | "org" => "human"
+      case "asian" | "hispanic" | "white" | "black" => "race"
+    }
 
-  if((cType equals "human") || (cType equals "gender")) {
-  lexicons.get foreach {
-  case (k, v) =>
-  v foreach {
-  case (lexName, lexicon) =>
-  var nS = 0
+    if((cType equals "human") || (cType equals "gender")) {
+      lexicons.get foreach {
+        case (k, v) =>
+          v foreach {
+            case (lexName, lexicon) =>
+              var nS = 0
 
-  account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
-  case (n, i) =>
-  // If first name
-  println(n)
-  if (i == 0 & lexicon.contains(n)) nS += 1
-  else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
-}
+              account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
+                case (n, i) =>
+                  // If first name
+                  println(n)
+                  if (i == 0 & lexicon.contains(n)) nS += 1
+                  else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
+              }
 
-  // Check substrings for handles
-  val matches = lexicon.keySet.filter(account.handle.toLowerCase.drop(1).contains(_))
-  nS += matches.size
+              // Check substrings for handles
+              val matches = lexicon.keySet.filter(account.handle.toLowerCase.drop(1).contains(_))
+              nS += matches.size
 
-  val dS = if (!lexName.contains("name")) description.count(lexicon.contains) else 0
+              val dS = if (!lexName.contains("name")) description.count(lexicon.contains) else 0
 
-  if(dS + nS > 0) result.incrementCount(s"lex_${k}_$lexName", dS + nS)
+              if(dS + nS > 0) result.incrementCount(s"lex_${k}_$lexName", dS + nS)
 
-}
-}
-}
-  else if(cType equals "race") {
+          }
+      }
+    }
+    else if(cType equals "race") {
 
-}
-  else if(cType equals "overweight") {
-  // Load dictionaries
-  val foodWordsFile = scala.io.Source
-  .fromFile(config.getString("classifiers.features.foodWords"))
-  val foodWords = foodWordsFile.getLines.toSet
-  foodWordsFile.close
+    }
+    else if(cType equals "overweight") {
+      // Load dictionaries
+      val foodWordsFile = scala.io.Source
+        .fromFile(config.getString("classifiers.features.foodWords"))
+      val foodWords = foodWordsFile.getLines.toSet
+      foodWordsFile.close
 
-  val hashtagsFile = scala.io.Source
-  .fromFile(config.getString("classifiers.features.hashtags"))
-  val hashtags = hashtagsFile.getLines.toSet
-  hashtagsFile.close
+      val hashtagsFile = scala.io.Source
+        .fromFile(config.getString("classifiers.features.hashtags"))
+      val hashtags = hashtagsFile.getLines.toSet
+      hashtagsFile.close
 
-  // Filter ngrams
-  var temp = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
-  temp = temp.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
+      // Filter ngrams
+      var temp = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
+      temp = temp.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
 
-  // Copy into counter with prefix to indicate this is a different feature
-  temp.keySet.foreach( word => result.setCount("dict_" + word, temp.getCount(word)))
-}
-  result
-}
+      // Copy into counter with prefix to indicate this is a different feature
+      temp.keySet.foreach( word => result.setCount("dict_" + word, temp.getCount(word)))
+    }
+    result
+  }
 
   def embeddings(account: TwitterAccount): Map[TwitterAccount, Array[Float]] = {
-  null
-}
+    null
+  }
 
   // Loads the idf table for the database of random tweets
   private def loadTFIDF(): Unit = {
-  // Initialize
-  val randomCounter = new Counter[String]()
-  var i = 0
-  var N = 0
-  var randomFile = new BufferedReader(new FileReader(config.getString("classifiers.features.random_tweets")))
-  var numLines = 0
-  while (randomFile.readLine() != null) numLines += 1
-  randomFile = new BufferedReader(new FileReader(config.getString("classifiers.features.random_tweets")))
+    // Initialize
+    val randomCounter = new Counter[String]()
+    var i = 0
+    var N = 0
+    var randomFile = new BufferedReader(new FileReader(config.getString("classifiers.features.random_tweets")))
+    var numLines = 0
+    while (randomFile.readLine() != null) numLines += 1
+    randomFile = new BufferedReader(new FileReader(config.getString("classifiers.features.random_tweets")))
 
-  // Start progress bar
-  val pb = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
-  pb.start()
-  pb.maxHint(numLines/3)
-  pb.setExtraMessage("Loading idf table of tweets...")
+    // Start progress bar
+    val pb = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
+    pb.start()
+    pb.maxHint(numLines/3)
+    pb.setExtraMessage("Loading idf table of tweets...")
 
-  // Iterate over file
-  var line = ""
-  while ( { line = randomFile.readLine ; line != null } ) {
-  // Actual tweet text is every third line
-  if (i % 3 == 2) {
-  // Filter words based on FeatureExtractor for consistency
-  val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-  taggedTokens.map(_.token).distinct.foreach(token => randomCounter.incrementCount(token))
-  N += 1
-  pb.step()
-}
-  i += 1
-  i %= 3
-}
+    // Iterate over file
+    var line = ""
+    while ( { line = randomFile.readLine ; line != null } ) {
+      // Actual tweet text is every third line
+      if (i % 3 == 2) {
+        // Filter words based on FeatureExtractor for consistency
+        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        taggedTokens.map(_.token).distinct.foreach(token => randomCounter.incrementCount(token))
+        N += 1
+        pb.step()
+      }
+      i += 1
+      i %= 3
+    }
 
-  randomFile.close()
-  pb.stop()
+    randomFile.close()
+    pb.stop()
 
-  randomCounter.keySet.foreach(word => randomCounter.setCount(word, scala.math.log(N / randomCounter.getCount(word))))
+    randomCounter.keySet.foreach(word => randomCounter.setCount(word, scala.math.log(N / randomCounter.getCount(word))))
 
-  idfTable = Some(randomCounter)
+    idfTable = Some(randomCounter)
 
-  // Do the same for overweight corpus, using idf table for idf value
-  val overweightCounter = new Counter[String]()
-  var overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
-  numLines = 0
-  while (overweightFile.readLine() != null) numLines += 1
-  overweightFile.close()
+    // Do the same for overweight corpus, using idf table for idf value
+    val overweightCounter = new Counter[String]()
+    var overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
+    numLines = 0
+    while (overweightFile.readLine() != null) numLines += 1
+    overweightFile.close()
 
-  overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
+    overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
 
-  val pb2 = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
-  pb2.start()
-  pb2.maxHint(numLines/3)
-  pb2.setExtraMessage("Loading tfidf vector for overweight corpus...")
+    val pb2 = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
+    pb2.start()
+    pb2.maxHint(numLines/3)
+    pb2.setExtraMessage("Loading tfidf vector for overweight corpus...")
 
-  i = 0
-  line = ""
-  while ( { line = overweightFile.readLine ; line != null } ) {
-  if (i % 3 == 2) {
-  // No need to keep track of what's been seen since we're accumulating tf here
-  val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-  taggedTokens.foreach(tt => overweightCounter.incrementCount(tt.token))
-  pb2.step()
-}
-  i += 1
-  i %= 3
-}
+    i = 0
+    line = ""
+    while ( { line = overweightFile.readLine ; line != null } ) {
+      if (i % 3 == 2) {
+        // No need to keep track of what's been seen since we're accumulating tf here
+        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        taggedTokens.foreach(tt => overweightCounter.incrementCount(tt.token))
+        pb2.step()
+      }
+      i += 1
+      i %= 3
+    }
 
-  overweightFile.close()
-  pb.stop()
+    overweightFile.close()
+    pb.stop()
 
-  overweightCounter.keySet.foreach(word =>
-  overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
-  )
-  overweightVec = Some(overweightCounter)
-}
+    overweightCounter.keySet.foreach(word =>
+      overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    )
+    overweightVec = Some(overweightCounter)
+  }
 
   /**
     * A single feature (that is, a counter with the singular entry ("cosineSim" -> cosineSim).

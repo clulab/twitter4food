@@ -185,12 +185,14 @@ class ClassifierImpl(
 
     val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
     pb.start()
-    pb.maxHint(testSet.size.toInt)
+    pb.maxHint(testSet.size)
     pb.setExtraMessage("Predicting...")
 
-    val predictedLabels = testSet.toArray.map(u => {
-      val label = classify(u); pb.step(); label
-      }).toSeq
+    val predictedLabels = testSet.map{ u =>
+      val label = classify(u)
+      pb.step()
+      label
+    }
 
     pb.stop()
 
