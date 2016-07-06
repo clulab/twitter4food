@@ -21,6 +21,7 @@ object Normalization {
 
   /**
     * Scale each [[RVFDatum]] in an [[RVFDataset]] in place according to its own minimum and maximum feature values
+    *
     * @param dataset [[RVFDataset]] to be normalized (in place)
     * @param lower lower bound of normalized values (e.g. -1 or 0), inclusive
     * @param upper upper bound of normalized values (e.g. 1), inclusive
@@ -40,20 +41,24 @@ object Normalization {
 
   /**
     * Scale each value of a [[Counter]] in place according to the Counter's minimum and maximum values
+    *
     * @param counter [[Counter]] to be normalized (in place)
     * @param lower lower bound of normalized values (e.g. -1 or 0), inclusive
     * @param upper upper bound of normalized values (e.g. 1), inclusive
     * @tparam T Type of the [[Counter]] keys, e.g. [[String]]
     */
   def scaleByDatum[T](counter:Counter[T], lower:Double, upper:Double): Unit = {
-    counter.keySet.foreach(k =>
-      counter.setCount(k,
-        scale(counter.getCount(k), counter.argMin._2, counter.argMax._2, lower, upper)))
+    val minimum = counter.argMin._2
+    val maximum = counter.argMax._2
+    counter.map {
+      case (k, v) => scale(v, minimum, maximum, lower, upper)
+    }
   }
 
 
   /**
     * Scale each feature in an [[RVFDataset]] in place according to the minimum and maximum values of the feature
+    *
     * @param dataset dataset to be normalized (in place)
     * @param lower lower bound of normalized values (e.g. -1 or 0), inclusive
     * @param upper upper bound of normalized values (e.g. 1), inclusive
@@ -66,6 +71,7 @@ object Normalization {
 
   /**
     * Scale a [[Counter]] in place to have the same total size as a reference [[Counter]]
+    *
     * @param toScale a [[Counter]] that we want to normalize to another [[Counter]]'s size.
     * @param scaleBy the reference [[Counter]]
     * @tparam T the type of the [[Counter]]s, e.g. [[String]]
@@ -77,6 +83,7 @@ object Normalization {
 
   /**
     * Scale a [[Counter]] so that the sum of all the values in it will equal 1
+    *
     * @param counter [[Counter]] to be scaled (in place)
     * @tparam T Type of the [[Counter]] keys, e.g. [[String]]
     */

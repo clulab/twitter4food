@@ -31,8 +31,10 @@ class FeatureExtractor (
   val useFollowers: Boolean = false,
   val datumScaling: Boolean = false) {
 
+  import FeatureExtractor._
+
   val config = ConfigFactory.load()
-  val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
+  val logger = LoggerFactory.getLogger(this.getClass)
   logger.info(s"useUnigrams=$useUnigrams, " +
     s"useBigrams=$useBigrams, " +
     s"useTopics=$useTopics, " +
@@ -122,25 +124,14 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
 
-    // Only English tweets with words
-    val filteredTweets = account.tweets.filter { t =>
-      t.lang != null & t.lang == "en" &
-        t.text != null & t.text != ""
-    }
-    // Filter out stopwords
-    val tweets = for {
-      t <- filteredTweets
-    } yield {
-      val tt = Tokenizer.annotate(t.text.toLowerCase)
-      filterTags(tt).map(_.token)
-    }
-    // Same for description
-    val description = filterTags(Tokenizer.annotate(account.description.toLowerCase)).map(_.token)
+    val tweets = for (t <- account.tweets) yield t.text.split(" ")
+    val description = account.description.split(" ")
 
     var unigrams: Option[Counter[String]] = None
 
+    if (useUnigrams | useDictionaries | useCosineSim)
+      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
     if (useUnigrams) {
-      unigrams = Some(ngrams(1, tweets, description))
       counter += unigrams.get
     }
     if (useBigrams)
@@ -200,10 +191,10 @@ class FeatureExtractor (
 
     var unigrams: Option[Counter[String]] = None
 
-    if (useUnigrams) {
-      unigrams = Some(ngrams(1, tweets, description))
+    if (useUnigrams | useDictionaries | useCosineSim)
+      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
+    if (useUnigrams)
       counter += unigrams.get
-    }
     if (useBigrams)
       counter += ngrams(2, tweets, description)
     if (useTopics)
@@ -234,15 +225,6 @@ class FeatureExtractor (
 
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
 
-  // NOTE: all features that run over description and tweets should probably apply this for consistency
-  def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
-    val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-    val stopWords = stopWordsFile.getLines.toSet
-    stopWordsFile.close
-    tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
-      && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
-  }
-
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
     *
@@ -254,10 +236,8 @@ class FeatureExtractor (
     val counter = new Counter[String]
 
     // Extract ngrams
-    val populateNGrams = (n: Int, text: Array[String]) => {
-      text.sliding(n).toList.reverse
-        .foldLeft(List[String]())((l, window) => window.mkString(" ") :: l)
-        .toArray
+    def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
+      text.sliding(n).toList.map(ngram => ngram.mkString(" "))
     }
 
     // Filter ngrams by their POS tags
@@ -265,8 +245,7 @@ class FeatureExtractor (
 
     // Filter further by ensuring we get English tweets and non-empty strings
     tweets.foreach{ tweet =>
-      val nGramSet = populateNGrams(n, tweet)
-      setCounts(nGramSet, counter)
+      setCounts(populateNGrams(n, tweet), counter)
     }
 
     counter
@@ -486,20 +465,60 @@ def topics(tweets: Seq[Array[String]]): Counter[String] = {
     * @return counter
     */
   def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Array[String]],
-  description: Array[String]): Counter[String] = {
+    description: Array[String]): Counter[String] = {
 
-  if (idfTable.isEmpty || overweightVec.isEmpty) loadTFIDF()
+    if (idfTable.isEmpty || overweightVec.isEmpty) loadTFIDF()
 
-  val accountVec = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
+    val accountVec = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
 
-  accountVec.keySet.foreach(word =>
-  accountVec.setCount(word, math.log(accountVec.getCount(word)) * (1 + idfTable.get.getCount(word)))
-  )
+    accountVec.keySet.foreach(word =>
+      accountVec.setCount(word, math.log(accountVec.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    )
 
-  // Calculate cosine similarity
-  val result = new Counter[String]()
-  result.setCount("cosineSim", Counters.cosine(accountVec, overweightVec.get))
+    // Calculate cosine similarity
+    val result = new Counter[String]()
+    result.setCount("cosineSim", Counters.cosine(accountVec, overweightVec.get))
 
-  result
+    result
+  }
 }
+
+object FeatureExtractor {
+  val config = ConfigFactory.load()
+  val logger = LoggerFactory.getLogger(this.getClass)
+  val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+  val stopWords = stopWordsFile.getLines.toSet
+  stopWordsFile.close
+
+  // NOTE: all features that run over description and tweets should probably apply this for consistency
+  def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
+    // val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+    // val stopWords = stopWordsFile.getLines.toSet
+    // stopWordsFile.close
+    // tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
+    // && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
+    val lumped = for (tt <- tagTok) yield {
+      (tt.token, tt.tag) match {
+        case (site, "U") =>
+          val url = new TaggedToken
+          url.token = "<URL>"
+          url.tag = "U"
+          Some(url)
+        case (handle, "@") =>
+          val atMention = new TaggedToken
+          atMention.token = "<@MENTION>"
+          atMention.tag = "@"
+          Some(atMention)
+        case (garbage, "G") => None
+        case (rt, "~") => None
+        case ("", tag) => None
+        case (token, tag) => Some(tt)
+      }
+    }
+    lumped.flatten
+  }
+
+  def filterStopWords(tokens: Array[String]): Array[String] = tokens filterNot stopWords.contains
+
+
 }
