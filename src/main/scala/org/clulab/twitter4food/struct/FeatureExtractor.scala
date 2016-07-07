@@ -181,7 +181,7 @@ class FeatureExtractor (
     }
 
     // remove zero values for sparse rep
-    counter.filterValues(v => v != 0.0)
+    counter.filter{case (k, v) => k != "" & v != 0.0}
   }
 
   def mkFeaturesFollowers(account: TwitterAccount): Counter[String] = {
