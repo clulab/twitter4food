@@ -490,6 +490,7 @@ object FeatureExtractor {
     // stopWordsFile.close
     // tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
     // && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
+    val emptyString = "^[\\s\\b]*$"
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
         case (site, "U") => Some("<URL>")
@@ -497,7 +498,7 @@ object FeatureExtractor {
         case (number, "$") => Some("<NUMBER>")
         case (garbage, "G") => None
         case (rt, "~") => None
-        case (token, tag) if token.length > 0 => Some(token)
+        case (token, tag) if token.matches(emptyString) => Some(token)
         case (token, tag) => None
       }
     }
