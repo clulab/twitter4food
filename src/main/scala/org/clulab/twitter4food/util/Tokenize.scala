@@ -48,8 +48,8 @@ object Tokenize {
         t <- englishTweets
       } yield {
         val tt = Tokenizer.annotate(t.text.toLowerCase)
-        val ft = filterTags(tt).filter(_ != "").mkString(" ")
-        if (ft.contains("  ")) logger.error(s"$ft contains two spaces!")
+        val ft = filterTags(tt).mkString(" ")
+        if (ft.contains("\u0008")) logger.error(s"$ft contains a backspace character!")
         t.copy(text = ft)
       }
 
