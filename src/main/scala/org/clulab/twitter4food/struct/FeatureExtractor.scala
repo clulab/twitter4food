@@ -498,8 +498,8 @@ object FeatureExtractor {
         case (number, "$") => Some("<NUMBER>")
         case (garbage, "G") => None
         case (rt, "~") => None
-        case (token, tag) if token.matches(emptyString) => Some(token)
-        case (token, tag) => None
+        case (token, tag) if token.matches(emptyString) => None
+        case (token, tag) => Some(token)
       }
     }
     lumped.flatten
