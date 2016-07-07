@@ -125,8 +125,8 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
 
-    val tweets = for (t <- account.tweets) yield t.text.split(" +")
-    val description = account.description.split(" +")
+    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
+    val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
 
@@ -177,8 +177,8 @@ class FeatureExtractor (
 
   def mkFeaturesFollowers(account: TwitterAccount): Counter[String] = {
     var counter = new Counter[String]
-    val tweets = for (t <- account.tweets) yield t.text.split(" +")
-    val description = account.description.split(" +")
+    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
+    val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
 
@@ -399,8 +399,8 @@ class FeatureExtractor (
       // Actual tweet text is every third line
       if (i % 3 == 2) {
         // Filter words based on FeatureExtractor for consistency
-        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        taggedTokens.map(_.token).distinct.foreach(token => randomCounter.incrementCount(token))
+        val filteredTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        filteredTokens.distinct.foreach(token => randomCounter.incrementCount(token))
         N += 1
         pb.step()
       }
@@ -434,8 +434,8 @@ class FeatureExtractor (
     while ( { line = overweightFile.readLine ; line != null } ) {
       if (i % 3 == 2) {
         // No need to keep track of what's been seen since we're accumulating tf here
-        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        taggedTokens.foreach(tt => overweightCounter.incrementCount(tt.token))
+        val filteredTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        filteredTokens.foreach(t => overweightCounter.incrementCount(t))
         pb2.step()
       }
       i += 1
@@ -485,7 +485,7 @@ object FeatureExtractor {
   stopWordsFile.close
 
   // NOTE: all features that run over description and tweets should probably apply this for consistency
-  def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
+  def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
     // val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
     // val stopWords = stopWordsFile.getLines.toSet
     // stopWordsFile.close
@@ -493,25 +493,13 @@ object FeatureExtractor {
     // && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
-        case (site, "U") =>
-          val url = new TaggedToken
-          url.token = "<URL>"
-          url.tag = "U"
-          Some(url)
-        case (handle, "@") =>
-          val atMention = new TaggedToken
-          atMention.token = "<@MENTION>"
-          atMention.tag = "@"
-          Some(atMention)
-        case (number, "$") =>
-          val atMention = new TaggedToken
-          atMention.token = "<NUMBER>"
-          atMention.tag = "$"
-          Some(atMention)
+        case (site, "U") => Some("<URL>")
+        case (handle, "@") => Some("<@MENTION>")
+        case (number, "$") => Some("<NUMBER>")
         case (garbage, "G") => None
         case (rt, "~") => None
         case ("", tag) => None
-        case (token, tag) => Some(tt)
+        case (token, tag) => Some(token)
       }
     }
     lumped.flatten
