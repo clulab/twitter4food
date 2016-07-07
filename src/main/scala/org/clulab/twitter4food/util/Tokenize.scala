@@ -49,6 +49,7 @@ object Tokenize {
       } yield {
         val tt = Tokenizer.annotate(t.text.toLowerCase)
         val ft = filterTags(tt).filter(_ != "").mkString(" ")
+        if (ft.contains("  ")) logger.error(s"$ft contains two spaces!")
         t.copy(text = ft)
       }
 
