@@ -498,8 +498,8 @@ object FeatureExtractor {
         case (number, "$") => Some("<NUMBER>")
         case (garbage, "G") => None
         case (rt, "~") => None
-        case ("", tag) => None
-        case (token, tag) => Some(token)
+        case (token, tag) if token.length > 0 => Some(token)
+        case (token, tag) => None
       }
     }
     lumped.flatten
