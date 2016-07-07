@@ -68,6 +68,13 @@ class FeatureExtractor (
     handleToRelations += (handles(0) -> handles.slice(1, handles.length))
   }
   relationsFile.close
+  val hon = try {
+    Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
+  } catch {
+    case e: Exception =>
+      logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
+      None
+  }
 
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
@@ -256,14 +263,6 @@ class FeatureExtractor (
     val followers = followerHandles.flatMap(f =>
       if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
     )
-
-    val hon = try {
-      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
-    } catch {
-      case e: Exception =>
-        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
-        None
-    }
 
     val filtered = if (hon.nonEmpty) {
       val hc = new HumanClassifier() // assume we're using unigrams only
