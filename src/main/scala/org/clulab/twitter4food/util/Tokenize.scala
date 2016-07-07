@@ -54,7 +54,7 @@ object Tokenize {
 
       val tokenizedDescription = {
         val tt = Tokenizer.annotate(account.description.toLowerCase)
-        filterTags(tt).filter(_ != "").mkString(" ")
+        filterTags(tt).mkString(" ")
       }
 
       pb.step
