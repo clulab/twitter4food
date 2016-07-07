@@ -49,7 +49,7 @@ object Tokenize {
       } yield {
         val tt = Tokenizer.annotate(t.text.toLowerCase)
         val ft = filterTags(tt).mkString(" ")
-        if (ft.contains("\u0008")) logger.error(s"$ft contains a backspace character!")
+        if (ft.contains("\b")) logger.error(s"$ft contains a backspace character!")
         t.copy(text = ft)
       }
 
