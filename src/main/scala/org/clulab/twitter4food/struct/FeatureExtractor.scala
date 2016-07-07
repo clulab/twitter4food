@@ -68,13 +68,15 @@ class FeatureExtractor (
     handleToRelations += (handles(0) -> handles.slice(1, handles.length))
   }
   relationsFile.close
-  val hon = try {
-    Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
-  } catch {
-    case e: Exception =>
-      logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
-      None
-  }
+  val hon = if(useFollowers) {
+    try {
+      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
+    } catch {
+      case e: Exception =>
+        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
+        None
+    }
+  } else None
 
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
