@@ -77,6 +77,12 @@ class FeatureExtractor (
         None
     }
   } else None
+  val hc = if(hon.nonEmpty) {
+    val h = new HumanClassifier() // assume we're using unigrams only
+    h.subClassifier = hon
+    Some(h)
+  } else None
+
 
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
@@ -266,10 +272,8 @@ class FeatureExtractor (
       if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
     )
 
-    val filtered = if (hon.nonEmpty) {
-      val hc = new HumanClassifier() // assume we're using unigrams only
-      hc.subClassifier = hon
-      val humanPredicted = (followers, hc._test(followers)).zipped
+    val filtered = if (hc.nonEmpty) {
+      val humanPredicted = (followers, followers.map(hc.get.classify)).zipped
       humanPredicted.filter{ case (follower, predicted) => predicted == "human"}._1
     } else followers
 
@@ -500,7 +504,7 @@ object FeatureExtractor {
         case (number, "$") => Some("<NUMBER>")
         case (garbage, "G") => None
         case (rt, "~") => None
-        case (token, tag) if token.length < 2 || token.matches(emptyString) => None
+        case (token, tag) if token.matches(emptyString) => None
         case (token, tag) => Some(token)
       }
     }
