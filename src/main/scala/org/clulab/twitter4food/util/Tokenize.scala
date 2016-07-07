@@ -48,13 +48,13 @@ object Tokenize {
         t <- englishTweets
       } yield {
         val tt = Tokenizer.annotate(t.text.toLowerCase)
-        val ft = filterTags(tt).map(_.token).mkString(" ")
+        val ft = filterTags(tt).filter(_ != "").mkString(" ")
         t.copy(text = ft)
       }
 
       val tokenizedDescription = {
         val tt = Tokenizer.annotate(account.description.toLowerCase)
-        filterTags(tt).map(_.token).mkString(" ")
+        filterTags(tt).filter(_ != "").mkString(" ")
       }
 
       pb.step
