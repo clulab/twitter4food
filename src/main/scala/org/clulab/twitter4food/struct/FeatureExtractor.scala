@@ -30,6 +30,8 @@ class FeatureExtractor (
   val useEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useFollowers: Boolean = false,
+  val useGender: Boolean = false,
+  val useRace: Boolean = false,
   val datumScaling: Boolean = false) {
 
   import FeatureExtractor._
@@ -73,6 +75,11 @@ class FeatureExtractor (
       Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
     } catch {
       case e: Exception =>
+        val tmp = new HumanClassifier()
+        tmp.runTest(Array(), "human")
+        Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
+    } finally {
+      case e: Exception =>
         logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
         None
     }
@@ -83,6 +90,20 @@ class FeatureExtractor (
     Some(h)
   } else None
 
+  val fom = if(useGender) {
+    try {
+      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.gender")))
+    } catch {
+      case e: Exception =>
+        val tmp = new GenderClassifier()
+        tmp.runTest(Array(), "gender")
+        Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.gender")))
+    } finally {
+      case e: Exception =>
+        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.gender")}!")
+        None
+    }
+  } else None
 
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
