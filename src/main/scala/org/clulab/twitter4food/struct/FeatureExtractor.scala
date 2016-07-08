@@ -8,7 +8,7 @@ import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.featureclassifier.HumanClassifier
+import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassifier}
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
@@ -72,15 +72,15 @@ class FeatureExtractor (
   relationsFile.close
   val hon = if(useFollowers) {
     try {
-      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
+      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier")))
     } catch {
       case e: Exception =>
         val tmp = new HumanClassifier()
-        tmp.runTest(Array(), "human")
-        Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
+        tmp.learn(Array(), "human", 10.0, 1000)
+        tmp.subClassifier
     } finally {
       case e: Exception =>
-        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
+        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanClassifier")}!")
         None
     }
   } else None
@@ -92,18 +92,23 @@ class FeatureExtractor (
 
   val fom = if(useGender) {
     try {
-      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.gender")))
+      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.genderClassifier")))
     } catch {
       case e: Exception =>
         val tmp = new GenderClassifier()
-        tmp.runTest(Array(), "gender")
-        Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.gender")))
+        tmp.learn(Array(), "gender", 10.0, 1000)
+        tmp.subClassifier
     } finally {
       case e: Exception =>
-        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.gender")}!")
+        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.genderClassifier")}!")
         None
     }
   } else None
+  val gc = if(fom.nonEmpty) {
+    val g = new GenderClassifier() // assume we're using unigrams only
+    g.subClassifier = fom
+    Some(g)
+  }
 
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
