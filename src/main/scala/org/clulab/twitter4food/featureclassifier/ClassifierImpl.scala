@@ -32,6 +32,8 @@ class ClassifierImpl(
   val useEmbeddings: Boolean,
   val useCosineSim: Boolean,
   val useFollowers: Boolean,
+  val useGender: Boolean,
+  val useRace: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean) extends FeatureClassifier {
 
