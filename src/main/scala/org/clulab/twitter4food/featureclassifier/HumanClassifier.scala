@@ -139,8 +139,8 @@ object HumanClassifier {
     val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
       params.useTopics, params.useDictionaries, params.useEmbeddings, params.useFollowers,
       params.datumScaling, params.featureScaling)
-    //hc.runTest(args, "human")
-    hc.learn(args, "human", 0.001, 50)
-    val predictedLabels = hc.predict(config.getString("classifiers.overweight.allTestData"))
+    hc.runTest(args, "human")
+    // hc.learn(args, "human", 0.001, 50)
+    // val predictedLabels = hc.predict(config.getString("classifiers.overweight.allTestData"))
   }
 }
