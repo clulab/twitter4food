@@ -88,9 +88,9 @@ object LDA {
 
     model.addInstances(instances)
 
-    // Use two parallel samplers, which each look at one half the corpus and combine
+    // Use X parallel samplers, which each look at 1 / X of the corpus and combine
     //  statistics after every iteration.
-    model.setNumThreads(2)
+    model.setNumThreads(20)
 
     // System.out.printf("running for %d iterations", numIterations)
     model.setNumIterations(numIterations)
