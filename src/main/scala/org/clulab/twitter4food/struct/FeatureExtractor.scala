@@ -2,12 +2,13 @@ package org.clulab.twitter4food.struct
 
 import java.io.{BufferedReader, FileReader}
 
-import org.clulab.learning.{Datum, RVFDatum}
+import org.clulab.learning.{Datum, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
+import org.clulab.twitter4food.featureclassifier.HumanClassifier
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
@@ -31,8 +32,10 @@ class FeatureExtractor (
   val useFollowers: Boolean = false,
   val datumScaling: Boolean = false) {
 
+  import FeatureExtractor._
+
   val config = ConfigFactory.load()
-  val logger = LoggerFactory.getLogger(classOf[FeatureExtractor])
+  val logger = LoggerFactory.getLogger(this.getClass)
   logger.info(s"useUnigrams=$useUnigrams, " +
     s"useBigrams=$useBigrams, " +
     s"useTopics=$useTopics, " +
@@ -65,6 +68,21 @@ class FeatureExtractor (
     handleToRelations += (handles(0) -> handles.slice(1, handles.length))
   }
   relationsFile.close
+  val hon = if(useFollowers) {
+    try {
+      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
+    } catch {
+      case e: Exception =>
+        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
+        None
+    }
+  } else None
+  val hc = if(hon.nonEmpty) {
+    val h = new HumanClassifier() // assume we're using unigrams only
+    h.subClassifier = hon
+    Some(h)
+  } else None
+
 
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
@@ -122,25 +140,14 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
 
-    // Only English tweets with words
-    val filteredTweets = account.tweets.filter { t =>
-      t.lang != null & t.lang == "en" &
-        t.text != null & t.text != ""
-    }
-    // Filter out stopwords
-    val tweets = for {
-      t <- filteredTweets
-    } yield {
-      val tt = Tokenizer.annotate(t.text.toLowerCase)
-      filterTags(tt).map(_.token)
-    }
-    // Same for description
-    val description = filterTags(Tokenizer.annotate(account.description.toLowerCase)).map(_.token)
+    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
+    val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
 
+    if (useUnigrams | useDictionaries | useCosineSim)
+      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
     if (useUnigrams) {
-      unigrams = Some(ngrams(1, tweets, description))
       counter += unigrams.get
     }
     if (useBigrams)
@@ -180,30 +187,20 @@ class FeatureExtractor (
     }
 
     // remove zero values for sparse rep
-    counter.filterValues(v => v != 0.0)
+    counter.filter{case (k, v) => k != "" & v != 0.0}
   }
 
   def mkFeaturesFollowers(account: TwitterAccount): Counter[String] = {
     var counter = new Counter[String]
-    val filteredTweets = account.tweets.filter { t =>
-      t.lang != null & t.lang == "en" &
-        t.text != null & t.text != ""
-    }
-    val tweets = for {
-      t <- filteredTweets
-    } yield {
-      val tt = Tokenizer.annotate(t.text.toLowerCase)
-      filterTags(tt).map(_.token)
-    }
-    // Same for description
-    val description = filterTags(Tokenizer.annotate(account.description.toLowerCase)).map(_.token)
+    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
+    val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
 
-    if (useUnigrams) {
-      unigrams = Some(ngrams(1, tweets, description))
+    if (useUnigrams | useDictionaries | useCosineSim)
+      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
+    if (useUnigrams)
       counter += unigrams.get
-    }
     if (useBigrams)
       counter += ngrams(2, tweets, description)
     if (useTopics)
@@ -234,15 +231,6 @@ class FeatureExtractor (
 
   def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
 
-  // NOTE: all features that run over description and tweets should probably apply this for consistency
-  def filterTags(tagTok: Array[TaggedToken]): Array[TaggedToken] = {
-    val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-    val stopWords = stopWordsFile.getLines.toSet
-    stopWordsFile.close
-    tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
-      && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
-  }
-
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
     *
@@ -254,10 +242,8 @@ class FeatureExtractor (
     val counter = new Counter[String]
 
     // Extract ngrams
-    val populateNGrams = (n: Int, text: Array[String]) => {
-      text.sliding(n).toList.reverse
-        .foldLeft(List[String]())((l, window) => window.mkString(" ") :: l)
-        .toArray
+    def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
+      text.sliding(n).toList.map(ngram => ngram.mkString(" "))
     }
 
     // Filter ngrams by their POS tags
@@ -265,8 +251,7 @@ class FeatureExtractor (
 
     // Filter further by ensuring we get English tweets and non-empty strings
     tweets.foreach{ tweet =>
-      val nGramSet = populateNGrams(n, tweet)
-      setCounts(nGramSet, counter)
+      setCounts(populateNGrams(n, tweet), counter)
     }
 
     counter
@@ -283,16 +268,20 @@ class FeatureExtractor (
     val followerHandles = if (handleToRelations.contains(account.handle)) handleToRelations(account.handle) else List[String]()
 
     // Find the TwitterAccount object corresponding to these handles
-    val followers = followerHandles.map(f => {
-      if (handleToFollower.contains(f)) handleToFollower(f) else null
-    })
+    val followers = followerHandles.flatMap(f =>
+      if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
+    )
+
+    val filtered = if (hc.nonEmpty) {
+      val humanPredicted = (followers, followers.map(hc.get.classify)).zipped
+      humanPredicted.filter{ case (follower, predicted) => predicted == "human"}._1
+    } else followers
 
     // Aggregate the counter for the followers using the other features being used
-    val followerCounter = new Counter[String]()
-    for (follower <- followers) {
-      if (follower != null)
-        followerCounter += mkFeaturesFollowers(follower)
-    }
+    val followerCounters = for (follower <- filtered.par) yield mkFeaturesFollowers(follower)
+
+    val followerCounter = new Counter[String]
+    followerCounters.seq.foreach(fc => followerCounter += fc)
 
     followerCounter
   }
@@ -414,8 +403,8 @@ class FeatureExtractor (
       // Actual tweet text is every third line
       if (i % 3 == 2) {
         // Filter words based on FeatureExtractor for consistency
-        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        taggedTokens.map(_.token).distinct.foreach(token => randomCounter.incrementCount(token))
+        val filteredTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        filteredTokens.distinct.foreach(token => randomCounter.incrementCount(token))
         N += 1
         pb.step()
       }
@@ -449,8 +438,8 @@ class FeatureExtractor (
     while ( { line = overweightFile.readLine ; line != null } ) {
       if (i % 3 == 2) {
         // No need to keep track of what's been seen since we're accumulating tf here
-        val taggedTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        taggedTokens.foreach(tt => overweightCounter.incrementCount(tt.token))
+        val filteredTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
+        filteredTokens.foreach(t => overweightCounter.incrementCount(t))
         pb2.step()
       }
       i += 1
@@ -490,4 +479,38 @@ class FeatureExtractor (
 
     result
   }
+}
+
+object FeatureExtractor {
+  val config = ConfigFactory.load()
+  val logger = LoggerFactory.getLogger(this.getClass)
+  val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+  val stopWords = stopWordsFile.getLines.toSet
+  stopWordsFile.close
+
+  // NOTE: all features that run over description and tweets should probably apply this for consistency
+  def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
+    // val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+    // val stopWords = stopWordsFile.getLines.toSet
+    // stopWordsFile.close
+    // tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
+    // && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
+    val emptyString = "^[\\s\b]*$"
+    val lumped = for (tt <- tagTok) yield {
+      (tt.token, tt.tag) match {
+        case (site, "U") => Some("<URL>")
+        case (handle, "@") => Some("<@MENTION>")
+        case (number, "$") => Some("<NUMBER>")
+        case (garbage, "G") => None
+        case (rt, "~") => None
+        case (token, tag) if token.matches(emptyString) => None
+        case (token, tag) => Some(token)
+      }
+    }
+    lumped.flatten
+  }
+
+  def filterStopWords(tokens: Array[String]): Array[String] = tokens filterNot stopWords.contains
+
+
 }

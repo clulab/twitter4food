@@ -39,7 +39,7 @@ object FileUtils {
     writer.close()
   }
 
-  def load(fileName: String): scala.collection.mutable.Map[TwitterAccount, String] = {
+  def load(fileName: String) = {
     val file = scala.io.Source.fromFile(fileName)
     val lines = file.getLines
 
@@ -48,7 +48,7 @@ object FileUtils {
     var handle, name, label, id = ""
     var desc, lang, location, url = ""
     var numTweets = 0
-    val accounts = scala.collection.mutable.Map[TwitterAccount, String]()
+    val accounts = Map[TwitterAccount, String]()
     val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
     pb.start()
     if(lines.hasNext) {
@@ -110,7 +110,7 @@ object FileUtils {
     }
     file.close
     pb.stop()
-    accounts
+    accounts.toMap
   }
 
   def loadSingletonTexts(fileName: String, englishOnly: Boolean = true): Seq[String] = {
