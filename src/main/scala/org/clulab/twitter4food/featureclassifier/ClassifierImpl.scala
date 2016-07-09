@@ -373,7 +373,7 @@ class ClassifierImpl(
     * @param test/tests/testFile Load from file, or input sequence of tests
     * @return Seq[String] predicted labels
     */
-  def predict(test: TwitterAccount) = _test(Array(test))
+  def predict(test: TwitterAccount) = _test(Array(test)).head
 
   def predict(tests: Seq[TwitterAccount]) = _test(tests)
 
