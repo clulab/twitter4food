@@ -116,7 +116,7 @@ object LDA {
 
     val tweets = FileUtils.load(config.getString("lda.trainingData"))
       .keys
-      .flatMap(_.tweets.map(_.text.split(" ")))
+      .flatMap(_.tweets.map(_.text.split(" +")))
       .map(filterStopWords)
       .toSeq
 
