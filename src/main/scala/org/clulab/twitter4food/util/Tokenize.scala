@@ -124,14 +124,14 @@ object Tokenize {
     pb2.maxHint(texts.length)
     pb2.setExtraMessage("Tokenizing...")
 
-    val tokenizedTweets: Seq[String] = for {
-      text <- texts
+    val tokenizedTweets: Seq[String] = (for {
+      text <- texts.par
     } yield {
       val tt = Tokenizer.annotate(text.toLowerCase)
       val ft = filterTags(tt).mkString(" ")
       pb2.step
       ft
-    }
+    }).seq
 
     pb2.stop
 
