@@ -30,3 +30,5 @@ libraryDependencies ++= Seq(
   "com.github.scopt" %% "scopt" % "3.4.0",
   "me.tongfei" % "progressbar" % "0.4.0"
 )
+
+dependencyOverrides += "net.sf.trove4j" % "trove4j" % "2.0.2"
