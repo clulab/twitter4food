@@ -114,13 +114,21 @@ object LDA {
 
     logger.info(s"Loading and filtering tweets...")
 
-    val tweets = FileUtils.load(config.getString("lda.trainingData"))
-      .keys
-      .flatMap(_.tweets.map(_.text.split(" +")))
-      .map(filterStopWords)
-      .toSeq
+    val twoLine: Seq[Array[String]] = (for {
+      file <- config.getStringList("lda.2lineTrainingData").toSeq
+    } yield FileUtils.loadTwoLineTexts(file, englishOnly = true))
+      .flatten
+      .map(tweet => tweet.split("\\s+"))
 
-    logger.info(s"Accounts: ${tweets.size}, Tweets: ${tweets.flatten.size}")
+    val threeLine: Seq[Array[String]] = (for {
+      file <- config.getStringList("lda.3lineTrainingData").toSeq
+    } yield FileUtils.loadThreeLineTexts(file, englishOnly = true))
+      .flatten
+      .map(tweet => tweet.split("\\s+"))
+
+    val tweets = twoLine ++ threeLine
+
+    logger.info(s"Tweets: ${tweets.length}")
 
     val (lda, alphabet) = LDA.train(tweets, params.numTopics, params.numIterations)
 

@@ -146,10 +146,10 @@ object FileUtils {
               tweetLine = lines.next
               if j % 2 == 1 & (!englishOnly || lang == "en")
             } texts.append(tweetLine.stripLineEnd)
+            pb.step()
           }
         case other => () // do nothing
       }
-      pb.step()
 
       count += 1
       count %= 5
