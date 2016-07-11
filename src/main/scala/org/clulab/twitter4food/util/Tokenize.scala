@@ -110,7 +110,7 @@ object Tokenize {
           lang = line.stripLineEnd.split("\t").last
           if (lang == "en") userInfo.append(line)
         case 1 => if (lang == "en") tweetInfo.append(line)
-        case 2 => if (lang == "en") texts.append(line.stripLineEnd)
+        case 2 => if (lang == "en") texts.append(line)
       }
       count += 1
       count %= 3
@@ -121,7 +121,7 @@ object Tokenize {
 
     val pb2 = new me.tongfei.progressbar.ProgressBar("Tokenize", 100)
     pb2.start
-    pb2.maxHint(lines.length)
+    pb2.maxHint(texts.length)
     pb2.setExtraMessage("Tokenizing...")
 
     val tokenizedTweets: Seq[String] = for {
@@ -139,7 +139,7 @@ object Tokenize {
     assert(tokenizedTweets.length == userInfo.length)
     assert(tokenizedTweets.length == tweetInfo.length)
 
-    (userInfo, tweetInfo, tokenizedTweets).zipped.foreach{ case (u, tw, tt) => writer.write(s"$u$tw$tt\n") }
+    (userInfo, tweetInfo, tokenizedTweets).zipped.foreach{ case (u, tw, tt) => writer.write(s"$u\n$tw\n$tt\n") }
 
     writer.close
   }
