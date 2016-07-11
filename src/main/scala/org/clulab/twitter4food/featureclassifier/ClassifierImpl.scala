@@ -183,7 +183,7 @@ class ClassifierImpl(
     */
   def _test(testSet: Seq[TwitterAccount]): Seq[String] = {
 
-    logger.info(s"Training on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
+    logger.info(s"Testing on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
 
     val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
     pb.start()
