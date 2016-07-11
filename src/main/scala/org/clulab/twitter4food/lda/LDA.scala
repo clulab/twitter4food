@@ -39,11 +39,16 @@ class LDA(val model: ParallelTopicModel, val pipe: SerialPipes) extends Serializ
 
 object LDA {
 
-  val logger = LoggerFactory.getLogger(this.getClass)
+  case class Config(numTopics:Int = 200, numIterations:Int = 100)
 
+  val logger = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.load
 
-  case class Config(numTopics:Int = 200, numIterations:Int = 100)
+  val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+  val ldaStopWords = stopWordsFile.getLines.toSet ++ Set("<URL>", "<@MENTION>")
+  stopWordsFile.close
+
+  def filterLDAStopWords(tokens: Array[String]): Array[String] = tokens filterNot ldaStopWords.contains
 
   def stripHashtag(token: String) = {
     if (token.startsWith("#")) token.substring(1, token.length) else token
@@ -56,7 +61,7 @@ object LDA {
 
   def train(tokensList: Seq[Array[String]], numTopics: Int = 200, numIterations: Int = 2000): (LDA, Alphabet) = {
     // Begin by importing documents from text to feature sequences
-    val pipeList = new ArrayList[Pipe]
+    val pipeList = new java.util.ArrayList[Pipe]
 
     pipeList.add( new TokenSequence2FeatureSequence() )
 
@@ -126,7 +131,7 @@ object LDA {
     } yield FileUtils.loadThreeLineTexts(file, englishOnly = true))
       .flatten
       .map(tweet => tweet.split("\\s+"))
-      .map(filterStopWords)
+      .map(filterLDAStopWords)
 
     val tweets = twoLine ++ threeLine
 
