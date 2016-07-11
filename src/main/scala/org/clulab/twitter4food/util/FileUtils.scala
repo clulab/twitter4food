@@ -113,7 +113,54 @@ object FileUtils {
     accounts.toMap
   }
 
-  def loadSingletonTexts(fileName: String, englishOnly: Boolean = true): Seq[String] = {
+  def loadTwoLineTexts(fileName: String, englishOnly: Boolean = true): Seq[String] = {
+    val file = scala.io.Source.fromFile(fileName)
+    val lines = file.getLines
+    file.close
+
+    val texts = new ArrayBuffer[String]()
+
+    /* Lazy declarations */
+    var count = 0
+    var numTweets = 0
+    var lang = ""
+
+    // Two-line files have a line at the top saying how many accounts are in it
+    val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
+    pb.start()
+    if(lines.hasNext) {
+      pb.maxHint(lines.next.toInt)
+      pb.setExtraMessage("Loading...")
+    }
+
+    while (lines.hasNext) {
+      val line = lines.next
+      val splits = line.split("\t")
+      count match {
+        case 1 => numTweets = splits(3).toInt // number of tweets for this account
+        case 2 => lang = splits(0) // must be "en" if englishOnly
+        case 4 => // tweets start here
+          if (numTweets > 0) {
+            for {
+              j <- 0 until numTweets * 2
+              tweetLine = lines.next
+              if j % 2 == 1 & (!englishOnly || lang == "en")
+            } texts.append(tweetLine.stripLineEnd)
+          }
+        case other => () // do nothing
+      }
+      pb.step()
+
+      count += 1
+      count %= 5
+    }
+
+    pb.stop()
+
+    texts
+  }
+
+  def loadThreeLineTexts(fileName: String, englishOnly: Boolean = true): Seq[String] = {
     val file = scala.io.Source.fromFile(fileName)
     val lines = file.getLines.toList
     file.close
@@ -131,7 +178,7 @@ object FileUtils {
       count match {
         case 0 => lang = line.stripLineEnd.split("\t").last
         case 2 => if (lang == "en") texts.append(line.stripLineEnd)
-        case firstTwo => () // ignore first two lines of each triple
+        case other => () // do nothing
       }
       count += 1
       count %= 3
