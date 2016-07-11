@@ -25,6 +25,7 @@ libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-highlighter" % "4.2.1",
   "jp.sf.amateras.solr.scala" %% "solr-scala-client" % "latest.integration",
   "cc.mallet" % "mallet" % "2.0.8",
+  "net.sf.trove4j" % "trove4j" % "2.0.2",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
   "com.github.scopt" %% "scopt" % "3.4.0",
   "me.tongfei" % "progressbar" % "0.4.0"
