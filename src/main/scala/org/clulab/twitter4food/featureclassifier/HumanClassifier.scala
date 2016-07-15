@@ -19,6 +19,8 @@ class HumanClassifier(
     useEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
     useFollowers: Boolean = false,
+    useGender: Boolean = false,
+    useRace: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false)
   extends ClassifierImpl(
@@ -29,6 +31,8 @@ class HumanClassifier(
     useEmbeddings: Boolean,
     useCosineSim: Boolean,
     useFollowers: Boolean,
+    useGender: Boolean,
+    useRace: Boolean,
     datumScaling: Boolean,
     featureScaling: Boolean
   ) {
@@ -49,20 +53,20 @@ class HumanClassifier(
     */
   def customFeatures(account: TwitterAccount): Counter[String] = {
     val SINGULAR_PRONOUNS = Set("I", "me", "you", "she", "her", "he",
-                              "him", "it", "myself", "yourself", "itself",
-                              "himself", "herself", "self", "oneself")
+      "him", "it", "myself", "yourself", "itself",
+      "himself", "herself", "self", "oneself")
     val PLURAL_PRONOUNS = Set("we", "us", "they", "them", "ourselves",
-                            "yourselves", "themselves")
+      "yourselves", "themselves")
 
     def isSingularPronoun(word: String) = SINGULAR_PRONOUNS.contains(word)
     def isPluralPronoun(word: String) = PLURAL_PRONOUNS.contains(word)
 
     val PERSON_CLASS = Set("person", "individual", "mortal", "self", "someone",
-                           "somebody", "soul")
+      "somebody", "soul")
     val ORG_CLASS = Set("organisation", "organization", "establishment",
-                      "governance", "governing body", "administration",
-                      "arrangement", "constitution", "formation",
-                      "institution", "building", "edifice", "structure")
+      "governance", "governing body", "administration",
+      "arrangement", "constitution", "formation",
+      "institution", "building", "edifice", "structure")
 
     def intersection(A: Set[String], B: Set[String]) = A.intersect(B)
     def isPersonClass(set: Set[String]) = intersection(set, PERSON_CLASS).nonEmpty
@@ -106,7 +110,7 @@ class HumanClassifier(
     /** Noun tags only */
     val nTags = Tokenizer.annotate(account.description)
       .filter(tt => "NO".contains(tt.tag))
-    
+
     /** Count #(human) and #(org) features */
     val (hCounts, oCounts) = nTags.foldLeft((0,0))(
       (count, tagTok) => {
@@ -137,7 +141,8 @@ object HumanClassifier {
     val params = TestUtils.parseArgs(args)
     val (api, config) = TestUtils.init(0)
     val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
-      params.useTopics, params.useDictionaries, params.useEmbeddings, params.useFollowers,
+      params.useTopics, params.useDictionaries, params.useEmbeddings,
+      params.useFollowers, params.useGender, params.useRace,
       params.datumScaling, params.featureScaling)
     hc.runTest(args, "human")
     // hc.learn(args, "human", 0.001, 50)

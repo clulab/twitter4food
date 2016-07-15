@@ -8,7 +8,7 @@ import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.featureclassifier.HumanClassifier
+import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassifier}
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
@@ -30,6 +30,8 @@ class FeatureExtractor (
   val useEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useFollowers: Boolean = false,
+  val useGender: Boolean = false,
+  val useRace: Boolean = false,
   val datumScaling: Boolean = false) {
 
   import FeatureExtractor._
@@ -68,21 +70,38 @@ class FeatureExtractor (
     handleToRelations += (handles(0) -> handles.slice(1, handles.length))
   }
   relationsFile.close
-  val hon = if(useFollowers) {
+
+  // human classifier for follower filtering
+  val humanClassifier = if(useFollowers) {
     try {
-      Some(LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanOrNot")))
+      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
+      val h = new HumanClassifier() // assume we're using unigrams only
+      h.subClassifier = Some(sub)
+      Some(h)
     } catch {
       case e: Exception =>
-        logger.debug(s"Human classifier not found at ${config.getString("classifiers.overweight.humanOrNot")}!")
-        None
+        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
+        val tmp = new HumanClassifier() // assuming unigrams only
+        tmp.learn(Array(), "human", 10.0, 1000)
+        Some(tmp)
     }
   } else None
-  val hc = if(hon.nonEmpty) {
-    val h = new HumanClassifier() // assume we're using unigrams only
-    h.subClassifier = hon
-    Some(h)
-  } else None
 
+  // gender classifier for domain adaptation
+  val genderClassifier = if(useGender) {
+    try {
+      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.genderClassifier"))
+      val g = new GenderClassifier()
+      g.subClassifier = Some(sub)
+      Some(g)
+    } catch {
+      case e: Exception =>
+        logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
+        val tmp = new GenderClassifier() // assuming unigrams only
+        tmp.learn(Array(), "gender", 10.0, 1000)
+        Some(tmp)
+    }
+  } else None
 
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
@@ -118,7 +137,7 @@ class FeatureExtractor (
     */
   def mkDatum(account: TwitterAccount, label: String,
     counter: Counter[String]): Datum[String, String] = {
-    new RVFDatum[String, String](label, mkFeatures(account) + counter)
+    new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + counter)
   }
 
   /**
@@ -128,7 +147,7 @@ class FeatureExtractor (
     * @param label Classification label associated with this account
     */
   def mkDatum(account: TwitterAccount, label: String): Datum[String, String] = {
-    new RVFDatum[String, String](label, mkFeatures(account))
+    new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers))
   }
 
   /**
@@ -137,7 +156,7 @@ class FeatureExtractor (
     * @param account
     * @return Counter of all features signified by constructor flags
     */
-  def mkFeatures(account: TwitterAccount): Counter[String] = {
+  def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
     val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
@@ -162,59 +181,36 @@ class FeatureExtractor (
     if (useCosineSim)
       counter += cosineSim(unigrams, tweets, description)
 
-    // must scaleByDatum now to keep scaling distinct from follower features
+    // must scaleByDatum now to keep scaling distinct from that of follower features
     if (datumScaling)
       scaleByDatum(counter, 0.0, 1.0)
 
-    if (useFollowers) {
-      // make deep copy of counter, range 0-1
-      val mc = new Counter[String]
-      counter.toSeq.foreach(kv => mc.setCount(kv._1, kv._2))
+    // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
+    val gender: Option[Counter[String]] = if (useGender & genderClassifier.nonEmpty) {
+      Some(appendPrefix(genderClassifier.get.predict(account) + "-", counter))
+    } else None
 
-      val fc = followers(account)
+    val race: Option[Counter[String]] = if (useRace) {
+      // TODO: predict account owner's race for domain adaptation
+      // Some(raceClassifier.get.predict(account))
+      None
+    } else None
+
+    val fc = if (withFollowers) {
+      val f = followers(account)
 
       // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
       // feature count as the main features
-      if (datumScaling) scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
-      else scaleByCounter(fc, mc)
+      if (datumScaling) scaleByDatum(f, 0.0, 1.0) // followers range 0-1
+      else scaleByCounter(f, counter)
 
-      counter += fc
+      Some(appendPrefix("follower-", f))
+    } else None
 
-      // combined scores should range 0-1 if datumScaling
-      if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
-
-      counter += appendPrefix("follower-", fc) + appendPrefix("main-", mc)
-    }
+    Seq(gender, race, fc).flatten.foreach(c => counter += c)
 
     // remove zero values for sparse rep
     counter.filter{case (k, v) => k != "" & v != 0.0}
-  }
-
-  def mkFeaturesFollowers(account: TwitterAccount): Counter[String] = {
-    var counter = new Counter[String]
-    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
-    val description = account.description.trim.split(" +")
-
-    var unigrams: Option[Counter[String]] = None
-
-    if (useUnigrams | useDictionaries | useCosineSim)
-      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
-    if (useUnigrams)
-      counter += unigrams.get
-    if (useBigrams)
-      counter += ngrams(2, tweets, description)
-    if (useTopics)
-      counter += topics(tweets)
-    if (useDictionaries)
-      counter += dictionaries(tweets, description, account, unigrams)
-    if (useEmbeddings){
-
-    } // TODO: how to add embeddings as a feature if not returning a counter?
-    if (useCosineSim)
-      counter += cosineSim(unigrams, tweets, description)
-    // Calling mkFeatures on followers will end up being endlessly recursive
-
-    counter
   }
 
   // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
@@ -272,13 +268,13 @@ class FeatureExtractor (
       if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
     )
 
-    val filtered = if (hc.nonEmpty) {
-      val humanPredicted = (followers, followers.map(hc.get.classify)).zipped
+    val filtered = if (humanClassifier.nonEmpty) {
+      val humanPredicted = (followers, followers.map(humanClassifier.get.classify)).zipped
       humanPredicted.filter{ case (follower, predicted) => predicted == "human"}._1
     } else followers
 
     // Aggregate the counter for the followers using the other features being used
-    val followerCounters = for (follower <- filtered.par) yield mkFeaturesFollowers(follower)
+    val followerCounters = for (follower <- filtered.par) yield mkFeatures(follower, withFollowers = false)
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)
@@ -512,5 +508,9 @@ object FeatureExtractor {
 
   def filterStopWords(tokens: Array[String]): Array[String] = tokens filterNot stopWords.contains
 
-
+  def deepCopy[T](original: Counter[T]): Counter[T] = {
+    val copy = new Counter[T]
+    original.toSeq.foreach{ case (k, v) => copy.setCount(k, v)}
+    copy
+  }
 }
