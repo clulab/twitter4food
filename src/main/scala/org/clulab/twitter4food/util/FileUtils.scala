@@ -116,7 +116,6 @@ object FileUtils {
   def loadTwoLineTexts(fileName: String, englishOnly: Boolean = true): Seq[String] = {
     val file = scala.io.Source.fromFile(fileName)
     val lines = file.getLines
-    file.close
 
     val texts = new ArrayBuffer[String]()
 
@@ -156,6 +155,8 @@ object FileUtils {
     }
 
     pb.stop()
+
+    file.close
 
     texts
   }
