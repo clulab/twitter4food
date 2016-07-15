@@ -45,7 +45,7 @@ object LDA {
   val config = ConfigFactory.load
 
   val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-  val ldaStopWords = stopWordsFile.getLines.toSet ++ Set("<URL>", "<@MENTION>")
+  val ldaStopWords = stopWordsFile.getLines.toSet ++ Set("<URL>", "<@MENTION>") ++ Set("breakfast", "lunch", "dinner", "supper", "brunch", "snack")
   stopWordsFile.close
 
   def filterLDAStopWords(tokens: Array[String]): Array[String] = tokens filterNot ldaStopWords.contains
