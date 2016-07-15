@@ -133,21 +133,31 @@ object FileUtils {
     }
 
     while (lines.hasNext) {
-      val line = lines.next
-      val splits = line.split("\t")
       count match {
-        case 1 => numTweets = splits(3).toInt // number of tweets for this account
-        case 2 => lang = splits(0) // must be "en" if englishOnly
+        case 1 =>
+          val line = lines.next
+          val splits = line.split("\t")
+          numTweets = try {
+            splits(3).toInt // number of tweets for this account
+          } catch {
+            case e: IndexOutOfBoundsException => println(line)
+              splits.last.toInt
+          }
+        case 2 =>
+          val line = lines.next
+          val splits = line.split("\t")
+          lang = splits(0) // must be "en" if englishOnly
         case 4 => // tweets start here
           if (numTweets > 0) {
             for {
-              j <- 0 until numTweets * 2 - 1
+              j <- 0 until numTweets
+              _ = lines.next // ignore tweet metadata
               tweetLine = lines.next
-              if j % 2 == 0 & (!englishOnly || lang == "en")
+              if !englishOnly || lang == "en"
             } texts.append(tweetLine.stripLineEnd)
             pb.step()
           }
-        case other => () // do nothing
+        case other => val line = lines.next // just skip it
       }
 
       count += 1
