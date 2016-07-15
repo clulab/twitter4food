@@ -167,23 +167,16 @@ class FeatureExtractor (
       scaleByDatum(counter, 0.0, 1.0)
 
     if (useFollowers) {
-      // make deep copy of counter, range 0-1
-      val mc = new Counter[String]
-      counter.toSeq.foreach(kv => mc.setCount(kv._1, kv._2))
-
       val fc = followers(account)
 
       // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
       // feature count as the main features
-      if (datumScaling) scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
-      else scaleByCounter(fc, mc)
+      if (datumScaling) scaleByDatum(counter, 0.0, 1.0) // followers range 0-1
+      else scaleByCounter(fc, counter)
 
-      // counter += fc
+      val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      // combined scores should range 0-1 if datumScaling
-      // if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
-
-      counter = appendPrefix("follower-", fc) + appendPrefix("main-", mc)
+      counter += appendPrefix("follower-", fc.mapValues(v => v * followerProp))
     }
 
     // remove zero values for sparse rep
