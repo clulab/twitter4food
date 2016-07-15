@@ -187,7 +187,7 @@ class FeatureExtractor (
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     val gender: Option[Counter[String]] = if (useGender & genderClassifier.nonEmpty) {
-      Some(appendPrefix(genderClassifier.get.predict(account), counter))
+      Some(appendPrefix(genderClassifier.get.predict(account) + "-", counter))
     } else None
 
     val race: Option[Counter[String]] = if (useRace) {
@@ -204,7 +204,7 @@ class FeatureExtractor (
       if (datumScaling) scaleByDatum(f, 0.0, 1.0) // followers range 0-1
       else scaleByCounter(f, counter)
 
-      Some(f)
+      Some(appendPrefix("follower-", f))
     } else None
 
     Seq(gender, race, fc).flatten.foreach(c => counter += c)
