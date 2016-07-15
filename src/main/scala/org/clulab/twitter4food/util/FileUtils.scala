@@ -141,9 +141,9 @@ object FileUtils {
         case 4 => // tweets start here
           if (numTweets > 0) {
             for {
-              j <- 0 until numTweets * 2
+              j <- 0 until numTweets * 2 - 1
               tweetLine = lines.next
-              if j % 2 == 1 & (!englishOnly || lang == "en")
+              if j % 2 == 0 & (!englishOnly || lang == "en")
             } texts.append(tweetLine.stripLineEnd)
             pb.step()
           }
