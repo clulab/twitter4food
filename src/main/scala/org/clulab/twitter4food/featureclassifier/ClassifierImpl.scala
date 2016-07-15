@@ -97,6 +97,9 @@ class ClassifierImpl(
 
     datums.seq.foreach(datum => this.synchronized { dataset += datum })
 
+    val saveDatums = for (i <- dataset.labels.indices) yield dataset.mkDatum(i)
+    org.clulab.learning.RVFDataset.saveToSvmLightFormat(saveDatums, dataset.featureLexicon, "/data/nlp/corpora/twitter4food/")
+
     pb.stop()
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
