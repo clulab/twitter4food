@@ -272,13 +272,8 @@ class FeatureExtractor (
       if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
     )
 
-    val filtered = if (hc.nonEmpty) {
-      val humanPredicted = (followers, followers.map(hc.get.classify)).zipped
-      humanPredicted.filter{ case (follower, predicted) => predicted == "human"}._1
-    } else followers
-
     // Aggregate the counter for the followers using the other features being used
-    val followerCounters = for (follower <- filtered.par) yield mkFeaturesFollowers(follower)
+    val followerCounters = for (follower <- followers.par) yield mkFeaturesFollowers(follower)
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)
