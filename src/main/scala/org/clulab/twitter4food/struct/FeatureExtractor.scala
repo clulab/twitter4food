@@ -138,7 +138,7 @@ class FeatureExtractor (
     * @return Counter of all features signified by constructor flags
     */
   def mkFeatures(account: TwitterAccount): Counter[String] = {
-    val counter = new Counter[String]
+    var counter = new Counter[String]
 
     val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
     val description = account.description.trim.split(" +")
@@ -178,16 +178,16 @@ class FeatureExtractor (
       if (datumScaling) scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
       else scaleByCounter(fc, mc)
 
-      counter += fc
+      // counter += fc
 
       // combined scores should range 0-1 if datumScaling
-      if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
+      // if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
 
-      counter += appendPrefix("follower-", fc) + appendPrefix("main-", mc)
+      counter = appendPrefix("follower-", fc) + appendPrefix("main-", mc)
     }
 
     // remove zero values for sparse rep
-    counter.filter{case (k, v) => k != "" & v != 0.0}
+    counter.filter{ case (k, v) => k != "" & v != 0.0 }
   }
 
   def mkFeaturesFollowers(account: TwitterAccount): Counter[String] = {
