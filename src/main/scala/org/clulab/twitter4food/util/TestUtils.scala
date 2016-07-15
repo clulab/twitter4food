@@ -15,6 +15,8 @@ object TestUtils {
     useEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
     useFollowers: Boolean = false,
+    useGender: Boolean = false,
+    useRace: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false,
     fpnAnalysis: Boolean = false)
@@ -72,6 +74,10 @@ object TestUtils {
         c.copy(useEmbeddings = true)} text "use embeddings"
       opt[Unit]('c', "cosineSim") action { (x, c) =>
         c.copy(useCosineSim = true)} text "use cosine similarity"
+      opt[Unit]('g', "gender") action { (x, c) =>
+        c.copy(useGender = true)} text "use gender classifier"
+      opt[Unit]('r', "race") action { (x, c) =>
+        c.copy(useRace = true)} text "use race classifier"
       opt[Unit]('f', "followers") action { (x, c) =>
         c.copy(useFollowers = true)} text "use followers"
       opt[Unit]('D', "datumScaling") action { (x, c) =>
