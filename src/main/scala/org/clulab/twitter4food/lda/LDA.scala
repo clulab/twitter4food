@@ -124,7 +124,7 @@ object LDA {
     } yield FileUtils.loadTwoLineTexts(file, englishOnly = true))
       .flatten
       .map(tweet => tweet.split("\\s+"))
-      .map(filterStopWords)
+      .map(filterLDAStopWords)
 
     val threeLine: Seq[Array[String]] = (for {
       file <- config.getStringList("lda.3lineTrainingData").toSeq
