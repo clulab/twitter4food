@@ -172,9 +172,12 @@ object FileUtils {
   }
 
   def loadThreeLineTexts(fileName: String, englishOnly: Boolean = true): Seq[String] = {
+    val fileInit = scala.io.Source.fromFile(fileName)
+    val hint = fileInit.getLines.length / 3
+    fileInit.close
+
     val file = scala.io.Source.fromFile(fileName)
-    val lines = file.getLines.toList
-    file.close
+    val lines = file.getLines
 
     val texts = new ArrayBuffer[String]()
 
@@ -182,7 +185,7 @@ object FileUtils {
     var lang = ""
     val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
     pb.start()
-    pb.maxHint(lines.length)
+    pb.maxHint(hint)
     pb.setExtraMessage("Loading...")
 
     lines.foreach { line =>
@@ -197,6 +200,8 @@ object FileUtils {
       pb.step()
     }
     pb.stop()
+
+    file.close
 
     texts
   }
