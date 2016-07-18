@@ -117,10 +117,7 @@ object OverweightClassifier {
 
       // Train classifier and save model to file
       logger.info("Training classifier...")
-      oc.setClassifier(new RFClassifier[String, String](
-        numThreads = 35,
-        howManyFeaturesPerNode = numFeats => (0.1 * numFeats).toInt
-      ))
+      oc.setClassifier(new RFClassifier[String, String](numThreads = 35))
       oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq)
       // oc.subClassifier.get.saveTo(modelFile)
     }
