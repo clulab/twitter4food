@@ -100,7 +100,11 @@ class ClassifierImpl(
     datums.seq.foreach(datum => this.synchronized { dataset += datum })
 
     val saveDatums = for (i <- dataset.labels.indices) yield dataset.mkDatum(i)
-    org.clulab.learning.RVFDataset.saveToSvmLightFormat(saveDatums, dataset.featureLexicon, "/data/nlp/corpora/twitter4food/")
+    val r = scala.util.Random
+    org.clulab.learning.RVFDataset.saveToSvmLightFormat(
+      saveDatums,
+      dataset.featureLexicon,
+      "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".svml")
 
     pb.stop()
 
