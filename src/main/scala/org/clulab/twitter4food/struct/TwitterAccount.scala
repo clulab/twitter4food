@@ -21,4 +21,17 @@ class TwitterAccount (
   val activeFollowers: Seq[TwitterAccount]) {
 
   override def toString = s"$handle: ($name, $description)"
+
+  def copy(
+    handle: String = this.handle,
+    id:Long = this.id,
+    name:String = this.name,
+    lang:String = this.lang,
+    url:String = this.url,
+    location:String = this.location,
+    description:String = this.description,
+    tweets:Seq[Tweet] = this.tweets,
+    activeFollowers:Seq[TwitterAccount] = this.activeFollowers): TwitterAccount = {
+    new TwitterAccount(handle, id, name, lang, url, location, description, tweets, activeFollowers)
+  }
 }

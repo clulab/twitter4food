@@ -32,6 +32,8 @@ class ClassifierImpl(
   val useEmbeddings: Boolean,
   val useCosineSim: Boolean,
   val useFollowers: Boolean,
+  val useGender: Boolean,
+  val useRace: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean) extends FeatureClassifier {
 
@@ -87,13 +89,15 @@ class ClassifierImpl(
     pb.maxHint(accounts.size)
     pb.setExtraMessage("Populating...")
 
-    // Populate dataset
-    accounts.toArray zip labels foreach {
-      case (parAccount, label) => {
-        addDatum(parAccount, label)
+    // make datums
+    val datums = (accounts.toArray zip labels).par map {
+      case (account, label) => {
         pb.step()
+        featureExtractor.mkDatum(account, label)
       }
     }
+
+    datums.seq.foreach(datum => this.synchronized { dataset += datum })
 
     pb.stop()
 
@@ -179,16 +183,18 @@ class ClassifierImpl(
     */
   def _test(testSet: Seq[TwitterAccount]): Seq[String] = {
 
-    logger.info(s"Training on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
+    logger.info(s"Testing on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
 
     val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
     pb.start()
-    pb.maxHint(testSet.size.toInt)
+    pb.maxHint(testSet.size)
     pb.setExtraMessage("Predicting...")
 
-    val predictedLabels = testSet.toArray.map(u => {
-      val label = classify(u); pb.step(); label
-      }).toSeq
+    val predictedLabels = testSet.map{ u =>
+      val label = classify(u)
+      pb.step()
+      label
+    }
 
     pb.stop()
 
@@ -220,7 +226,7 @@ class ClassifierImpl(
     println(evalMeasures.mkString("\n"))
     println(s"\nMacro avg F-1 : ${df.format(macroAvg)}")
     println(s"Micro avg F-1 : ${df.format(microAvg)}")
-    writer.write(s"C=${_C}, #K=${K}\n")
+    writer.write(s"C=${_C}, #K=$K\n")
     writer.write(evalMeasures.mkString("\n"))
     evalMeasures.keys.foreach(l => {
       writer.write(s"\nl\nFP:\n")
@@ -271,7 +277,7 @@ class ClassifierImpl(
     val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray,
       devData.values.toArray, testData.values.toArray)
 
-    var writerFile = if (outputFile != null) outputFile
+    val writerFile = if (outputFile != null) outputFile
       else config.getString("classifier") + s"/$ctype/output-" +
         fileExt + ".txt"
 
@@ -298,7 +304,7 @@ class ClassifierImpl(
       _C: Double,
       K: Int) => {
 
-      println(s"Training with C=${_C} and top-${K} tweets")
+      println(s"Training with C=${_C} and top-$K tweets")
 
       _train(trainingSet, trainingLabels,_C, K, ctype, args)
       val predictedLabels = _test(testingSet)
@@ -356,8 +362,8 @@ class ClassifierImpl(
     val allTrainData = FileUtils.load(config.getString(
       s"classifiers.$ctype.allTrainData"))
 
-    val allTrainAccounts = allTrainData.map(_._1).toArray
-    val allTrainLabels = allTrainData.map(_._2).toArray
+    val allTrainAccounts = allTrainData.keys.toArray
+    val allTrainLabels = allTrainData.values.toArray
 
     _train(allTrainAccounts, allTrainLabels, _C, K, ctype, args)
 
@@ -367,14 +373,14 @@ class ClassifierImpl(
     * @param test/tests/testFile Load from file, or input sequence of tests
     * @return Seq[String] predicted labels
     */
-  def predict(test: TwitterAccount) = _test(Array(test))
+  def predict(test: TwitterAccount) = _test(Array(test)).head
 
   def predict(tests: Seq[TwitterAccount]) = _test(tests)
 
   def predict(testFile: String) = {
 
     val allTestData = FileUtils.load(testFile)
-    val testAccounts = allTestData.map(_._1).toArray
+    val testAccounts = allTestData.keys.toArray
 
     val predictedLabels = _test(testAccounts)
   }

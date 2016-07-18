@@ -18,6 +18,7 @@ libraryDependencies ++= Seq(
   "org.json" % "json" % "latest.integration",
   "org.twitter4j" % "twitter4j-core" % "4.0.4",
   "org.twitter4j" % "twitter4j-stream" % "4.0.4",
+  "edu.cmu.cs" % "ark-tweet-nlp" % "0.3.2",
   "org.apache.lucene" % "lucene-core" % "4.2.1",
   "org.apache.lucene" % "lucene-analyzers-common" % "4.2.1",
   "org.apache.lucene" % "lucene-queryparser" % "4.2.1",
