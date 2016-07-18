@@ -4,7 +4,7 @@ import org.clulab.learning._
 import org.clulab.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{BufferedWriter, FileWriter, PrintWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
@@ -73,6 +73,13 @@ class ClassifierImpl(
         config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
   }
 
+
+  def printFeatures(datums: Seq[(String, Datum[String, String])], fn: String): Unit = {
+    val os = new PrintWriter(new FileWriter(fn))
+    datums.foreach(datum => os.print(s"NAME: ${datum._1} ${datum._2.toString}"))
+    os.close()
+  }
+
   /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
     * @param accounts: Sequence of training accounts
     * @param labels: Sequence of annotated labels for each account
@@ -90,23 +97,26 @@ class ClassifierImpl(
     pb.setExtraMessage("Populating...")
 
     // make datums
-    val datums = (accounts.toArray zip labels).par map {
+    val datums = ((accounts.toArray zip labels).par map {
       case (account, label) => {
         pb.step()
         featureExtractor.mkDatum(account, label)
       }
-    }
-
-    datums.seq.foreach(datum => this.synchronized { dataset += datum })
-
-    val saveDatums = for (i <- dataset.labels.indices) yield dataset.mkDatum(i)
-    val r = scala.util.Random
-    org.clulab.learning.RVFDataset.saveToSvmLightFormat(
-      saveDatums,
-      dataset.featureLexicon,
-      "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".svml")
+    }).seq
 
     pb.stop()
+
+    val r = scala.util.Random
+    datums.foreach(datum => this.synchronized { dataset += datum })
+
+    printFeatures((accounts.map(_.handle), datums).zipped, "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".feats")
+//    val saveDatums = for (i <- dataset.labels.indices) yield dataset.mkDatum(i)
+//    val r = scala.util.Random
+//    org.clulab.learning.RVFDataset.saveToSvmLightFormat(
+//      saveDatums,
+//      dataset.featureLexicon,
+//      "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".svml")
+
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
     if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
