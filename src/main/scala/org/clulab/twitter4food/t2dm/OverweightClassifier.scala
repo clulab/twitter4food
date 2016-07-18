@@ -192,6 +192,7 @@ object OverweightClassifier {
   }
 
   private def outputAnalysis(outputFile:String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {
+    /*
     // Set progress bar
     var numAccountsToPrint = 20
     val numWeightsToPrint = 30
@@ -246,6 +247,7 @@ object OverweightClassifier {
     }
     writer.close
     pb.stop()
+    */
   }
 
   private def fMeasure(precision: Double, recall: Double, beta: Double): Double =

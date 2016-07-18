@@ -91,7 +91,7 @@ object TestUtils {
     parser.parse(args, Config()).get
   }
 
-  def analyze(c: Classifier[String, String], labels: Set[String],
+  def analyze(c: LiblinearClassifier[String, String], labels: Set[String],
     test: TwitterAccount, fe: FeatureExtractor): 
     (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
     
