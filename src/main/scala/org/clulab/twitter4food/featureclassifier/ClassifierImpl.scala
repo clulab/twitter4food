@@ -173,7 +173,7 @@ class ClassifierImpl(
 
     // Train with top K tweets
     train(customAccounts, trainingLabels)
-    subClassifier.get.saveTo(fout)
+    // subClassifier.get.saveTo(fout)
   }
 
   /** Part 2/3 of test suite. After calling {@link _train} method, _test
