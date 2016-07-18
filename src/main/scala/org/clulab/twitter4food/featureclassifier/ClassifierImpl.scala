@@ -4,7 +4,7 @@ import org.clulab.learning._
 import org.clulab.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{BufferedWriter, FileWriter, PrintWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
@@ -73,6 +73,7 @@ class ClassifierImpl(
         config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
   }
 
+
   /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
     * @param accounts: Sequence of training accounts
     * @param labels: Sequence of annotated labels for each account
@@ -90,16 +91,17 @@ class ClassifierImpl(
     pb.setExtraMessage("Populating...")
 
     // make datums
-    val datums = (accounts.toArray zip labels).par map {
+    val (handles, datums) = ((accounts.toArray zip labels).par map {
       case (account, label) => {
         pb.step()
-        featureExtractor.mkDatum(account, label)
+        (account.handle, featureExtractor.mkDatum(account, label))
       }
-    }
-
-    datums.seq.foreach(datum => this.synchronized { dataset += datum })
+    }).seq.sortBy(_._1).unzip
 
     pb.stop()
+
+    val r = scala.util.Random
+    datums.foreach(datum => this.synchronized { dataset += datum })
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
     if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
