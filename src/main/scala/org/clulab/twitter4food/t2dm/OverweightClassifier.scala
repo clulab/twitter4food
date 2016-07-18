@@ -25,6 +25,8 @@ class OverweightClassifier(
   useEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
   useFollowers: Boolean = false,
+  useGender: Boolean = false,
+  useRace: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
@@ -35,12 +37,14 @@ class OverweightClassifier(
     useEmbeddings,
     useCosineSim,
     useFollowers,
+    useGender,
+    useRace,
     datumScaling,
     featureScaling)
 
 object OverweightClassifier {
 
-  val logger = LoggerFactory.getLogger(classOf[OverweightClassifier])
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   def main(args: Array[String]) {
     // Parse args using standard Config
@@ -69,7 +73,8 @@ object OverweightClassifier {
 
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
     val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams, params.useTopics,
-      params.useDictionaries, params.useEmbeddings, params.useCosineSim, params.useFollowers,
+      params.useDictionaries, params.useEmbeddings, params.useCosineSim,
+      params.useFollowers, params.useGender, params.useRace,
       params.datumScaling, params.featureScaling)
 
     val fileExt = args.mkString("").replace("-", "").sorted

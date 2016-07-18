@@ -48,6 +48,7 @@ object Normalization {
     * @tparam T Type of the [[Counter]] keys, e.g. [[String]]
     */
   def scaleByDatum[T](counter:Counter[T], lower:Double, upper:Double): Unit = {
+    if (counter.size < 1) return
     val minimum = counter.argMin._2
     val maximum = counter.argMax._2
     counter.map {
@@ -77,6 +78,7 @@ object Normalization {
     * @tparam T the type of the [[Counter]]s, e.g. [[String]]
     */
   def scaleByCounter[T](toScale:Counter[T], scaleBy:Counter[T]): Unit = {
+    if (toScale.size < 1 | scaleBy.size < 1) return
     val scaled = toScale * (scaleBy.getTotal / toScale.getTotal)
     toScale.keySet.foreach(k => toScale.setCount(k, scaled.getCount(k)))
   }
