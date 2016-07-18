@@ -44,19 +44,21 @@ object LDA {
   val logger = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.load
 
-  val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-  val ldaStopWords = stopWordsFile.getLines.toSet ++ Set("<URL>", "<@MENTION>") ++ Set("breakfast", "lunch", "dinner", "supper", "brunch", "snack")
-  stopWordsFile.close
+  val generalStopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
+  val ldaStopWordsFile = scala.io.Source.fromFile(config.getString("lda.stopWords"))
+  val ldaStopWords = generalStopWordsFile.getLines.toSet ++ ldaStopWordsFile.getLines.toSet
+  generalStopWordsFile.close
+  ldaStopWordsFile.close
 
-  def filterLDAStopWords(tokens: Array[String]): Array[String] = tokens filterNot ldaStopWords.contains
+  def filterLDAStopWords(tokens: Array[String]): Array[String] = tokens.filterNot(tok => ldaStopWords.contains(tok.toLowerCase))
 
   def stripHashtag(token: String) = {
     if (token.startsWith("#")) token.substring(1, token.length) else token
   }
 
-  def mkInstance(tokens: Seq[String], tokenFilter: (Array[String] => Array[String]) = filterStopWords): Instance = {
+  def mkInstance(tokens: Seq[String], tokenFilter: (Array[String] => Array[String]) = filterLDAStopWords): Instance = {
     val t = tokenFilter(tokens map stripHashtag toArray)
-    new Instance(new TokenSequence(t.map(new Token(_)).toArray), null, null, null)
+    new Instance(new TokenSequence(t.map(new Token(_))), null, null, null)
   }
 
   def train(tokensList: Seq[Array[String]], numTopics: Int = 200, numIterations: Int = 2000): (LDA, Alphabet) = {
