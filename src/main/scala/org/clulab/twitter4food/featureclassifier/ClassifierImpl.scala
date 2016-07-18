@@ -100,9 +100,9 @@ class ClassifierImpl(
     val datums = ((accounts.toArray zip labels).par map {
       case (account, label) => {
         pb.step()
-        featureExtractor.mkDatum(account, label)
+        (account.handle, featureExtractor.mkDatum(account, label))
       }
-    }).seq
+    }).seq.sortBy(_._1).map(_._2)
 
     pb.stop()
 
