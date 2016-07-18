@@ -12,15 +12,17 @@ import java.io._
   * @date 03-13-2016
   */
 class GenderClassifier(
-    useUnigrams: Boolean,
-    useBigrams: Boolean,
-    useTopics: Boolean,
-    useDictionaries: Boolean,
-    useEmbeddings: Boolean,
-    useCosineSim: Boolean,
-    useFollowers: Boolean,
-    datumScaling: Boolean,
-    featureScaling: Boolean)
+  useUnigrams: Boolean = true,
+  useBigrams: Boolean = false,
+  useTopics: Boolean = false,
+  useDictionaries: Boolean = false,
+  useEmbeddings: Boolean = false,
+  useCosineSim: Boolean = false,
+  useFollowers: Boolean = false,
+  useGender: Boolean = false,
+  useRace: Boolean = false,
+  datumScaling: Boolean = false,
+  featureScaling: Boolean = false)
   extends ClassifierImpl(
     useUnigrams,
     useBigrams,
@@ -29,6 +31,8 @@ class GenderClassifier(
     useEmbeddings,
     useCosineSim,
     useFollowers,
+    useGender,
+    useRace,
     datumScaling,
     featureScaling
   )
@@ -40,7 +44,7 @@ object GenderClassifier {
     val gc = new GenderClassifier(
       params.useUnigrams, params.useBigrams,
       params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim,
-      params.useFollowers,
+      params.useFollowers, params.useGender, params.useRace,
       params.datumScaling, params.featureScaling)
     gc.runTest(args, "gender")
   }
