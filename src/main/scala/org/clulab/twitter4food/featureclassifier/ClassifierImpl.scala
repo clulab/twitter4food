@@ -76,7 +76,7 @@ class ClassifierImpl(
 
   def printFeatures(handles: Seq[String], datums: Seq[Datum[String, String]], fn: String): Unit = {
     val os = new PrintWriter(new FileWriter(fn))
-    datums.indices.foreach(datum => os.print(s"NAME: ${handles(datum)} ${datums(datum).toString}"))
+    datums.indices.foreach(datum => os.print(s"NAME: ${handles(datum)} ${datums(datum).toString}\n"))
     os.close()
   }
 
@@ -97,19 +97,19 @@ class ClassifierImpl(
     pb.setExtraMessage("Populating...")
 
     // make datums
-    val datums = ((accounts.toArray zip labels).par map {
+    val (handles, datums) = ((accounts.toArray zip labels).par map {
       case (account, label) => {
         pb.step()
         (account.handle, featureExtractor.mkDatum(account, label))
       }
-    }).seq.sortBy(_._1).map(_._2)
+    }).seq.sortBy(_._1).unzip
 
     pb.stop()
 
     val r = scala.util.Random
     datums.foreach(datum => this.synchronized { dataset += datum })
 
-    printFeatures(accounts.map(_.handle), datums, "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".feats")
+    printFeatures(handles, datums, "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".feats")
 //    val saveDatums = for (i <- dataset.labels.indices) yield dataset.mkDatum(i)
 //    val r = scala.util.Random
 //    org.clulab.learning.RVFDataset.saveToSvmLightFormat(
