@@ -74,12 +74,6 @@ class ClassifierImpl(
   }
 
 
-  def printFeatures(handles: Seq[String], datums: Seq[Datum[String, String]], fn: String): Unit = {
-    val os = new PrintWriter(new FileWriter(fn))
-    datums.indices.foreach(datum => os.print(s"NAME: ${handles(datum)} ${datums(datum).toString}\n"))
-    os.close()
-  }
-
   /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
     * @param accounts: Sequence of training accounts
     * @param labels: Sequence of annotated labels for each account
@@ -108,15 +102,6 @@ class ClassifierImpl(
 
     val r = scala.util.Random
     datums.foreach(datum => this.synchronized { dataset += datum })
-
-    printFeatures(handles, datums, "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".feats")
-//    val saveDatums = for (i <- dataset.labels.indices) yield dataset.mkDatum(i)
-//    val r = scala.util.Random
-//    org.clulab.learning.RVFDataset.saveToSvmLightFormat(
-//      saveDatums,
-//      dataset.featureLexicon,
-//      "/data/nlp/corpora/twitter4food/" + r.nextInt(1000) + ".svml")
-
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
     if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
