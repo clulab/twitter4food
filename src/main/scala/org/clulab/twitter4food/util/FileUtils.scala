@@ -191,13 +191,13 @@ object FileUtils {
     lines.foreach { line =>
       count match {
         case 0 => lang = line.stripLineEnd.split("\t").last
-        case 2 => if (lang == "en") texts.append(line.stripLineEnd)
+        case 2 =>
+          if (lang == "en") texts.append(line.stripLineEnd)
+          pb.step()
         case other => () // do nothing
       }
       count += 1
       count %= 3
-
-      pb.step()
     }
     pb.stop()
 
