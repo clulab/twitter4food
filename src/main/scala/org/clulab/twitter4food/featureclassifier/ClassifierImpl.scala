@@ -150,7 +150,7 @@ class ClassifierImpl(
     ctype: String,
     args: Array[String]) = {
 
-    subClassifier = Some(new RFClassifier[String, String]())
+    subClassifier = Some(new RFClassifier[String, String](howManyFeaturesPerNode = f => f / 10))
     val labelSet = trainingLabels.toSet
 
     // Load lexicons before calling train
