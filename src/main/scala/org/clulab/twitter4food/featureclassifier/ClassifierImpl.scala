@@ -38,8 +38,17 @@ class ClassifierImpl(
   val featureScaling: Boolean) extends FeatureClassifier {
 
   /** featureExtractor instance local to each classifier */
-  val featureExtractor = new FeatureExtractor(useUnigrams, useBigrams,
-    useTopics, useDictionaries, useEmbeddings, useCosineSim, useFollowers, datumScaling)
+  val featureExtractor = new FeatureExtractor(
+    useUnigrams=useUnigrams,
+    useBigrams=useBigrams,
+    useTopics=useTopics,
+    useDictionaries=useDictionaries,
+    useEmbeddings=useEmbeddings,
+    useCosineSim=useCosineSim,
+    useFollowers=useFollowers,
+    useGender=useGender,
+    useRace=useRace,
+    datumScaling=datumScaling)
 
   /** subClassifier that does the actual training over {@link dataset} */
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
