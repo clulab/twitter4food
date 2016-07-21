@@ -196,21 +196,21 @@ class FeatureExtractor (
       None
     } else None
 
-    val fc = if (withFollowers) {
-      val f = followers(account)
+    if (withFollowers) {
+      val fc = followers(account)
 
       // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
       // feature count as the main features
-      if (datumScaling) scaleByDatum(f, 0.0, 1.0) // followers range 0-1
-      else scaleByCounter(f, counter)
+      if (datumScaling) scaleByDatum(counter, 0.0, 1.0) // followers range 0-1
+      else scaleByCounter(fc, counter)
 
-      Some(appendPrefix("follower-", f))
-    } else None
+      val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-    Seq(gender, race, fc).flatten.foreach(c => counter += c)
+      counter += appendPrefix("follower-", fc.mapValues(v => v * followerProp))
+    }
 
     // remove zero values for sparse rep
-    counter.filter{case (k, v) => k != "" & v != 0.0}
+    counter.filter{ case (k, v) => k != "" & v != 0.0 }
   }
 
   // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
@@ -268,6 +268,7 @@ class FeatureExtractor (
       if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
     )
 
+<<<<<<< HEAD
     val filtered = if (humanClassifier.nonEmpty) {
       val humanPredicted = (followers, followers.map(humanClassifier.get.classify)).zipped
       humanPredicted.filter{ case (follower, predicted) => predicted == "human"}._1
@@ -275,6 +276,10 @@ class FeatureExtractor (
 
     // Aggregate the counter for the followers using the other features being used
     val followerCounters = for (follower <- filtered.par) yield mkFeatures(follower, withFollowers = false)
+=======
+    // Aggregate the counter for the followers using the other features being used
+    val followerCounters = for (follower <- followers.par) yield mkFeaturesFollowers(follower)
+>>>>>>> noMixNoFilter
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)
