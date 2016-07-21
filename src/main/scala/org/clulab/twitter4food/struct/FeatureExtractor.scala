@@ -192,7 +192,7 @@ class FeatureExtractor (
 
     val race: Option[Counter[String]] = if (useRace) {
       // TODO: predict account owner's race for domain adaptation
-      // Some(raceClassifier.get.predict(account))
+      // Some(appendPrefix(raceClassifier.get.predict(account) + "-", counter))
       None
     } else None
 
@@ -201,7 +201,7 @@ class FeatureExtractor (
 
       // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
       // feature count as the main features
-      if (datumScaling) scaleByDatum(counter, 0.0, 1.0) // followers range 0-1
+      if (datumScaling) scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
       else scaleByCounter(fc, counter)
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
