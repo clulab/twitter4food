@@ -62,6 +62,7 @@ class ClassifierImpl(
   val logger = LoggerFactory.getLogger(this.getClass)
 
   /** Adds (label, Datum[String, String] to {@link dataset})
+    *
     * @param account TwitterAccount to make a datum out of.
     * @param label associated label
     * @return Unit
@@ -72,6 +73,7 @@ class ClassifierImpl(
 
   /** Populates list of lexicons from config file. Separate function
     * for easy testing.
+    *
     * @param labelSet Set of labels
     * @param ctype Type of classifier
     * @return map of label -> Seq of lexicon file names
@@ -84,6 +86,7 @@ class ClassifierImpl(
 
 
   /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
+    *
     * @param accounts: Sequence of training accounts
     * @param labels: Sequence of annotated labels for each account
     * @return Unit
@@ -122,6 +125,7 @@ class ClassifierImpl(
   /** Essentially the test method, called by classOf method in FeatureExtractor
     * Populate datum for the test account and return the predicted scores 
     * for each label.
+    *
     * @param  account Test account
     * @return Counter[String] predicted scores for each label 
     *         that classOf calls argmax on.
@@ -133,6 +137,7 @@ class ClassifierImpl(
   }
 
   /** Set custom classifier prior to training
+    *
     * @param newClassifier LiblinearClassifier to use
     * @return Unit
     */
@@ -143,7 +148,8 @@ class ClassifierImpl(
   /** Part 1/3 of test suite associated with each classifier. Resets the
     * subClassifier with new hyperparameter C, fetches top-K tweets for
     * each account in trainingSet and calls {@link train} method over
-    * the modified trainingSet. 
+    * the modified trainingSet.
+    *
     * @param trainingSet sequence of twitter accounts to train on
     * @param trainingLabels sequence of annotated labels for each account
     * @param _C hyperparameter for current run of subClassifier
@@ -189,25 +195,29 @@ class ClassifierImpl(
 
   /** Part 2/3 of test suite. After calling {@link _train} method, _test
     * predicts the label for each twitter account in testSet.
+    *
     * @param testSet sequence of twitter accounts to predict labels on
     * @return predictedLabels sequence of predicted labels
     */
   def _test(testSet: Seq[TwitterAccount]): Seq[String] = {
 
-    logger.info(s"Testing on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
+    val plural = testSet.length > 1
+    if (plural) logger.info(s"Testing on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
 
-    val pb = new me.tongfei.progressbar.ProgressBar("runTest()", 100)
-    pb.start()
-    pb.maxHint(testSet.length)
-    pb.setExtraMessage("Predicting...")
+    val pb = if (plural) Some(new me.tongfei.progressbar.ProgressBar("runTest()", 100)) else None
+    if (plural) {
+      pb.get.start()
+      pb.get.maxHint(testSet.length)
+      pb.get.setExtraMessage("Predicting...")
+    }
 
     val predictedLabels = testSet.map{u =>
       val label = classify(u)
-      pb.step()
+      if (plural) pb.get.step()
       label
     }
 
-    pb.stop()
+    if (plural) pb.get.stop()
 
     predictedLabels
   }
@@ -216,6 +226,7 @@ class ClassifierImpl(
     * {@link _test}, _evaluate prints and writes to file, the F-1 scores
     * and (Precision, Recall, Accuracy, F-1 score) for each label, along
     * with macro- and micro- averages for the system.
+    *
     * @param testingLabels sequence of source labels
     * @param predictedLabels sequence of target labels
     * @param testSet sequence of test accounts to track wrong predictions
@@ -256,6 +267,7 @@ class ClassifierImpl(
     * such that accuracy for that micro-average for that tuple in dev set 
     * is maximum. Use the max values and train with trainSet++devSet and test
     * with testSet.
+    *
     * @param args command line arguments for specifying output file name
     * @param ctype classifier type: "gender", "human", "overweight" etc.
     * @param outputFile filename to direct output to
@@ -300,6 +312,7 @@ class ClassifierImpl(
 
     /** For a given classifier, load its associated train, dev, and test
       * accounts, and write results to file.
+      *
       * @param trainingSet
       * @param trainingLabels
       * @param testingSet
@@ -365,6 +378,7 @@ class ClassifierImpl(
 
   /** Training over all data: train, dev, and test as one. Used for
     * predicting labels for new unlabeled accounts
+    *
     * @param args Options for selectin features
     * @param ctype Classifier type: "gender", "age", "race" etc.
     * @param _C hyperparameter
@@ -382,6 +396,7 @@ class ClassifierImpl(
   }
 
   /** Predict labels after calling {@link learn}
+    *
     * @param test/tests/testFile Load from file, or input sequence of tests
     * @return Seq[String] predicted labels
     */
@@ -398,6 +413,7 @@ class ClassifierImpl(
   }
 
   /** Writes the predicted labels for each test account to file
+    *
     * @param tests Sequence of test accounts
     * @param labels Sequence of predicted labels
     * @param file output filename
