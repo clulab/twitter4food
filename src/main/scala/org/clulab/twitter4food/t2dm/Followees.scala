@@ -12,7 +12,10 @@ object Followees {
 
     val config = com.typesafe.config.ConfigFactory.load
     // Input
-    val inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
+    var inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
+    val numLines = inputFile.getLines.length
+    inputFile.close()
+    inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
     // Output
     val relationsFile = config.getString("classifiers.features.followeeRelations")
 
@@ -25,35 +28,23 @@ object Followees {
     }).toSeq
     inputFile.close()
 
-    val window = handles.size / (numProcesses - 1)
+    val window = numLines / (numProcesses - 1)
 
-    var handleItr = handles.grouped(window)
-
-    assert(handleItr.length == numProcesses)
-
-    handleItr = handles.grouped(window)
-
-    var groupIndex = 0
-    for (i <- 0 until keySet) {
-      groupIndex += 1
-      handleItr.next
-    }
-
-    assert(keySet == groupIndex)
+    val handleItr = handles.grouped(window).toSeq
 
     val api = new TwitterAPI(keySet)
-    val toFetch = handleItr.next
+    val toFetch = handleItr(keySet)
 
     // Set progress bar
     val pb = new me.tongfei.progressbar.ProgressBar("Followees", 100)
     pb.start()
-    pb.maxHint(toFetch.size)
+    pb.maxHint(toFetch.length)
     pb.setExtraMessage(s"keySet=$keySet")
 
     val relations = for (follower <- toFetch) yield {
       println(s"Fetching $follower's followees...")
       val followees = api.fetchFolloweeHandles(follower)
-      Thread.sleep(60100) // 15 accesses per 15-min period
+      Thread.sleep(60100) // 15 accesses per 15-min period => ~60k ms / access
       pb.step
       follower -> followees
     }
