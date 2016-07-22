@@ -19,10 +19,10 @@ object Followees {
     println(s"Will write relations to $relationsFile")
 
     // Get account handles
-    val handles = for (line <- inputFile.getLines) yield {
+    val handles = (for (line <- inputFile.getLines) yield {
       val elements = line.split("\t")
       elements(0).substring(1) // remove @ symbol
-    }
+    }).toSeq
     inputFile.close()
 
     val window = handles.size / (numProcesses - 1)
