@@ -41,7 +41,7 @@ object Followees {
     pb.maxHint(toFetch.length)
     pb.setExtraMessage(s"keySet=$keySet")
 
-    val relations = for (follower <- toFetch) yield {
+    val relations = for (follower <- toFetch.seq) yield {
       println(s"Fetching $follower's followees...")
       val followees = api.fetchFolloweeHandles(follower)
       Thread.sleep(60100) // 15 accesses per 15-min period => ~60k ms / access
