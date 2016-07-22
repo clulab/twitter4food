@@ -4,7 +4,7 @@ import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 
-import scala.collection.mutable.{ArrayBuffer, Map, Set}
+import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.HumanClassifier
@@ -38,9 +38,9 @@ class TwitterAPI(keyset: Int) {
                             .getLines.toList.slice(4*keyset, 4*(keyset+1))
                             .map(x => x.split("\t")(1))
 
-  private val RateLimitChart = Map("showUser" -> Array(180, 180),
-    "getUserTimeline" -> Array(180, 300), "getFollowersIDs" -> Array(15, 15),
-    "showFriendship" -> Array(180, 15), "search" -> Array(180, 450))
+  private val RateLimitChart = scala.collection.Map("showUser" -> Array(180, 180), "getUserTimeline" -> Array(180, 300),
+    "getFollowersIDs" -> Array(15, 15), "getFriendsIDs" -> Array(15, 15), "showFriendship" -> Array(180, 15),
+    "search" -> Array(180, 450))
 
   System.setProperty("twitter4j.loggerFactory", "twitter4j.NullLoggerFactory")
   /* User-only OAuth */
@@ -207,13 +207,13 @@ class TwitterAPI(keyset: Int) {
   }
 
   def search(keywords: Array[String], isAppOnly: Boolean = true) = {
-    val seenHandles = Set[String]()
-    val results = Map[String, ArrayBuffer[Tweet]]()
+    val seenHandles = scala.collection.mutable.Set[String]()
+    val results = scala.collection.mutable.Map[String, ArrayBuffer[Tweet]]()
     val twitter = if(isAppOnly) appOnlyTwitter else userOnlyTwitter
 
     keywords foreach {
       k => {
-        var query = new Query(k)
+        val query = new Query(k)
         query.setCount(100)
         query.setLang("en")
         try {
@@ -221,7 +221,7 @@ class TwitterAPI(keyset: Int) {
           
           sleep("search", isAppOnly)
 
-          while(!tweets.isEmpty) {
+          while(tweets.nonEmpty) {
             tweets.foreach(q => {
               val handle = sanitizeHandle(q.getUser.getScreenName)
               if(!seenHandles.contains(handle)) {
@@ -247,5 +247,12 @@ class TwitterAPI(keyset: Int) {
       }
     }
     results.map{ case (k,v) => (k, v.toArray) }
+  }
+
+  def fetchFolloweeHandles(h: String): Seq[String] = {
+    val handle = sanitizeHandle(h)
+    val ids = appOnlyTwitter.getFriendsIDs(handle, -1).getIDs // first 5000 only
+    val screenNames = ids.map(id => appOnlyTwitter.lookupUsers(id).get(0).getScreenName)
+    screenNames
   }
 }
