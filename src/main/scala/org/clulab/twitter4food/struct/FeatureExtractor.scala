@@ -357,12 +357,18 @@ class FeatureExtractor (
       val hashtags = hashtagsFile.getLines.toSet
       hashtagsFile.close
 
-      // Filter ngrams
-      var temp = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
-      temp = temp.filter( tup => foodWords.contains(tup._1) || hashtags.contains(tup._1))
-
-      // Copy into counter with prefix to indicate this is a different feature
-      temp.keySet.foreach( word => result.setCount("dict_" + word, temp.getCount(word)))
+      // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
+      val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
+      ng.keySet.foreach{k =>
+        if (foodWords contains k) {
+          result.incrementCount("__foodDict__", ng.getCount(k))
+          result.incrementCount("__overweightDict__", ng.getCount(k))
+        }
+        if(hashtags contains k) {
+          result.incrementCount("__hashtagDict__", ng.getCount(k))
+          result.incrementCount("__overweightDict__", ng.getCount(k))
+        }
+      }
     }
     result
   }
