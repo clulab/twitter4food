@@ -252,7 +252,12 @@ class TwitterAPI(keyset: Int) {
 
   def fetchFolloweeHandles(h: String): Seq[String] = {
     val handle = sanitizeHandle(h)
-    val ids = appOnlyTwitter.getFriendsIDs(handle, -1).getIDs // first 5000 only
+    val ids = try {
+      appOnlyTwitter.getFriendsIDs(handle, -1).getIDs.toSeq // first 5000 only
+    } catch {
+      case e: Exception => println(s"Account $handle not found!")
+      Nil
+    }
     sleep("getFriendsIDs", isAppOnly = true)
     val screenNames = ArrayBuffer[String]()
     val idLength = ids.length
