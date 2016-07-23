@@ -1,6 +1,8 @@
 package org.clulab.twitter4food.t2dm
 
 import java.io.{BufferedWriter, FileWriter}
+import java.nio.file.{Files, Paths}
+
 import org.clulab.twitter4food.twitter4j.TwitterAPI
 
 object Followees {
@@ -17,8 +19,16 @@ object Followees {
     inputFile.close()
     inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
     val lines = inputFile.getLines
+
     // Output
     val relationsFile = config.getString("classifiers.features.followeeRelations") + keySet + ".txt"
+    val soFar:Set[String] = if (!Files.exists(Paths.get(relationsFile)))
+      Set.empty
+    else {
+      val lines = scala.io.Source.fromFile(relationsFile).getLines
+      val firstCol = for (line <- lines) yield line.split("\t")(0)
+      firstCol.toSet
+    }
 
     println(s"Will write relations to $relationsFile")
 
@@ -37,7 +47,7 @@ object Followees {
     val handleItr = handles.grouped(window).toSeq
 
     val api = new TwitterAPI(keySet)
-    val toFetch = handleItr(keySet)
+    val toFetch = handleItr(keySet) filterNot soFar.contains
 
     // Set progress bar
     val pb = new me.tongfei.progressbar.ProgressBar("Followees", 100)
@@ -45,26 +55,23 @@ object Followees {
     pb.maxHint(toFetch.length)
     pb.setExtraMessage(s"keySet=$keySet")
 
-    val relations = for (follower <- toFetch.seq) yield {
+    val writer = new BufferedWriter(new FileWriter(relationsFile, false))
+    toFetch.seq.foreach { follower =>
       println(s"Fetching $follower's followees...")
-      val followees = api.fetchFolloweeHandles(follower)
-      Thread.sleep(60100) // 15 accesses per 15-min period => ~60k ms / access
+      val followees = try {
+        Some(api.fetchFolloweeHandles(follower))
+      } catch {
+        case e:Exception => None
+      }
+      if (followees.nonEmpty){
+        writer.write(s"$follower\t")
+        writer.write(s"""${followees.mkString("\t")}\n""")
+      }
       pb.step
-      follower -> followees
     }
     pb.stop
 
-    println("\nDownloaded followees")
-
-    // Write this account and its 4 active followers to separate file
-    val writer = new BufferedWriter(new FileWriter(relationsFile, false))
-    relations.foreach{ case (acct, followers) =>
-        writer.write(s"$acct\t")
-        writer.write(s"""${followers.mkString("\t")}\n""")
-    }
-
     writer.close()
-    println("Relations written to file!")
   }
 
 }
