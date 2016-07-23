@@ -8,6 +8,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.HumanClassifier
+import org.slf4j.LoggerFactory
 
 /**
   * Wrapper for Twitter4J
