@@ -16,16 +16,20 @@ object Followees {
     val numLines = inputFile.getLines.length
     inputFile.close()
     inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
+    val lines = inputFile.getLines
     // Output
     val relationsFile = config.getString("classifiers.features.followeeRelations")
 
     println(s"Will write relations to $relationsFile")
 
     // Get account handles
-    val handles = (for (line <- inputFile.getLines) yield {
+    var handles:Seq[String] = Seq()
+    while(lines.hasNext) {
+      val line = lines.next
       val elements = line.split("\t")
-      elements(0).substring(1) // remove @ symbol
-    }).toSeq
+      handles += elements(0).substring(1) // remove @ symbol
+    }
+
     inputFile.close()
 
     val window = numLines / (numProcesses - 1)
