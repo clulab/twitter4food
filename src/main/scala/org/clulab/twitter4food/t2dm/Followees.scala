@@ -27,7 +27,7 @@ object Followees {
     while(lines.hasNext) {
       val line = lines.next
       val elements = line.split("\t")
-      handles += elements(0).substring(1) // remove @ symbol
+      handles +:= elements(0).substring(1) // remove @ symbol
     }
 
     inputFile.close()
