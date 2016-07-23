@@ -18,7 +18,7 @@ object Followees {
     inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
     val lines = inputFile.getLines
     // Output
-    val relationsFile = config.getString("classifiers.features.followeeRelations")
+    val relationsFile = config.getString("classifiers.features.followeeRelations") + keySet + ".txt"
 
     println(s"Will write relations to $relationsFile")
 
