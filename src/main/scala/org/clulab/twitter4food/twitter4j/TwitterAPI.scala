@@ -4,7 +4,7 @@ import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 
-import scala.collection.mutable.{ArrayBuffer, Map}
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.HumanClassifier
@@ -40,7 +40,7 @@ class TwitterAPI(keyset: Int) {
 
   private val RateLimitChart = scala.collection.Map("showUser" -> Array(180, 180), "getUserTimeline" -> Array(180, 300),
     "getFollowersIDs" -> Array(15, 15), "getFriendsIDs" -> Array(15, 15), "showFriendship" -> Array(180, 15),
-    "search" -> Array(180, 450))
+    "search" -> Array(180, 450), "lookupUsers" -> Array(180, 60))
 
   System.setProperty("twitter4j.loggerFactory", "twitter4j.NullLoggerFactory")
   /* User-only OAuth */
@@ -252,7 +252,15 @@ class TwitterAPI(keyset: Int) {
   def fetchFolloweeHandles(h: String): Seq[String] = {
     val handle = sanitizeHandle(h)
     val ids = appOnlyTwitter.getFriendsIDs(handle, -1).getIDs // first 5000 only
-    val screenNames = ids.map(id => appOnlyTwitter.lookupUsers(id).get(0).getScreenName)
+    sleep("getFriendsIDs", isAppOnly = true)
+    val screenNames = ArrayBuffer[String]()
+    val idLength = ids.length
+    var i = 0
+    while (i < idLength) {
+      screenNames ++= appOnlyTwitter.lookupUsers(ids.slice(i, math.min(i+100, idLength)):_*).asScala.map(_.getScreenName)
+      sleep("lookupUsers", isAppOnly = true)
+      i += 100
+    }
     screenNames
   }
 }
