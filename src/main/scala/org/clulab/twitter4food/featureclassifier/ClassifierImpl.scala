@@ -91,8 +91,17 @@ class ClassifierImpl(
     * @param labels: Sequence of annotated labels for each account
     * @return Unit
     */
-  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
+  def train(accounts: Seq[TwitterAccount], labels: Seq[String], ctype: String) = {
     assert(accounts.size == labels.size)
+
+    val labelSet = labels.toSet
+
+    // Load lexicons before calling train
+    if(useDictionaries) {
+      // For each label, populate list of lexicon filepaths from config
+      val lexMap = populateLexiconList(labelSet, ctype)
+      this.featureExtractor.setLexicons(lexMap)
+    }
 
     // Clear current dataset if training on new one
     dataset = new RVFDataset[String, String]()
@@ -103,16 +112,16 @@ class ClassifierImpl(
     pb.setExtraMessage("Populating...")
 
     // make datums
-    val (handles, datums) = ((accounts.toArray zip labels).par map {
+    val datums = ((accounts.toArray zip labels).par map {
       case (account, label) => {
         pb.step()
+        // keep handle to sort with
         (account.handle, featureExtractor.mkDatum(account, label))
       }
-    }).seq.sortBy(_._1).unzip
+    }).seq.sortBy(_._1).unzip._2
 
     pb.stop()
 
-    val r = scala.util.Random
     datums.foreach(datum => this.synchronized { dataset += datum })
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
@@ -166,14 +175,6 @@ class ClassifierImpl(
     args: Array[String]) = {
 
     subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
-    val labelSet = trainingLabels.toSet
-
-    // Load lexicons before calling train
-    if(useDictionaries) {
-      // For each label, populate list of lexicon filepaths from config
-      val lexMap = populateLexiconList(labelSet, ctype)
-      this.featureExtractor.setLexicons(lexMap)
-    }
 
     // Skim only top-K tweets for each account
     val customAccounts = trainingSet.map(t => {
@@ -189,7 +190,7 @@ class ClassifierImpl(
     logger.info(s"Training on ${customAccounts.length} accounts, ${customAccounts.map(_.tweets.length).sum} tweets")
 
     // Train with top K tweets
-    train(customAccounts, trainingLabels)
+    train(customAccounts, trainingLabels, ctype)
     subClassifier.get.saveTo(fout)
   }
 

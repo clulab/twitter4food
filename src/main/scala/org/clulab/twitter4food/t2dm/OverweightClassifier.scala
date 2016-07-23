@@ -102,7 +102,7 @@ object OverweightClassifier {
       // Train classifier and save model to file
       logger.info("Training classifier...")
       oc.setClassifier(new L1LinearSVMClassifier[String, String]())
-      oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
+      oc.train(trainingData.keys.toSeq, trainingData.values.toSeq, "overweight")
       oc.subClassifier.get.saveTo(modelFile)
     } else {
       logger.info("Loading training accounts...")
@@ -115,7 +115,7 @@ object OverweightClassifier {
       // Train classifier and save model to file
       logger.info("Training classifier...")
       oc.setClassifier(new L1LinearSVMClassifier[String, String]())
-      oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq)
+      oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq, "overweight")
       oc.subClassifier.get.saveTo(modelFile)
     }
 

@@ -45,6 +45,8 @@ class FeatureExtractor (
     s"useEmbeddings=$useEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
     s"useFollowers=$useFollowers, " +
+    s"useGender=$useGender, " +
+    s"useRace=$useRace, " +
     s"datumScaling=$datumScaling"
   )
 
@@ -346,6 +348,7 @@ class FeatureExtractor (
 
     }
     else if(cType equals "overweight") {
+      println("Classifier type: overweight")
       // Load dictionaries
       val foodWordsFile = scala.io.Source
         .fromFile(config.getString("classifiers.features.foodWords"))
