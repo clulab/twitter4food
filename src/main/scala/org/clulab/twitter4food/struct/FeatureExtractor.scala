@@ -297,9 +297,7 @@ class FeatureExtractor (
   }
 
   /**
-    * Functions like unigrams but constrained to words in dictionaries.
-    * NOTE: Adding classifier wise dictionaries since the number of classifiers
-    *       is very manageable. -@adikou
+    * Count the number of times a word from the relevant dictionary appears
     *
     * @return counter - Return one counter fine-tuned for a particular classifier
     */
