@@ -25,22 +25,24 @@ class OverweightClassifier(
   useEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
   useFollowers: Boolean = false,
+  useFollowees: Boolean = false,
   useGender: Boolean = false,
   useRace: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
-    useUnigrams,
-    useBigrams,
-    useTopics,
-    useDictionaries,
-    useEmbeddings,
-    useCosineSim,
-    useFollowers,
-    useGender,
-    useRace,
-    datumScaling,
-    featureScaling,
+    useUnigrams=useUnigrams,
+    useBigrams=useBigrams,
+    useTopics=useTopics,
+    useDictionaries=useDictionaries,
+    useEmbeddings=useEmbeddings,
+    useCosineSim=useCosineSim,
+    useFollowers=useFollowers,
+    useFollowees=useFollowees,
+    useGender=useGender,
+    useRace=useRace,
+    datumScaling=datumScaling,
+    featureScaling=featureScaling,
     variable = "overweight")
 
 object OverweightClassifier {
@@ -73,10 +75,19 @@ object OverweightClassifier {
 
 
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
-    val oc = new OverweightClassifier(params.useUnigrams, params.useBigrams, params.useTopics,
-      params.useDictionaries, params.useEmbeddings, params.useCosineSim,
-      params.useFollowers, params.useGender, params.useRace,
-      params.datumScaling, params.featureScaling)
+    val oc = new OverweightClassifier(
+      useUnigrams = params.useUnigrams,
+      useBigrams = params.useBigrams,
+      useTopics = params.useTopics,
+      useDictionaries = params.useDictionaries,
+      useEmbeddings = params.useEmbeddings,
+      useCosineSim = params.useCosineSim,
+      useFollowers = params.useFollowers,
+      useFollowees = params.useFollowees,
+      useGender = params.useGender,
+      useRace = params.useRace,
+      datumScaling = params.datumScaling,
+      featureScaling = params.featureScaling)
 
     val fileExt = args.mkString("").replace("-", "").sorted
 
@@ -96,7 +107,7 @@ object OverweightClassifier {
       logger.info("Loading model from file...")
       val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
       oc.subClassifier = Some(cl)
-    } else if (testOnDev) {
+    } else if (testOnDev) { // evaluating on dev
       logger.info("Loading training accounts...")
       val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
 
@@ -105,7 +116,7 @@ object OverweightClassifier {
       oc.setClassifier(new L1LinearSVMClassifier[String, String]())
       oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
       oc.subClassifier.get.saveTo(modelFile)
-    } else {
+    } else { // evaluating on test, training on train + dev
       logger.info("Loading training accounts...")
       val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
       logger.info("Loading dev accounts...")

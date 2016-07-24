@@ -19,22 +19,24 @@ class HumanClassifier(
     useEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
     useFollowers: Boolean = false,
+    useFollowees: Boolean = false,
     useGender: Boolean = false,
     useRace: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false)
   extends ClassifierImpl(
-    useUnigrams,
-    useBigrams,
-    useTopics,
-    useDictionaries,
-    useEmbeddings,
-    useCosineSim,
-    useFollowers,
-    useGender,
-    useRace,
-    datumScaling,
-    featureScaling,
+    useUnigrams=useUnigrams,
+    useBigrams=useBigrams,
+    useTopics=useTopics,
+    useDictionaries=useDictionaries,
+    useEmbeddings=useEmbeddings,
+    useCosineSim=useCosineSim,
+    useFollowers=useFollowers,
+    useFollowees=useFollowees,
+    useGender=useGender,
+    useRace=useRace,
+    datumScaling=datumScaling,
+    featureScaling=featureScaling,
     variable = "human"
   ) {
 
@@ -141,10 +143,19 @@ object HumanClassifier {
   def main(args: Array[String]) = {
     val params = TestUtils.parseArgs(args)
     val (api, config) = TestUtils.init(0)
-    val hc = new HumanClassifier(params.useUnigrams, params.useBigrams,
-      params.useTopics, params.useDictionaries, params.useEmbeddings,
-      params.useFollowers, params.useGender, params.useRace,
-      params.datumScaling, params.featureScaling)
+    val hc = new HumanClassifier(
+      useUnigrams = params.useUnigrams,
+      useBigrams = params.useBigrams,
+      useTopics = params.useTopics,
+      useDictionaries = params.useDictionaries,
+      useEmbeddings = params.useEmbeddings,
+      useCosineSim = params.useCosineSim,
+      useFollowers = params.useFollowers,
+      useFollowees = params.useFollowees,
+      useGender = params.useGender,
+      useRace = params.useRace,
+      datumScaling = params.datumScaling,
+      featureScaling = params.featureScaling)
     hc.runTest(args, "human")
     // hc.learn(args, "human", 0.001, 50)
     // val predictedLabels = hc.predict(config.getString("classifiers.overweight.allTestData"))

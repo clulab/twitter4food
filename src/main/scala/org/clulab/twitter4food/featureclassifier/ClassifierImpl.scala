@@ -32,6 +32,7 @@ class ClassifierImpl(
   val useEmbeddings: Boolean,
   val useCosineSim: Boolean,
   val useFollowers: Boolean,
+  val useFollowees: Boolean,
   val useGender: Boolean,
   val useRace: Boolean,
   val datumScaling: Boolean,
@@ -47,6 +48,7 @@ class ClassifierImpl(
     useEmbeddings=useEmbeddings,
     useCosineSim=useCosineSim,
     useFollowers=useFollowers,
+    useFollowees=useFollowees,
     useGender=useGender,
     useRace=useRace,
     datumScaling=datumScaling)
