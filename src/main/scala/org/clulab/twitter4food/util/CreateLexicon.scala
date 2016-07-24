@@ -1,4 +1,4 @@
-package org.clulab.twitter4food
+package org.clulab.twitter4food.util
 
 import org.clulab.struct.Lexicon
 
