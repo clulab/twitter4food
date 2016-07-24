@@ -34,7 +34,8 @@ class GenderClassifier(
     useGender,
     useRace,
     datumScaling,
-    featureScaling
+    featureScaling,
+    variable = "gender"
   )
 
 object GenderClassifier {

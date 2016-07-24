@@ -35,7 +35,8 @@ class ClassifierImpl(
   val useGender: Boolean,
   val useRace: Boolean,
   val datumScaling: Boolean,
-  val featureScaling: Boolean) extends FeatureClassifier {
+  val featureScaling: Boolean,
+  val variable: String) extends FeatureClassifier {
 
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(
@@ -91,7 +92,7 @@ class ClassifierImpl(
     * @param labels: Sequence of annotated labels for each account
     * @return Unit
     */
-  def train(accounts: Seq[TwitterAccount], labels: Seq[String], ctype: String) = {
+  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
     assert(accounts.size == labels.size)
 
     val labelSet = labels.toSet
@@ -99,7 +100,7 @@ class ClassifierImpl(
     // Load lexicons before calling train
     if(useDictionaries) {
       // For each label, populate list of lexicon filepaths from config
-      val lexMap = populateLexiconList(labelSet, ctype)
+      val lexMap = populateLexiconList(labelSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)
     }
 
@@ -163,7 +164,6 @@ class ClassifierImpl(
     * @param trainingLabels sequence of annotated labels for each account
     * @param _C hyperparameter for current run of subClassifier
     * @param K parameter for slicing the top-K tweets of each account.
-    * @param ctype Type of classifier for fetching specific lexicons
     * @param args Used for directing the filename for the model file
     * @return Unit
     */
@@ -171,7 +171,6 @@ class ClassifierImpl(
     trainingLabels: Seq[String],
     _C: Double,
     K: Int,
-    ctype: String,
     args: Array[String]) = {
 
     subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
@@ -184,13 +183,13 @@ class ClassifierImpl(
         Seq[TwitterAccount]())
       })
 
-    val opt = config.getString(s"classifiers.$ctype.model")
+    val opt = config.getString(s"classifiers.${this.variable}.model")
     val fout = s"$opt/svm_${args.mkString("").replace("-", "").sorted}_${_C}_$K.dat"
 
     logger.info(s"Training on ${customAccounts.length} accounts, ${customAccounts.map(_.tweets.length).sum} tweets")
 
     // Train with top K tweets
-    train(customAccounts, trainingLabels, ctype)
+    train(customAccounts, trainingLabels)
     subClassifier.get.saveTo(fout)
   }
 
@@ -331,7 +330,7 @@ class ClassifierImpl(
 
       println(s"Training with C=${_C} and top-$K tweets")
 
-      _train(trainingSet, trainingLabels,_C, K, ctype, args)
+      _train(trainingSet, trainingLabels,_C, K, args)
       val predictedLabels = _test(testingSet)
 
       val (evalMeasures, microAvg, macroAvg) = _evaluate(testingLabels,
@@ -392,7 +391,7 @@ class ClassifierImpl(
     val allTrainAccounts = allTrainData.keys.toArray
     val allTrainLabels = allTrainData.values.toArray
 
-    _train(allTrainAccounts, allTrainLabels, _C, K, ctype, args)
+    _train(allTrainAccounts, allTrainLabels, _C, K, args)
 
   }
 

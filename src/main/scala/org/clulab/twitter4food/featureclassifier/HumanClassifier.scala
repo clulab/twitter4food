@@ -24,17 +24,18 @@ class HumanClassifier(
     datumScaling: Boolean = false,
     featureScaling: Boolean = false)
   extends ClassifierImpl(
-    useUnigrams: Boolean,
-    useBigrams: Boolean,
-    useTopics: Boolean,
-    useDictionaries: Boolean,
-    useEmbeddings: Boolean,
-    useCosineSim: Boolean,
-    useFollowers: Boolean,
-    useGender: Boolean,
-    useRace: Boolean,
-    datumScaling: Boolean,
-    featureScaling: Boolean
+    useUnigrams,
+    useBigrams,
+    useTopics,
+    useDictionaries,
+    useEmbeddings,
+    useCosineSim,
+    useFollowers,
+    useGender,
+    useRace,
+    datumScaling,
+    featureScaling,
+    variable = "human"
   ) {
 
   /** Add Datum[String, String] with custom counter
