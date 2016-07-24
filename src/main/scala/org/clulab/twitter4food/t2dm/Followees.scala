@@ -65,7 +65,7 @@ object Followees {
       }
       if (followees.nonEmpty){
         writer.write(s"$follower\t")
-        writer.write(s"""${followees.mkString("\t")}\n""")
+        writer.write(s"""${followees.getOrElse(Nil).mkString("\t")}\n""")
       }
       pb.step
     }
