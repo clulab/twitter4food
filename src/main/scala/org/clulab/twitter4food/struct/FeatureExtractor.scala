@@ -347,16 +347,11 @@ class FeatureExtractor (
     }
     else if(cType equals "overweight") {
       println("Classifier type: overweight")
+      println(s"key lvl 1: ${lexicons.get.keys}")
+      println(s"key lvl 2: ${lexicons.get.get("Overweight").get.keys}")
       // Load dictionaries
-      val foodWordsFile = scala.io.Source
-        .fromFile(config.getString("classifiers.features.foodWords"))
-      val foodWords = foodWordsFile.getLines.toSet
-      foodWordsFile.close
-
-      val hashtagsFile = scala.io.Source
-        .fromFile(config.getString("classifiers.features.hashtags"))
-      val hashtags = hashtagsFile.getLines.toSet
-      hashtagsFile.close
+      val foodWords = lexicons.get("Overweight")("food_words")
+      val hashtags = lexicons.get("Overweight")("overweight_hashtags")
 
       // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
       val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
