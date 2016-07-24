@@ -19,22 +19,24 @@ class GenderClassifier(
   useEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
   useFollowers: Boolean = false,
+  useFollowees: Boolean = false,
   useGender: Boolean = false,
   useRace: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
-    useUnigrams,
-    useBigrams,
-    useTopics,
-    useDictionaries,
-    useEmbeddings,
-    useCosineSim,
-    useFollowers,
-    useGender,
-    useRace,
-    datumScaling,
-    featureScaling,
+    useUnigrams=useUnigrams,
+    useBigrams=useBigrams,
+    useTopics=useTopics,
+    useDictionaries=useDictionaries,
+    useEmbeddings=useEmbeddings,
+    useCosineSim=useCosineSim,
+    useFollowers=useFollowers,
+    useFollowees=useFollowees,
+    useGender=useGender,
+    useRace=useRace,
+    datumScaling=datumScaling,
+    featureScaling=featureScaling,
     variable = "gender"
   )
 
@@ -43,10 +45,18 @@ object GenderClassifier {
     val params = TestUtils.parseArgs(args)
     TestUtils.init(0)
     val gc = new GenderClassifier(
-      params.useUnigrams, params.useBigrams,
-      params.useTopics, params.useDictionaries, params.useEmbeddings, params.useCosineSim,
-      params.useFollowers, params.useGender, params.useRace,
-      params.datumScaling, params.featureScaling)
+      useUnigrams = params.useUnigrams,
+      useBigrams = params.useBigrams,
+      useTopics = params.useTopics,
+      useDictionaries = params.useDictionaries,
+      useEmbeddings = params.useEmbeddings,
+      useCosineSim = params.useCosineSim,
+      useFollowers = params.useFollowers,
+      useFollowees = params.useFollowees,
+      useGender = params.useGender,
+      useRace = params.useRace,
+      datumScaling = params.datumScaling,
+      featureScaling = params.featureScaling)
     gc.runTest(args, "gender")
   }
 }
