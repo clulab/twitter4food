@@ -346,9 +346,6 @@ class FeatureExtractor (
 
     }
     else if(cType equals "overweight") {
-      println("Classifier type: overweight")
-      println(s"key lvl 1: ${lexicons.get.keys}")
-      println(s"key lvl 2: ${lexicons.get.get("Overweight").get.keys}")
       // Load dictionaries
       val foodWords = lexicons.get("Overweight")("food_words")
       val hashtags = lexicons.get("Overweight")("overweight_hashtags")
@@ -356,7 +353,7 @@ class FeatureExtractor (
       // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
       val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
       ng.keySet.foreach{k =>
-        if (foodWords contains k) {
+        if(foodWords contains k) {
           result.incrementCount("__foodDict__", ng.getCount(k))
           result.incrementCount("__overweightDict__", ng.getCount(k))
         }
