@@ -125,6 +125,7 @@ class ClassifierImpl(
 
     pb.stop()
 
+    println(featureExtractor.dictMatches.toString)
     datums.foreach(datum => this.synchronized { dataset += datum })
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
