@@ -33,7 +33,8 @@ class FeatureExtractor (
   val useFollowees: Boolean = false,
   val useGender: Boolean = false,
   val useRace: Boolean = false,
-  val datumScaling: Boolean = false) {
+  val datumScaling: Boolean = false,
+  val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
   import FeatureExtractor._
 
@@ -144,22 +145,13 @@ class FeatureExtractor (
   }
 
   /**
-    * Additional method call for adding additional features
-    * outside of what's presented here.
-    */
-  def mkDatum(account: TwitterAccount, label: String,
-    counter: Counter[String]): Datum[String, String] = {
-    new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + counter)
-  }
-
-  /**
     * Ultimately what should be called by the classifier when training.
     *
     * @param account TwitterAccount to extract features from
     * @param label Classification label associated with this account
     */
   def mkDatum(account: TwitterAccount, label: String): Datum[String, String] = {
-    new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers))
+    new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + this.customFeatures(account))
   }
 
   /**
