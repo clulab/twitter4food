@@ -30,6 +30,7 @@ class FeatureExtractor (
   val useEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useFollowers: Boolean = false,
+  val useFollowees: Boolean = false,
   val useGender: Boolean = false,
   val useRace: Boolean = false,
   val datumScaling: Boolean = false) {
@@ -45,6 +46,7 @@ class FeatureExtractor (
     s"useEmbeddings=$useEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
     s"useFollowers=$useFollowers, " +
+    s"useFollowees=$useFollowees, " +
     s"useGender=$useGender, " +
     s"useRace=$useRace, " +
     s"datumScaling=$datumScaling"
@@ -64,14 +66,20 @@ class FeatureExtractor (
   var overweightVec: Option[Counter[String]] = None
 
   // Followers
-  val relationsFileStr = config.getString("classifiers.features.followerRelations")
-  var handleToRelations = Map[String, Seq[String]]()
-  val relationsFile = scala.io.Source.fromFile(relationsFileStr)
-  for (line <- relationsFile.getLines) {
+  val followerFile = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations"))
+  val handleToFollowers: Map[String, Seq[String]] = (for (line <- followerFile.getLines) yield {
     val handles = line.split("\t")
-    handleToRelations += (handles(0) -> handles.slice(1, handles.length))
-  }
-  relationsFile.close
+    handles.head -> handles.tail.toSeq
+  }).toMap
+  followerFile.close
+
+  // Followees
+  val followeeFile = scala.io.Source.fromFile(config.getString("classifiers.features.followeeRelations"))
+  val handleToFollowees: Map[String, Seq[String]] = (for (line <- followeeFile.getLines) yield {
+    val handles = line.split("\t+")
+    handles.head -> handles.tail.toSeq
+  }).toMap
+  followeeFile.close
 
   // human classifier for follower filtering
   val humanClassifier = if(useFollowers) {
@@ -108,9 +116,9 @@ class FeatureExtractor (
   val accountsFileStr = config.getString("classifiers.features.followerAccounts")
   val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
 
-  var handleToFollower = Map[String, TwitterAccount]()
+  var handleToFollowerAccount = Map[String, TwitterAccount]()
   for ((account, _) <- followerAccounts)
-    handleToFollower += (account.handle -> account)
+    handleToFollowerAccount += (account.handle -> account)
 
   /**
     * Copy a [[Counter]] so it's not accidentally overwritten
@@ -182,6 +190,10 @@ class FeatureExtractor (
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
       counter += cosineSim(unigrams, tweets, description)
+    if (useFollowees)
+      counter += followees(account)
+
+    // All features not involving domain adaptation should go before this comment
 
     // must scaleByDatum now to keep scaling distinct from that of follower features
     if (datumScaling)
@@ -256,6 +268,19 @@ class FeatureExtractor (
   }
 
   /**
+    * Add a 0.0 or 1.0 feature for each followee (a.k.a. "friend" in the Twitter API) handle for this account
+    *
+    * @param account [[TwitterAccount]] whose followees' handles will be sought
+    * @return counter
+    */
+  def followees(account: TwitterAccount): Counter[String] = {
+    val counter = new Counter[String]
+    val followeeHandles: Seq[String] = handleToFollowees.getOrElse(account.handle, Nil)
+    setCounts(followeeHandles, counter)
+    counter
+  }
+
+  /**
     * Adds the flagged features to a new counter for domain adaptation.
     *
     * @param account [[TwitterAccount]] whose followers will be annotated
@@ -263,12 +288,10 @@ class FeatureExtractor (
     */
   def followers(account: TwitterAccount): Counter[String] = {
     // Find this account's active followers
-    val followerHandles = if (handleToRelations.contains(account.handle)) handleToRelations(account.handle) else List[String]()
+    val followerHandles: Seq[String] = handleToFollowers.getOrElse(account.handle, Nil)
 
     // Find the TwitterAccount object corresponding to these handles
-    val followers = followerHandles.flatMap(f =>
-      if (handleToFollower.contains(f)) Some(handleToFollower(f)) else None
-    )
+    val followers = followerHandles.flatMap(f => handleToFollowerAccount.get(f))
 
     // Aggregate the counter for the followers using the other features being used
     val followerCounters = for (follower <- followers.par) yield mkFeatures(follower, withFollowers = false)
@@ -286,11 +309,12 @@ class FeatureExtractor (
     * @return a [[Counter]] of topics for this account
     */
   def topics(tweets: Seq[Array[String]]): Counter[String] = {
+    val topics = new Counter[String]
+
     // no topic model available
-    if (topicModel.isEmpty) return null
+    if (topicModel.isEmpty) return topics
 
     val tm = topicModel.get
-    val topics = new Counter[String]
     tweets.foreach(tweet => topics.incrementCount("topic_" + tm.mostLikelyTopic(tweet)))
 
     topics
@@ -327,7 +351,6 @@ class FeatureExtractor (
               account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
                 case (n, i) =>
                   // If first name
-                  println(n)
                   if (i == 0 & lexicon.contains(n)) nS += 1
                   else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
               }
@@ -465,7 +488,7 @@ class FeatureExtractor (
 
     // Calculate cosine similarity
     val result = new Counter[String]()
-    result.setCount("cosineSim", Counters.cosine(accountVec, overweightVec.get))
+    result.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
 
     result
   }
