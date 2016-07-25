@@ -270,7 +270,7 @@ class FeatureExtractor (
   def followees(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
     val followeeHandles: Seq[String] = handleToFollowees.getOrElse(account.handle, Nil)
-    setCounts(followeeHandles, counter)
+    setCounts(followeeHandles.map(handle => s"__following_${handle}__"), counter)
     counter
   }
 
