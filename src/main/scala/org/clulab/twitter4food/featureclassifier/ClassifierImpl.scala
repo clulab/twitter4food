@@ -67,6 +67,10 @@ class ClassifierImpl(
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
+  var scaleRange: Option[ScaleRange[String]] = None
+  val lowerBound = 0.0
+  val upperBound = 1.0
+
   /** Adds (label, Datum[String, String] to {@link dataset})
     *
     * @param account TwitterAccount to make a datum out of.
@@ -132,7 +136,7 @@ class ClassifierImpl(
     datums.foreach(datum => this.synchronized { dataset += datum })
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
-    if (featureScaling) Normalization.scaleByFeature(dataset, 0.0, 1.0)
+    if (featureScaling) scaleRange = Some(Normalization.scaleByFeature(dataset, lowerBound, upperBound))
 
     // Train the classifier
     subClassifier.get.train(dataset)
@@ -148,7 +152,11 @@ class ClassifierImpl(
     */
   override def scoresOf(account: TwitterAccount): Counter[String] = {
     if(subClassifier.isDefined) {
-      subClassifier.get.scoresOf(featureExtractor.mkDatum(account, "unknown"))
+      val datum = featureExtractor.mkDatum(account, "unknown")
+      val scaled = if (featureScaling && scaleRange.nonEmpty)
+        Normalization.scaleByRange(datum, scaleRange.get, lowerBound, upperBound)
+      else datum
+      subClassifier.get.scoresOf(scaled)
       } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
