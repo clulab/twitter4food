@@ -363,9 +363,10 @@ class FeatureExtractor (
 
               val dS = if (!lexName.contains("name")) description.count(lexicon.contains) else 0
 
-              dictMatches.incrementCount(lexName)
+              dictMatches.incrementCount(lexName, dS + nS)
 
-              if(dS + nS > 0) result.incrementCount(s"lex_${k}_$lexName", dS + nS)
+              if(dS > 0) result.incrementCount(s"lex_${k}_${lexName}_description", dS)
+              if(nS > 0) result.incrementCount(s"lex_${k}_${lexName}_name", nS)
           }
       }
     }
@@ -390,6 +391,7 @@ class FeatureExtractor (
         }
       }
     }
+
     result
   }
 
