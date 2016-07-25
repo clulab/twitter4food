@@ -110,31 +110,24 @@ class HumanClassifier(
       else ""
     }
 
+    val counter = new Counter[String]()
+
     /** Noun tags only */
     val nTags = Tokenizer.annotate(account.description)
       .filter(tt => "NO".contains(tt.tag))
 
-    /** Count #(human) and #(org) features */
-    val (hCounts, oCounts) = nTags.foldLeft((0,0))(
-      (count, tagTok) => {
-        if(tagTok.tag.equals("O")) {
-          if(isSingularPronoun(tagTok.token)) (count._1 + 1, count._2)
-          else if(isPluralPronoun(tagTok.token)) (count._1, count._2 + 1)
-          else count
-        }
-        else {
-          getSubFeatureType(tagTok.token) match {
-            case "human" => (count._1 + 1, count._2)
-            case "org" => (count._1, count._2 + 1)
-            case _ => count
-          }
-        }
-      })
-
-    val counter = new Counter[String]()
-    counter.incrementCount("wn_human", hCounts)
-    counter.incrementCount("wn_org", oCounts)
-
+    nTags.foreach{
+      case singular if singular.tag == "O" && isSingularPronoun(singular.token) =>
+        counter.incrementCount("__hcSingular__")
+      case plural if plural.tag == "O" && isPluralPronoun(plural.token) =>
+        counter.incrementCount("__hcPlural__")
+      case humanWord if humanWord.tag != "O" && getSubFeatureType(humanWord.token) == "human" =>
+        counter.incrementCount("__hcHuman__")
+      case orgWord if orgWord.tag != "O" && getSubFeatureType(orgWord.token) == "org" =>
+        counter.incrementCount("__hcOrg__")
+      case _ => ()
+    }
+    println(counter.toString)
     counter
   }
 }
