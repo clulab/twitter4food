@@ -18,7 +18,7 @@ import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
   * All parameters are consistent with those in FeatureExtractor
   */
 class OverweightClassifier(
-  useUnigrams: Boolean = true,
+  useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
@@ -73,10 +73,22 @@ object OverweightClassifier {
     } else
       println("\tTraining on train, testing on dev\n\n")
 
+    // List of features (not counting domain adaptation)
+    // if these are all false, set default to true to use unigrams anyway
+    val allFeatures = Seq(
+      params.useUnigrams,
+      params.useBigrams,
+      params.useTopics,
+      params.useDictionaries,
+      params.useEmbeddings,
+      params.useCosineSim,
+      params.useFollowees
+    )
+    val default = allFeatures.forall(!_)
 
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
     val oc = new OverweightClassifier(
-      useUnigrams = params.useUnigrams,
+      useUnigrams = default || params.useUnigrams,
       useBigrams = params.useBigrams,
       useTopics = params.useTopics,
       useDictionaries = params.useDictionaries,
