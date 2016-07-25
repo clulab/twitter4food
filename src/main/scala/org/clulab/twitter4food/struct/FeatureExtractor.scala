@@ -52,6 +52,8 @@ class FeatureExtractor (
     s"datumScaling=$datumScaling"
   )
 
+  val dictMatches = new Counter[String]()
+
   // LDA topic model
   var topicModel: Option[LDA] = if (useTopics) {
     Some(LDA.load(config.getString("lda.topicModel")))
@@ -360,6 +362,8 @@ class FeatureExtractor (
               nS += matches.size
 
               val dS = if (!lexName.contains("name")) description.count(lexicon.contains) else 0
+
+              dictMatches.incrementCount(lexName)
 
               if(dS + nS > 0) result.incrementCount(s"lex_${k}_$lexName", dS + nS)
           }
