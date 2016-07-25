@@ -112,21 +112,38 @@ class HumanClassifier(
 
     val counter = new Counter[String]()
 
-    /** Noun tags only */
-    val nTags = Tokenizer.annotate(account.description)
+    // Description features
+    val dTags = Tokenizer.annotate(account.description)
       .filter(tt => "NO".contains(tt.tag))
 
-    nTags.foreach{
+    dTags.foreach{
       case singular if singular.tag == "O" && isSingularPronoun(singular.token) =>
-        counter.incrementCount("__hcSingular__")
+        counter.incrementCount("__hcDescriptionSingular__")
       case plural if plural.tag == "O" && isPluralPronoun(plural.token) =>
-        counter.incrementCount("__hcPlural__")
-      case humanWord if humanWord.tag != "O" && getSubFeatureType(humanWord.token) == "human" =>
-        counter.incrementCount("__hcHuman__")
-      case orgWord if orgWord.tag != "O" && getSubFeatureType(orgWord.token) == "org" =>
-        counter.incrementCount("__hcOrg__")
+        counter.incrementCount("__hcDescriptionPlural__")
+      case humanWord if humanWord.tag == "N" && getSubFeatureType(humanWord.token) == "human" =>
+        counter.incrementCount("__hcDescriptionHuman__")
+      case orgWord if orgWord.tag == "N" && getSubFeatureType(orgWord.token) == "org" =>
+        counter.incrementCount("__hcDescriptionOrg__")
       case _ => ()
     }
+
+    // Tweet features
+    val tTags = account.tweets.flatMap(tweet => Tokenizer.annotate(tweet.text))
+      .filter(tt => "NO".contains(tt.tag))
+
+    tTags.foreach{
+      case singular if singular.tag == "O" && isSingularPronoun(singular.token) =>
+        counter.incrementCount("__hcTweetSingular__")
+      case plural if plural.tag == "O" && isPluralPronoun(plural.token) =>
+        counter.incrementCount("__hcTweetPlural__")
+      case humanWord if humanWord.tag == "N" && getSubFeatureType(humanWord.token) == "human" =>
+        counter.incrementCount("__hcTweetHuman__")
+      case orgWord if orgWord.tag == "N" && getSubFeatureType(orgWord.token) == "org" =>
+        counter.incrementCount("__hcTweetOrg__")
+      case _ => ()
+    }
+
     println(counter.toString)
     counter
   }
