@@ -75,8 +75,8 @@ class FeatureExtractor (
 
   // Followees
   val followeeFile = scala.io.Source.fromFile(config.getString("classifiers.features.followeeRelations"))
-  val handleToFollowees:Map[String, Seq[String]] = (for (line <- followeeFile.getLines) yield {
-    val handles = line.split("\t")
+  val handleToFollowees: Map[String, Seq[String]] = (for (line <- followeeFile.getLines) yield {
+    val handles = line.split("\t+")
     handles.head -> handles.tail.toSeq
   }).toMap
   followeeFile.close
@@ -190,7 +190,6 @@ class FeatureExtractor (
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
       counter += cosineSim(unigrams, tweets, description)
-
     if (useFollowees)
       counter += followees(account)
 
@@ -352,7 +351,6 @@ class FeatureExtractor (
               account.name.toLowerCase.split("\\s+").zipWithIndex.foreach {
                 case (n, i) =>
                   // If first name
-                  println(n)
                   if (i == 0 & lexicon.contains(n)) nS += 1
                   else if (lexName.contains("last") & lexicon.contains(n)) nS += 1
               }
@@ -490,7 +488,7 @@ class FeatureExtractor (
 
     // Calculate cosine similarity
     val result = new Counter[String]()
-    result.setCount("cosineSim", Counters.cosine(accountVec, overweightVec.get))
+    result.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
 
     result
   }

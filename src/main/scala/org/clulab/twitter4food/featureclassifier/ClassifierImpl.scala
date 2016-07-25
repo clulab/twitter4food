@@ -175,7 +175,7 @@ class ClassifierImpl(
     K: Int,
     args: Array[String]) = {
 
-    subClassifier = Some(new LinearSVMClassifier[String, String](C=_C))
+    subClassifier = Some(new L1LinearSVMClassifier[String, String](C=_C))
 
     // Skim only top-K tweets for each account
     val customAccounts = trainingSet.map(t => {
@@ -203,6 +203,7 @@ class ClassifierImpl(
     */
   def _test(testSet: Seq[TwitterAccount]): Seq[String] = {
 
+    // Don't bother with print statements for only one account
     val plural = testSet.length > 1
     if (plural) logger.info(s"Testing on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
 
