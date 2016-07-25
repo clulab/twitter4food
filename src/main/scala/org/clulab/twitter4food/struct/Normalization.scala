@@ -1,6 +1,6 @@
 package org.clulab.twitter4food.struct
 
-import org.clulab.learning.{Datasets, RVFDataset, RVFDatum}
+import org.clulab.learning._
 import org.clulab.struct.Counter
 
 /**
@@ -12,7 +12,7 @@ object Normalization {
   /** The actual scaling formula taken from svm-scale
     * Copied from edu.arizona.sista.learning.Datasets
     * */
-  private def scale(value:Double, min:Double, max:Double, lower:Double, upper:Double):Double = {
+  private def scale(value:Double, min:Double, max:Double, lower:Double, upper:Double): Double = {
     if(min == max) return upper
 
     // the result will be a value in [lower, upper]
@@ -66,8 +66,20 @@ object Normalization {
     * @tparam L label type
     * @tparam F feature type
     */
-  def scaleByFeature[L,F](dataset:RVFDataset[L,F], lower:Double, upper:Double): Unit = {
+  def scaleByFeature[L,F](dataset:RVFDataset[L,F], lower:Double, upper:Double): ScaleRange[F] = {
     Datasets.svmScaleDataset(dataset, lower, upper)
+  }
+
+  def scaleByRange[L,F](datum:Datum[L,F], scaleRange:ScaleRange[F], lower:Double, upper:Double): Datum[L,F] = {
+    new RVFDatum(datum.label, scaleByRange(datum.featuresCounter, scaleRange, lower, upper))
+  }
+
+  def scaleByRange[L,F](featuresCounter:Counter[F], scaleRange:ScaleRange[F], lower:Double, upper:Double): Counter[F] = {
+    featuresCounter.map{ case (f, count) =>
+        if (scaleRange.contains(f))
+          scale(featuresCounter.getCount(f), scaleRange.min(f), scaleRange.max(f), lower, upper)
+        else 0.0
+    }
   }
 
   /**
