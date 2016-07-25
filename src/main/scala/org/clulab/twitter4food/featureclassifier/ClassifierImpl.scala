@@ -37,7 +37,9 @@ class ClassifierImpl(
   val useRace: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean,
-  val variable: String) extends FeatureClassifier {
+  val variable: String,
+  val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()
+) extends FeatureClassifier {
 
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(
@@ -51,7 +53,8 @@ class ClassifierImpl(
     useFollowees=useFollowees,
     useGender=useGender,
     useRace=useRace,
-    datumScaling=datumScaling)
+    datumScaling=datumScaling,
+    customFeatures=customFeatures)
 
   /** subClassifier that does the actual training over {@link dataset} */
   var subClassifier: Option[LiblinearClassifier[String, String]] = None

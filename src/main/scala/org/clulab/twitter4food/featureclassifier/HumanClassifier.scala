@@ -37,18 +37,11 @@ class HumanClassifier(
     useRace=useRace,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
-    variable = "human"
-  ) {
+    variable = "human",
+    customFeatures = HumanClassifier.customFeatures
+  )
 
-  /** Add Datum[String, String] with custom counter
-    * @param account base twitter account
-    * @param label Associated label "human" or "org"
-    * @return Unit
-    */
-  override def addDatum(account: TwitterAccount, label: String) = {
-    dataset += featureExtractor.mkDatum(account, label, customFeatures(account))
-  }
-
+object HumanClassifier {
   /** Add a custom feature counter for the account based on description
     * @param account Twitter account
     * @return counter custom Counter[String] that keeps a count of "wn_human"
@@ -147,9 +140,7 @@ class HumanClassifier(
     println(counter.toString)
     counter
   }
-}
 
-object HumanClassifier {
   def main(args: Array[String]) = {
     val params = TestUtils.parseArgs(args)
     val (api, config) = TestUtils.init(0)
