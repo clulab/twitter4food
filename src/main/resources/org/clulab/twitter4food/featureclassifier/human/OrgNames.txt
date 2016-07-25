@@ -1,281 +1,4359 @@
-A&W Restaurants
-America's Incredible Pizza Company
+#1 Sushi
+100% de Agave
+1000 Degrees Neapolitan Pizzeria
+101 Asian Fusion
+109 & Co
+10e
+1130 The Restaurant
+1515 Cafe
+1801 Eatery
+1810 Argentinean Restaurant
+2 Pesos Mexican Cafe
+2-Go-Tesoro
+23rd Street Cafe
+25 Degrees
+3 Girasoles
+3 Guys Pies
+3 Sons BBQ
+32 Shea
+32nd Cafe
+40th Street Cafe
+41st Street Pub & Aircraft Sales
+43rd Express
+464
+4G's on Broadway
+4square Cafe & Gifts
+5 & Diner
+5 Line Tavern
+5280 Burger Bar
+5280 Sliders
+55 Bungee RAMEN
+56th St Deli & Market
+5th Avenue Cafe
+5th Avenue Deli
+7 Leguas Mexican Grille
+730 South Bar & Grill
+88th Street Pizza
+A Cote Bar a Absinthe
+A Food Affair
+A Taste of Haiti
+A Taste of Thai
+A Taste of the Philippines
+A.W. Lin's Asian Cuisine
+Abacus Inn
+Abyssinia Restaurant and Cafe
+ACA Grill
+Acacia Cafe
+Acai Alaska
+Acapulco Bar & Grill
+Ace Eat Serve
+Acorn
+Adela's Italian
+Adelitas Cocina y Cantina
+Adobe Fire Grill
+Adobo Dragon
+Adrift Tiki Bar & Grill
+African Grill & Bar
+Agave Mexican Grill
+Agave Taco Bar
+Ahgassi Gopchang
+AhiPoki Bowl
+Aiello's East Coast Italian
+AikoPops
+AJ's Ribs a GO GO
+Ajo Al's Mexican Cafe
+AK Alchemist
+Akaihana Sushi & Grill
+Al & Bea's Mexican Food
+Al Fuego Mexican Restaurant
+Al Seraj Mediterranean Restaurant
+Al's Deli & Grill
+Al-Hana
+Aladdin's Fine Mediterranean & American Cuisine
+Alaska Airlines Board Room
+Alaska Bagel Restaurant
+Alaska's Gourmet Subs
+AlaskaDoghaus
+Albert's Mexican Grill
+Albita's Grill
+Alcove Caf\u00e9 & Bakery
+Ale House At Amato's
+Alexi's Grill
+Alfonso's Mexican Food
+Alfredo's Pizza Cafe
+Ali Baba Grill
+Ali Baba Mediterranean Restaurant & Market
+Ali Baba's Restaurant & Bakery
+Alice Cooper'stown
+All Aboard Restaurant and Grill
+All About the Bread
+All' Angolo Pizza & Pasta
+All'Acqua
+All-V's Sandwiches
+Allegra's Neapolitan Pizza
+Alley Oops
+Aloha Stop & Shop
+Aloy Modern Thai
+Alta California Fonda
+Altitude
+Amalfi's
+Amara Kitchen
+Amass
+Amazebowls
+Ambli Denver
+Amboy
+America's Taco Shop
+American Deli
+American Diner
+American Grill
+American Pie Pizza
+American Ranch House
+Americatus New-World Italian
+Amigo's Mexican Grill
+Ammaccapane's Restaurant & Sports Bar
+Amore Pizza
+Amore's Pizza
+Anchorage City Limits Lofts
+Anchorage Downtown Partnership
+Andre's Italian Restaurant
+Andy's Restaurants
+Angela's Southern Style Cooking
+Angelini Osteria
+Angelo's Taverna
+Angels Trumpet Ale House
+Angie & Jimmie's Italian Pizza
+Angry Chef Grill
+Angry Crab
+Angry Crab Shack
+Animal
+Annie's Cafe
+Annual Hope For Autumn Crawfish Boil
+Another Broken Egg
+Antequera De Oaxaca
+Anthony's Pizza and Pasta
+Antigua Bread
+Antojitos Mi Pueblo
+Antonio's Greek Bakery & Cafe
+Anzios Italian Restaurant
+Aoba Sushi
+Apple Dumpling Cafe
+Apple Spice Junction
 Applebee's
+AR Children's Hospital Cafeteria
+Arashi Sushi
+Araujo's Restaurant
+Arbela
 Arby's
-Arctic Circle Restaurants
-Arthur Treacher's Fish & Chips
-Atlanta Bread Company
+Arby's 7139
+Arby's Roast Beef Restaurant
+Arcadia Tavern
+Arctic Roadrunner
+Arctic Sushi
+Area 41 Pizza Company
+Arigato Japanese Restaurant
+Arizona Authentic Pizza
+Arizona Sandwich Company
+Arkansas Best Wings
+Arkansas Burger Company
+Arkansas Fresh Cafe & Bakery
+Armadillo Grill
+Armando's Lunch Truck
+Armenian Shish Kabob
+Aroma Restaurant
+Arrivederci
+Arthur's Prime Steakhouse
+Artizen
+Arts All American Cafe
+Arts District Brewing Company
+Asada Rico Food Cart
+Asadero Norte De Sonora
+Asadero Toro
+Asbury Provisions
+Asher Dairy Bar
+Ashley Mac's
+Asi Es La Vida
+Asia Garden Chinese Restaurant
+Asian Box
+Asian Buffet
+Asian Cuisine
+Asian Cusine
+Asian Grill Buffet
+Asian Rim
+Assignments
+At The Corner
+Athen's Gyros & Pasta
+Athens Bar and Grill
+ATL Wings
+Atlacatl Restaurant
+Atticus
+Atwater Village Tavern
+Au Bon Pain
+Au Lac
+Aunt Chiladas Squaw Peak
 Auntie Anne's
-Bahama Breeze
-Baja Fresh
-Bakers Square
-Baskin-Robbins
-Beef O'Brady's
-Ben & Jerry's
+Authentic Ethio African
+Authentic Greek Cuisine
+Autumn Court
+Avanti
+Avanti Food & Beverage "A Collective Eatery"
+Ave 26 Taco Stand
+Avery's Cafe
+Avo
+Avondale Brewing
+Awoolim
+Axios Estiatorio
+AZ Kabob House
+AZTECA Bakeries & Restaurant
+B-Side
+Ba
+Ba Le Sandwiches
+Baba's Falafel
+Babalu Tacos & Tapas
+Babbo Italian Eatery
+Bacaro LA
+Back Yard Burgers
+Backcountry Delicatessen
+Backyard Bowls
+Bacon Social House
+Bad Daddy's Burger Bar - Cherry Creek North
+Badmaash
+Bagel Factory
+Baha Burger
+Baja Grill
+Baked Alaska Alehouse
+Baker's Famous Pizza
+Baker's Palace
+Baldoria
+Ball & Chain
+BAM Sports Grill
+Bama Hotdogs
+Bamboo on 2nd
+Banana Leaf
+Bangkok Cafe
+Bangkok Thai Cuisine
+Banh Mi Bistro Vietnamese Eatery
+Bao Dim Sum House
+Bar 31
+BAR Ama
+Bar Dough
+Bar Louie
+Bar Max
+Bar Red
+Barbara's At The Brewery
+Barbecue Stop
+Barbie's Cafe
+Barbrix
+Barcito
+Bare Naked Noodles
+Barolo Grill
+Baroo
+Barrel Down
+Barricuda's
+Barrio Cafe
+Barrio Cafe Gran Reserva
+Barrio Urbano
+Barro's Pizza
+Barros Pizza
+Base Pizzeria
+Basic Kneads Pizza
+Basil Gourmet Pizza & Wine Bar
+Basket Burger Cafe
+Bastien's
+Baumhower's
+Baumhower's Restaurant
+Baur's Restaurant & Listening Lounge
+Bayleaf Authentic Indian Cuisine
+Bayou Bob's
+BCD Tofu House
+BD's Mongolian Grill
+Be Coffee + Food + Stuff
+Bean's Cafe
+Bear Tooth Theatre Pub & Grill
+Beast + Bottle
+Beatrice & Woodsley
+Beckett's Table
+Becky's Deli
+Beef 'O' Brady's
+Beer Belly
+Beet Box
+Beijing Express
+Beijing Garden Chinese
+Bel-Frites
+Belcampo Burger DTLA
+Belizean Paradise
+Bell' Italia Pizzeria
+Bella Trattoria 25
+Bellini's Ristorante & Bar
+Bellwood Diner
+Belly & Snout
+Belvedere American Bar & Grill
 Benihana
-Bennigan's
-Bertucci's
-Big Boy
-Bikinis Sports Bar & Grill
-BJ's Restaurant & Brewery
-Black Angus Steakhouse
-Black-eyed Pea
-Blimpie
-Bob Evans Restaurants
-Bojangles' Famous Chicken 'n Biscuits
+Benihana Steakhouse Restaurant
+Benny Blancos
+Benny's Food Wagon
+Benny's Restaurant & Cantina
+Bento Box
+Bento Man
+Berlin Currywurst
+Berlins
+Bernetti's Diner
+Bernie's Teriyaki
+Bernies Bungalow Lounge
+Berri's Kitchen
+Berriegood Co
+Best Fish Taco In Ensenada
+Best Impressions
+Best of Europe Meats & Deli
+Best of Philly
+Best Wings And Deli
+Bestia
+Bettola
+Beverly Chicken
+Beverly Soon Tofu Restaurant
+BierBeisl Imbiss
+Biergarten
+Big Bad Breakfast
+Big Catch Seafood House
+Big Corner Shell / A&W
+Big On Tokyo
+Big Orange
+Big Smoke Burger
+Big Whiskey's Little Rock
+BigUms' Burgers N Potatoes
+Biju's Little Curry Shop
+Biker Jim's Gourmet Dogs
+Billy's Gourmet Hot Dogs
+Billy's Inn
+Billy's Sports Bar & Grill
+Billy's Sports Grill
+Birch
+Birds Rotisserie Chicken Cafe & Bar
+Biriyani Kabob House
+Birmingham Breadworks
+Birmingham Dining Southern Cuisine
+Birmingham Race Course
+Birrieria De Don Boni
+Birrieria Obregon
+Biscuit Betties
+Biscuits
+Bistro 218
+Bistro On The Boulevard
+Bistro V
+Bistro Vendome
+Bitter Creek Cafe
+Bittersweet Artisanal Cuisine
+Bixo
+Bj's Market Cafe
+BJ's Restaurant & Brewhouse
+Black Angus
+Black Crow
+Black Cup
+Black Eye Coffee CapHill
+Black Market Bar + Grill
+Black Market Bar And Grill
+Black Pearl Asian Cuisine
+Black Pearl Restaurant
+Black Sky Brewery
+Blackbird Public House
+Blackboard Eats
+Blackwells Neighborhood Pub
+Blair's Restaurant
+Blake Street Tavern
+Blake Street Vault
+Blanco Tacos + Tequila
+Blanco Tacos And Tequila
+Blaze Fast-Fire'd Pizza
+Blazing Stone Pizza
+BLD
+Bliss ReBAR
+Block & Larder
+Blondies Alaskan Steak & Seafood
+Blossom Restaurant
+Blossom Vietnamese Restaurant
+Blowfish Sushi & Asian Cuisine
+Blu Elefant Cafe
+Bludso's Bar & Que
+Blue Bonnet
+Blue Coast Burrito
+Blue Court Grill
+Blue Cow Kitchen & Bar
+Blue Cube
+Blue Hound Kitchen & Cocktails
+Blue Island Oyster Bar
+Blue Pacific At Hoover Foodmart
+Blue Palms Brewhouse
+Blue Pan Pizza
+Blue Sushi Sake Grill
+Bluewater Grill
+Bluff Park Diner
+Blunozer Cafe
+Boateng's Cajun Creation
+Bob Sykes Barbeque
+Boba Tree Cafe
+Bobby Q
+Bobby's Cafe
+Bobby's Country Cookin
+Bocaza Mexican Grill
+Bocaza Mexican Grille
+Boda Restaurant
+Bogey's On the Park
+Bogie's Bar & Grill
+Bogue's
+Bojangles
+Bojangles Chicken
+Bojangles Famous Chicken 'n Biscuits
+Bombay Deluxe
 Bonefish Grill
-Boston Market
-Braum's
-Bravo!, Cucina Italiana
-Brio
-Bubba Gump Shrimp Company
-Buca di Beppo
+Boneheads Grill
+Bones
+Boney's BBQ
+Bongiorno
+Bonnie Brae Tavern
+Book Sae Tong
+Boom Ba Laddy's
+Boos Philly Cheesesteaks and Hoagies
+Bootleggers Modern American Smokehouse
+Bossa Nova on Sunset
+Boston's Restaurant & Sports Bar
+Bottega Cafe
+Bottega Italian Restaurant
+Bottle & Bone
+Boudreaux's Grill & Bar
+Boulevard Bread Company
+Bourbon Grill
+Bourbon Jacks
+Bowery Bungalow
+Bowl of Greens
+Box Populi
+Brad's Place
+Brasil Kiss Coffeebar
+Brava Rotisserie Grill
+Brava! Pizzeria Della Strada
+Brave New Restaurant
+Bravo Cucina Italiana
+Bray Gourmet
+Brazen Neighborhood Eatery
+Bre's Restaurant & Catering
+Bread N Butter
+Breadcrafters Bakery & Cafe
+Breakfast Club
+Breakfast Inn & Dinner Too
+Breck On Blake
+Brenda's Dairy Bar
+Brick & Tin
+Brider
+Bridge Seafood
+Bright Star Restaurant
+Brik on York
+Brio Tuscan Grille
+British Bulldog
+Brixx Wood Fired Pizza
+Brock's At Ross Bridge
+Broken Spanish
+Bronzed Aussie
+Brooklyn Deli & Mini Market
+Brooklyn's Finest Pizza
+Brothers BBQ
+Brothers Bbq
+Brothers Sandwich Shop
+Brown Bag Sandwich
+Bruins
+Bruno's Little Italy
+BS Taqueria
+Bubbly Mermaid Champagne & Oyster Bar
+Bubu
+Buchi Cafe Cubano
+Buck & Rider
+Buck Mulligan's Public House
+Buckhorn Exchange Restaurant
+Buenos Aires Pizzeria
+Buffalo Grill
 Buffalo Wild Wings
+Buil Samgye Tang
+Bulgogi Hut
+Bull & Bush
+Bulrocho Korean Restaurant
+Bunker Hill Bar & Grill
+Burge's Hickory Smoked Turkeys and Hams
+Burger Cache
+Burger Express
+Burger Factory
+Burger Jim's
 Burger King
-Burger Street
-Burgerville
-Cafe Rio
+Burger King Restaurants
+Burger Lounge
+Burger Mania
+Burger Radio
+Burger Rush
+Burger Shoppe
+Burger Theory Phoenix
+BURGERFI
+Burgerlords
+Burgers Wings & Things
+Burner Dynamics
+Burrito Azteca
+Burrito Cart
+Burrito Express-O
+Burrito Factory
+Burrito Giant
+Burrito Heaven
+Burrito King
+Burrito Place
+Burrito's & Company
+Buster's Pizza
+Busy Beans
+Butcher Block Cafe
+Butcher's Bistro
+Button Mash
+By Chloe
+Byul Gobchang
+Ca' Brea
+Cabbage Patch
+CaCao Mexicatessen
+Cache Restaurant
+Cactus Jack's Bar & Grill
+Cactus Jack's Mexican Restaurant
+Cactus Taqueria #1
+Cafe 201
+Cafe 44
+Cafe 607
+Cafe Ak
+Cafe Americano on Melrose
+Cafe Amsterdam
+Cafe At the Library
+Cafe Beaujolais
+Cafe Bossa Nova
+Cafe Byblos Mediterranean Grill
+Cafe Castillo
+Cafe Chihuahua
+Cafe Dulce
+Cafe Dupont
+Cafe Gratitude
+Cafe Gratitude - Larchmont
+Cafe Hill
+Cafe Korobokgur
+Cafe La Vue
+Cafe London Monochrome
+Cafe Los Feliz
+Cafe Nine
+Cafe Prego Restaurant
+Cafe Rio Mexican Grill
+Cafe Teragram
+Cafe Trentuno
+Cafe Verona
+Cafe Zupas
+Cafe@Heifer
+Caffe 817
+Caffe Boa Ahwatukee
+Caffe Sanora's CO 40
+Cajun Kitchen and Bar
+Cajun Noodle
+Cajun Seafood House
+Cajun Steamer
+Cajun's Wharf
+California Bowl
+California Chicken Cafe
+California Gogi Grill
+California Kabob Kitchen
+California Market Gimbap & Udon
 California Pizza Kitchen
-California Tortilla
-Camille's Sidewalk Cafe
+Camp David Restaurant
+Campagna Salumi Bar and Pizzeria
+CampoBello Bistro
+Candle Light Tavern
+Canon Grill
+Cantina Cinco De Mayo
+Cantina Laredo
+Cantina On Wheels
+Cantina Tortilla Grill
+Canton Dragon
+Canyon Cafe
+Cap City Tavern
+Capers
+Capers on Park Avenue
+Capital Bar and Grill
+Capitol Bistro
+Capitol Hill Tavern
+Capitol Smokehouse & Grill
+Capone's Pizza
+Capri Coffeehouse & Cafe
+Capri Market & Deli
+Capri Pizza
+Capriotti's Sandwich Shop
+Caps Sports Grill
+Captain Bill's Subs
 Captain D's
-The Capital Grille
-Carino's Italian Grill
+Captain D's Seafood
+Captain D's Seafood Restaurants
+Caramba Fresh Mexican Food
+Carbon Beverage Cafe
+Caribbean Bakery
+Carl's Jr
 Carl's Jr.
+Carlie's Cafe
+Carlile's Barbecue
+Carlitos Gardel
+Carlos O'Brien's - Phoenix
+Carly's Bistro
+Carmine's On Penn
+Carnitas Michoacan
+Carolina's Mexican Food
+Carousel Restaurant
 Carrabba's Italian Grill
-Carrows
-Carvel Ice Cream
-Champps Americana
-Charley's Grilled Subs
-Charlie Brown's Fresh Grill
-Checkers
-Cheeburger Cheeburger
-Cheeseburger in Paradise
-Cheesecake Factory
-Cheddar's Casual Café
-Chester Fried Chicken
-Chevys Fresh Mex
-Chicken Express
+Carrigan's Public House
+Cart-Driver
+Cartel Coffee Lab
+Casa Chocolate
+Casa De Don Pancho
+Casa Fiesta
+Casa Filipina Bakeshop & Restaurant
+Casa Grande
+Casa Manana Rock
+Casa Manana Taqueria
+Casa Mexicana
+Casa Noodle Teriyaki
+Casey Jones Grill
+Cassell's Hamburgers
+Castaways
+Catch 56
+Cattle Company Steakhouse
+Caveman Kitchen
+CC'S Mesquite Broiler
+Cebiche Highlands
+Cedar House Cafeteria
+Centennial Campground
+Cento Pasta Bar
+Central Bistro
+Central Bistro & Bar
+Central Cafe
+Central Kitchen
+Century Restaurant and Bar
+Cerveteca DTLA
+Cha Cha Cha
+Cha Cha Chili
+Chada Thai
+Chaka's Mexican Restaurant
+Chambers on First
+Champa Thai Cuisine
+Chan Lees
+Chang Thai & Asia Cuisine
+Chanpen Thai Cuisine
+Charcoal Restaurant
+Charley's Philly Steaks
+Charley's Steakery
+Charlie Brown's Bar & Grill
+Charlie's Bakery
+Charlie's Tap House
+Charr An American Burger Bar
+Chatz Smoked Meats & Catering
+Cheba Hut
+Cheddar's Scratch Kitchen
+Cheeky Monk
+Cheers in Maumelle
+Cheers In the Heights
+Cheese 'n Stuff
+Chef Jimmy's Bistro & Spirits
+Chef Lee's & Pickle Barrel Deli
+Chef Zorba's Cuisine
+Chego!
+Chelsea's Kitchen
+Chen Express
+Chen Express II
+Cherry Bean
+Cherry Creek Grill
+Cherry Cricket
+Cherry Famous Pizza
+Cherry Pick Cafe
+Cherryblossom Noodle Cafe
+Chestnut
+Chez Ali Mediterranean Grill
+Chez Antoine
+Chez Fonfon
+Chez Lulu
+Chi Spacca
+Chi Town Dog Pound
+Chi's Chinese Express
+Chi's Dim Sum & Bistro
+Chibiscus Asian Cafe
+Chicago Gyros
+Chicago Hamburger Co
+Chicago Mike's Hot Dogs
+Chicago's Best
+Chicago's Phillys & Gyros
+Chicas Tacos
+Chichen Itza Restaurant
 Chick-fil-A
-Chicken In The Rough
+Chickee's Lil Kitchen
+Chicken Country
+Chicken Salad Chick
+Chicken Teriyaki
+Chicken Wang's Cafe
+Chicken Wangs III
+Chico Loco Pupusas
+Chico's Tacos
+Chili Verde
 Chili's
+Chilli's Bar and Grill Resturant
+Chimney Coffee House
+Chin's Hawaiian Teriyaki Bbq Chicken
+China 1
+China Ben
+China Bistro
+China Buffet
+China Chili
+China Doll 2
+China East
+China Garden
+China King
+China Kitchen
+China Lights Oriental Cuisine
+China Master
+China Moon
+China Palace
+China Plus Buffet
+China Restaurant
+China Taste
+China Town Restaurant
+China Village
+China Way Restaurant
+China Wok
+Chinese Friends Restaurant
+Chinese Kitchen
+Chinese On the Go
+Chinese Pavilion Hunan Restaurant
+Chino Bandido
+Chip's Barbeque
 Chipotle Mexican Grill
+Cho77
+Chocolate Biscuit Tea Room
+Choffees Kitchen
+Cholon
+Chompie's Deli
+Choon El Burrito Original
+Chop Shop Casual Urban Eatery
+Chop Suey Inn
+Chopsticks
+Chopsticks Pho
+Chow Town
+Chow Urban Grill
+Chowder Room
+Chris Z's
+Christo's Ristorante
+Christopher's and Crush Lounge
 Chronic Tacos
-Chuck-A-Rama
 Chuck E. Cheese's
-Church's
-CiCi's Pizza
-Cinnabon
-Claim Jumper
-Coco's Bakery
-Cold Stone Creamery
-Copeland's
-Cotton Patch Café
-Country Buffet
+Chuck's Fish
+Chung Ki Wa
+Chungsil Hongsil
+Chunju Han-il Kwan
+Church & State
+Church Street Coffee and Books
+Church's Chicken
+Churchill Bar
+Chuy's
+Ciabatta Bar
+Ciao Baci
+Ciao Italian Restaurant
+Cibo
+Cielito Lindo
+Cilantro
+Cilantro Lime
+Cilantro's Grill
+Ciro's Restaurant
+Citron Bistro
+City Bakery Cafe
+City Bistro
+City Diner
+City O' City
+City Set
+City Square Deli & Grill
+CityGrille
+CityPub and Burger
+Civic Center Eats
+CJ's Fish &  Chicken
+CK's Tavern & Grill
+Classic Burger and Bq
+Classic Crust Pizza
+Cleo
+Cliff's Edge
+Clifton's
+Cloray's Cafe
+Club Paris
+Coach's Corner Grill
+Cocina Superior
+Cock Of The Walk
+Cody's Cafe and Bar
+Coho Cup
+Cole's
+Colori Kitchen
+Colt & Gray
+Columbine Steak House & Lounge
+Comedor Guadalajara
+Comfort Cravings
+Comfort LA
+Comfortable Food Truck
+Comida
+Commissary
+Community Bakery
+Community Los Feliz
+Consider It Joy Baking
+Continental Deli
+Coohills Restaurant
+Copeland's of New Orleans
+Copper Blues
+Copper Grill & Grocery
+CoR Tapas & Wine
+Coral Fish Poke Shop
+Corduroy
+Corea Blue
+Corky's Ribs & BBQ
+Corky's Ribs & BBQ Little Rock
+Corleone's
+Corn Man
+Corner Bakery Cafe
+Corner Place
+Corridor 44
+Corridors Cafe
+Corry's Restaurant
+Cosmo's Pizza
+Cosmos
+Costa's
+Costa's Famous Bar-B-Que
+Costa's Mediterranean Cafe
+Costa's Mediterranean Cafe In Trussville
+Costas
+Cotham's
+Cotham's In the City
+Cotham's Mercantile Store
+Cotija's Mexican Grill
+Coup Des Tartes
+Courtyard 280 Oyster Bar & Grill
+Couscous Express
+Cowboy Chicken
+Cowboy Ciao
+Coyote Drive-In
+Cozumel Grill & Mexican Restaurant
+Cozy Cottage
 Cracker Barrel Old Country Store
-Culver's
+Crape Myrtle's Cafe
+Crave
+Crave Real Burgers
+Crave Sandwich Cafe & Catering
+Crawfish On Fire
+Crawford's
+Crazee's Cool Cafe
+Crazy Cajuns' Boiling Pot
+Crazy Cow Caribbean Grill
+Crazy Hibachi Company
+Crazy Jim's
+Crazy Otto's Diner
+Cregeen's Irish Pub
+Crepe X-press Cafe
+Creperie Le Terrace
+Crepes 'n Crepes
+Crepes Sans Frontieres
+Crescent Ballroom
+Crestwood Cafe
+Crestwood Coffee Company
+Crestwood Tavern
+Crispy Cuban
+Crock Spot
+Cross Eyed Pig
+Crostini
+Crow's Nest
+Crown Burgers
+Crudo
+Crush Wine Bistro & Cellar
+Crust Pizzeria & Ristorante
+Cuba Cuba Cafe & Bar
+Cuban Foods Bakery & Restaurant
+Cucina Cucina Modern Italian
+Cuisine of China
+Culinard At Cahaba Grand
+Culinary Dropout
+Curry House
+Curry King
+Curtis Park Creamery
+Curtis Park Delicatessen
+Cut Above Cafe
+Cuz's Deli
+CW & Chris Fish and Chicken
+D Bar Denver
+D'Corazon
+D. P. Dough
+Da Jeong Korean Cuisine
+Da Valley Grill
+Da Vang
+Dae Gee
+Daikokuya
+Daily Dose Cafe
+Daily Dose Midtown
 Dairy Queen
-Damon's Grill
+Damascus Grill
+Damgoode Pies
+Dami
+Dan Sung Sa
+Danger Dogs
+Daniel George
+Danky's Bar-B-Q
+Danny's Tacos
+Darwin's Theory
+Das Haus-FDSK
 Dave & Buster's
+Dave & Ray's Downtown Diner
+Dave's Gourmet Korean Food
+Dave's Pizza
+Dave's Place
+Davenport's Pizza Palace
+David Family Kitchen
+David's Burgers
+David's Burgers Food Truck
+David's Kebab House
+Dawsons Burgers Wings and Fries
+DazzleJazz Restaurant & Lounge
+De Marra's
+Deerman's Hickory Pit BBQ
+Degree Metropolitan Food + Drink
+Del Campo A La Cuidad
+Del Frisco's Grille
+Deli-In
+Delia's Restaurant
+Delicious Temptations
+Delta Blues Hot Tamales
+Delux
+Demetri's BBQ
+Denali Sausage
 Denny's
-Del Taco
-Dixie Chili and Deli
+Denny's Restaurants
+Denver Biscuit Co.
+Denver Biscuit Company
+Denver Chophouse & Brewery
+Denver Deep Dish
+Denver Diner
+Denver Fresh Mex
+Denver Pho & Grill
+Denver Pizza Company
+Denver Ted's
+Depot Deli & Grill
+DeSano Pizza Bakery
+Desert Jade
+Desi Den Indian Restaurant
+Desmond Bar & Grill
+DeSoto Central Market
+Detour Bakery
+Detroit Coney Grill
+Devil's Food Bakery & Cookery
+DeVinci's
+DGM Kisasikdang
+Diamond Bear Brewing Company
+Dianne's Restaurant & Catering
+DiCicco's
+Dick's Hideaway
+Dickey's Barbecue Pit
+Dickey's Barbeque Pit
+Different Pointe of View
+DiFranco's
+Diner 50
+Ding How Mongolian BBq
+Dino's Burgers
+Dino's Chicken and Burgers
+Dino's Ristorante
+Diplomat Delicatessen & Spirits
+Dirt Dog
+District
+District American Kitchen and Wine Bar
+Dive Inn
+Division 3
+Dixie Cafe
+Dizzy's Gypsy Bistro
+DJ's 9th Avenue Cafe
+Doe's Eat Place
+Dok Dok Chicken
 Domino's Pizza
-Don Pablo's
-Donatos Pizza
-Dunkin' Donuts
-East of Chicago Pizza
-EatZi's
-Eat'n Park
-Eegee's
+Domo Restaurant
+Don Jose Mexican Food
+Don Jose's
+Don Pepe
+Donatos Vestavia Hills
+Dong II Jang Restaurant
+Donovan's Steak & Chop House
+Doriola's
+Dos Santos
+Doubletree Plaza Bar & Grill
+Dough Box Pizza & Bread
+Dougherty's Neighborhood Pub
+Downhome Restaurant & Catering
+Downtown A & W Restaurant & Shell
+Downtown Deli
+Downtown Deli & Grocery
+Downtown Grill
+Downtown Wings
+Dozens
+Dr Robbin
+DRAGO Centro
+Dragon Bowl
+Dragon Palace
+Dragon Seafood Restaurant & Grill
+Dram
+Dreamland Bar-B-Que
+Dub's Hamburger Heaven
+Duck & Decanter
+Duck Soup
+Dugan's Pub
+Dulan's On Crenshaw
+Dumpling House
+Dunbar Kitchen & Tap House
+Dune
+Duo
+Durant's
+Duza's Kitchen
+Dyron's Low Country
+E - Sea Fresh Restaurant
+E-Moon Oak Restaurant
+Eagle Rock Green Dragon
+EagleRock.Kitchen
+Eagles Restaurant
+Earls Kitchen + Bar
+East 59 Vintage & Cafe
+East Buffet
+East End Cafe
+Eastside Market Italian Deli
+Eat + Drink
+Eat By Stacey Weber
+Eat Drink Americano
+Eat See Hear
+Eat This Cafe
+Ebaes
+Eclair Cozy Corner
+Eden's Grill Inn
+Edgar's Bakery
+Edgar's Bakery and Cafe
+ediBOL
+Egg Roll Express
+Eggslut
+Eight Korean BBQ
+Eighth Street Soondae
+Einstein Bros Bagels
+EJ's Bites
+EJ's Eats & Drinks
+Eko Eats
+El Barrio
+El Bravo
+El Camacho Restaurante Nicaraguense
+El Camaron Loco
+El Camaron Pelado
+El Camino Community Tavern
+El Caprichoso
+El Cazador
+El Cazador Mexican Grill
+El Chalate
+El Chalateco
+El Charrito
+El Chato Taco Truck
 El Chico
-El Pollo Loco
-Elephant Bar
+El Chingon Mexican Bistro
+El Chullo Peruvian Restaurant & Bar
+El Cochinito Restaurant
+El Colmao
+El Conquistador
+El Dorado
+El Faisan y El Venado  Restaurant Yucateco
+El Flamin' Taco
+El Girasol
+El Gringo
+El Grullense Restaurant
+El Guero Hot Dogs
+El Huarachito
+El Huero
+El Mesquite Restaurant
+El Noa Noa
+El Nopalito
+El Nopalito Mexican Food
+El Nuevo Taquito
+El Pacifico Botanas
+El Paisano
+El Palacio Restaurant Mexican Food
+El Palenque Restaurant
+El Parian Restaurant
+El Paseo Inn
+El Pastorcito D.F.
+El Poblano Mexican Restaurant
+El Pollo Correteado
+El Porton
+El Porton Mexican Restaurant
+El Rancherito
+El Ranchero Mexican Restaurant
+El Rinconcito Mexican Food
+El Rodeo
+El Sampa Taqueria & Bar
+El Sarape
+El Sol De Mexico
+El Super Taco Mexicano
+El Taco De Mexico
+El Taco Loco
+El Taco Ranchero
 El Taco Tote
-Famous Dave's
-Farmer Boys
-Fatburger
-FATZ
-Fazoli's
-Five Guys Famous Burgers and Fries
+El Taco Veloz
+El Tapatio
+El Taurino
+El Tejado
+El Tepeyac Cafe
+El Torito
+El Toro
+El Toro The Tot
+El Valle Mexican Restaurant
+El Vecino Mexican Restaurant
+El Zarape
+Eli's Jerusalem Grill
+Eliana's Restaurant
+Eliella Ristorante
+Elway's
+Elysian
+EMC Seafood & Raw Bar
+Emily's Diner
+Empress Seafood Restaurant
+Enzo's End Pizzeria
+Epernay Lounge
+Erbert & Gerbert's
+Ernie's Bar & Pizza
+Escala
+Escobar Mexican Kitchen
+Espresso Expressions
+Essence Bakery Cafe
+Esters Neighborhood Pub
+Etai's Bakery Cafe
+Euclid Hall Bar & Kitchen
+Eugene's Hot Chicken
+Euro Crepes
+Even Better Cafe
+Everything Iz
+Everything Iz Cafe
+EVO Kitchen
+Exotic Wings & Things 1
+Exotic Wings and Things
+Exotic Wings Pinson
+Extreme Sushi
+Ezekiel's Restaurant
+Ezell's Southern Food Express
+F Street Station
+Fair Trade Cafe
+Fairfield Seafood Restaurant
+Faith & Flower
+Fajitas A Sizzlin Celebration
+Falafel Corner
+Falafel King
+Falling Rock Tap House
+Famous Fred
+Famous Philly Cheese Steaks & Beer Garden
+Famous Ray's Pizza
+Famous Wok
+Fancy Moose Lounge
+Fancy's on Fifth
+Fanny's Restaurant
+Fantastic China
+Far Bar
+Farm At South Mountain
+Farmboy Kitchen
+Farmer's Basket
+Fat Boys Barbque
+Fat Dog
+Fat Jack's Supersubs
+Fat Ptarmigan
+Fat Sal's
+Fat Sam's Sub Station
+Fat Shack
+Fat Sully's Pizza
+Fatso's Pizza
+Fattoush Restaurant
+Favco
+Feast & Forest
+Feastros
+Federal Pizza
+Federico's Mexican Food
+Federicos Mexican Food
+Feeney's Restaurant and Bar
+FelFel Mediterranean
+Feng Mao Lamb Kebab
+FEZ
+Fiddler's Bistro
+Fife's Restaurant
+Figueroa Philly
+Final Approach
+Fingalickin
+Finley's Pub
+Fiocchi's Pizzeria & Bar
+Fiori D'Italia
+Fire At the Art Hotel
+Fire On the Mountain
+Firebirds Wood Fired Grill
+Fired Pie
+Firehouse Subs
+Firetap
+Firetap Alehouse
+First Draft
+First Street Cafe
+First Watch
+Fish House Grill
+Fish-O-Licious
+Fishalicious
+Fisherman's Outlet
+FIVE
+Five Guys Burger and Fries
+Five Guys Burgers and Fries
+Five Point Public House Oyster Bar
+Five Points Pizza Denver
+Flamingo Palace
+Flattop Pizza & Pool
+Flavor of India
+Flavors of Thai
+Flavours
 Fleming's Prime Steakhouse & Wine Bar
+Fletcher's
+Flight Deck Pizza
+Flight Deck Restaurant
+Flip Burger Boutique
+Flo's Pancake House
+Flor Del Rio Restaurant
+Flower Child
+Flowers Craft Beer & Wine
+Fly In Restaurant
+Flying Chinook Bar & Grill
+Flying Fish
+Flying Machine Restaurant
+Flying Saucer
+Focoso
+FOH
+Folliero's Italian Food and Pizza
+Fonda Mexican Cuisine
+Food Fair By Diego
+FOODBAR
+Foodlab
+Fooducopia
+Forage
+Forbidden Garden Chinese Restaurant
+Forest Room 5
+Fork & Spoon
+Formosa Chinese Restaurant
+Forno 301
+Fort Greene
+Fortune Gourmet Kitchen
+Forty Two
+Four Cafe
+Four Friends Kitchen
+Four Peaks Brewing Company
+Fourche Dam Dairy Bar
+Fourteen Seventy-Two
+Franco On Melrose
+Frank & Albert's
+Frank Food Truck
+Frank's New York Style Deli
+Franke's Cafeterias
+Frasher's Smokehouse
+Fratelli Cafe
+Fred's Downhome Burgers
 Freddy's Frozen Custard & Steakburgers
-Freebirds World Burrito
-Fresh Choice
-Friendly's
+Fresh Off The Bun
+Freshcraft
+Frida's Taco House
+Fried Green Tomato's
+Frikadelles & Frites
+Fritangas Mexican Restaurant
+Fritzi
+Froma on Melrose
+Fromagio's Artisan Cheese
+Front Porch
+Frontera Grill
+Fronterra Grill
+Frontier Diner
+Frontier Grill
+Fruition Restaurant
+Fruitland
+Fruitland Fresh
+Frullati Cafe
+Fu Lin Restaurant
+Fu-Do Chinese Restaurant
 Fuddruckers
-Gatti's Pizza
-GameWorks
-Gino's Pizza and Spaghetti
-Godfather's Pizza
-Gold Star Chili
-Golden Chick
+Fuego Cantina and Saloon
+Fukumaru Teriyaki
+Fukurou Ramen
+Full Moon Bar-B-Que
+Full Moon BBQ
+Fusion Burgers
+G's Food
+G-Dogs
+Gabrella's Restaurant
+GaBriella's Bistro & Art Gallery
+Gadwall's Grill
+Gadzooks Enchiladas & Soup
+Gaetano's
+Gaia Bistro
+Gails Diner
+Gallagher's
+Galley & Garden
+Gallo's Mexican Restaurant
+Gallop Cafe
+Gam Ja Gol
+Garage Wine and Tap
+Garbanzo Mediterranean Grill
+Garcia's Las Avenidas
+Garden Square Deli
+Gary Lee's Motor Club & Grub
+GB Fish & Chips
+GB Fish and Chips
+Genghis Khan Mongolian Bbq
+Genie G's
+Gennaro's Cafe Italiano
+Geno & Sal's Famous New York Grill
+Genwa Korean BBQ
+Geogia Pit
+George & Dragon Restaurant
+George & Son's Asian Cuisine
+George's Boxcar Cafe
+George's Famous Gyros & Pasta
+George's Kitchen
+Georges Lebanese and American Cuisine
+Georgia's Gyros
+Gertrude's
+Get Bbul
+Ghengis Grill
+Ghost Light Cafe
+Gianmarco's Restaurant
+Giant Rustic Pizza
+Gigo's Cafe & Deli
+Gilchrist
+Ginban Sushi
+Ginger
+Gino's Pizzeria  & Philly Steaks
+Ginza Sushi and Korean Barbecue
+Ginza Sushi Grill
+Giorgio's NY Pizzeria
+Giuseppe's Cafe
+Giuseppe's on 28th
+Giuseppe's Pizzeria & Deli
+Glacier BrewHouse
+Globe Hall
+Glory Bound Gyro Co.
+Go Fish
+Go Go China
+Go Pocha
+GoBistro
+Gojo Ethiopian Restaurant
+Gok Jee Food
+Golden Burger 11
+Golden City
 Golden Corral
-Green Burrito
-Green Mill[disambiguation needed]
-Ground Round
+Golden Corral Family Steak House
+Golden Donuts
+Golden Gate Restaurant
+Golden Lake Eatery Cambodian Restaurant
+Golden Mongolian Restaurant
+Golden Pho & Grill
+Golden Rule Bar-B-Que & Grill
+Golden Rule Barbecue
+Golden Rule Barbecue of Hoover
+Golden Shanghai
+Golden Temple Natural Grocery & Cafe
+Golden Thai Kitchen
+Golden Village Restaurant
+Golden Wok
+Gomez Burritos
+Gonjiam
+Good China Restaurant
+Good Fellas Grill
+Good Friend Chinese & Seafood
+Good Girl Dinette
+Good Greek Grill
+Good Ole Boys BBQ
+Good Taste House
+Gordas Baja Taco
+Gorditas El Tio
+Gordon Biersch
+Gordos
+Gourmet House Of Hong Kong
+Govnr's Park Tavern
+Gozo
+Grabbagreen
+Grace Cafe
+Grace's Cafe
+Grady's Pizza & Subs
+Graffiti's Italian Restaurant
+Grand Avenue Pizza Company
+Grandpa's Burger Haven Number One
+Granny B's
+Granny's Kitchen
+Grassroots Kitchen & Tap
+Great Alaska Pizza Company
+Great Alaskan Pizza Co
+Great Harvest Bread Co of Denver
+Great Harvest Bread Co.
+Great Northern
+Great Wall Chinese Restaurant
+Great Wall Cuisine
+Great Wok
+Greek Festival at Holy Trinity - Holy Cross
+Greektown
+Green Acres Cafe
+Green Acres Cafe Centerpoint
+Green Acres Cafe South
+Green Chile Grill
+Green Cuisine
+Green Fine Salad
+Green Leaf Grill
+Green New American Vegetarian
+Green Valley Drugs
+Green Valley Ranch Beer Garden
+GreenMix
+Greka Pita
+Griddle House
+Grille 29
+Grillin' Wings & Things
+Grimaldi's Pizzeria
+GRIND Kitchen + Watering Hole
+Grizzly Pizza and Wings
+Grounded
+Grub
+Grumpy's Too
+Guacamoles Fresh Mexican Grill
+Guadalajara
+Guadalajara Mexican Restaurant
+Guadalupe's Place
+Guanaquito Restaurant
+Guard and Grace
+Guelaguetza Restaurante
+Guero's Cocina Mexicana
+Guido's Pizza
+Guisados
+Guisados DTLA
+Gumbo House
+Gumbo's
+Gus's Drive In
+Gus's Hot Dogs
+Gus's Lunch Box
+Gus's World Famous Fried Chicken
+Gusano's
+Guthries Chicken Fingers UAB
+Gwang Yang BBQ
+Gwennie's Old Alaska Restaurant
+Gypsy's Roadhouse
+Gyro House
+Gyro's Cafe
+Gyros & Kabobs
+Gyros on Central
+Gyroz
+H.B.'s BBQ
+Habanero Fresh Mexican Grill
+Habaneros Mexican Grill
+Habbouz Tunisian Cuisine
+Habitat Coffee and Tea
+Habitat Feed & Social
+Hacienda Colorado
+Hacienda Mexican Grill
+Hacienda Restaurant
+Hae Ha Heng Thai Bistro
+Hae Jang Chon Korean BBQ Restaurant
+Half Moon Sports Grill
+Halo-Halo Kitchen
+Ham Ji Park
+Hama Sushi
+Hamburger Haven
+Hamburger Heaven
+Hamburghini
+Hamburguesas Don Jesus
+Hammered Hog BBQ Hall & Saloon
+Han Bat Sul Lung Tang
+Hana Ichimonme
+Hana Japanese Eatery
+Hana Sushi
+Hanaroo Sushi Bar
+Handy Diner
+Hangari Bajirak Kalgooksoo
+Hanny's
+Hanson's Grill & Tavern
+Hap's Pit Barbecue
+Hapa Sushi Grill & Sake Bar
+Happy China Chinese Restaurant
+Happy Food
+Happy Taco
 Hard Rock Cafe
 Hardee's
-Hobee's Restaurant
+Hardees
+Harley's Italian Bistro
+Harley's Old Thyme Cafe
+Harman's Eat & Drink
+Harry's Bar
+Hartley's
+Haru Sushi
+Harumi Sushi
+Harvest
+Harvest Restaurant & Bar
+Harvey's Wineburger
+Hashi
+Hasu Sushi & Grill
+Hattie B's Hot Chicken
+Haute Quarter Grill
+Hawkins House of Burgers
+Hayter's & Co.
+Healthy Zone Jook Hyang
+Hearth Artisan Pizza
+Heights Taco & Tamale
+HEK Yeah BBQ
+Helpings Cafe, Market and Catering
+Henri Hawaii Lounge
+Hens & Hogs Family Restaurant
+Heritage Grille Steak & Fin
+HEU
+Hi Rise
+Hiatus Urban Barbeque
+Hibernia Irish Tavern
+Hickory Tavern
+Highland Park Bowl
+Highland Tap and Burger
+Highland Tavern
+Highlands Bar & Grill
+Highlands Cafe
+Hikari Uni Sushi
+Hillcrest Artisan Meats
+Hillside Spot
+Hillstone Restaurant
+Hilton Club Lounge
+Himalayan House
+Hive Garden Bistro
+HMS Bounty
+Hob Nobs
+HoHo Chicken
+Hole-in-the-Wall
+Holler and Dash
+Hollywood  Burger
+Holy Crab
+Home Plate Diner
+Home Restaurant - Los Feliz
+Home Town Restaurant
+Homeboy Diner
+Homegirl Cafe and Catering
+HomeGrown Gourmet Food Truck
+Homegrown Tap & Dough
+Homer's Restaurant
+Homer's West
+HomeState
+Homewood Diner
+Honda Ya Izakaya
+Honey Bear's BBQ
+Honey Bee's House of Breakfast
+Honey Pig
+HoneyBaked Ham
+Hong Kong Barbecue
+Hong Kong Buffet
+Hong Kong Cafe
+Hong Kong Gourmet Buffet
+Hong Kong Kitchen 3
+Hong Kong Restaurant
+Hong Kong Seafood
+Honor Society Handcrafted Eatery
+Hood Wings
+Hookmeup Gourmet Sandwiches
+Hooper Bay Cafe
 Hooters
-Houlihan's
-Houston's Restaurant
-Howard Johnson's
-Huddle House
-HuHot Mongolian Grill
+Hop Alley
+Hopdoddy Burger Bar
+Hops & Pie
+Horizon's Cafe & Catering
+Hot and Hot Fish Club
+Hot Cakes Diner
+Hot Dog On A Stick
+Hot Spot
+Hotbox
+House of Bread Bakery
+House of Commons
+House of Kabob
+House of The Chigae
+Howlin' Ray's
+Hoy-Ka Thai Noodles
+Hsin Cafe
+Huarache Azteca Restaurante
+Huckleberry Roasters
+Huitlacoche
+Hula Hands
+Hula Hands Restaurant
+Hula's Modern Tiki
+Huli Huli Hawaiian Grill & Teabar
+Humble Pie
+Humboldt Farm - Fish - Wine
+Humphrey's Kitchen & Koffee
+Humpy's
+Humpy's Great Alaskan Alehouse
+Hunan Cuisine
+Hunan Garden
+Hunan Palace Express
+Hunan Star Chinese Restaurant
+Hunan Wok
+Hungry Bear Restaurant
 Hungry Howie's Pizza
+Husky Dogs
+Hutch & Spoon
+Hwy 55 Burgers Shakes & Fries
+Hyperion Public
+I Luv Sushi
+I Panini di Ambra
+Ian's Pizza
+Icehouse Tavern
+Ichi Ban Japanese Restaurant & Sushi
+Ichi Bowl
+Ichiban Japanese Restaurant
+Ignatius Cafe
+Ignite Burgers & Bar
+Iguana Grill
 IHOP
+IHOP - International House of Pancakes
+Il Capriccio on Vermont
+Il Porcellino
+Il Posto
+Illegal Burger
+Illegal Pete's
+Illegal Petes
+Imperial Dragon
+Imperial Palace Restaurant
+Impresso
+In Yo Grill
 In-N-Out Burger
-Jack in the Box
+India Oven
+India Palace
+Indian Delhi Palace
+Indigo Tea Lounge
+Indus by Saffron
+Industriel
+Infinitus Pie-iPIE
+Inga's Alpine Tavern
+Ingo's Tasty Food
+Ink
+Inka's Chicken
+Intermission Cafe
+International House of Food
+International House of Hot Dogs
+International House of Pancakes
+Interstate Kitchen & Bar
+Ira's Parkhill Grill
+Iriana's Pizza
+Irish Hound
+Irish Snug
+Irma's Kitchen
+Iron Chef
+Iron City Bham
+Iron Skillet Restaurant
+Irondale Cafe
+ISA Japanese Restaurant
+Isa's Pizza
+Isaan Station Thai Street Food
+Island Loco
+Islands Restaurant
+Istanbul Mediterranean
+iSushi Japanese Restaurant
+It's All About Mak "N" It
+Italian Spoon
+ixlb DimSum Eats
+Ixtapa Mexican Restaurant
+Izakaya Den
+Izakaya Fu-ga
+Izakaya Gazen
+Izu
+Izzy's
+J and J Grocery
+J Gumbo's
+J Wings
+J's Noodles & New Thai
+J's Noodles Star Thai
+J. Alexander's Redlands Grill
+J. Gumbo's
+Jack Brown's Beer & Burger Joint
+Jack Rabbit Slims
 Jack's
-Jamba Juice
+Jackie's Place Restaurant
+Jacks N Joe
+Jacksons Bar & Bistro
+Jade Cafe
+Jade House
+Jade The Taste of China
+Jaime's Mexican Restaurant
+Jake's Food & Spirits
+Jakes Soul Food Cafe
+Jalisco Mexican Restaurante
+Jam Rock Cafe and Grill
+Jamaican Grill
+Jamburritos Cajun Grille - Express
+Jamicos Pizzaria Restaurant
+Jang Choong Dong Restaurant
+Jang Ga Ne
+Jang Teo Bossam
+JAPADOG
+Jaragua
+Jasmine Thai
+Jasmine Thai 2
+Jasmine Thai Cuisine
 Jason's Deli
-Jerry's Subs & Pizza
+Jason's Thai Asian Bistro & Sushi
+Jasons Deli
+Javier's Diner
+Jawanda's Sweet Potato Pie
+Jax Fish House LoDo
+Jay's Bar
+Jaya Asian Grill
+Jays Pizza
+JC Sushi and Chinese Restaurant
+Jefferson's
+Jelly Cafe
+Jens' Restaurant
+Jeon Ju Restaurant
+Jerky's
+Jerry's International Donuts & Burgers
+Jerry's Restaurant
+Jersey Boys Subs & Grub
 Jersey Mike's Subs
-Jet's Pizza
+Jerusalem Restaurant
+Jesse's Camarones Restaurant
+Jesse's Steaks and Seafood
+Jessie's Smokin' Nola
+Jett Asian Kitchen & Sushi
+Jewel Lake Pizza & Tea Garden
+Jewel's Bakery & Cafe
+Jezebel's Southern Bistro + Bar
+Jim 'N Nick's Bar-B-Q
+Jim 'n Nick's Bar-B-Q
+Jim 'n Nicks Bar-B-Q
+Jim Deerman's Barbeque
+Jim N Nicks
+Jim N Nicks Bar-B-Q
+Jim N Nicks Barbeque
+Jim N Nicks BBQ
+Jim's Razorback Pizza
+Jimmy & Joe's Pizzeria
 Jimmy John's
-Jim's Restaurants
+Jimmy Johns
+Jimmy's Hot Dogs
+Jimmy's Hot Dogs & Burgers
+Jimmy's Serious Sandwiches
+Jinmi Korean Restaurant
+Jinsei Sushi
+Jinsol Gukbap
+JINYA Ramen Bar
+JiST Cafe
+JJ Chinese Restaurant
+JJ'S Barbeque
+JJ's Gyros
+JJ's Sandwich Shop
+Jjan
+Jjukku Jjukku BBQ
+JNJ Burger Shack
+Jo Jo's BBQ
+Joan's on Third
+JoBot Coffee & Diner
+Joe and Debs Wings
 Joe's Crab Shack
-John's Incredible Pizza
+Joe's Diner
+Joe's Falafel
+Joe's Italian
+Joe's Midnight Run
+Joes Real Bbq
+Joey's California Bistro
+John Holly's Asian Bistro
+John's City Diner
+Johnnie's Chicago Style Pizza
+Johnny Brusco's New York Style Pizza
+Johnny Carino's
+Johnny Chicago's
+Johnny Ray's BBQ
 Johnny Rockets
-Ker's WingHouse
+Johnny's Restaurant
+JoJo's On Broadway
+Jose's Compadre Mexican Grill
+Josephines Restaurant
+Joyride Taco House
+JT's Bar & Grill
+Juan's Authentic Mexican Food
+Juan's Super Pollo 2
+Jubilee Joe's Cajun Seafood Restaurant
+Juice Bar
+Juice Bar - Chace Lake
+Juice Leaf
+Juicy Wingz
+Julie Ann's Deli
+Jun Won Restaurant
+Juno Restaurant
+K's Wing Master
+Kabab King
+Kabayo Cham Bada
+Kabobs House Deli And Grill
+Kachi Deli Cafe & Grill
+KaGaYa
+Kaladi Brothers Coffee Company
+Kaleidoscope Juice
+Kali Restaurant
+Kang Ho Dong Baekjeong
+Kanpai Japanese Steakhouse and Sushi Bar
+Kansha Hawaiian & Japanese Restaurant
+Kaos Pizzeria
+Karma Asian
+Kashira Japanese Restaurant
+Kassai Sushi
+Katmandu MoMo
+Kava's Pancake House
+Kawaba Rice Ball
+Kay's Family Restaurant
+Kay's Kafe
+Kaya Street Kitchen
+KazuNori
+kBird
+Kebab House
+Keegan's Grill
+Keegan's Grill & Taproom Foothills
+Keep It C'asian
+Kemuri
+Ken's Hickory Pit Barbecue
+Ken's Hickory Pit BBQ
+Kenny's Kitchen - Chinese Comfort Food
 KFC
-Krispy Kreme
+Khalil's
+Khyber Halal
+Kikis Japanese Casual Dining
+Kim's Asian Cuisine
+Kimmyz Tatum Point
+Kincaid Grill
+King Gyros
+King Taco
+King Torta
+King Wong Chinese Food
+Kinga's Lounge
+Kingbertos Mexican Food
+Kings Land Seafood Restaurant
+Kings Wings
+Kinjiro
+Kinley's Restaurant & Bar
+Kirin Garden
+Kiss Pollos Estilo Sinaloa
+Kitchen 56
+Kitchen Express
+Kitchen Mouse
+Kitchen Sooda
+Kitchen Table: BBQ & Comfort Food
+Kiyens
+Klat
+Klingler's European Bakery & Cafe
+Kneaders
+Knock Kneed Lobster
+Knuckle & Claw
+Koala Bean
+Kobawoo House
+Kobe An
+Kobe An Shabu Shabu & Sushi
+Kobe Japanese Steakhouse
+Kobe Japanese Steakhouse & Sushi Bar
+Kobe Teppayaki House
+Kogi BBQ Truck - Verde
+Kogi Taqueria
+Kokoro
+Komodo
+Komotodo Sushi Burrito
+Kona Grill
+Konomi
+Kool Jerk! Restaurant & Bar
+Kool Korner Sandwiches
+Korean BBQ House
+Korean Garden
+Korean Kitchen Hibachi Barbeque
+Kouraku Restaurant
+Krachai Thai Kitchen
+Kriner's Burgers & Pies
+Kriner's Diner
+Kris & Sam's Cookie Store & More
+Kroger
+Krua Thai Cuisine
 Krystal
-L&L Hawaiian Barbecue
-Landry's Restaurants
-Ledo Pizza
-Lee Roy Selmon's
-Lee's Famous Recipe Chicken
+KT's BBQ
+Ktchn Dtla
+Kubo Restaurant
+Kuishimbo
+Kuishimbo Restaurant
+Kumagoro
+Kush Sake Bar
+Kushi Shabu
+Kyle's Kitchen
+KyoChon
+L & E Oyster Bar
+L & L Hawaiian Barbecue
+L & L Hawaiiian Barbecue
+L'Amore Italian Restaurant
+L'aroma Bakery & Deli
+L'Aroma Bakery & Deli @ New Sagaya Midtown Market
+L'Assiette
+La 15 Y Salsas
+La 1st St Taqueria
+LA 27
+La Abeja
+La Abeja Restaurant
+La Azteca Tortilleria
+La Barbacha
+La Barca Restaurant
+La Barquita Restaurant
+La Belle Rosette
+La Biblioteca
+La Bocca Wine Bar & Urban Kitchen
+La Brisa Mexican Restaurant
+La Cabana Mexican Restaurant
+La Calle Taqueria y Carnitas
+La Canasta Burrito Shoppe
+La Canasta Capitolio
+La Canasta Mexican Foods
+La Caridad Restaurant
+La Carreta
+La Casa Real
+La Catrina
+La Catrina Mexican Cantina Grill
+La Cevicheria
+LA Chapter
+La Chiquita
+La Chispa De Oro
+La Chiva
+La Chuperia
+La Cocina
+La Cocina Economica
+La Cocinita Mexican Restaurant
+La Cour Bistro and Art Bar
+La Estrella Mexican Food
+La Estrella Restaurant
+La Fiesta Restaurant
+La Flor de Calabaza
+La Fogata
+La Fogata II
+La Fonda Antioquena
+La Frontera
+La Frontera #2
+La Frontera Mexican Grill
+La Fuente Restaurant
+La Grande Orange
+La Grande Orange Pizzeria
+La Hacienda Mexican Restaurant
+La Libertad
+La Loma
+La Madeleine
+La Merise
+La Mex
+La Mexicana Taqueria
+La Naranja Taqueria Restaurant
+La Noche Buena Restaurant
+La Numero Uno
+La Palapa
+La Parilla Villa Catering
+La Pasadita Hot Dogs
+La Pasadita Inn
+La Paz
+La Pergoletta
+La Perla Nayarita
+La Piazza PHX
+La Poblanita
+La Popular
+La Potranca Taqueria
+La Regional
+La Reyna Restaurant
+LA Rose Cafe
+La Rueda
+La Salsita
+La Sandia
+La Santisima
+La Serenata
+LA Skewers
+La Tapatia Taqueria & Birria
+La Taquiza No 2
+La Terraza Rum & Lounge
+La Tostaderia
+La Valentina Mexican Grill
+LaBella Pizzeria and Restaurant
+Ladybug House of Sandwiches
+Lahn Pad Thai
+Lakeside Hideout Cafe
+Lala's Argentine Grill
+Lala's Wine Bar + Pizzeria
+Lalo's Pizza Take Out
+Landry's Seafood
+Laney's Country Cooking
+Langer's
+Lanza Brothers Market
+Lao Wang Noodle House
+Larchmont Bungalow
+Larchmont Village Wine Spirits & Cheese
+Larkburger
+Larry's Pizza
+Larry's Pizza - Downtown
+Larry's Pizza North
+Larry's Pizza West
+Las Brisas
+Las Caras Mexican Grill
+Las Cazuelas Mexican & Seafood Restaurant
+Las Delicias
+Las Glorias Grill
+Las Jicaras Mexican Grill
+Las Margaritas Mexican & Italian Restaurant
+Las Margs
+Las Marguritas Mexican and Italian Restaurant
+Las Molenderas Restaurant
+Las Morelianas
+Las Palmas Mexican Restaurant
+Las Palmas Restaurante Mexicano
+Las Ranas Cafe
+Las Tortas
+Las Tortugas
+LASA
+Lassis Inn
+Last Call Sports Bar & Grill
+Layla's Market
+Lazy Boy BBQ
+Lazy Pete's
+Le Comptoir
+Le Petit Paris
+Lebnani
+Lechuga's Italian Restaurant
+LED Ultra Lounge
+Ledlow
+Lee's Noodles & Dok Dok Chicken
+Lemon Poppy Kitchen
+Lemonade
+Lenny's Burger
+Lenny's Burger Shop
+Lenny's Sub Shop
+Leo's Greek Castle
+Leo's Tacos Truck
+LEON La Taberna Mexican Tavern
+Leonard's Bar B Q & Burger Hut
+Leroy's Bar-B-Que
+Leroy's Family Restaurant
+Li's Bowl
+Liang's Thai Food
+Library Bar
+Lilly's Dim Sum Then Some
+Lily's Family Restaurant
+Lin's Grand Buffet
+Lincoln's Roadhouse
+Lindsey's Hospitality House & Barbecue
+Linger
+Link N Hops
+Little Anita's
+Little Bear
+Little Beast Restaurant
+Little Caesar's
+Little Caesar's Pizza
 Little Caesars
+Little Caesars Pizza
+Little Carmine's
+Little Ceaser's
+Little Cleo's Seafood Legend
+Little Dom's
+Little Donkey
+Little Dragon
+Little Dragon Chinese Restaurant
+Little Greek Restaurant
+Little India
+Little India Restaurant & Bar
+Little Italy Restaurante
+Little Italy's Pizza & Pints
+Little Miss BBQ
+Little Next Door
+Little Ollie's
+Little Peking
+Little Pine
+Little Raven Bistro
+Little Rock Ouachita Landing
+Little Rodeo
+Little Savannah Restaurant And Bar
+Little Shanghai
+Little Sister
+Little Tart Restaurant
+Liyuen
+Llamarada
+Lloyd's Restaurant
+Lo Stella Ristorante
+Lo-Lo's Chicken & Waffles
+Lobsta Shack
+Lobster & Beer
+Loca Luna
+Local
+Local Lime
+Localita & The Badasserie
+Locanda Del Borgo
+Loco Patron
+LocoL
 Logan's Roadhouse
-Lone Star Steakhouse & Saloon
+LoHi Steakbar
+Lola Coastal Mexican
+Lolo's BBQ
+Lone Star Steakhouse
+Long Branch Saloon
+Long Wong's
 LongHorn Steakhouse
-Long John Silver's
+Lookin Good Restaurant
+Los Altos Ranch Market
+Los Amigos Mexican Restaurant
+Los Angeles Biergarten
+Los Arcos
+Los Arcos Mexican Grill
+Los Armandos Asadero Y Mariscos
+Los Cabos II
+Los Carboncitos
+Los Chingones
+Los Chingones DTC
+Los Cinco Puntos
+Los Compadres Mexican Food
+Los Compadres Mexican Resaurant
+Los Dos Hermanos Taco Truck
+Los Dos Molinos
+Los Jarritos Restaurant
+Los Juanes
+Los Molcajetes
+Los Molcajetes Taqueria
+Los Molinos Restaurant
+Los Parceros
+Los Rancheros
+Los Reyes
+Los Reyes de la Torta
+Los Reyes De La Torta
+Los Tacos
+Los Tacos Famous Taqueria
+Los Taquitos
+Los Toritos Mexican Restaurant No 2
+Los Tres Cochinitos Restaurant
+Los Valedores
+Lost Forty Brewing
+Lotus
+Lotus Chinese Restaurant
+Lou Malnati's Pizzeria
+Lou's Food Bar
+Lou's Pub & Package Store
+Lounge 5280
+Love Baked Wings
+Loving Hut
+Lowdown Brewery
+Lowry Beer Garden
 Luby's
-Lyon's
+Lucero's Mexican Food
+Luci's at the Orchard
+Luci's Healthy Marketplace
+Lucile's Creole Cafe
+Lucky Boy Burger Shop
+Lucky Cat
+Lucky Kitchen
+Lucky Pie Pizza and Tap House
+Lucky Wishbone
+Lucky's Burgers & Hotdog Grill
+Lucy's
+Lucy's Coffee & Tea
+Luigi's Pizza
+Luigi's Pizza & Pasta
+Luigi's Pizzaria
+Luisitos Torta's & Jugos
+Luke's of Chicago's
+Lulu's Crab Boil
+LuLu's Latin Rotisserie & Grill
+Luna Grill
+Luna Maya Burritos
+Lunch Break
+Lunch Time Cafe
+Lupe's Burritos
+Lupita's Hot Dogs
+Lupita's Original Mexican Food
+Lupita's Restaurant
+Lupita's Tamales
+Lustre Bar
+Luv2Eat Thai Bistro
+Lux Central
+Lydia's La Canasta Mexican Food
+M & M BBQ
+M CON
+M Grill
+M Uptown
+Ma Dang Gook Soo
+MA's Gourmet Dogs
+MacAlpine's Soda Fountain
+Macayo's Mexican Restaurants
+Maccheroni Republic
+Machete
+Machete Tequila + Tacos
+Maci Cafe
+MAD Greens - Colorado Blvd
+MAD Greens - Phoenix
+Madame Monsieur
+Maddie's Place
+Maddie's Restaurant
+Mafiaoza's Birmingham
+Magal BBQ
 Maggiano's Little Italy
-Marie Callender's
-Max & Erma's
+Magic City Grill #2
+Magic City Grille
+Magic Wok
+Magnolia BBQ & Fish
+Majerle's Sports Grill
+Makan Malaysian Cafe
+Makarios
+Maki Fresh
+Mali Thai Cuisine
+Mallards
+Mama B's Take Out
+Mama Os
+Mama Tana Salvadorian Restaurant
+Mama's Country Cooking Restaurant
+Mama's Gyros Grill
+Mama's International Tamales
+Man Wah
+Mandarin House Chinese Restaurant
+Mandy's Fish & Chips
+Mangiamo Pronto
+Mango Tango Smoothies and Grill
+Manichi Ramen
+Manna From Heaven Gourmet Food Truck
+Manuel's Mexican Restaurant
+Mapo Kkak Doo Gee Restaurant
+Marco T's Pizzeria
+Marco's Pizza
+Marczyk Fine Foods
+Marg's Taco Bistro
+Margarita Grill
+Margs Taco Bistro
+Maria's Frybread & Mexican Food
+Marie's Coffee Deli
+Marigold Maison- Paradise Valley
+Marilyn's Deli & Dogs
+Marino Restaurant
+Mario's Peruvian & Seafood
+Marion Street Tavern
+Marisa's Mexican Seafood Cocina
+Mariscos 4 Vientos
+Mariscos Acapulco
+Mariscos Chihuahua
+Mariscos El Jato
+Mariscos El Rey Del Mar
+Mariscos Ensenada
+Mariscos Jalisco
+Mariscos La Corita
+Mariscos Linda
+Mariscos Olas Altas
+Mariscos Playa Hermosa
+Market Place Restaurant
+Market Provisions
+MarketPlace Grill
+Markham Street Grill & Pub
+Marlowe's
+Marouch Restaurant
+Marquis Pizza
+Marrakech Grill
+Marshall's Fine Dining
+Marston's Cafe
+Martini Lounge & Grill
+Marugame Monzo
+Maruya
+Mary Coyle Ol' Fashion Ice Cream
+Mary Jane's Pizza
+Mary's Restaurant
+Maryln's Fish & Chips
+Mas Kaos Pizzeria + Taqueria
+Masa of Echo Park
+Masaman Thai Kitchen
+Mason's Deli & Grill
+Master Chef Restaurant
+Masterpiece Delicatessen
+Masterpiece Kitchen
+Masters Sandwich Shop
+Matsuhisa Denver
+Matt's Big Breakfast
+Max City BBQ
+Max Gill and Grill
+Max Market
+Max's Beefy Burgers
+Max's Delicatessen
+MAX's Wine Dive
+Maxie's Cafe
+Maxim Restaurant
+Maximiliano
+May Garden Restaurant
+Maya's Restaurant
 McAlister's Deli
+McBride's Cafe
+McCoys Restaurant
+Mcdonald's
 McDonald's
-The Melting Pot
-Mazzio's Italian Eatery
-Miller's Ale House
+McDonalds
+McDonalds with Playground
+McGinley's Pub
+McGurkee's Italian Kitchen
+McLoughlin's Restaurant
+Mead Street Station
+Meadow Lark Farm Dinners
+Meadowlark Kitchen
+Med Grill
+Meea's
+Mei Garden Buffet
+Mejico Cocina Mejicana
+Mekong Restaurant
+Mel's Diner
+Mellow Mushroom
+Melrose Cafe
+Melrose Kitchen
+Melt
+Melt Avondale
+Meme's BBQ Smoke House
+Men Oh Tokushima Ramen
+Mendocino Farms
+Menya Noodle Bar
+Mercado
+Mercado Hollywood
+Mercantile Dining & Provision
+Mercury Cafe
+Merk's Tavern & Grill
+Mesa Verde
+MESSHALL
+Mestizos Food Truck
+Metro Cafe
+Mexicali Taco & Co
+Mexicano
+Mexicanos 30-30
+Mexico Chiquito
+Mexico City Lounge
+Mexico In Alaska Restaurant
+Mexico Lindo
+Mexx32
+Mezcal
+Meze
+Mi Patio
+Mi Pueblo
+Mi Pueblo Mexican Food
+Mi Ranchito 2
+Mi Tierra Dominican Restaurant
+Micelis Italian Food
+Michael's Cafe
+Michael's Steaks and Seafood
+Michelina's
+Mici Handcrafted Italian
+Mici Handcrafted Italian- Stapleton
+Mick's Bar-B Q
+Middle Eastern Bakery & Deli
+Middle Eastern Cuisine
+Middle Way Cafe
+Midnight Sun Cafe
+Midwestern Saloon
+Mignon
+Mika's Greek
+Mike's Cafe
+Mike's Deli
+Mike's Deli 2
+Mikey's Grill
+Milano's Cafe
+Milano's Pizza
+Mile High Thai
+Mile High Vienna Stand
+Milford Track
+Milk & Honey Bar + Kitchen
+Milk Bar
 Milo's Hamburgers
+Milwaukee Street Tavern
 Mimi's Cafe
-Mitchell's Fish Market
+Ming's Cuisine
+Mingo's Louisiana Kitchen
+Mings Garden
+Miracle Mile Delicatessen
+Mirak 2
+Miro
+Miss Dots
+Miss Myra's Pit Bar-B-Q
+Mister Bossam
+Mitsuru Cafe
+Mixto Comida Latina
+Miyabi Jr. Express
+Mizu Japanese Steakhouse
+Mizuna
+Mo Better Burgers
+Mocha Masters Coffee Company
+MOD Pizza
+Modan Artisanal Ramen
+Modern  Grove
+Modern Burger
+Modern Eats
+Modern Margarita
+Modern Market
+Modern Tortilla Food Truck and Catering
+Modmarket
+Moe's Broadway Bagel
+Moe's Original Bar B Que
 Moe's Southwest Grill
-Montana Mike's
-Mr. Hero
-Mrs. Fields
-National Coney Island
-Naugles
-Noodles & Company
-O'Charley's
-Old Country Buffet
-Olive Garden
-On the Border Mexican Grill & Cantina
+Moes Original BBQ
+Mohawk Bend
+Moira Sushi
+Mojo Pub & Grill
+Moles La Tia
+Momed Atwater Village
+Momma Goldberg's Deli
+Momma O's Seafood Restaurant
+Mommao's
+Mon Cherie
+Mona's
+Monarca Pasta & Grill
+Monster Pizza
+Monte 52
+Moolko
+Moon Light Restaurant
+Moon Star Chinese Restaurant
+Moon Valley Cafe
+Moon Valley Grill
+Moonlight Diner
+Moore's Landing Seafood & Steaks
+Moose's Tooth
+MOOYAH Burgers, Fries & Shakes
+Morinas Italian Restaurant
+Mornin' Moonshine
+Morning Glory Cafe
+Morningside Bagels
+Moruno
+Most Wanted Taco Shop
+Mother Bunch Brewing
+Mother's
+Moto Sushi
+Mountain Cafe
+Mr Chao's Asia Bistro
+Mr Chen's Authentic Chinese Cooking
+Mr India BBQ
+Mr Leno
+Mr Lucky's Sandwiches
+Mr P's Butcher Shop & Deli
+Mr Panchito
+Mr Pancho
+Mr Wang's Restaurant
+Mr. Chen's Authentic Chinese Cooking
+Mr. Cheng's
+Mr. Chens Authentic Chinese Cooking
+Mr. Egg
+Mr. Fish Mariscos & Bar
+Mr. Texano Mexican Restaurant
+Mrs B's On Fourth
+Mrs White's Golden Rule Cafe
+Mrs Winner's Famous Recipe Chicken & Biscuits
+Mrs. Sippee
+Mt Fuji
+Mt Fuji Hibachi & Sushi Bar
+Mt Fuji Japanese Restaurant
+Mu Shu Asian Grill
+Mucha Lucha Taco Shop
+Mucho Macho Taco
+Mud Hen Tavern
+Mudtown Eat & Drink
+Muffaletta's Pizza & Pasta
+Mugs Cafe
+Mugshots Grill & Bar
+Mugshots Grill and Bar
+Muldoon Pizza
+Mulligan's Restaurant
+Mumbo Gumbo Cafe
+Munoz Mexican Grill
+Murakami Sushi
+Murry's Dinner Playhouse
+Muse Restaurant
+Mustard's Last Stand
+MVP Sports Deli & Eatery
+My Brother's Bar
+My Fit Foods
+My Friends Place
+My Mother's Restaurant
+My Pie Pizza
+My Slice of the Pie Pizzeria
+My Two Cents
+My Vegan Gold
+Myne Pepper
+Mystic Store and Deli
+myThai Downtown Restaurant
+Myung Dong Kyoja
+Myung In Dumplings
+Nabeel's Cafe & Market
+Nabeeya
+Naegohyang Restaurant
+Naji's Pita Gourmet
+Naked BBQ
+Namaste Kitchen
+Namaste Shangril-La
+Nami
+Nana Tee's Hometown Dogs
+Nana's Eatery
+Napoli's Pizza
+Naruto Japanese Restaurant
+Nashville Rockin Grill
+Native Grill & Wings
+Natural Selection Healthy Grill
+Nature's Brew
+Nawaz Indian Cuisine
+Neighbors
+Nellos Pizza
+Nelson Brother's Cafe
+Nest
+Nestle Toll House Cafe by Chip
+Networks Bar & Grill
+New Asia
+New Asian Kitchen
+New Asian Super Buffet
+New China
+New China Buffet III
+New China Cafe
+New China Chinese
+New China Restaurant
+New China Town
+New Dragon Restaurant
+New Dragon Seafood Restaurant
+New Funree Chinese Restaurant
+New Garden Restaurant
+New India Bazaar
+New Peking Restaurant
+New Saigon Bakery & Deli
+New Saigon Restaurant
+New Tokyo Food Market
+New World Cheese
+New York Butcher Shoppe
+New York City Deli
+New York Deli News
+New York Famous Deli
+New York Pizza
+New York Style Delicatessen
+Newbarry's Family Restaurant
+Newk's Eatery
+Newk's Express Cafe
+Next Bistro & Bar
+NiBBQ Grill
+Niccoli's Italian Grocery & Deli
+Nick's
+Nick's Cafe
+Nickel Diner
+Night + Market Song
+Niki's Restaurant
+Niki's West Steak And Seafood Restaurant
+Nilda's Party Creations
+Ninety Nine Restaurant and Pub
+Ninja Japanese Sushi & Steakhouse
+Nino's Greek Cafe
+Nino's Italian Restaurant
+Niro's Gyros
+Nissi's Grill
+Noble Eatery
+Nobuo At Teeter House
+Nocturne
+Nogales Hot Dogs
+NOLA Voodoo Tavern And Perks
+Nong La Cafe
+Noni's Cafe
+Nonna's Chicago Bistro & Bella Vino Wine Bar
+Noodle & Rice
+Noodle Fresh Express
+Noodle World Alaska
+Noodles
+Nook Kitchen
+Nori Sushi
+Nori Thai and Sushi
+North County
+North Italia
+North Mountain Brewing
+Northern China Restaurant
+Norton Sound Seafood House
+Noshi Sushi
+Nothing But Noodles
+Nue Studio & Cafe
+Nuevo Burrito
+NuHu Mongolian Express
+NY Pizza Pub
+NY Slicers Deli
+NYPD Pizza
+O Sushi
+O'brady's Burger & Brew
+O'carr's
+O'Carr's
+O'Charley's Restaurant & Bar
+O'Henry's Coffees
+O'malleys On the Green
+O.H.S.O. Eatery + NanoBrewery
+Oak and Raleigh
+Oasis Crossroads Bar & Grill
+Oaxacan Quesadilla Cart
+OB Bear
+Ocean
+Ocean Prime
+Oceans at Arthur's
+Ocho Mexican Grill
+Ocotillo
+Odelay Bagel
+Odyssey Italian Restaurant
+OEC Revolving Sushi Bar
+Off Da Hook Soul Food
+Off The Hook
+Officine Brera
+Oh My Poki
+Ohana Poke
+OHSO Brewery - Paradise Valley
+Oi Asian Fusion
+Okinawa
+Okinawa Japanese Cuisine
+Okinawa Sushi & Hibachi Steak House
+Okipoki
+Okra Cookhouse & Cocktails
+Old Chicago
+Old Major
+Old Mill Bread & Flour
+Old South Pearl Street
+Old Station Sub Shop
+Old Town Sarajevo
+Old West Pancake House
+Oleego By Parks BBQ
+Olexa's
+Olive & Finch
+Olive & Ivy
+Olive Branch
+Olive Garden Italian Restaurant
+Olive Tree Market & Grill
+Oliver's Sophisticated Bean
+Ollie Irene
+Ollie Vaughn's
+Olsons Scandinavian Delicatessen
+Olympian Burgers
+Olympic Cheonggukjang
+Olympic Noodle
+Omaha Steakhouse
+On Tap Sports Cafe
+On The Border Mexican Grill & Cantina
+Ondal 2
+One Eleven At The Capital
+Onefold
+Ono Hawaiian BBQ
+Oo-Kook Korean BBQ
+Oomasa
+Open Sesame
+Ophelia's Electric Soapbox
+Ophelia's Kansas City BBQ
+Orchid Bar|Kitchen
+Oregano's Pizza Bistro
+Organic Harvest
+Organic Oasis Restaurant & Juice Bar
+Organix
+Orient Express
+Oriental Express
+Oriental Garden
+Original Breakfast House
+Original Hamburger Works
+Original Pantry Cafe
+Originale
+Orleans & York Deli
+Orleans and York Deli
+Orsa & Winston
+Orso
+Osage Cafe
+Osaka Japanese Cuisine and Sushi Bar
+Osaka Japanese Restaurant
+Osaka Ramen
+Osaka Sushi
+Oscar's Taco Grande
+Oscars at the Museum
+Osso DTLA
+Osteria La Buca
+Osteria Marco
+Ostrich Farm
+Ot's Sports Grill
+Otakumen
+Otey's Tavern
+Otium
+Otomisan Restaurant
+Ototo
+Otro Cafe
+Ouachita Brew House
+Our Place
+Ousler's Sandwiches
 Outback Steakhouse
-The Old Spaghetti Factory
-The Original Italian Pie
-The Original Pancake House
-Panera Bread
+Oven + Vine
+OvenBird
+Over Easy
+Overtime Bar
+Owlbear Barbecue
+Ozark Country Restaurant
+Ozu East Kitchen
+P.A.K Crepes & Coffee
+P.F. Chang's
+Pa Ord Noodle
+Pablo's Restaurante & Cantina
+Pacific Dining Car
+Pacific Rim Sushi
+Pacific Star Oyster Bar & Seafood
+Paella Cuisine from Spain
+Pailin Thai Cuisine
+Pajama Baking Company
+Palace Arms
+Palace Chinese Restaurant
+Palermo Pizza & Philly's
+Palette
+Palettes Contemporary Cuisine
+Paley
+Palm Grove Ethiopian Restaurant
+Palm's Thai Restaurant
+Pancetta Regional Kitchen + Wine Bar
+Pancho's Villa
 Panda Express
-Papa Gino's
+Panda Garden
+Panda Garden Buffet
+Panda Restaurant
+Pane Bianco
+Panera Bread
+Pangea
+Panini Bread and Grill
+Panini Cafe - Downtown
+Panorama Cafe
+Panzano
+Papa Chevo's Taco Shop
+Papa Cristo's
+Papa Joe's Fish-N-Que
 Papa John's Pizza
-Papa Murphy's Take 'N' Bake Pizza
-Pei Wei Asian Diner
-Penn Station East Coast Subs
-Perkins Restaurant and Bakery
-P. F. Chang's China Bistro
+Papa Murphy's
+Papilles Bistro
+Papitos Mexican Restaurant
+Papou's Pizzeria & Italian Eatery
+Pappadeaux Seafood Kitchen
+Pappas Grill - Greek Cuisine
+Paquime- Street Food of Mexico
+Paradise Biryani Pointe
+Paradise Lounge
+Paradise Valley Burger Company
+Paramount Bar
+Paramount Cafe
+Parish Seafood And Oyster House
+Parisi
+Park and Co
+Park Burger
+Park Hill Hub
+Park's BBQ
+Parkside
+Paros Chicken
+Parsley
+Paseo San Miguel
+Pasquale's Pizza & Pasta
+Pasta Avanti
+Pasta Jack's
+Pasta Sisters
+Pastries N Chaat
+Pat's Philly Steaks & Subs
+Patio Burgers & Beer
+Patxi's Pizza
+Patxi's Pizza - Uptown
+Patzcuaro's
+Paul's Hotdogs
+Paul's Kitchen
+Paw Paw Patch
+Paxia Authentic Mexican Cuisine
+Paxton's Pizza
+Paz Cantina
+Pazzo
+Peanut Farm
+Pebbles Bakery
+Peggy's Restaurant
+Pei Wei
+Peking Palace
+Peking Tavern
+Peking Wok
+Pellicola Pizzeria
+Penn Station Coffee Shop
+Pepe's Taco Villa
+Pepper Asian Bistro
+Pepper Mill
+Peppercini's Deli & Catering
+Peppers
+Peppersauce Cafe
+Perch
+Perfect Pear Bistro
+Perry's Steakhouse & Grille
+Persian Garden Cafe
+Pescaderia Danny's Cevicheria
+Pestolini
+Pete's Central One Restaurant
+Pete's Gyros Place
+Pete's Kitchen
+Pete's University Park Cafe
+Peter's Chinese Cafe
+Peter's Sushi Spot
+Petit Trois
+Pez Cantina
+Philippe the Original
+Philippine Plaza
+Philly's Sports Grill
+Pho & Grill
+Pho 1
+Pho 280
+Pho 38 and Noodle House
+Pho 602
+Pho 63
+Pho 7
+Pho 79
+Pho 87
+Pho 95
+Pho 96
+Pho 999
+Pho A.V
+Pho And More
+Pho Binh Minh
+Pho Bistro
+Pho Broadway
+Pho Cafe
+Pho Denver
+Pho Dimond
+Pho Duy
+Pho Eastern
+Pho House
+Pho Jula
+Pho K&P
+Pho Lena
+Pho Lena East
+Pho Lena Express
+Pho OK
+Pho On 6th
+Pho Pho Vietnamese & Sushi Bar
+Pho Que Huong Vietnamese Restaurant
+Pho Saigon
+Pho Saigon Pearl
+Pho Saigon Star
+Pho Thai Town
+Pho Thanh
+Pho Thanh My
+Pho Vietnam
+Pho Vietnam 4
+Pho Vietnam 8
+Pho-natic
+Phoenician Kabob
+Phoenix Blue Fin
+Phoenix City Grille
+Phoenix House Of Pizza And Subs
+Phoenix Public Market Cafe
+Phonatik
+PHX Burrito House
+Pi Kitchen + Bar
+Piatti
+Picazzo's Organic Italian Kitchen
+Piccolo's
+Pie Five Pizza Co
+Pie Hole
+Pieology Pizzeria
+Pig'n-Chik
+Pil's Deli
+Pile High Burgers
+Pinch of Flavor
+Pine & Crane
+PINGTUNG Eat-in Market
+Pink Tank
+Pinnacle Valley Restaurant
+Pino's Pizza Al Centro
+Pinto Thai
+Pints Pub
+Pioneer Bar
+Pioneer Chicken
+Piper's Restaurant & Lounge
+Pit Bar-B-Q the Number One
+Pita Bar & Grill
+Pita Bistro
+Pita Hut
+Pita Jungle
+Pita Loco
 Pita Pit
+Pita Stop
+Pitic Restaurant
+Pizza a Metro
+Pizza And Grill
+Pizza by Jamico
+Pizza by Napoli
+Pizza Cafe
+Pizza Cafe West
+Pizza D'Action
+Pizza Divino
+Pizza Heaven Bistro
 Pizza Hut
-Pizza Inn
-Pizza Ranch
-Planet Hollywood
-Ponderosa Steakhouse and Bonanza Steakhouse
+Pizza Next Door
+Pizza Olympia
+Pizza On 40th
+Pizza Pedal'r
+Pizza People Pub
+Pizza Plaza Restaurante
+Pizza Republica
+Pizza Romana
+Pizza Studio
+Pizzanista!
+PizzaRev
+Pizzeria Bianco
+Pizzeria Colore
+Pizzeria Locale
+Pizzeria Mozza
+Plan Check Kitchen + Bar
+Plant Food For People
+Platform T
+Plato
+Playas Del Novilleros
+Playtime Pizza
+Pochitos Tortilla Factory
+Pointe In Tyme
+Pok Pok LA
+Poke Bar
+Poke Party
+Pokey D's Barbecue & Chicago Style Foods
+PokiNometry
+Polish Goodies
+Polka Polish Restaurant
+Pollo a La Brasa Western
+Pollo Lucas
+Pollos El Brasero
+Pomegranate Cafe
+Pomelo
+Pomo Pizzeria - Downtown Phoenix
+Poncho's Mexican Food
+Pop's Neighborhood Grill
+Pop's Place
+Popeye's
+Popeye's Famous Fried Chicken
+Popeyes
 Popeyes Chicken & Biscuits
-Portillo's Restaurants
-Port of Subs
-Potbelly Sandwich Works
+Popeyes Chicken and Biscuits
+Popeyes Louisiana Kitchen
+Popo's Mexican Food
+Poppies Restaurant
+Poppy + Rose
+Pork and Pickle
+Pork on a Fork
+Pork On A Fork
+Porky's Pride Smoke House
+Post & Beam
+Post Office Pies
+Postino Arcadia
+Postino Central
+Postino LoHi
+Potager
+Potbelly Sandwich Shop
+Pour Haus Wine Bar
+Powerplant Superfood Cafe
+Pozoleria Guerrero
+Prado Restaurant
+Prael
+Pranzo
+Presidio
+Preux & Proper
+Primeaux Cheese and Vino
+Primo's
+Prohibition
+Prosit - Fine Beers and Sausages
+Prosperoats
+Protein Bar
+Proto's Pizzeria Napoletana
+Providence
+Province Urban Kitchen & Bar
+PT's at SOHO
+Ptarmigan Bar & Grill
+Pub 261
+Pub House
+Public School 213
+Puerto Plata Dominican & Mexican Restaurant
+Puerto Rico Latin Bar & Grill
+Puerto Vallarta Sports Bar
+Punch Bowl Social - Denver
+Purgatory Pizza
+Purple Onion
+Purple Onion Deli & Grill
+Q Up Barbeque
 Qdoba Mexican Grill
-Quaker Steak & Lube
+Quarters Korean BBQ
+Quebec Street Cafe
+Queen of Sheba
+Quickie Burger
+Quiero Arepas
+Quiessence Restaurant
+Quijotes Broadway
 Quiznos
-RA Sushi
-Rainforest Cafe
+Qwik Cup Espresso
+R.Kidd's Pizza & Wings
+RA Sushi Bar Restaurant
+Racca's Pizzeria Napoletana
+Racines Restaurant
+Radish
+Raduno
+Raffaele's Pizza
+Rafiki's Grill
+Ragin' Hog BBQ
+Ragtime Cafe
+Rainbow Sushi
+Raising Cane's
 Rally's
-Raising Cane's Chicken Fingers
-Rax
-Red Hot & Blue
+Rally's Hamburgers
+Ramen Hood
+Ramiro's Mexican Food
+Ranch House Family Restaurant
+Ranch House Grille
+Ranelli's Deli & Cafe
+range
+Rascal
+Ray's Place
+Real & Rosemary
+Reathrey Sekong
+Rebel Restaurant
+Recess Beer Garden
+Red Bowl
+Red Devil Italian Restaurant & Pizzeria
+Red Door
+Red Ginger
+Red Lantern Chinese Food
+Red Lion Tavern
 Red Lobster
-Red Robin
-Redstone American Grill
-Robeks
-Rock Bottom
+Red Mountain Crawfish
+Red Mountain Expresso
+Red River Catering Company
+Red Robin Gourmet Burgers
+Red Rooster
+Red Rooster Cafe
+Red Square Euro Bistro
+Red Thai
+Red Wok Express
+Red's Center Cafe
+Redbird
+Regal Bakery & Cafe
+Reggie's Deli & Cafe
+Regio's Mexican Food
+Reign Of Thai
+Reiver's Bar and Grill
+Relish Cafe
+Renaissance Denver Downtown - City Center
+Rendezvous Cafe
+Reno's Argenta Cafe
+Restaurant Komasa
+Restaurante Tierra Caliente
+Restaurants Atoyac Estilo Oaxaca
+Rev Cafe
+Rev Room
+Revelry Kitchen
+Revolution Taco & Tequila Lounge
+Revolutionario: North African Tacos
+Revolve Kitchen & Brew
+Reyes Pizza, Ice Cream & More
+Rhein Haus
+Rialto Cafe
+Rib It Up
+Rice Bowl
+Rice Lovers
+Rice Paper
+Rice To You
+RiceBar
+Rich's BBQ
+Richardson's
+Rick's Beignets
+Ricky's Fish Tacos
+Rico's American Grill
+Right Away Patio Restaurant
+Rimrock Bar & Grille
+Rincon Oaxaqueno
+RingSide Pub & Grub
+Rio Grande Mexican Restaurant
+Rioja
+Rise & Shine Biscuit Kitchen and Cafe
+Ristorante Capeo
+Rita's Mexican Food
+Rito's Market & Mexican Take Out
+River City Grille
+Riverbend Bar & Grill
+Riverfront Steakhouse
+Rivershore Eatery
+Riviera At The Breakers Resort
+Riviera Maya Mexican Restaurant
+Road To Seoul
+Roadside Bar B Q Ribs & Chicken
+Roaming Buffalo BBQ
+ROC Beverly Grove
+Rocco's Baja Grill
+Rock Bottom Restaurant & Brewery
+Rock-N-Roll Sushi
+Rock-N-Roll Sushi - Hoover
+Rocket Burger & Subs
+Rocky Mountain Slices
+Rocky Top Tavern
+Rocky's Pizza & Italian Foods
+Rodini Park
+Rodney's Handlebar & Grill
+Rogue Tavern
+Rojo
+Rokerij
+Rolando's Mexican Food
+Rolibertos Mexican Food
+Roll Roll Roll
+Roly Poly
+Roly Poly Sandwiches
+Roma Garden Ristorante
+Roma Italian Restaurant
+Romanelli's Deli & Bakery
+Romano's
 Romano's Macaroni Grill
+Romes Saloon
+Ronnie 2
+Ronnie Sushi
+Roo Bar
+Rooster & Moon
+Roostercat Coffee House
+Root 25 Taphouse and Kitchen
+Root Down
+Root Down - Denver International Airport
+Ropers Restaurant
+Rosalia's Family Bakery
+Rosati's Pizza
+Rosato's Deli
+Roscoe's Catfish & BBQ
+Roscoe's House of Chicken & Waffles
+Rose & Vine
+Rosie McCaffrey's Irish Pub & Restaurant
+Rosita's Place
+Rotana
 Round Table Pizza
-Roy Rogers Restaurants
+Route 66 Diner
+Rowe's Avondale
 Roy's
-Ruby Tuesday
+Royal
+RT Cafe and Bar
 Rubio's Fresh Mexican Grill
+Ruby Tuesday
+Ruen Pair
+Running Goose
+Ruscelli's Italian Restuarant
+Rusconi's American Kitchen
+RUSH
+Rush AK
+Russell's Smokehouse
+Rustic Cafe
+Rustic Goat
+Rustler's Rooste
+Rusty's Bar-B-Q
 Ruth's Chris Steak House
-Runza
-Saladworks
-Sbarro
+Saba's Mediterranean Kitchen
+SaBai Modern Thai
+Sabor Latino Restaurant
+Sabor Tropical
+Sabranos
+Sack Sandwiches
+Sacks Art of Sandwicherie
+Sacks Cafe
+Saddle Creek Woodfired Grill
+Safari Resturant
+Saffron
+Saffron JAK Original Stonebread Pizzas
+Sage Organic Vegan Bistro
+Saigon Bowl
+Saigon Noodle Avondale
+Saigon Noodle House
+Saint Felix
+Sakana Sushi & Grill
+Sake House by Hikari
+Sakura
+Sakura House
+Sakura Restaurant
+Sala Thai
+Salad and Go
+Salad Box
+Salati Italian Street Food
+Salazar
+Salem's Diner
+Salt & Grinder
+Salt And Pepper Middle Eastern Restaurant
+Salvadoreno Restaurant #2
+Salvaggio's Deli
+Salvatore's Pizza
+Salvatore's Pizza & Pasta
+Salvatore's Pizza and Pasta
+Sam Woo
+Sam's Deli & Grill
+Sam's No. 3
+Sam's Southern Eatery
+Sam's Super Samwiches
+Samantha's Tap Room & Wood Grill
+Samarkand
+Same Same
+Sammiches Bistro
+Sammy's Old Fashion Hot Dogs
+Sammy's Sandwich Shop
+Samoan Kitchen
+Samosa House Silverlake
+Samurai Japan
+Samurai Japanese Steakhouse
+Samurai Japanese Steakhouse & Sushi Bar
+Samurai Sushi Garden
+San Carlos Bay Seafood Restaurant
+San Salvador
+San Sui Tei
+Sanamluang Cafe
+Sandwich Deck
+Sandwich Shop
+Sandy's Homeplace Cafe
+Sanpeggio's Pizza
+Santiago's
+Santisi Brothers
+Santo Coyote
+Santo Coyote Mexican Food Tequila Bar
+Sapp Coffee Shop
+Sara's Sandwiches
+Sarita's Pupuseria
+Sarris Restaurant
+Sarto's
+Sashimi Japanese Steakhouse
+Sassafras American Eatery
+Sassafras American Eatery, Capitol Hill
+Satchel's on 6th
+Satterfield's Restaurant
+Sauce Pizza & Wine
+Sausage Kings
+Savor Flavor Asia
+Saw's BBQ
+Saw's Juke Joint
+Saw's Soul Kitchen
+Sawbucks Neighborhood Grill
+Sawyer
+Say McIntosh
+Scallions
 Schlotzsky's
+Schlotzsky's Deli
+Scott's Generations Restaurant & Delicatessen
+Scott's Koneys
+Scottie's Sub Shop
+Scramble A Breakfast Joint
+Scratch Burrito & Happy Tap
+Sea Dragon Chinese Restaurant
+Sea Galley Restaurant
+Seafood and Chicken Box
+Seafood Express
+Seamus McCaffrey's
+Seasalt Fish Grill
 Seasons 52
-Seattle's Best Coffee
+Second Home Kitchen
+Sekisui Restaurant
+Senior Tequila
+Senor Burritos
+Senor Fish
+Senor Sushi
+Senor Tequila
+Seongbukdong
+Seoul Garden Restaurant
+Seoul Restaurant
+Seoul Sausage Little Tokyo
+Seoul Waffle Pizza
+Sera's Ramen Enclave
+Seree's Coffee Shop
+Serrano's Mexican Grill
+Seward's Folly Bar & Grill
+Shabu Fondue
+Shabu Hyang
+Shabu Shabu House
+SHABUYA
 Shake Shack
+Shako Mako Grill
+Shalimar Grocery / Halal Meat
+Shanahan's Steakhouse
 Shane's Rib Shack
-Showmars
-Shoney's
-Sizzler
-Skyline Chili
+Shangri-La Restaurant
+Shark's Fish & Chicken
+Shark's Fish and Chicken
+Sharks Fish & Chicken
+Sharks Fish & Chicken Too
+Sharks Fish And Chicken
+SharksTeeth
+Sharkys Fish & Chicken
+Shayan Express Restaurant
+Shefa Melrose
+Shekarchi Restaurant
+Shelby's
+Shells & Sauce
+Sheng Ramen
+Shepherd's Asian Bistro & Grill
+Shiki
+Shiki Sakura
+Shin-Sen-Gumi Hakata Ramen - Little Tokyo
+Shintaro Japanese Restaurant
+Ship Tavern
+Shish Kabob and Much More
+Shish Kabob Grill
+Shobu
+Shogun
+Shogun Japanese Steakhouse & Sushi Bar
+Shojin Downtown
+Shondiz
+Shonos Japanese Grill
+Short Leash Hot Dogs
+Short Leash Hot Dogs Food Truck
+Shorty Small's
+Shorty's Sandwich Shop
+Shotgun Dan's Pizza
+Shrimp Basket
+Shula's Steak House
+Siam Cuisine
+Siam Spicy Thai Restaurant
+Sicily's Pizza
+Sidewalk Grill
+Sienna Wine Bar & Small Plates
+Sierra Bonita Grill
+Silk Sushi Bar and Asian Fusion Restaurant
+Silver Coin Indian Grill
+Silver Dragon Chinese Restaurant
+Silver Gulch Brewing & Bottling
+Silverlake Ramen
+Silvertron Cafe
+Sim's Bar-B Que
+Simbal Restaurant
+Simon & Seafort's Saloon & Grill
+Simply Pho You
+Sinaloa Express
+Sinbad's
+Sinbad's Restaurant
+Sir Veza's Taco Garage
+Sis's Deli & Espresso Bar
+Sitar Indian Restaurant
+Sixth St Tavern
+Sizzlin Cafe
+Ski & Benny Pizza
+Skinny J's
+Sky Castle
+Sky Modern Japanese
+Slice
+Slices
+Sliceworks
+Slick's Sandwich Shops
+Slim Chickens
+Slippery Salmon
+Slurp Smoothies & Cafe
+Slurpin' Ramen Bar
+Small Wonder Food and Wine
 Smashburger
-Smokey Bones
-Sneaky Pete's
+Smoke Shack Bar-B-Q
+Smoke Shack Bar-B-Que
+Smoke's Poutinerie
+Smokehouse BBQ
+Smokehouse Steak & Seafood Restaurant
+Smokin' Buns BBQ
+Snarf's
+Sneaky Pete's Hot Dog
+Sneaky Pete's Hot Dogs
+Snociety Urban Eatery
+Snooze an AM Eatery
+Snooze An AM Eatery
+Snow City Cafe
+So Perfect Eats
+So Restaurant-Bar
+So-Cal Burgers Chill & Grill
+Sobo 151 Czech Bar & Grill
+Socorro's
+Soda Pop's
+SOKO Sushi & Sake Bar
+Sol Azteca
+Solera
+Solitaire
+SOLO Trattoria
+Sols Sandwich Shop and Deli
+Solstice Bar & Grill
+Son of a Gun
+Song Lynn
+Sonic
+Sonic Drive In
 Sonic Drive-In
-Souplantation and Sweet Tomatoes
-Spaghetti Warehouse
-Spangles
-St. Louis Bread Company
-Starbucks
+Sonny Williams' Steak Room
+Sonny's Hideaway
+Sonora Taco Shop
+Sons of Scullery Gourmet BBQ
+Soot Bull Jeep
+Soowon Galbi KBBQ Restaurant
+Sopita
+Sopranos Pizza & Philly's
+Sopressata At Black Hogg
+Sorrento's Restaurant
+Souk Shawarma
+Souper Bowl
+South On Main
+South Philly Cheese Steaks
+South Restaurant + Coffeehouse
+Southern Caribbean
+Southern Hospitality
+Southern Legacy BBQ & Brew
+Southern Rail
+Spanky's Urban Roadhouse
+Sparta Pizza
+Spartan Pita & Gyro
+Spartina
+Spatola: Ristorante Italiano Wine Bar
+Speakeasy Coffee Bar
+Spear Steak & Seafood House
+Spectators Grill & Pub
+Spee-D-Tee's BBQ & Subs
+Speedy Street Tacos
+Speedy's Mexican Food
+Spenard Roadhouse
+Speranza
+Spices Cafe
+Spicy Basil
+Spicy BBQ Restaurant
+Spicy Thai II
+Spinato's Pizzeria
+Spitz - Eagle Rock
+Spitz - Little Tokyo
+Spitz - Los Feliz
+Spoke & Wheel
+Spoonfed Grill
+SpoonZ Cafe
+Sports Page
+Spot Bar & Grill
+Spread Mediterranean Kitchen
+Spring
+Springtime In New York Cafe
+Spuntino
+Sputnik
+Sqirl
+Square One At the Boathouse
+Square One Dining
+Squarefritz
+Squid Ink
+Ssam Korean BBQ
+St. Francis Restaurant
+Stack'd Burger Kitchen
+Stackers Restaurant
+Stacy's Pampered Pig
+Stan's European Deli
+Star Kitchen
+Star of India Restaurant
+Starbuck's
 Steak 'n Shake
-Sticky Fingers
-Stir Crazy
-Sub Station II
+Steak 44
+Steak-Out
+SteamDot Coffee Company
+Steel City Bar & Grill
+Steele's
+Stella Barra Pizzeria
+Steuben's Food Service
+Steve's Snappin' Dogs
+Steve's Spenard Sports Pub
+Sticklers
+Sticky Rice
+Stickyz Rock'n'Roll Chicken Shack
+Stingray Sushi
+Stir Market
+Stix
+Stix Restaurant
+Stockyard Saloon
+Stockyards Restaurant
+Stoic & Genuine
+Stone Grill
+Stone Pony
+Stone's Throw Brewing
+Stonegrill
+Stones On 32nd
+Stout
+Stout Street Social
+Stowaway Coffee + Kitchen
+Straight Out of Philly
+Study Hall
+Stumpys Pizza
+Su Casa Home Cooking
+Su's Brunch
+SubCulture
+Submerge Sandwich
 Subway
-Sweet Tomatoes
-Swensen's
-Swensons
-T.G.I. Friday's
+Suehiro Cafe
+SUGARFISH by sushi nozawa
+Sugarmill Denver
+Suite 100 Restaurant, Bar & Lounge
+Sullivan's Steakhouse
+Sultan Chicken
+Summer Buffalo
+Sumo Japanese Steakhouse and Sushi Bar
+Sun Asian Kitchen
+Sun Nong Dan
+Sunfare
+Sunny Gardens
+Sunny's
+Sunrise Donuts
+Sunrise Sunset
+Sunshine Restaurant
+Super Dragon
+Super Oriental Market and Red Pearl Restaurant
+Super Star Asian Cuisine
+Super Subs
+Super Tortas DF
+Superior Grill
+SupperBell
+Supreme Bean Cafe
+Surawon Restaurant
+Surin 280
+Surin of Thailand
+Surin West
+Sushi & Sushi
+Sushi Bay
+Sushi Bay 17
+Sushi Brokers
+Sushi Bros
+Sushi by H
+Sushi Cafe
+Sushi Cafe West
+Sushi Den
+Sushi Enya
+Sushi Gen
+Sushi Hai
+Sushi Harbor
+Sushi Ippo
+Sushi Ken
+Sushi Ronin
+Sushi Station
+Sushi Style
+Sushi Train
+Sushi Village
+Sushi Ya
+Sushi Yako
+Sushi Ye
+Sushi Zo
+Sushi-Rama
+Sushiholic
+Suvipa Thai Food
+Sweet Basil Cafe
+Sweet Cream Donuts
+Sweet Ginger
+Sweet Mama's BBQ
+Sweet Pink Pepper
+Sweet Soul
+Sweet Tea Restaurant
+sweetgreen
+Swift's Kitchen
+Swing Thai
+Switch Restaurant & Wine Bar
+Sylvan Springs Diner
+Syntax Physic Opera
+Syrup Cherry Creek
+Syrup Downtown
+Szechuan Restaurant
+Szechwan Palace
+T Cook's
+T&R Burgers
+T-Bone Steakhouse
+T-Bones
+Ta'Carbon
+Ta-eem Grill
+Tabachines Cocina
+Table 28
+Table 6
+Table6
+Tables
+Taco & Dilla Parlor
+Taco Beer Burrito
 Taco Bell
 Taco Bueno
-Taco Cabana
-Taco John's
-Taco Mayo
-Taco Tico
-Taco Time
+Taco Casa
+Taco Guild
+Taco King
+Taco King 3
+Taco Loco
+Taco Mama
+Taco Man
+Taco Mich
+Taco Palace
+Taco Rico
+Taco Stand/ La Reyna
+Taco Zone Truck
+TacoMex 1
+Tacos & Tequilas
+Tacos Acapulco
+Tacos Baja Ensenada
+Tacos Chava
+Tacos Chiwas
+Tacos De Juarez
+Tacos DF
+Tacos El Compita
+Tacos El Gavilan
+Tacos el Hermano
+Tacos El Paisa
+Tacos El Pecas
+Tacos El Sapo
+Tacos Huicho
+Tacos Jalisco Inc
+Tacos Kissi
+Tacos La Lomita
+Tacos Mexico
+Tacos Rapidos
+Tacos Sahuaro
+Tacos Tequila  Whiskey
+Tacos Tequila Whiskey
+Tacos Tu Madre
+Tacos Tumbras a Tomas
+Tacos Villa Corona
+Tacos y Salsas
+Tag
+TAG Burger Bar
+Tahoora Grill
+Taipei 101 Sushi and Asian Bistro
+Taj India
+Taj Mahal Indian Cuisine
+Taj Palace Food Truck
+Takamatsu
+Takasaki
+Taki Sushi
+Takuma's Burgers
+Talladega Grille
+Tam's
+Tamales Alberto
+Tamales by La Casita
+Tamales El Mesquite
+Tamayo
+Tamayo Restaurant
+Tao Kitchen Asian Bistro
+Tap Root
+Taqueria Aguas Calientes
+Taqueria Castillo
+Taqueria Don Beto
+Taqueria Don Pancho
+Taqueria El Fundador
+Taqueria El Palenque
+Taqueria Emanuel
+Taqueria Garibaldi
+Taqueria Guadalajara
+Taqueria Jalisco San Juan
+Taqueria Karina Cafe
+Taqueria La Familia
+Taqueria La Guadalupana
+Taqueria La Hacienda
+Taqueria Los Anaya
+Taqueria Los Diaz
+Taqueria Los Pedros
+Taqueria Los Primos
+Taqueria Los Yaquis
+Taqueria Mexico
+Taqueria Samantha
+Taqueria Tafoya
+Taqueria Tijuana
+Taqueria Vista Hermosa
+Taqueria Y Birrieria Jalisco
+Taqueria Yaqui
+Taquerias El Chino
+Tarasco's New Latino Cuisine
+Tarbell's
+Tarbell's The Tavern
+Taste of China
+Taste of Thailand
+Tastee Freez
+Tasty Traveler
+Tatsu Ramen
+Tavern Platt Park
+Tavern Uptown
+Taylor's Chowder House
+Taylor's Steakhouse
+Taziki's Cafe
+Taziki's Mediterranean Cafe
+TBLA Catering & Cafe
+TD's Brochette Style Restaurant
+Tea & Toast Co
+Tea Light Cafe
+Tecate Bar & Grill
+Ted's  Restaurant
+Ted's Montana Grill
+Tee Pee Mexican Food
+Telegraph Bistro and Bar
+Tempura Express
+Tempura Inn
+Ten Handcrafted American Fare & Spirits
+Ten-Raku
+Tender Greens
+Tequila 61
+Tere's Mexican Grill
+Teresita's
+Teriroll
+Teriyaki House
+Terminal Bar
+Terra Bella Bistro
+Terri-Lynn's Bar-B-Q & Deli
+Territory Kitchen + Bar
+Terroni Downtown
+Terry's Finer Foods
+Terry's, The Restaurant
+Texas BBQ House
+Texas de Brazil
 Texas Roadhouse
-Tijuana Flats
-Tilted Kilt
-Tony Roma's
-Trader Vic's
+TEXAZ Grill
+TGI Fridays
+Thai Bao Vietnamese Restaurant
+Thai Basil
+Thai Basil Signature
+Thai Chili & Sushi
+Thai Daily BBQ
+Thai Deli
+Thai Delight Restaurant
+Thai E-San
+Thai Express
+Thai Food Express
+Thai Garden
+Thai Kitchen
+Thai Long-An
+Thai Lotus Restaurant
+Thai Monkey Club
+Thai Orchid
+Thai Pan
+Thai Pot Cafe
+Thai Rama
+Thai Siam
+Thai Taste Restaurant
+Thai Town
+Thai Village Restaurant
+Thank U Pho
+Thank You For Coming
+The 1up - LoDo
+The 49th
+The 9th Door
+The Abbey Tavern
+The Alabama Biscuit Co.
+The Arrogant Butcher
+The Asian Cajun
+The Atomic Cowboy
+The Attic Ale House
+The Avenue Grill
+The Backhouse
+The Bagel Deli & Restaurant
+The Bagel Man
+The Bar-B-Q Pit
+The Barbecue Company Grill and Catering
+The Berkshire
+The Bistro at Stapleton
+The Black Cat
+The Black Fig
+The Black Sheep
+The Blue Star
+The Boiling Crab
+The Boot At Brook Highland
+The Boot at Preserve Village
+The Box
+The Breadfruit & Rum Bar
+The Breakfast King
+The Briks
+The Brown Bag
+The Brown Derby
+The Bun Shop
+The Burrito Company
+The Butcher Block Cafe
+The Butcher Shop Steakhouse
+The Cafe
+The Cajun Steamer
+The Capital Grille
+The Carving Board
+The Chairman
+The Cheesecake Factory
+The Cherry Tomato
+The Chinese Kitchen
+The Clever Koi
+The Club
+The Cluck Truck
+The Coal Yard
+The Codfather
+The Collins Bar
+The Continental Bakery
+The Corner Beet
+The Corner CityScape
+The Corner Coffee Bakery
+The Corner Office
+The Coronado
+The Counter Downtown LA
+The Counter Phoenix
+The Courtyard Cafe
+The Cracked Egg
+The Crafty Fox
+The Crawling Crab
+The Crepe Club
+The Curtis Club
+The Dam Grille
+The Delectable Egg
+The District
+The Dixie Cafe
+The Dresden Restaurant
+The Duce
+The Duffeyroll Cafe
+The Egg & I
+The Elm
+The Escondite
+The Factory Kitchen
+The Faculty
+The Faded Rose
+The Fainting Goat Pub
+The Fig Tree
+The Filling Station
+The Fish Market Restaurant
+The Fix Burger
+The Flavor Table
+The Fold: Botanas & Bar
+The Foodshop
+The Fresh Fish Company
+The Frog Spot
+The Fry Bread House
+The Funky Muffin Bakery
+The Garage Cafe
+The Garden Bistro
+The Gardens Cafe by Kathy G
+The Garlic Knot
+The Giggling Grizzly
+The Gladly
+The Golden Greek
+The Golden State
+The Good Egg - Park Central
+The Good Karma Cafe
+The Good Son Taphouse
+The Grain Cafe
+The Great American Bagel Bakery
+The Great American Grill
+The Great Dane Restaurant
+The Greedy Hamster
+The Greek Pita
+The Greyhound Bar & Grill
+The Griffin
+The Grind
+The Habit Burger Grill
+The Hangar Bar & Grill
+The Hart & The Hunter
+The Haymaker Restaurant
+The Heights Deli & Bottle Shop
+The Henry
+The Herb Box
+The Hermosillo
+The Highland Cafe
+The Hook Catfish Restaurant
+The Hornet Restaurant
+The Humble Pie Store
+The Hungry Pig
+The J Clyde
+The Keg Steakhouse + Bar
+The Kettle Black Kitchen & Pub
+The Kitchen
+The Kitchen Denver
+The Kitchen Next Door
+The Krystal Company
+The Lakefront Anchorage
+The Larchmont
+The Larder + The Delta
+The Liberty Kitchen
+The Little Door
+The Little Easy
+The Little Jewel of New Orleans
+The Little Woody
+The Living Room
+The Loaded Potato
+The Lobby
+The Lobos Truck
+The Lounge
+The Lunch Lounge
+The Magpie
+The Main Cheese
+The Maine Lobster Lady
+The Market
+The Market At Larimer Square
+The Marx Bros Cafe
+The Matador
+The Mean Bean
+The Melt
+The Melting Pot
+The Mix Up Bar
+The Morrison
+The New 610 Center
+The New Moon
+The New Peanut Farm
+The Newton
+The Nickel
+The Nosh Cafe
+The Noshery
+The Oink Cafe-Phoenix
+The Oinkster
+The Old Spaghetti Factory
+The Original Burrito Co
+The Original Capones Pizza
+The Original Chubby's
+The Original Fried Pie Shop
+The Original Pancake House
+The Original Pasquini's
+The Original ScoopDog
+The Original Wineburger
+The Oyster Bar
+The Oyster Gourmet
+The Paan
+The Panini Stop
+The Pantry
+The Pantry Crest
+The Pantry Restaurant
+The Park
+The Park's Finest
+The Parlor
+The Pasta House
+The Pasty Republic
+The Perfect Cup
+The Phoenix Ale Brewery Central Kitchen
+The Pie Hole
+The Pioneer
+The Pita Cafe
+The Pita Pit
+The Pizza Hole
+The Pizzeria At Terry's Finer Foods
+The Plimoth
+The Populist
+The Porter Junction Cafe
+The Preservery
+The Prime Chinese Restaurant
+The Punchbowl
+The Purple Cow Restaurant
+The Purple Onion
+The Rackhouse
+The Ramen Joint
+The Real 3rd Street Chicken House
+The Red Chair Cafe
+The Red Dragon
+The Refuge Cafe
+The Ridge Eat & Drink
+The Rock Wood Fired Kitchen
+The Root Cafe
+The Rose and Crown
+The Rustiq Table
+The Sandwich Joint
+The Saucy Noodle Ristorante
+The Semi-Tropic
+The Shaka Shack
+THE SIT-DOWN
+The Southern Gourmasian
+The Southern Kitchen & Bar
+The Spot
+The Spot On Pico - CLOSED FOR REMODELING
+The Squeaky Bean
+The Stand
+The Stocking Frame
+The Strand
+The Sub Shop
+The Summit Club
+The Sycamore Kitchen
+The Tamale Cafe
+The Tamale Store
+The Tavern Lowry
+The Tavern Sports Grill
+The Tavern Wash Park
+The Teapot
+The Terrace Mediterranean Kitchen
+The Trails
+The Truffle Table
+The Uber Sausage
+The Universal
+The Vegan Joint
+The View
+The Vig
+The Vig Fillmore
+The Vig Uptown
+The Village Bakery and Cafe
+The Village Cork
+The Village Kitchen
+The Walnut Room
+The Way Back
+The Weathervane Cafe
+The Well - Pizza & Bar
+The White Chocolate Grill
+The White Moose Espresso & Deli
+The White Whale Room
+The Whittier
+The Wine Loft
+The Wing Cafe
+The Wok Express
+The Yard
+The Zipbob
+There - Denver
+Thien Huong
+ThirdSpace
+Thirst N' Howl
+Thirsty Lion Gastropub & Grill
+Thirty Six Bistro
+Three Fold Noodles and Dumpling Co
+Three Sam's Barbeque Joint
+Three Sam's BBQ Joint
+Three Sisters Cafe & Catering
+Thuan Viet Restaurant
+Tia Maria Mexican Restaurant
+Tia's Gourmet Sausage and Hot Dog
+Ticoz Latin Kitchen
+Tiki Pete's Alaskan Dogs
+Tilted Kilt Pub & Eatery
+Tim Finnegan's Irish Restaurant and Pub
+Time Square
+Times Square Neighborhood Italian Restaurant
+Times Square Pizzeria
+Timo Wine Bar
+Tin Roof
+Tina's Just One More Bar and Grill
+Tip Top Grill
+Tip's House
+Tire Shop Taqueria
+Tito's Gyros
+Tlayuda LA Mexican Restaurant
+TLC Food Co
+To The Wind Bistro
+Tocabe American Indian Eatery
+Today's Pizza
+Todd English P.U.B.
+Toe Bang Cafe
+Tofu and Noodles
+Tofu House
+Tokio
+Tokyo Bowl
+Tokyo Cube
+Tokyo Doggie Style
+Tokyo Garden
+Tokyo House
+Tokyo Joe's
+Tom yum - Downtown
+Tom yum North Phoenix
+Tom's Diner
+Tom's Tavern & 1929 Grill
+Tom's Urban
+Tomaso's
+Tommy Pastrami
+Tommy V's Osteria and Pizzeria
+Tommy's Burger Stop
+Tommy's Thai Restaurant
+Tony P's Bar & Pizzeria
+Tony's Hot Dogs
+Tony's Italian Delicatessen
+Tony's Market
+Top Bop
+Top of the World Restaurant
+Top That Grille BBQ
+Torchys Tacos
+Torta Grill
+Tortas A Toda Madre
+Tortas Ahogadas Ameca
+Tortas Ahogadas El Guero
+Tortas El Guero
+Tortas El Manantial
+Tortas el Rey
+Tortas Mexico
+Tortas Paquime
+Tortilla Fish
+Tortisimas
+Tortugas Cafe
+Tortugas Pizza
+Touch Of Thai
+Town Pump
+Town Talk II
+Tracy's Restaurant
+Tratto
+Trattoria Bella Roma
+Trattoria Centrale
+Trattoria D'Amico
+Trattoria No 25
+Trattoria Stella
+Trattoria Stella on Colfax
+Treehouse Bakery
+Trejo's Tacos
+Trencher
+Tri Grill
+Tri-Grill
+Tribal Cafe
+Trio's Restaurant
+Trois Familia
+Tropical Grill
+Tropical Latin Food
+Tropical Smoothie Cafe
+Tropicalia Brazilian Grill
+True Food Kitchen
+Tryst Cafe
+Tsuri
+Tsurumaru Udon Honpo
+Ttu Rak
+Tuck Shop
+Tuk Tuk Thai Grill
+Tulip Cafe
+Turkish Delight
+Turn-In BBQ
+Turnagain Arm Pit BBQ
+Tutti Santi
+Twenty Highland Tavern
+Twin Dragon Mongolian Bar-B-Q
 Twin Peaks
-Umami Burger
-Uncle Maddio's Pizza Joint
-Uno Chicago Grill
-Valentino's
+Twins Sliders
+Twisted Root Burger Co - Birmingham
+Two Hippies
+Two Hippies Magic Mushroom Burgers
+Two-Fisted Mario's Pizza
+Tycoon Ramen and Sushi
+U China Buffet
+U Pick Cafe
+U S Pizza
+U. S. Pizza Co.
+U.S. Pizza Co
+Ubatuba Acai
+Uber Eats
+Udi's Food
+Ultra Blast Laser Combat Center
+Umami Burger -  Arts District
+Umami Burger -  Broadway
+Un Solo Sol
+Una Grill
+Uncle
+Uncle Bear's Brewery
+Uncle Joe's Pizzeria
+Uncle Joe's Pizzeria Downtown
+Uncle Joes Pizzeria
+Uncle John's Cafe
+Uncle Maddio's Pizza
+Uncle Sam's
+Uncle Sam's Barbecue
+Uncle Tony's Pizza
+Under the Umbrella Cafe and Bakery
+Undergrind Cafe
+Unit 120
+University Grill
+University Tacos And Burritos
+Uno Mas Taqueria
+Uno Pizzeria & Grill
+Unwined
+Uoki
+Upper 1 Lounge
+Upper Crust Pizza Midtown
+Upper Crust Pizza Patio & Wine Bar
+Urban Bamboo
+Urban Beans Cafe & Bar
+Urban Cafe
+Urban Cookhouse
+Urban Greens
+Urban Roadhouse Downtown
+Urban Skillet
+Urban Sombrero
+Urban Standard
+Urban Sushi
+Urban Sushi Spot
+Urban Taco
+US Egg
+US Pizza
+US Pizza Co
+US Pizza Company
+Va Bene Italian Restaurant - Martini & Wine Bar
+VaKA Burger Express
+Vallartas Mexican Restaurant
+Valle Luna
+Valley Vietnamese food
+Van Lang Cuisine Restaurant
+Vaquero's Carne Asada
+Vaquerros
+Varsity Sports Grill
+Vecchia Pizzeria & Mercato
+Vees Cafe
+Vegan House
+Veggi Deli
+Venezia's New York Style Pizzeria
+Vernetti
+Vert Kitchen
+Vesper Lounge
+Vesta Dipping Grill
+Vesuvio Bistro
+Via Delosantos
+Vicky's Restaurant
+Viet Kitchen
+Viking Sushi
+Villa Deli
+Villa Fresh Italian Kitchen Pizza
+Villa Nova Restaurant
+Villa Pizza
 Village Inn
+Village Pizzeria
+Village Tavern
+Villains Tavern
+Vincent Market Bistro
+Vine Street Pub & Brewery
+Vinh Xuong Bakery
+Vinh Xuong Bakery 2
+Vino
+Vino's
+Vinue Food and Wine Bar
+Vip Restaurant
+Vitality Bowls
+Vocelli Pizza
+Vovomeena
+Vromage
+Waamo Restaurant
+WaBa Grill
+Waffle Brothers
+Waffle Brothers Pub Style
+Waffle Cakes
 Waffle House
+Waffle Up!
+Wah's Golden Hen
+Wahoo's Fish Tacos
+Wako Donkasu
+Waldo's BBQ Express
+Wall Street Deli
+Wally's American Pub N Grill
+Walrus & The Pearl
+Walter's Pizzeria Uptown
+Wasabi Bar & Grill
+Wasabi Juan's
+Wash Park Sports Alley
+Washington Park Grille
+Wat Dong Moon Lek Noodle
+Water Grill
+WaterCourse Foods
+Wax Paper
+Wazee Supper Club
+Wee B's
+Wee Betty's Cafe
+Welcome Chicken + Donuts
+Welcome Diner
+Wendy 's
 Wendy's
-Wetzel's Pretzels
+Wendy's Tortas
+West Berlin
+West End Smokehouse & Tavern
+West End Tap House
+Westbound
+Western Doma Noodles
+Western Sizzlin Steak House
+Whale's Tail
 Whataburger
-Which Wich?
-White Castle
-White Dog Cafe
-Wienerschnitzel
-Wild Wing Cafe
-York Steak House
+Which Wich
+Whiskey Tango Foxtrot
+White Boy Tacos
+White Cup Coffee
+White Fence Farm
+White Pig Inn Barbecue
+White Spot Cafe
+Whole Hog Cafe
+Whole Hog Cafe NLR
+Wiki Poki
+Wikipita
+Wild Eggs
+Wild Thaiger
+Wild Tuna Sushi and Spirits
+Wild Wings n' Things
+Wildflower Bread Company
+Will Call
+Williams & Graham
+Williwaw
+Windsor
+Wing A Fish
+Wing It
+Wing Shack
+Wing Slingers
+Wing Zone
+Wings 'N Things
+Wings Around the Clock
+Wings Lover
+Wings N' Things
+Wings Plus
+Wings Plus 3
+Wings R King
+Wingstop
+Wink 24
+Winkys Wings
+Winsome
+Wintzell's Oyster House
+Wirtshaus
+Wishbone Family Restaurant
+Wok Express
+wok n roll
+Wokano Asian Bistro
+Wolf
+Wolvesmouth at the Wolvesden
+Won Jo Tofu House
+Wong's Chinese Dining
+Wong's Restaurant
+WongWayVeg
+Wood Spoon
+Wooden Goat
+Wooden Spoon Cafe & Bakery
+Woodlawn Cycle Cafe
+WooRee Restaurant
+Work & Class
+World Of Beer
+WoW Cafe
+Wright's
+WY Market
+Wyman's No 5
+Xalos Burrito Express
+Xalos Mexican Grill
+Ya Hala!
+Yaffa's Savory
+Yak & Yeti
+Yak and Yeti
+Yak and Yeti Restaurant & Event Center
+Yaki Cafe
+Yakipan
+Yakitori Sushi House
+Yamaya Seafood Restaurant
+Yan Express
+Yan's
+Yancey's Cafeteria
+Yang Ban Sul Lung Tang Restaurant
+Yang Chow
+Yang San Bak
+Yangji Gamjatang
+Yangmani
+Yard House
+Yareth's
+Yasda Bento
+Yasu Sushi Bistro
+Yatai Food Cart
+YaYa's Euro Bistro
+Yazoo Barbeque Company
+YB's Daylight Donuts
+Yehman Carribbean Restaurant
+Yellow House Cafe
+Yen King Chinese Restaurant
+Yen Sushi & Sake Bar
+Yes Bistro
+Yeti Dogs
+Yeya's Restaurant
+Yin's Chinese Resturant
+Yo' Mama's
+Yoe Xpress
+Yogi's Grill
+Yogis Grill
+Yogurtland
+YogurtWorks
+Yojie Japanese Fondue
+Yolanda's Tacos
+Yolo
+Yook Cal Bop Sang
+Yorkshire Fish & Chips
+Yoshi Bento
+Young Dong Restaurant
+Your Pie
+Yu Chun
+Yu Hong Chinese Restaurant
+Yuca's
+Yuki Japanese Restaurant
+Yuko Kitchen
+Yum Yum Spice
+Yummy Yummy
+Yummy's Pizza and Ice Cream
+Yup Dduk La
+Yupdduk Olympic
+Yusef's Middle Eastern Restaurant Grocery & Deli
+Yxta Cocina Mexicana
+Z Cuisine Bistrot
+Z's Greek
+Z's Restaurant
+Z'Tejas Southwestern Grill
+Zack's Place
+Zaffino's Grapevine Cafe
+Zaidy's Deli
+Zam Zam World Foods
+Zamora Brothers
+Zana's Pizzeria
+Zangna Thai Cuisine
+Zankou Chicken - Hollywood
+Zapata Mexican Restaurant
 Zaxby's
+ZaZa Fine Salad And Wood Oven Pizza
+Zen Asian Sushi Bar & Grill
+Zen Mei Bistro
+Zengo
+Zest Cafe
+Zesty Zzeeks Pizza and Wings
+Ziggy's Pizzeria Ristorante
+Zinburger
+Zinc Brasserie
+Zinc Cafe & Market
+Zio Romolo's Alley Bar
+Ziran
+Zivix Five Points
+ZK Grill
+Zoe Ma Ma
+Zoes Kitchen
+Zookz Sandwiches
+Zorba's Gyros
+Zou's Kitchen
+Zoup!
+zpizza
+Zweet Cafe
+Zzamong
