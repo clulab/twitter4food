@@ -192,12 +192,12 @@ class FeatureExtractor (
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     if (useGender & genderClassifier.nonEmpty) {
-      counter += appendPrefix(genderClassifier.get.predict(account) + "-", counter)
+      counter += appendPrefix(s"__${genderClassifier.get.predict(account)}-", counter)
     }
 
     if (useRace) {
       // TODO: predict account owner's race for domain adaptation
-      // counter += appendPrefix(raceClassifier.get.predict(account) + "-", counter)
+      // counter += appendPrefix(s"__${raceClassifier.get.predict(account)}-", counter)
     }
 
     if (withFollowers) {
@@ -210,7 +210,7 @@ class FeatureExtractor (
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      counter += appendPrefix("follower-", fc.mapValues(v => v * followerProp))
+      counter += appendPrefix("__follower-", fc.mapValues(v => v * followerProp))
     }
 
     // remove zero values for sparse rep
