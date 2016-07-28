@@ -137,7 +137,6 @@ object HumanClassifier {
       case _ => ()
     }
 
-    println(counter.toString)
     counter
   }
 

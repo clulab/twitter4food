@@ -309,7 +309,7 @@ class FeatureExtractor (
     if (topicModel.isEmpty) return topics
 
     val tm = topicModel.get
-    tweets.foreach(tweet => topics.incrementCount("topic_" + tm.mostLikelyTopic(tweet)))
+    tweets.foreach(tweet => topics.incrementCount(s"__topic_${tm.mostLikelyTopic(tweet)}__"))
 
     topics
   }
