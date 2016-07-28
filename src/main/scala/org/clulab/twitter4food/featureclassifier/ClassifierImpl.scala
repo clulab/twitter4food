@@ -132,7 +132,6 @@ class ClassifierImpl(
 
     pb.stop()
 
-    println(featureExtractor.dictMatches.toString)
     datums.foreach(datum => this.synchronized { dataset += datum })
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
@@ -376,9 +375,9 @@ class ClassifierImpl(
 
     println(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}")
     writer.write(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}\n")
-    println("Testing with test users")
 
     if (!devOnly) {
+      println("Testing with test users")
       writer.write("*****Test*****\n")
       writer.flush()
 
