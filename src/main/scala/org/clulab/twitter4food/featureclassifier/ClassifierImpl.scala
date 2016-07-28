@@ -275,7 +275,6 @@ class ClassifierImpl(
     writer.flush()
 
     (evalMeasures, microAvg, macroAvg)
-
   }
 
   /** Pick one of (C, K) and store in gridCbyK and pick (C,,max,,, K,,max,,)
@@ -288,7 +287,7 @@ class ClassifierImpl(
     * @param outputFile filename to direct output to
     * @return Unit
     */
-  def runTest(args: Array[String], ctype: String, outputFile: String = null) = {
+  def runTest(args: Array[String], ctype: String, outputFile: String = null, devOnly: Boolean = true) = {
 
     println("Loading training accounts...")
     val trainingData = FileUtils.load(config
@@ -297,8 +296,10 @@ class ClassifierImpl(
     val devData = FileUtils.load(config
       .getString(s"classifiers.$ctype.devData"))
     println("Loading test accounts...")
-    val testData = FileUtils.load(config
-      .getString(s"classifiers.$ctype.testData"))
+    val testData = if(!devOnly)
+      Some(FileUtils.load(config.getString(s"classifiers.$ctype.testData")))
+    else
+      None
 
     val fileExt = args.mkString("").replace("-", "").sorted
     val tweetFolds = Array(100, 500, 1000, 5000)
@@ -310,10 +311,10 @@ class ClassifierImpl(
      */
 
     val (trainUsers, devUsers, testUsers) = (trainingData.keys.toArray,
-      devData.keys.toArray, testData.keys.toArray)
+      devData.keys.toArray, testData.getOrElse(Map()).keys.toArray)
 
     val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray,
-      devData.values.toArray, testData.values.toArray)
+      devData.values.toArray, testData.getOrElse(Map()).values.toArray)
 
     val writerFile = if (outputFile != null) outputFile
       else config.getString("classifier") + s"/$ctype/output-" +
@@ -377,15 +378,17 @@ class ClassifierImpl(
     writer.write(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}\n")
     println("Testing with test users")
 
-    writer.write("*****Test*****\n")
-    writer.flush()
+    if (!devOnly) {
+      writer.write("*****Test*****\n")
+      writer.flush()
 
-    // Final run on test Set
-    unitTest(trainUsers ++ devUsers, trainLabels ++ devLabels,
-      testUsers, testLabels, cFolds(iMax), tweetFolds(jMax))
+      // Final run on test Set
+      unitTest(trainUsers ++ devUsers, trainLabels ++ devLabels,
+        testUsers, testLabels, cFolds(iMax), tweetFolds(jMax))
 
-    println("*****Test complete*****")
-    writer.write("*****Test complete*****\n")
+      println("*****Test complete*****")
+      writer.write("*****Test complete*****\n")
+    }
     writer.flush()
 
     writer.close()
