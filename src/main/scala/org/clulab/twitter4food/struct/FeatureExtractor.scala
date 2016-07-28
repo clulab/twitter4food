@@ -154,6 +154,11 @@ class FeatureExtractor (
     new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + this.customFeatures(account))
   }
 
+  def scale(counter: Counter[String]): Counter[String] = {
+    if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
+    counter
+  }
+
   /**
     * Generates the feature counter for this account
     *
@@ -169,29 +174,23 @@ class FeatureExtractor (
     var unigrams: Option[Counter[String]] = None
 
     if (useUnigrams | useDictionaries | useCosineSim)
-      unigrams = Some(ngrams(1, tweets.map(filterStopWords), description))
+      unigrams = Some(scale(ngrams(1, tweets.map(filterStopWords), description)))
     if (useUnigrams) {
       counter += unigrams.get
     }
     if (useBigrams)
-      counter += ngrams(2, tweets, description)
+      counter += scale(ngrams(2, tweets, description))
     if (useTopics)
-      counter += topics(tweets)
+      counter += scale(topics(tweets))
     if (useDictionaries)
-      counter += dictionaries(tweets, description, account, unigrams)
+      counter += scale(dictionaries(tweets, description, account, unigrams))
     if (useEmbeddings){
 
     } // TODO: how to add embeddings as a feature if not returning a counter?
     if (useCosineSim)
       counter += cosineSim(unigrams, tweets, description)
     if (useFollowees)
-      counter += followees(account)
-
-    // All features not involving domain adaptation should go before this comment
-
-    // must scaleByDatum now to keep scaling distinct from that of follower features
-    if (datumScaling)
-      scaleByDatum(counter, 0.0, 1.0)
+      counter += scale(followees(account))
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     val gender: Option[Counter[String]] = if (useGender & genderClassifier.nonEmpty) {
