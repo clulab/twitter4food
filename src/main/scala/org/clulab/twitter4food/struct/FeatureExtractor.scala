@@ -211,7 +211,7 @@ class FeatureExtractor (
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      counter += appendPrefix("follower-", fc.mapValues(v => v * followerProp))
+      counter += appendPrefix("__follower-", fc.mapValues(v => v * followerProp))
     }
 
     // remove zero values for sparse rep
@@ -284,8 +284,14 @@ class FeatureExtractor (
     // Find the TwitterAccount object corresponding to these handles
     val followers = followerHandles.flatMap(f => handleToFollowerAccount.get(f))
 
+    val filterOn = true
+    val filteredFollowers = if (filterOn)
+      followers.filter(f => humanClassifier.get.predict(f) == "human")
+    else
+      followers
+
     // Aggregate the counter for the followers using the other features being used
-    val followerCounters = for (follower <- followers.par) yield mkFeatures(follower, withFollowers = false)
+    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, withFollowers = false)
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)
