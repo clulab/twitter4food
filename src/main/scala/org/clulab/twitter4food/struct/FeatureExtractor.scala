@@ -195,11 +195,10 @@ class FeatureExtractor (
       counter += appendPrefix(genderClassifier.get.predict(account) + "-", counter)
     }
 
-    val race: Option[Counter[String]] = if (useRace) {
+    if (useRace) {
       // TODO: predict account owner's race for domain adaptation
-      // Some(appendPrefix(raceClassifier.get.predict(account) + "-", counter))
-      None
-    } else None
+      // counter += appendPrefix(raceClassifier.get.predict(account) + "-", counter)
+    }
 
     if (withFollowers) {
       val fc = followers(account)
