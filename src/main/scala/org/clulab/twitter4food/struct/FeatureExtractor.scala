@@ -12,6 +12,8 @@ import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassif
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * Created by Terron on 2/9/16.
   *
@@ -61,6 +63,22 @@ class FeatureExtractor (
   // Dictionaries : Map[Label -> Map[LexiconName -> Lexicon]]
   // Messy, but useful data structure.
   var lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = None
+
+  // Additional annotations for food words: average calories of foods with this ingredient in the name; average health
+  // rating of these foods. These are used in the dictionaries() features
+  val (calories, healthiness): (Option[Map[String,Double]], Option[Map[String,Int]]) = if (useDictionaries) {
+    val foodAnnotations = scala.io.Source.fromFile(config.getString("classifiers.overweight.annotatedFoodFile"))
+    val cMap = scala.collection.mutable.Map[String, Double]()
+    val hMap = scala.collection.mutable.Map[String, Int]()
+    for {
+      line <- foodAnnotations.getLines
+      splits = line.split("\t")
+    } {
+      if (splits(1) != "NULL") cMap(splits(0)) = splits(1).toDouble
+      if (splits(2) != "NULL") cMap(splits(0)) = splits(2).toInt
+    }
+    (Some(cMap.toMap), Some(hMap.toMap))
+  } else (None, None)
 
   // Embeddings
   var idfTable: Option[Counter[String]] = None
@@ -363,6 +381,9 @@ class FeatureExtractor (
       // Load dictionaries
       val foodWords = lexicons.get("Overweight")("food_words")
       val hashtags = lexicons.get("Overweight")("overweight_hashtags")
+      // keep track of the average calorie and health grade of the food words mentioned
+      val calCount = new ArrayBuffer[Double]()
+      val healthCount = new ArrayBuffer[Int]()
 
       // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
       val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
@@ -370,12 +391,19 @@ class FeatureExtractor (
         if(foodWords contains k) {
           result.incrementCount("__foodDict__", ng.getCount(k))
           result.incrementCount("__overweightDict__", ng.getCount(k))
+          if (calories.get.contains(k)) calCount.append(calories.get(k))
+          if (healthiness.get.contains(k)) healthCount.append(healthiness.get(k))
         }
         if(hashtags contains k) {
           result.incrementCount("__hashtagDict__", ng.getCount(k))
           result.incrementCount("__overweightDict__", ng.getCount(k))
         }
       }
+      // Add features for average calories and health grade of food words mentioned (if any were)
+      if (calCount.nonEmpty)
+        result.setCount("__averageCalories__", calCount.sum / calCount.size.toDouble)
+      if (healthCount.nonEmpty)
+        result.setCount("__averageHealthScore__", healthCount.sum.toDouble / healthCount.size.toDouble)
     }
 
     result
