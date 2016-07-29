@@ -1,7 +1,6 @@
 package org.clulab.twitter4food.t2dm
 
 import java.io.{BufferedWriter, FileWriter}
-import java.nio.file
 import java.nio.file.{Files, Paths}
 
 import com.typesafe.config.ConfigFactory
@@ -19,7 +18,10 @@ object OverweightSuite {
     val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
 
     logger.info("Loading dev accounts...")
-    val testSet: Map[TwitterAccount, String] = FileUtils.load(config.getString("classifiers.overweight.devData"))
+    val testSet: Map[TwitterAccount, String] = if (args.contains("-t"))
+      FileUtils.load(config.getString("classifiers.overweight.testData"))
+    else
+      FileUtils.load(config.getString("classifiers.overweight.devData"))
 
     for {
       useBigrams <- Seq(false, true)
@@ -38,10 +40,12 @@ object OverweightSuite {
         if (useBigrams) "b" else "",
         if (useTopics) "t" else "",
         if (useDictionaries) "d" else "",
+        // if (useEmbeddings) "e" else "",
         if (useCosineSim) "c" else "",
         if (useFollowers) "f" else "",
         if (useFollowees) "h" else "",
         if (useGender) "g" else "",
+        // if (useRace) "r else "",
         if (datumScaling) "D" else ""
       )
       val fileExt = opts.sorted.mkString("")
