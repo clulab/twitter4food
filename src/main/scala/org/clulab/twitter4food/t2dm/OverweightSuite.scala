@@ -1,6 +1,8 @@
 package org.clulab.twitter4food.t2dm
 
 import java.io.{BufferedWriter, FileWriter}
+import java.nio.file
+import java.nio.file.{Files, Paths}
 
 import com.typesafe.config.ConfigFactory
 import org.clulab.learning.L1LinearSVMClassifier
@@ -44,6 +46,7 @@ object OverweightSuite {
       )
       val fileExt = opts.sorted.mkString("")
       val outputDir = config.getString("classifier") + "/overweight/results/" + fileExt
+      if (!Files.exists(Paths.get(outputDir))) Files.createDirectories(Paths.get(outputDir))
       val modelFile = s"${config.getString("overweight")}/model/${fileExt}.dat"
 
       val oc = new OverweightClassifier(
