@@ -185,6 +185,7 @@ class FeatureExtractor (
     if (useEmbeddings){
 
     } // TODO: how to add embeddings as a feature if not returning a counter?
+    // No scaling necessary on single feature
     if (useCosineSim)
       counter += cosineSim(unigrams, tweets, description)
     if (useFollowees)
