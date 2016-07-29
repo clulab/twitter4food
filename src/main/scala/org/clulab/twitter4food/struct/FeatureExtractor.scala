@@ -389,24 +389,21 @@ class FeatureExtractor (
     * @return a [[Counter]] of the averaged vector
     */
   def embeddings(tweets: Seq[Array[String]]): Counter[String] = {
+    // Number of dimensions
     val dims = vectors.get.head._2.length
-    val vectorRecords: Seq[ArrayBuffer[Double]] = for {
-      d <- 0 until dims
-    } yield {
-      new ArrayBuffer[Double]()
-    }
-    for {
-      tweet <- tweets
-      token <- tweet
-      if vectors.get.contains(token)
-      vector = vectors.get(token)
-      d <- vector.indices
-    } {
-      vectorRecords(d).append(vector(d))
-    }
+    // Only look at the tokens that have a vector listen in our lexicon
+    val listedTokens = tweets.flatten.filter(vectors.get.contains(_))
+    // Number of listed tokens for this account
+    val totalTokens = listedTokens.length.toDouble
+    // For each token, the vector values listed in the word2vec model
+    val vectorPerToken = for (token <- listedTokens) yield vectors.get(token)
+    // For each dimension, the values for each token in the account
+    val valuesPerDim = for (dim <- 0 until dims) yield vectorPerToken.map(token => token(dim))
+
     val counter = new Counter[String]()
-    vectorRecords.indices.foreach{ i =>
-      counter.setCount(s"__vector${i}__", vectorRecords(i).sum / vectorRecords.size.toDouble)
+    // Take the average of each dimension's values over all tokens in the account
+    valuesPerDim.indices.foreach{ i =>
+      counter.setCount(s"__vector_${i}__", valuesPerDim(i).sum / totalTokens)
     }
     counter
   }
