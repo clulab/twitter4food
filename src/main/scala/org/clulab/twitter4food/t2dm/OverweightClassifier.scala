@@ -266,6 +266,6 @@ object OverweightClassifier {
     pb.stop()
   }
 
-  private def fMeasure(precision: Double, recall: Double, beta: Double): Double =
+  def fMeasure(precision: Double, recall: Double, beta: Double): Double =
     (1 + Math.pow(beta, 2)) * ((precision * recall) / (Math.pow(beta, 2) * precision + recall))
 }
