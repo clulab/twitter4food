@@ -485,8 +485,8 @@ class FeatureExtractor (
     overweightFile.close()
     pb.stop()
 
-    overweightCounter.keySet.filter(idfTable.get.contains(_)).foreach(word =>
-      overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
+    overweightCounter.keySet.foreach(word =>
+      overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + randomCounter.getCount(word)))
     )
 
     (Some(randomCounter), Some(overweightCounter))
