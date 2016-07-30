@@ -396,7 +396,7 @@ class FeatureExtractor (
     // Number of listed tokens for this account
     val totalTokens = listedTokens.length.toDouble
     // For each token, the vector values listed in the word2vec model
-    val vectorPerToken = for (token <- listedTokens) yield vectors.get(token)
+    val vectorPerToken = for (token <- listedTokens.par) yield vectors.get(token)
     // For each dimension, the values for each token in the account
     val valuesPerDim = for (dim <- 0 until dims) yield vectorPerToken.map(token => token(dim))
 
@@ -485,7 +485,7 @@ class FeatureExtractor (
     overweightFile.close()
     pb.stop()
 
-    overweightCounter.keySet.foreach(word =>
+    overweightCounter.keySet.filter(idfTable.get.contains(_)).foreach(word =>
       overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
     )
 
