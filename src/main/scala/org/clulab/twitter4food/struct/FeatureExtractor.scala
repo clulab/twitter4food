@@ -392,7 +392,7 @@ class FeatureExtractor (
     // Number of dimensions
     val dims = vectors.get.head._2.length
     // Only look at the tokens that have a vector listen in our lexicon
-    val listedTokens = tweets.flatten.filter(vectors.get.contains(_))
+    val listedTokens = filterStopWords(tweets.flatten.toArray).filter(vectors.get.contains(_))
     // Number of listed tokens for this account
     val totalTokens = listedTokens.length.toDouble
     // For each token, the vector values listed in the word2vec model
