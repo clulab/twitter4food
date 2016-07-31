@@ -24,10 +24,10 @@ object OverweightSuite {
       FileUtils.load(config.getString("classifiers.overweight.devData"))
 
     for {
-      useBigrams <- Seq(false, true)
+      // useBigrams <- Seq(false, true)
       useTopics <- Seq(false, true)
       useDictionaries <- Seq(false, true)
-      // useEmbeddings <- Seq(false, true)
+      useEmbeddings <- Seq(false, true)
       useCosineSim <- Seq(false, true)
       useFollowers <- Seq(false, true)
       useFollowees <- Seq(false, true)
@@ -37,10 +37,10 @@ object OverweightSuite {
     } {
       val opts = Seq(
         "u",
-        if (useBigrams) "b" else "",
+        // if (useBigrams) "b" else "",
         if (useTopics) "t" else "",
         if (useDictionaries) "d" else "",
-        // if (useEmbeddings) "e" else "",
+        if (useEmbeddings) "e" else "",
         if (useCosineSim) "c" else "",
         if (useFollowers) "f" else "",
         if (useFollowees) "h" else "",
