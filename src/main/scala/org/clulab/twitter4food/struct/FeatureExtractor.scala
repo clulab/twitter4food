@@ -12,6 +12,8 @@ import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassif
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * Created by Terron on 2/9/16.
   *
@@ -63,8 +65,8 @@ class FeatureExtractor (
   var lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = None
 
   // Embeddings
-  var idfTable: Option[Counter[String]] = None
-  var overweightVec: Option[Counter[String]] = None
+  val vectors = if (useEmbeddings) loadVectors else None
+  val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
 
   // Followers
   val followerFile = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations"))
@@ -183,9 +185,8 @@ class FeatureExtractor (
     if (useDictionaries)
       counter += scale(dictionaries(tweets, description, account, unigrams))
     if (useEmbeddings){
-
-    } // TODO: how to add embeddings as a feature if not returning a counter?
-    // No scaling necessary on single feature
+      counter += embeddings(tweets)
+    }
     if (useCosineSim)
       counter += cosineSim(unigrams, tweets, description)
     if (useFollowees)
@@ -382,12 +383,45 @@ class FeatureExtractor (
     result
   }
 
-  def embeddings(account: TwitterAccount): Map[TwitterAccount, Array[Float]] = {
-    null
+  /**
+    * Add one feature per embedding vector dimension, the average of the non-stopwords in the account's tweets
+    * @param tweets Tweets, pre-tokenized
+    * @return a [[Counter]] of the averaged vector
+    */
+  def embeddings(tweets: Seq[Array[String]]): Counter[String] = {
+    // Number of dimensions
+    val dims = vectors.get.head._2.length
+    // Only look at the tokens that have a vector listen in our lexicon
+    val listedTokens = filterStopWords(tweets.flatten.toArray).filter(vectors.get.contains(_))
+    // Number of listed tokens for this account
+    val totalTokens = listedTokens.length.toDouble
+    // For each token, the vector values listed in the word2vec model
+    val vectorPerToken = for (token <- listedTokens.par) yield vectors.get(token)
+    // For each dimension, the values for each token in the account
+    val valuesPerDim = for (dim <- 0 until dims) yield vectorPerToken.map(token => token(dim))
+
+    val counter = new Counter[String]()
+    // Take the average of each dimension's values over all tokens in the account
+    valuesPerDim.indices.foreach{ i =>
+      counter.setCount(s"__vector_${i}__", valuesPerDim(i).sum / totalTokens)
+    }
+    counter
+  }
+
+  private def loadVectors: Option[Map[String, Array[Double]]] = {
+    val lines = scala.io.Source.fromFile(config.getString("classifiers.features.vectors")).getLines
+    lines.next() // we don't need to know how big the vocabulary or vectors are
+    val vectorMap = scala.collection.mutable.Map[String, Array[Double]]()
+    while (lines.hasNext) {
+      val line = lines.next()
+      val splits = line.split(" ")
+      vectorMap += splits.head -> splits.tail.map(_.toDouble)
+    }
+    Some(vectorMap.toMap)
   }
 
   // Loads the idf table for the database of random tweets
-  private def loadTFIDF(): Unit = {
+  private def loadTFIDF: (Option[Counter[String]], Option[Counter[String]]) = {
     // Initialize
     val randomCounter = new Counter[String]()
     var i = 0
@@ -408,9 +442,8 @@ class FeatureExtractor (
     while ( { line = randomFile.readLine ; line != null } ) {
       // Actual tweet text is every third line
       if (i % 3 == 2) {
-        // Filter words based on FeatureExtractor for consistency
-        val filteredTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        filteredTokens.distinct.foreach(token => randomCounter.incrementCount(token))
+        // tweets are already tokenized and filtered, but stopwords are still there
+        filterStopWords(line.split(" +")).foreach(token => randomCounter.incrementCount(token))
         N += 1
         pb.step()
       }
@@ -423,16 +456,14 @@ class FeatureExtractor (
 
     randomCounter.keySet.foreach(word => randomCounter.setCount(word, scala.math.log(N / randomCounter.getCount(word))))
 
-    idfTable = Some(randomCounter)
-
     // Do the same for overweight corpus, using idf table for idf value
     val overweightCounter = new Counter[String]()
-    var overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
+    var overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_tweets")))
     numLines = 0
     while (overweightFile.readLine() != null) numLines += 1
     overweightFile.close()
 
-    overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_corpus")))
+    overweightFile = new BufferedReader(new FileReader(config.getString("classifiers.features.overweight_tweets")))
 
     val pb2 = new me.tongfei.progressbar.ProgressBar("loadTFIDF()", 100)
     pb2.start()
@@ -443,9 +474,8 @@ class FeatureExtractor (
     line = ""
     while ( { line = overweightFile.readLine ; line != null } ) {
       if (i % 3 == 2) {
-        // No need to keep track of what's been seen since we're accumulating tf here
-        val filteredTokens = filterTags(Tokenizer.annotate(line.toLowerCase))
-        filteredTokens.foreach(t => overweightCounter.incrementCount(t))
+        // tweets are already tokenized and filtered, but stopwords are still there
+        filterStopWords(line.split(" +")).foreach(token => overweightCounter.incrementCount(token))
         pb2.step()
       }
       i += 1
@@ -456,9 +486,10 @@ class FeatureExtractor (
     pb.stop()
 
     overweightCounter.keySet.foreach(word =>
-      overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + idfTable.get.getCount(word)))
+      overweightCounter.setCount(word, math.log(overweightCounter.getCount(word)) * (1 + randomCounter.getCount(word)))
     )
-    overweightVec = Some(overweightCounter)
+
+    (Some(randomCounter), Some(overweightCounter))
   }
 
   /**
@@ -470,8 +501,6 @@ class FeatureExtractor (
     */
   def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Array[String]],
     description: Array[String]): Counter[String] = {
-
-    if (idfTable.isEmpty || overweightVec.isEmpty) loadTFIDF()
 
     val accountVec = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
 
@@ -494,13 +523,9 @@ object FeatureExtractor {
   val stopWords = stopWordsFile.getLines.toSet
   stopWordsFile.close
 
-  // NOTE: all features that run over description and tweets should probably apply this for consistency
+  // NOTE: all features that run over description and tweets should probably apply this for consistency.
+  // If the feature calculator uses tokenized tweets, this should already be done, but stopwords aren't filtered
   def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
-    // val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
-    // val stopWords = stopWordsFile.getLines.toSet
-    // stopWordsFile.close
-    // tagTok.filter(tt => !"@UGD,~$".contains(tt.tag)
-    // && "#NVAT".contains(tt.tag) && !stopWords.contains(tt.token))
     val emptyString = "^[\\s\b]*$"
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
