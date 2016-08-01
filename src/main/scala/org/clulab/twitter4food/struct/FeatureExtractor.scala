@@ -109,7 +109,7 @@ class FeatureExtractor (
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
         val tmp = new GenderClassifier() // assuming unigrams only
-        tmp.learn(Array(), "gender", 10.0, 1000)
+        tmp.learn(Array("-u"), "gender", 10.0, 1000)
         Some(tmp)
     }
   } else None
@@ -192,12 +192,12 @@ class FeatureExtractor (
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     if (useGender & genderClassifier.nonEmpty) {
-      counter += appendPrefix(s"__${genderClassifier.get.predict(account)}-", counter)
+      counter += appendPrefix(s"__${genderClassifier.get.predict(account)}__", counter)
     }
 
     if (useRace) {
       // TODO: predict account owner's race for domain adaptation
-      // counter += appendPrefix(s"__${raceClassifier.get.predict(account)}-", counter)
+      // counter += appendPrefix(s"__${raceClassifier.get.predict(account)}__", counter)
     }
 
     if (withFollowers) {
