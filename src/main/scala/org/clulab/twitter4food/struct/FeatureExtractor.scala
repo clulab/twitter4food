@@ -199,7 +199,7 @@ class FeatureExtractor (
     if (useTopics)
       counter += scale(topics(tweets))
     if (useDictionaries)
-      counter += scale(dictionaries(tweets, description, account, unigrams))
+      counter += dictionaries(tweets, description, account, unigrams)
     if (useEmbeddings){
 
     } // TODO: how to add embeddings as a feature if not returning a counter?
@@ -399,7 +399,13 @@ class FeatureExtractor (
           result.incrementCount("__overweightDict__", ng.getCount(k))
         }
       }
+      // Scale by number of tweets (number of tokens also a possibility)
+      if (datumScaling) {
+        val scalingFactor = tweets.length.toDouble
+        result.keySet.foreach{ k => result.setCount(k, result.getCount(k) / scalingFactor)}
+      }
       // Add features for average calories and health grade of food words mentioned (if any were)
+      // Don't scale these, since they're averages
       if (calCount.nonEmpty)
         result.setCount("__averageCalories__", calCount.sum / calCount.size.toDouble)
       if (healthCount.nonEmpty)
