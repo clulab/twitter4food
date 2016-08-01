@@ -55,13 +55,15 @@ object OverweightSuite {
 
       val oc = new OverweightClassifier(
         useUnigrams = true,
-        useBigrams = useBigrams,
+        //useBigrams = useBigrams,
         useTopics = useTopics,
         useDictionaries = useDictionaries,
+        useEmbeddings = useEmbeddings,
         useCosineSim = useCosineSim,
         useFollowers = useFollowers,
         useFollowees = useFollowees,
         useGender = useGender,
+        // useRace = useRace,
         datumScaling = datumScaling
       )
 
