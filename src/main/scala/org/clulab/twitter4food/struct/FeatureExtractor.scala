@@ -83,20 +83,20 @@ class FeatureExtractor (
   followeeFile.close
 
   // human classifier for follower filtering
-  val humanClassifier = if(useFollowers) {
-    try {
-      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
-      val h = new HumanClassifier() // assume we're using unigrams only
-      h.subClassifier = Some(sub)
-      Some(h)
-    } catch {
-      case e: Exception =>
-        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
-        val tmp = new HumanClassifier() // assuming unigrams only
-        tmp.learn(Array(), "human", 10.0, 1000)
-        Some(tmp)
-    }
-  } else None
+  //  val humanClassifier = if(useFollowers) {
+  //    try {
+  //      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
+  //      val h = new HumanClassifier() // assume we're using unigrams only
+  //      h.subClassifier = Some(sub)
+  //      Some(h)
+  //    } catch {
+  //      case e: Exception =>
+  //        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
+  //        val tmp = new HumanClassifier() // assuming unigrams only
+  //        tmp.learn(Array(), "human", 10.0, 1000)
+  //        Some(tmp)
+  //    }
+  //  } else None
 
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
