@@ -41,6 +41,8 @@ class ClassifierImpl(
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()
 ) extends FeatureClassifier {
 
+  import ClassifierImpl._
+
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(
     useUnigrams=useUnigrams,
@@ -94,6 +96,16 @@ class ClassifierImpl(
         config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
   }
 
+  /**
+    * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers if necessary
+    * @param accounts
+    * @param labels
+    */
+  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
+    val followers = if (useFollowers) Option(loadFollowers(accounts)) else None
+
+    train(accounts, followers, labels)
+  }
 
   /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
     *
@@ -101,7 +113,7 @@ class ClassifierImpl(
     * @param labels: Sequence of annotated labels for each account
     * @return Unit
     */
-  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
+  def train(accounts: Seq[TwitterAccount], followers: Option[Map[String, Seq[TwitterAccount]]], labels: Seq[String]) = {
     assert(accounts.size == labels.size)
 
     val labelSet = labels.toSet
@@ -111,6 +123,10 @@ class ClassifierImpl(
       // For each label, populate list of lexicon filepaths from config
       val lexMap = populateLexiconList(labelSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)
+    }
+
+    if (useFollowers && followers.nonEmpty) {
+      this.featureExtractor.setFollowers(followers.get)
     }
 
     // Clear current dataset if training on new one
@@ -443,5 +459,32 @@ class ClassifierImpl(
       writer.flush()
       }
     writer.close()
+  }
+}
+
+object ClassifierImpl {
+  /** config file that fetches filepaths */
+  val config = ConfigFactory.load()
+
+  val logger = LoggerFactory.getLogger(this.getClass)
+
+  def loadFollowers(accounts: Seq[TwitterAccount]): Map[String, Seq[TwitterAccount]] = {
+    val followerFile = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations"))
+    val handleToFollowers: Map[String, Seq[String]] = (for (line <- followerFile.getLines) yield {
+      val handles = line.split("\t")
+      handles.head -> handles.tail.toSeq
+    }).toMap
+    followerFile.close
+
+    val accountsFileStr = config.getString("classifiers.features.followerAccounts")
+    val followerAccounts = FileUtils.load(accountsFileStr)
+    val handleToFollowerAccts = accounts.map{ account =>
+      val followerAccount = handleToFollowers.getOrElse(account.handle, Nil).flatMap { followerHandle =>
+        followerAccounts.find{ case(f, label) => f.handle == followerHandle }
+      }.map(_._1)
+      account.handle -> followerAccount
+    }.toMap
+
+    handleToFollowerAccts
   }
 }

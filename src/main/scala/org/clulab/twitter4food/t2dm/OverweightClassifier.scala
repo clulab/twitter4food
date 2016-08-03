@@ -54,25 +54,6 @@ object OverweightClassifier {
     val params = TestUtils.parseArgs(args)
     val config = ConfigFactory.load
 
-    // Allow user to specify if model should be loaded or overwritten
-    var loadModel = false
-    print("\n\nOverwrite existing model file? (yes/no) ")
-    var answer = scala.io.StdIn.readLine()
-    if (answer.toLowerCase.charAt(0) == 'n') {
-      loadModel = true
-      println("\tUse existing model file")
-    } else
-      println("\tOverwrite existing model file")
-
-    var testOnDev = true
-    print("Partition to test on? (dev/test) ")
-    answer = scala.io.StdIn.readLine()
-    if (answer.toLowerCase.charAt(0) == 't') {
-      testOnDev = false
-      println("\tTraining on train+dev, testing on test")
-    } else
-      println("\tTraining on train, testing on dev\n\n")
-
     // List of features (not counting domain adaptation)
     // if these are all false, set default to true to use unigrams anyway
     val allFeatures = Seq(
@@ -84,129 +65,159 @@ object OverweightClassifier {
       params.useCosineSim,
       params.useFollowees
     )
-    val default = allFeatures.forall(!_)
+    val default = allFeatures.forall(!_) // true if all features are off
 
-    // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
-    val oc = new OverweightClassifier(
-      useUnigrams = default || params.useUnigrams,
-      useBigrams = params.useBigrams,
-      useTopics = params.useTopics,
-      useDictionaries = params.useDictionaries,
-      useEmbeddings = params.useEmbeddings,
-      useCosineSim = params.useCosineSim,
-      useFollowers = params.useFollowers,
-      useFollowees = params.useFollowees,
-      useGender = params.useGender,
-      useRace = params.useRace,
-      datumScaling = params.datumScaling,
-      featureScaling = params.featureScaling)
+    val portions = if (params.learningCurve) Seq(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0) else Seq(1.0)
 
-    val fileExt = args.mkString("").replace("-", "").sorted
+    val nonFeatures = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
+    // This model and results are specified by all input args that represent featuresets
+    val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
 
     val outputDir = config.getString("classifier") + "/overweight/results/" + fileExt
     if (!Files.exists(Paths.get(outputDir))) {
-      if (new File(outputDir).mkdir())
-        logger.info(s"Created output directory $outputDir")
-      else
-        logger.info(s"ERROR: failed to create output directory $outputDir")
+      if (new File(outputDir).mkdir()) logger.info(s"Created output directory $outputDir")
+      else logger.info(s"ERROR: failed to create output directory $outputDir")
     }
 
-    //        oc.runTest(args, "overweight", outputDir + "/results.txt")
     val modelFile = s"${config.getString("overweight")}/model/${fileExt}.dat"
+    // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
-    // Load classifier if model exists
-    if ( loadModel && Files.exists(Paths.get(modelFile)) ) {
-      logger.info("Loading model from file...")
-      val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
-      oc.subClassifier = Some(cl)
-    } else if (testOnDev) { // evaluating on dev
-      logger.info("Loading training accounts...")
-      val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
+    val classifiers = {
+      if (params.noTraining && params.learningCurve) logger.warn("Learning curve requested, so not loading model from file...")
+      if (params.noTraining && !params.learningCurve && Files.exists(Paths.get(modelFile))) {
+        val oc = new OverweightClassifier(
+          useUnigrams = default || params.useUnigrams,
+          useBigrams = params.useBigrams,
+          useTopics = params.useTopics,
+          useDictionaries = params.useDictionaries,
+          useEmbeddings = params.useEmbeddings,
+          useCosineSim = params.useCosineSim,
+          useFollowers = params.useFollowers,
+          useFollowees = params.useFollowees,
+          useGender = params.useGender,
+          useRace = params.useRace,
+          datumScaling = params.datumScaling,
+          featureScaling = params.featureScaling)
 
-      // Train classifier and save model to file
-      logger.info("Training classifier...")
-      oc.setClassifier(new L1LinearSVMClassifier[String, String]())
-      oc.train(trainingData.keys.toSeq, trainingData.values.toSeq)
-      oc.subClassifier.get.saveTo(modelFile)
-    } else { // evaluating on test, training on train + dev
-      logger.info("Loading training accounts...")
-      val trainingData = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
-      logger.info("Loading dev accounts...")
-      val devData = FileUtils.load(config.getString("classifiers.overweight.devData"))
+        logger.info("Loading model from file...")
+        val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
+        oc.subClassifier = Some(cl)
+        Seq((1.0, 0, oc))
+      } else {
+        val toTrainOn = if (params.runOnTest) {
+          logger.info("Loading training accounts...")
+          val trainData = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+          logger.info("Loading dev accounts...")
+          val devData = FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+          trainData ++ devData
+        } else {
+          logger.info("Loading training accounts...")
+          FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+        }
 
-      val toTrainOn = trainingData ++ devData
+        val followers = Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1)))
 
-      // Train classifier and save model to file
-      logger.info("Training classifier...")
-      oc.setClassifier(new L1LinearSVMClassifier[String, String]())
-      oc.train(toTrainOn.keys.toSeq, toTrainOn.values.toSeq)
-      oc.subClassifier.get.saveTo(modelFile)
+        for {
+          portion <- portions
+          maxIndex = (portion * toTrainOn.length).toInt
+        } yield {
+          val (trainAccounts, trainLabels) = toTrainOn.slice(0, maxIndex).unzip
+
+          val oc = new OverweightClassifier(
+            useUnigrams = default || params.useUnigrams,
+            useBigrams = params.useBigrams,
+            useTopics = params.useTopics,
+            useDictionaries = params.useDictionaries,
+            useEmbeddings = params.useEmbeddings,
+            useCosineSim = params.useCosineSim,
+            useFollowers = params.useFollowers,
+            useFollowees = params.useFollowees,
+            useGender = params.useGender,
+            useRace = params.useRace,
+            datumScaling = params.datumScaling,
+            featureScaling = params.featureScaling)
+
+          logger.info("Training classifier...")
+          oc.setClassifier(new L1LinearSVMClassifier[String, String]())
+          oc.train(trainAccounts, followers, trainLabels)
+          // Only save models using full training
+          if (maxIndex == toTrainOn.length) oc.subClassifier.get.saveTo(modelFile)
+
+          (portion, maxIndex, oc)
+        }
+      }
     }
-
-    val testSet: Map[TwitterAccount, String] = if (testOnDev) {
-      logger.info("Loading dev accounts...")
-      FileUtils.load(config.getString("classifiers.overweight.devData"))
-    } else {
+    val toTestOn = if (params.runOnTest) {
       logger.info("Loading test accounts...")
       FileUtils.load(config.getString("classifiers.overweight.testData"))
+    } else {
+      logger.info("Loading dev accounts...")
+      FileUtils.load(config.getString("classifiers.overweight.devData"))
     }
 
-    // Set progress bar
-    val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
-    pb.start()
-    pb.maxHint(testSet.size)
-    pb.setExtraMessage("Testing on dev accounts...")
+    val evals = for ((portion, numAccounts, oc) <- classifiers) yield {
 
-    // Classify accounts
-    val testSetLabels = testSet.values.toSeq
-    val predictedLabels = testSet.keys.toSeq.map(u => { pb.step(); oc.classify(u); })
+      // Set progress bar
+      val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+      pb.start()
+      pb.maxHint(toTestOn.size)
+      pb.setExtraMessage("Testing on dev accounts...")
 
-    pb.stop()
+      // Classify accounts
+      val testSetLabels = toTestOn.values.toSeq
+      val predictedLabels = toTestOn.keys.toSeq.map { u =>
+        pb.step()
+        oc.classify(u)
+      }
 
-    // Print results
-    val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testSetLabels, predictedLabels,
-      testSet.keys.toSeq)
+      pb.stop()
 
-    val evalMetric = evalMeasures("Overweight")
-    val precision = evalMetric.P
-    val recall = evalMetric.R
+      // Print results
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testSetLabels, predictedLabels, toTestOn.keys.toSeq)
 
-    if (params.fpnAnalysis & oc.subClassifier.nonEmpty) {
-      // Perform analysis on false negatives and false positives
-      println("False negatives:")
-      evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
-      println("\n====")
-      outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
+      val evalMetric = evalMeasures("Overweight")
+      val precision = evalMetric.P
+      val recall = evalMetric.R
 
-      println("False positives:")
-      evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
-      println("\n====")
-      outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
+      if (portion == 1.0) {
+        if (params.fpnAnalysis & oc.subClassifier.nonEmpty) {
+          // Perform analysis on false negatives and false positives
+          println("False negatives:")
+          evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
+          println("\n====")
+          outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
+
+          println("False positives:")
+          evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
+          println("\n====")
+          outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
+        }
+
+        // Save results
+        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
+        writer.write(s"Precision: $precision\n")
+        writer.write(s"Recall: $recall\n")
+        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
+        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
+        writer.write(s"Macro average: $macroAvg\n")
+        writer.write(s"Micro average: $microAvg\n")
+        writer.close()
+
+        // Save individual predictions for bootstrap significance
+        val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+        predicted.write(s"gold\tpred\n")
+        testSetLabels.zip(predictedLabels).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
+        predicted.close()
+      }
+
+      (portion, numAccounts, precision, recall, macroAvg, microAvg)
     }
 
-    println("\nResults:")
-    println(s"Precision: $precision")
-    println(s"Recall: $recall")
-    println(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}")
-    println(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}")
-    println(s"Macro average: $macroAvg")
-    println(s"Micro average: $microAvg")
-
-    // Save results
-    val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-    writer.write(s"Precision: $precision\n")
-    writer.write(s"Recall: $recall\n")
-    writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
-    writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-    writer.write(s"Macro average: $macroAvg\n")
-    writer.write(s"Micro average: $microAvg\n")
-    writer.close()
-
-    // Save individual predictions for bootstrap significance
-    val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-    predicted.write(s"gold\tpred\n")
-    testSetLabels.zip(predictedLabels).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
-    predicted.close()
+    println("\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
+    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+        s"\t$macroAvg\t$microAvg")
+    }
   }
 
   private def outputAnalysis(outputFile:String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {
