@@ -102,7 +102,7 @@ object OverweightClassifier {
         logger.info("Loading model from file...")
         val cl = LiblinearClassifier.loadFrom[String, String](modelFile)
         oc.subClassifier = Some(cl)
-        Seq((1.0, oc))
+        Seq((1.0, 0, oc))
       } else {
         val toTrainOn = if (params.runOnTest) {
           logger.info("Loading training accounts...")
@@ -141,7 +141,7 @@ object OverweightClassifier {
           // Only save models using full training
           if (maxIndex == toTrainOn.length) oc.subClassifier.get.saveTo(modelFile)
 
-          (portion, oc)
+          (portion, maxIndex, oc)
         }
       }
     }
@@ -153,8 +153,7 @@ object OverweightClassifier {
       FileUtils.load(config.getString("classifiers.overweight.devData"))
     }
 
-
-    val evals = for ((portion, oc) <- classifiers) yield {
+    val evals = for ((portion, numAccounts, oc) <- classifiers) yield {
 
       // Set progress bar
       val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
@@ -209,12 +208,12 @@ object OverweightClassifier {
         predicted.close()
       }
 
-      (portion, precision, recall, macroAvg, microAvg)
+      (portion, numAccounts, precision, recall, macroAvg, microAvg)
     }
 
-    println("\n%train\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (portion, precision, recall, macroAvg, microAvg) =>
-      println(s"$portion\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+    println("\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
+    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
     }
   }
