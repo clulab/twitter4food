@@ -69,12 +69,7 @@ class FeatureExtractor (
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
 
   // Followers
-  val followerFile = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations"))
-  val handleToFollowers: Map[String, Seq[String]] = (for (line <- followerFile.getLines) yield {
-    val handles = line.split("\t")
-    handles.head -> handles.tail.toSeq
-  }).toMap
-  followerFile.close
+  var handleToFollowers: Option[Map[String, Seq[String]]] = None
 
   // Followees
   val followeeFile = scala.io.Source.fromFile(config.getString("classifiers.features.followeeRelations"))
@@ -85,20 +80,20 @@ class FeatureExtractor (
   followeeFile.close
 
   // human classifier for follower filtering
-  val humanClassifier = if(useFollowers) {
-    try {
-      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
-      val h = new HumanClassifier() // assume we're using unigrams only
-      h.subClassifier = Some(sub)
-      Some(h)
-    } catch {
-      case e: Exception =>
-        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
-        val tmp = new HumanClassifier() // assuming unigrams only
-        tmp.learn(Array(), "human", 10.0, 1000)
-        Some(tmp)
-    }
-  } else None
+  //  val humanClassifier = if(useFollowers) {
+  //    try {
+  //      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
+  //      val h = new HumanClassifier() // assume we're using unigrams only
+  //      h.subClassifier = Some(sub)
+  //      Some(h)
+  //    } catch {
+  //      case e: Exception =>
+  //        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
+  //        val tmp = new HumanClassifier() // assuming unigrams only
+  //        tmp.learn(Array(), "human", 10.0, 1000)
+  //        Some(tmp)
+  //    }
+  //  } else None
 
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
@@ -116,12 +111,7 @@ class FeatureExtractor (
     }
   } else None
 
-  val accountsFileStr = config.getString("classifiers.features.followerAccounts")
-  val followerAccounts = if (useFollowers) FileUtils.load(accountsFileStr) else Map[TwitterAccount, String]()
-
-  var handleToFollowerAccount = Map[String, TwitterAccount]()
-  for ((account, _) <- followerAccounts)
-    handleToFollowerAccount += (account.handle -> account)
+  var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
 
   /**
     * Copy a [[Counter]] so it's not accidentally overwritten
@@ -142,6 +132,10 @@ class FeatureExtractor (
       }).toMap)
     }
     this.lexicons = Some(l)
+  }
+
+  def setFollowers(followers: Map[String, Seq[TwitterAccount]]) = {
+    handleToFollowerAccount = Option(followers)
   }
 
   /**
@@ -279,11 +273,10 @@ class FeatureExtractor (
     * @return counter
     */
   def followers(account: TwitterAccount): Counter[String] = {
-    // Find this account's active followers
-    val followerHandles: Seq[String] = handleToFollowers.getOrElse(account.handle, Nil)
+    assert(handleToFollowerAccount.nonEmpty)
 
     // Find the TwitterAccount object corresponding to these handles
-    val followers = followerHandles.flatMap(f => handleToFollowerAccount.get(f))
+    val followers = handleToFollowerAccount.get.getOrElse(account.handle, Nil)
 
     // Aggregate the counter for the followers using the other features being used
     val followerCounters = for (follower <- followers.par) yield mkFeatures(follower, withFollowers = false)
