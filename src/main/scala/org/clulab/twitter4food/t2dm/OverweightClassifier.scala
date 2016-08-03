@@ -54,25 +54,6 @@ object OverweightClassifier {
     val params = TestUtils.parseArgs(args)
     val config = ConfigFactory.load
 
-    // Allow user to specify if model should be loaded or overwritten
-    var loadModel = false
-    print("\n\nOverwrite existing model file? (yes/no) ")
-    var answer = scala.io.StdIn.readLine()
-    if (answer.toLowerCase.charAt(0) == 'n') {
-      loadModel = true
-      println("\tUse existing model file")
-    } else
-      println("\tOverwrite existing model file")
-
-    var testOnDev = true
-    print("Partition to test on? (dev/test) ")
-    answer = scala.io.StdIn.readLine()
-    if (answer.toLowerCase.charAt(0) == 't') {
-      testOnDev = false
-      println("\tTraining on train+dev, testing on test")
-    } else
-      println("\tTraining on train, testing on dev\n\n")
-
     // List of features (not counting domain adaptation)
     // if these are all false, set default to true to use unigrams anyway
     val allFeatures = Seq(
@@ -102,8 +83,8 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     val classifiers = {
-      if (loadModel && params.learningCurve) logger.warn("Learning curve requested, so not loading model from file...")
-      if (loadModel && !params.learningCurve && Files.exists(Paths.get(modelFile))) {
+      if (params.noTraining && params.learningCurve) logger.warn("Learning curve requested, so not loading model from file...")
+      if (params.noTraining && !params.learningCurve && Files.exists(Paths.get(modelFile))) {
         val oc = new OverweightClassifier(
           useUnigrams = default || params.useUnigrams,
           useBigrams = params.useBigrams,
@@ -123,16 +104,17 @@ object OverweightClassifier {
         oc.subClassifier = Some(cl)
         Seq((1.0, oc))
       } else {
-        val toTrainOn = if (testOnDev) {
-          logger.info("Loading training accounts...")
-          FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
-        } else {
+        val toTrainOn = if (params.runOnTest) {
           logger.info("Loading training accounts...")
           val trainData = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
           logger.info("Loading dev accounts...")
           val devData = FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
           trainData ++ devData
+        } else {
+          logger.info("Loading training accounts...")
+          FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
         }
+
         for {
           portion <- portions
           maxIndex = (portion * toTrainOn.length).toInt
@@ -163,12 +145,12 @@ object OverweightClassifier {
         }
       }
     }
-    val toTestOn = if (testOnDev) {
-      logger.info("Loading dev accounts...")
-      FileUtils.load(config.getString("classifiers.overweight.devData"))
-    } else {
+    val toTestOn = if (params.runOnTest) {
       logger.info("Loading test accounts...")
       FileUtils.load(config.getString("classifiers.overweight.testData"))
+    } else {
+      logger.info("Loading dev accounts...")
+      FileUtils.load(config.getString("classifiers.overweight.devData"))
     }
 
 
