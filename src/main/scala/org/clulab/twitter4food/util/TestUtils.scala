@@ -20,7 +20,11 @@ object TestUtils {
     useRace: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false,
-    fpnAnalysis: Boolean = false)
+    fpnAnalysis: Boolean = false,
+    runOnTest: Boolean = false,
+    noTraining: Boolean = false,
+    learningCurve: Boolean = false
+  )
 
   def init(keyset: Int) = {
     (new TwitterAPI(keyset), ConfigFactory.load())
@@ -87,8 +91,14 @@ object TestUtils {
         c.copy(datumScaling = true)} text "use datum scaling"
       opt[Unit]('F', "featureScaling") action { (x, c) =>
         c.copy(featureScaling = true)} text "use feature scaling"
-      opt[Unit]('a', "analysis") action { (x, c) =>
+      opt[Unit]("analysis") action { (x, c) =>
         c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"
+      opt[Unit]("test") action { (x, c) =>
+        c.copy(runOnTest = true)} text "run on test dataset (default: dev dataset)"
+      opt[Unit]("noTraining") action { (x, c) =>
+        c.copy(noTraining = true)} text "don't overwrite existing classifier if one exists"
+      opt[Unit]("learningCurve") action { (x, c) =>
+        c.copy(learningCurve = true)} text "analyze performance "
     }
 
     parser.parse(args, Config()).get
