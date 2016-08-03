@@ -101,7 +101,7 @@ object TestUtils {
         c.copy(learningCurve = true)} text "analyze performance "
     }
 
-    parser.parse(args, Config()).get
+    parser.parse(args, Config()).getOrElse(Config())
   }
 
   def analyze(c: LiblinearClassifier[String, String], labels: Set[String],
