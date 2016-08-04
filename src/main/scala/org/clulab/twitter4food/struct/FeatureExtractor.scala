@@ -11,6 +11,8 @@ import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassif
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * Created by Terron on 2/9/16.
   *
@@ -60,6 +62,22 @@ class FeatureExtractor (
   // Dictionaries : Map[Label -> Map[LexiconName -> Lexicon]]
   // Messy, but useful data structure.
   var lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = None
+
+  // Additional annotations for food words: average calories of foods with this ingredient in the name; average health
+  // rating of these foods. These are used in the dictionaries() features
+  val (calories, healthiness): (Option[Map[String,Double]], Option[Map[String,Int]]) = if (useDictionaries) {
+    val foodAnnotations = scala.io.Source.fromFile(config.getString("classifiers.overweight.annotatedFoodFile"))
+    val cMap = scala.collection.mutable.Map[String, Double]()
+    val hMap = scala.collection.mutable.Map[String, Int]()
+    for {
+      line <- foodAnnotations.getLines
+      splits = line.split("\t")
+    } {
+      if (splits(1) != "NULL") cMap(splits(0)) = splits(1).toDouble
+      if (splits(2) != "NULL") cMap(splits(0)) = splits(2).toInt
+    }
+    (Some(cMap.toMap), Some(hMap.toMap))
+  } else (None, None)
 
   // Embeddings
   val vectors = if (useEmbeddings) loadVectors else None
@@ -174,7 +192,7 @@ class FeatureExtractor (
     if (useTopics)
       counter += scale(topics(tweets))
     if (useDictionaries)
-      counter += scale(dictionaries(tweets, description, account, unigrams))
+      counter += dictionaries(tweets, description, account, unigrams)
     if (useEmbeddings){
       counter += embeddings(tweets)
     }
@@ -355,6 +373,9 @@ class FeatureExtractor (
       // Load dictionaries
       val foodWords = lexicons.get("Overweight")("food_words")
       val hashtags = lexicons.get("Overweight")("overweight_hashtags")
+      // keep track of the average calorie and health grade of the food words mentioned
+      val calCount = new ArrayBuffer[Double]()
+      val healthCount = new ArrayBuffer[Int]()
 
       // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
       val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
@@ -362,12 +383,25 @@ class FeatureExtractor (
         if(foodWords contains k) {
           result.incrementCount("dictionary:foodDict", ng.getCount(k))
           result.incrementCount("dictionary:overweightDict", ng.getCount(k))
+          if (calories.get.contains(k)) calCount.append(calories.get(k))
+          if (healthiness.get.contains(k)) healthCount.append(healthiness.get(k))
         }
         if(hashtags contains k) {
           result.incrementCount("dictionary:hashtagDict", ng.getCount(k))
           result.incrementCount("dictionary:overweightDict", ng.getCount(k))
         }
       }
+      // Scale by number of tweets (number of tokens also a possibility)
+      if (datumScaling) {
+        val scalingFactor = tweets.length.toDouble
+        result.keySet.foreach{ k => result.setCount(k, result.getCount(k) / scalingFactor)}
+      }
+      // Add features for average calories and health grade of food words mentioned (if any were)
+      // Don't scale these, since they're averages
+      if (calCount.nonEmpty)
+        result.setCount("dictionary:averageCalories", calCount.sum / calCount.size.toDouble)
+      if (healthCount.nonEmpty)
+        result.setCount("dictionary:averageHealthScore", healthCount.sum.toDouble / healthCount.size.toDouble)
     }
 
     result
