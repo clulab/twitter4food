@@ -452,7 +452,8 @@ class ClassifierImpl(
     writer.close()
   }
 
-  def featureSelectionIncremental(accounts: Map[TwitterAccount, String], followers: Map[String, Seq[TwitterAccount]]) {
+  def featureSelectionIncremental(accounts: Map[TwitterAccount, String], followers: Map[String, Seq[TwitterAccount]],
+    evalMetric: Iterable[(String, String)] => Double) {
     val dataset = constructDataset(accounts.keys.toSeq, Option(followers), accounts.values.toSeq)
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
     logger.debug(s"Found ${featureGroups.size} feature groups:")
@@ -460,7 +461,7 @@ class ClassifierImpl(
       logger.debug(s"Group $f containing ${featureGroups.get(f).get.size} features.")
     }
     val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
-      dataset, Utils.svmFactory, Eval.f1ForLabel("Overweight"), featureGroups)
+      dataset, Utils.svmFactory, evalMetric, featureGroups)
     logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
   }
 }

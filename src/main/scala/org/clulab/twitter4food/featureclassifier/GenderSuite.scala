@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.featureclassifier
 
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.util.{Eval, FileUtils}
 import org.slf4j.LoggerFactory
 
 object GenderSuite {
@@ -30,6 +30,6 @@ object GenderSuite {
       datumScaling = true
     )
 
-    gc.featureSelectionIncremental(train ++ dev, followers)
+    gc.featureSelectionIncremental(train ++ dev, followers, Eval.microOnly)
   }
 }

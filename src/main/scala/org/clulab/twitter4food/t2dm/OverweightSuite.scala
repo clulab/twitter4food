@@ -2,7 +2,7 @@ package org.clulab.twitter4food.t2dm
 
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
-import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.util.{Eval, FileUtils}
 import org.slf4j.LoggerFactory
 
 object OverweightSuite {
@@ -32,6 +32,6 @@ object OverweightSuite {
       datumScaling = true
     )
 
-    oc.featureSelectionIncremental(train ++ dev, followers)
+    oc.featureSelectionIncremental(train ++ dev, followers, Eval.f1ForLabel("Overweight"))
   }
 }
