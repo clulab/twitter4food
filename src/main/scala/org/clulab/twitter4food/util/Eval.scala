@@ -41,6 +41,10 @@ object Eval {
     evalMeasures(label).F
   }
 
+  def microOnly(labels: Iterable[(String, String)]): Double = {
+    evaluate(labels.toSeq)._3
+  }
+
   def evaluate(labels: Seq[(String, String)]): (Map[String, EvalMetric], Double, Double) = {
     val (srcLabels, predictedLabels) = labels.unzip
     evaluate(srcLabels, predictedLabels)
