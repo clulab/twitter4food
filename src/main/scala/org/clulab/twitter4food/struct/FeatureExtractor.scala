@@ -185,7 +185,7 @@ class FeatureExtractor (
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     if (useGender & genderClassifier.nonEmpty) {
-      counter += prepend(s"gender-{genderClassifier.get.predict(account)}_", counter)
+      counter += prepend(s"gender-${genderClassifier.get.predict(account)}_", counter)
     }
 
     if (useRace) {
