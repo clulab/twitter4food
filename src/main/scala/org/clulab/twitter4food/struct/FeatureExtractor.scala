@@ -185,7 +185,7 @@ class FeatureExtractor (
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     if (useGender & genderClassifier.nonEmpty) {
-      counter += prepend(s"gender-${genderClassifier.get.predict(account)}_", counter)
+      counter += prepend(s"gender:${genderClassifier.get.predict(account)}_", counter)
     }
 
     if (useRace) {
@@ -203,7 +203,7 @@ class FeatureExtractor (
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      counter += prepend("follower_", fc.mapValues(v => v * followerProp))
+      counter += prepend("follower:", fc.mapValues(v => v * followerProp))
     }
 
     // remove zero values for sparse rep
