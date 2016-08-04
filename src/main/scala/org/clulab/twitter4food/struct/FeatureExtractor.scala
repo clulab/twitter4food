@@ -422,14 +422,16 @@ class FeatureExtractor (
     // For each token, the vector values listed in the word2vec model
     val vectorPerToken = for (token <- listedTokens.par) yield vectors.get(token)
     // For each dimension, the values for each token in the account
-    val valuesPerDim = for (dim <- 0 until dims) yield vectorPerToken.map(token => token(dim))
+    val valuesPerDim = for (dim <- 0 until dims) yield vectorPerToken.map(token => token(dim)).seq
 
     val counter = new Counter[String]()
     // Take the average of each dimension's values over all tokens in the account
     valuesPerDim.indices.foreach{ i =>
       counter.setCount(s"avgembedding:$i", valuesPerDim(i).sum / totalTokens)
-      counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
-      counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
+      if (valuesPerDim(i).nonEmpty) {
+        counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
+        counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
+      }
     }
     counter
   }
