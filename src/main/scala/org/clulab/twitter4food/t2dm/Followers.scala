@@ -5,7 +5,7 @@ import java.io.{BufferedWriter, FileWriter}
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.twitter4j.TwitterAPI
-import org.clulab.twitter4food.util.{FileUtils, MultiThreadLoader, TestUtils}
+import org.clulab.twitter4food.util.{FileUtils, MultiThreadLoader, Utils}
 import twitter4j.TwitterException
 
 /**

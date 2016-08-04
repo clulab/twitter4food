@@ -3,7 +3,7 @@ package org.clulab.twitter4food.t2dm
 import java.io.{BufferedReader, FileReader, PrintWriter}
 
 import cmu.arktweetnlp.Tagger.TaggedToken
-import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
+import org.clulab.twitter4food.util.{Utils, Tokenizer}
 
 /**
   * Created by Terron on 4/28/16.
@@ -14,7 +14,7 @@ import org.clulab.twitter4food.util.{TestUtils, Tokenizer}
 object Word2VecFormatter {
 
     def main(args: Array[String]) {
-        val (_, config) = TestUtils.init(0)
+        val (_, config) = Utils.init(0)
         val overweightFile = scala.io.Source.fromFile(config.getString("classifiers.features.overweight_corpus"))
 
         val outputFile = config.getString("classifiers.features.overweight_corpus_tokenized")

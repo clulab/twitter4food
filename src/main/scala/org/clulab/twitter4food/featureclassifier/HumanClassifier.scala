@@ -141,8 +141,8 @@ object HumanClassifier {
   }
 
   def main(args: Array[String]) = {
-    val params = TestUtils.parseArgs(args)
-    val (api, config) = TestUtils.init(0)
+    val params = Utils.parseArgs(args)
+    val (api, config) = Utils.init(0)
     val hc = new HumanClassifier(
       useUnigrams = params.useUnigrams,
       useBigrams = params.useBigrams,
