@@ -4,15 +4,12 @@ import java.io.{BufferedReader, FileReader}
 
 import org.clulab.learning.{Datum, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
-import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.clulab.twitter4food.struct.Normalization._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassifier}
 import org.clulab.twitter4food.lda.LDA
 import org.slf4j.LoggerFactory
-
-import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by Terron on 2/9/16.
@@ -106,7 +103,7 @@ class FeatureExtractor (
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
         val tmp = new GenderClassifier() // assuming unigrams only
-        tmp.learn(Array(), "gender", 10.0, 1000)
+        tmp.learn(Array("-u"), "gender", 10.0, 1000)
         Some(tmp)
     }
   } else None
