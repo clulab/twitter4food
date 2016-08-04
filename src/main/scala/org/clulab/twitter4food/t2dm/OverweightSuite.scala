@@ -1,13 +1,8 @@
 package org.clulab.twitter4food.t2dm
 
-import java.io.{BufferedWriter, FileWriter}
-import java.nio.file.{Files, Paths}
-
 import com.typesafe.config.ConfigFactory
-import org.clulab.learning.L1LinearSVMClassifier
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
-import org.clulab.twitter4food.struct.TwitterAccount
-import org.clulab.twitter4food.util.{Eval, FileUtils}
+import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
 object OverweightSuite {
