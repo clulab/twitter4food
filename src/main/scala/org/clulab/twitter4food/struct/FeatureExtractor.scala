@@ -393,7 +393,9 @@ class FeatureExtractor (
     val counter = new Counter[String]()
     // Take the average of each dimension's values over all tokens in the account
     valuesPerDim.indices.foreach{ i =>
-      counter.setCount(s"embedding:$i", valuesPerDim(i).sum / totalTokens)
+      counter.setCount(s"avgembedding:$i", valuesPerDim(i).sum / totalTokens)
+      counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
+      counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
     }
     counter
   }
