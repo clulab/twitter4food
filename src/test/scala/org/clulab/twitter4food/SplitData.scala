@@ -7,7 +7,7 @@ import org.clulab.twitter4food.util._
 import org.clulab.twitter4food.struct._
 
 object SplitData extends App {
-  val (api, config) = TestUtils.init(0)
+  val (api, config) = Utils.init(0)
   /*val accounts = Source.fromFile(config.getString("classifiers.gender.trainingFile"))
     .getLines.toList
   val (males, females) = accounts.reverse.foldLeft((List[String](), List[String]()))(
@@ -15,7 +15,7 @@ object SplitData extends App {
       if(a.split("\t")(2).equals("M")) (a::l._1, l._2) else (l._1, a::l._2)
       })*/
 
-  val hlMap = TestUtils.loadHandles(config
+  val hlMap = Utils.loadHandles(config
       .getString("classifiers.human.annotatedUsersFile")).keys.toSet
 
   val accounts = FileUtils.load(config.getString("classifiers.human.allTrainData"))

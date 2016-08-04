@@ -3,10 +3,14 @@ package org.clulab.twitter4food.util
 import org.clulab.twitter4food.twitter4j._
 import org.clulab.twitter4food.struct._
 import com.typesafe.config.ConfigFactory
-import scala.reflect.ClassTag
-import org.clulab.learning.LiblinearClassifier
 
-object TestUtils {
+import scala.reflect.ClassTag
+import org.clulab.learning.{Classifier, L1LinearSVMClassifier, LiblinearClassifier}
+import org.clulab.struct.Lexicon
+
+import scala.collection.mutable
+
+object Utils {
   case class Config(
     useUnigrams: Boolean = false,
     useBigrams: Boolean = false,
@@ -36,30 +40,30 @@ object TestUtils {
         (map, line) => map + (line.split("\t")(0) -> line.split("\t")(1)))
   }
 
-  def splitHandles[T: ClassTag](keyset: Int, numWindows: Int, 
+  def splitHandles[T: ClassTag](keyset: Int, numWindows: Int,
     collection: Map[T, String]): (Array[T], Array[String]) = {
     val window = collection.size/numWindows
     val lower = keyset*window
-    val upper = if(keyset == numWindows-1) collection.size 
-                else (keyset+1)*window
+    val upper = if(keyset == numWindows-1) collection.size
+    else (keyset+1)*window
     val subHandles = collection.keys.slice(lower, upper).toArray
     val subLabels = subHandles.map(k => collection(k))
 
     subHandles -> subLabels
   }
 
-  def fetchAccounts(api: TwitterAPI, handles: Seq[String], 
+  def fetchAccounts(api: TwitterAPI, handles: Seq[String],
     fT: Boolean, fN: Boolean, appOnly: Boolean) = {
     val pb = new me.tongfei.progressbar.ProgressBar("fetchAccounts", 100)
     pb.start()
 
     pb.maxHint(handles.size)
     pb.setExtraMessage("Downloading ...")
-    val accounts = handles.map(h => { 
+    val accounts = handles.map(h => {
       val account = api.fetchAccount(h, fetchTweets = fT, fetchNetwork = fN,
         isAppOnly = appOnly)
       pb.step(); account
-      })
+    })
     pb.stop()
     accounts
   }
@@ -105,9 +109,9 @@ object TestUtils {
   }
 
   def analyze(c: LiblinearClassifier[String, String], labels: Set[String],
-    test: TwitterAccount, fe: FeatureExtractor): 
-    (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
-    
+    test: TwitterAccount, fe: FeatureExtractor):
+  (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
+
     val W = c.getWeights()
     val d = fe.mkDatum(test, "unknown")
 
@@ -120,15 +124,42 @@ object TestUtils {
         val feats = d.featuresCounter.toSeq
         map + (l -> feats.filter(f => weightMap.contains(f._1))
           .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
-        })
+      })
 
     (topWeights, dotProduct)
   }
 
   def analyze(filename: String, labels: Set[String], test: TwitterAccount,
-    fe: FeatureExtractor): 
-    (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
+    fe: FeatureExtractor):
+  (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
     analyze(LiblinearClassifier.loadFrom[String, String](filename), labels,
       test, fe)
   }
+
+  def prefix(f:String, sep:String):String = {
+    var pref = f
+    val i = f.indexOf(sep)
+    if(i > 0) pref = f.substring(0, i)
+    pref
+  }
+
+  def findFeatureGroups(sep:String, lexicon:Lexicon[String]):Map[String, Set[Int]] = {
+    val groups = new mutable.HashMap[String, mutable.HashSet[Int]]()
+    for(f <- lexicon.keySet) {
+      val pref = prefix(f, sep)
+
+      if(! groups.contains(pref))
+        groups.put(pref, new mutable.HashSet[Int]())
+      groups.get(pref).get += lexicon.get(f).get
+    }
+
+    val img = new mutable.HashMap[String, Set[Int]]()
+    for(k <- groups.keySet) {
+      img.put(k, groups.get(k).get.toSet)
+    }
+    img.toMap
+  }
+
+  def svmFactory():Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
+
 }

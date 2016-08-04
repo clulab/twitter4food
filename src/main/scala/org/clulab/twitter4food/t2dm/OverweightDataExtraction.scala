@@ -2,7 +2,7 @@ package org.clulab.twitter4food.t2dm
 
 import java.io.PrintWriter
 
-import org.clulab.twitter4food.util.{FileUtils, TestUtils}
+import org.clulab.twitter4food.util.{FileUtils, Utils}
 import java.text.SimpleDateFormat
 
 import com.typesafe.config.ConfigFactory
@@ -23,7 +23,7 @@ import scala.io.Source
 object OverweightDataExtraction {
     def main(args: Array[String]) {
 
-//        val (api, config) = TestUtils.init(0)
+//        val (api, config) = Utils.init(0)
         val config = ConfigFactory.load
 
         val outputFile = config.getString("overweight") + "/followerAccounts.txt"

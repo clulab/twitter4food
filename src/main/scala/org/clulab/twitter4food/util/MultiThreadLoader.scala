@@ -37,11 +37,11 @@ class ThreadRunner(handles: Seq[String], isAppOnly: Boolean,
   extends Callable[Seq[TwitterAccount]] {
   def call(): Seq[TwitterAccount] = {
     val id = Thread.currentThread.getId.toInt % N
-    val (api, config) = TestUtils.init(id)
+    val (api, config) = Utils.init(id)
     val hlMap = handles.foldLeft(Map[String, String]())(
       (map, h) => map + (h -> ""))
-    val (subH, subL) = TestUtils.splitHandles(id, N, hlMap)
-    val accounts = TestUtils.fetchAccounts(api, subH, fetchTweets, 
+    val (subH, subL) = Utils.splitHandles(id, N, hlMap)
+    val accounts = Utils.fetchAccounts(api, subH, fetchTweets,
       fetchNetwork, isAppOnly)
     accounts
   }
@@ -56,8 +56,8 @@ object MultiThreadLoader {
 
   def main(args: Array[String]) = {
     if(args.length < 1) throw new RuntimeException("Error! Enter classifier type")
-    val c = TestUtils.init(16)._2
-    val hlMap = TestUtils.loadHandles(
+    val c = Utils.init(16)._2
+    val hlMap = Utils.loadHandles(
       c.getString(s"classifiers.${args(0)}.annotatedUsersFile"))
     val (handles, labels) = (hlMap.keys.toArray, hlMap.values.toArray)
     val accounts = multiTheadFetch(handles, true, true, false, 16)

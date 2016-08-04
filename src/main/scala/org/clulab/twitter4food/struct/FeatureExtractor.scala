@@ -188,12 +188,12 @@ class FeatureExtractor (
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     if (useGender & genderClassifier.nonEmpty) {
-      counter += appendPrefix(s"__${genderClassifier.get.predict(account)}-", counter)
+      counter += prepend(s"gender-{genderClassifier.get.predict(account)}_", counter)
     }
 
     if (useRace) {
       // TODO: predict account owner's race for domain adaptation
-      // counter += appendPrefix(s"__${raceClassifier.get.predict(account)}-", counter)
+      // counter += prepend(s"race-${raceClassifier.get.predict(account)}_", counter)
     }
 
     if (withFollowers) {
@@ -206,7 +206,7 @@ class FeatureExtractor (
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      counter += appendPrefix("__follower-", fc.mapValues(v => v * followerProp))
+      counter += prepend("follower_", fc.mapValues(v => v * followerProp))
     }
 
     // remove zero values for sparse rep
@@ -214,7 +214,7 @@ class FeatureExtractor (
   }
 
   // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
-  def appendPrefix (prefix: String, counter: Counter[String]): Counter[String] = {
+  def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
     val temp = new Counter[String]()
     for ((label, score) <- counter.toSeq)
       temp.setCount(prefix + label, score)
@@ -239,7 +239,7 @@ class FeatureExtractor (
 
     // Extract ngrams
     def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
-      text.sliding(n).toList.map(ngram => ngram.mkString(" "))
+      text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
     }
 
     // Filter ngrams by their POS tags
@@ -262,7 +262,7 @@ class FeatureExtractor (
   def followees(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
     val followeeHandles: Seq[String] = handleToFollowees.getOrElse(account.handle, Nil)
-    setCounts(followeeHandles.map(handle => s"__following_${handle}__"), counter)
+    setCounts(followeeHandles.map(handle => s"followeeHandle:${handle}"), counter)
     counter
   }
 
@@ -300,7 +300,7 @@ class FeatureExtractor (
     if (topicModel.isEmpty) return topics
 
     val tm = topicModel.get
-    tweets.foreach(tweet => topics.incrementCount(s"__topic_${tm.mostLikelyTopic(tweet)}__"))
+    tweets.foreach(tweet => topics.incrementCount(s"topic:${tm.mostLikelyTopic(tweet)}__"))
 
     topics
   }
@@ -346,8 +346,8 @@ class FeatureExtractor (
 
               val dS = if (!lexName.contains("name")) description.count(lexicon.contains) else 0
 
-              if(dS > 0) result.incrementCount(s"lex_${k}_${lexName}_description", dS)
-              if(nS > 0) result.incrementCount(s"lex_${k}_${lexName}_name", nS)
+              if(dS > 0) result.incrementCount(s"dictionary:lex_${k}_${lexName}_description", dS)
+              if(nS > 0) result.incrementCount(s"dictionary:lex_${k}_${lexName}_name", nS)
           }
       }
     }
@@ -363,12 +363,12 @@ class FeatureExtractor (
       val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
       ng.keySet.foreach{k =>
         if(foodWords contains k) {
-          result.incrementCount("__foodDict__", ng.getCount(k))
-          result.incrementCount("__overweightDict__", ng.getCount(k))
+          result.incrementCount("dictionary:foodDict", ng.getCount(k))
+          result.incrementCount("dictionary:overweightDict", ng.getCount(k))
         }
         if(hashtags contains k) {
-          result.incrementCount("__hashtagDict__", ng.getCount(k))
-          result.incrementCount("__overweightDict__", ng.getCount(k))
+          result.incrementCount("dictionary:hashtagDict", ng.getCount(k))
+          result.incrementCount("dictionary:overweightDict", ng.getCount(k))
         }
       }
     }
@@ -396,7 +396,7 @@ class FeatureExtractor (
     val counter = new Counter[String]()
     // Take the average of each dimension's values over all tokens in the account
     valuesPerDim.indices.foreach{ i =>
-      counter.setCount(s"__vector_${i}__", valuesPerDim(i).sum / totalTokens)
+      counter.setCount(s"embedding:$i", valuesPerDim(i).sum / totalTokens)
     }
     counter
   }
@@ -503,7 +503,7 @@ class FeatureExtractor (
 
     // Calculate cosine similarity
     val result = new Counter[String]()
-    result.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
+    result.setCount("cosineSim:overweightCorpus", Counters.cosine(accountVec, overweightVec.get))
 
     result
   }

@@ -34,10 +34,50 @@ object Eval {
   def genEvalMeasure(labels: Set[String]) = {
     labels.foldLeft(Map[String, EvalMetric]())(
       (m, l) => m + (l -> new EvalMetric()))
-  }  
+  }
+
+  def f1ForLabel(label: String)(labels: Iterable[(String, String)]): Double = {
+    val (evalMeasures, _, _) = evaluate(labels.toSeq)
+    evalMeasures(label).F
+  }
+
+  def evaluate(labels: Seq[(String, String)]): (Map[String, EvalMetric], Double, Double) = {
+    val (srcLabels, predictedLabels) = labels.unzip
+    evaluate(srcLabels, predictedLabels)
+  }
+
+  def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String]): (Map[String, EvalMetric], Double, Double) = {
+    val labels = srcLabels.toSet
+    val evalMeasures = genEvalMeasure(labels)
+
+    labels.foreach(label => {
+      val eval = evalMeasures(label)
+      for (i <- srcLabels.indices) {
+        if (srcLabels(i) equals label) {
+          if (predictedLabels(i) equals label) eval.TP += 1 else eval.FN += 1
+        }
+        else {
+          if (predictedLabels(i) equals label) eval.FP += 1 else eval.TN += 1
+        }
+      }
+      eval.F = fMeasure(eval.P, eval.R, 1.0)
+    })
+
+    // Macroaverage
+    val macroAvg = evalMeasures.values.foldLeft(0.0)(
+      (sum, e) => sum + e.F)/evalMeasures.size
+
+    // Microaverage
+    val e = new EvalMetric()
+    val sumE = evalMeasures.values.foldLeft(e)(
+      (s, e) => { s.TP += e.TP; s.FP += e.FP; s.FN += e.FN; s})
+    val microAvg = Eval.fMeasure(sumE.P, sumE.R, 1.0)
+
+    (evalMeasures, macroAvg, microAvg)
+  }
 
   def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String],
-    accounts: Seq[TwitterAccount]) = {
+    accounts: Seq[TwitterAccount]): (Map[String, EvalMetric], Double, Double) = {
     val labels = srcLabels.toSet
     val evalMeasures = genEvalMeasure(labels)
     assert(srcLabels.size == predictedLabels.size

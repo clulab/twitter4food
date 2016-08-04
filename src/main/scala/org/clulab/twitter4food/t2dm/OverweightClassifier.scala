@@ -8,7 +8,7 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.struct.TwitterAccount
-import org.clulab.twitter4food.util.{Eval, FileUtils, TestUtils}
+import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
 /**
   * Created by Terron on 2/15/16.
@@ -51,7 +51,7 @@ object OverweightClassifier {
 
   def main(args: Array[String]) {
     // Parse args using standard Config
-    val params = TestUtils.parseArgs(args)
+    val params = Utils.parseArgs(args)
     val config = ConfigFactory.load
 
     // List of features (not counting domain adaptation)
@@ -180,7 +180,8 @@ object OverweightClassifier {
       val recall = evalMetric.R
 
       if (portion == 1.0) {
-        if (params.fpnAnalysis & oc.subClassifier.nonEmpty) {
+        if (params.fpnAnalysis & oc.subClassifier.nonEmpty &
+          (evalMetric.FNAccounts.nonEmpty || evalMetric.FPAccounts.nonEmpty)) {
           // Perform analysis on false negatives and false positives
           println("False negatives:")
           evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
@@ -238,7 +239,7 @@ object OverweightClassifier {
     for (account <- accounts) {
       if (numAccountsToPrint > 0) {
         // Analyze account
-        val (topWeights, dotProduct) = TestUtils.analyze(oc.subClassifier.get, Set("Overweight", "Not overweight"),
+        val (topWeights, dotProduct) = Utils.analyze(oc.subClassifier.get, Set("Overweight", "Not overweight"),
           account, oc.featureExtractor)
         // Only print the general weights on the features once
         if (isFirst) {

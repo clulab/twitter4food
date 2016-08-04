@@ -16,7 +16,7 @@ object OverweightAccounts {
   }
 
   def main(args: Array[String]): Unit = {
-    val config = TestUtils.init(0)._2
+    val config = Utils.init(0)._2
     val lines = scala.io.Source.fromFile(
       config.getString("classifiers.overweight.stream")).getLines.toList
     var count = 0

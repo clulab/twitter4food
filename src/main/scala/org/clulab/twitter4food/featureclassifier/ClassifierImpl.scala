@@ -61,9 +61,6 @@ class ClassifierImpl(
   /** subClassifier that does the actual training over {@link dataset} */
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
 
-  /** Real-valued dataset that stores Datum[String, String] */
-  var dataset = new RVFDataset[String, String]()
-
   /** config file that fetches filepaths */
   val config = ConfigFactory.load()
 
@@ -72,16 +69,6 @@ class ClassifierImpl(
   var scaleRange: Option[ScaleRange[String]] = None
   val lowerBound = 0.0
   val upperBound = 1.0
-
-  /** Adds (label, Datum[String, String] to {@link dataset})
-    *
-    * @param account TwitterAccount to make a datum out of.
-    * @param label associated label
-    * @return Unit
-    */
-  def addDatum(account: TwitterAccount, label: String) = {
-    this.synchronized { dataset += featureExtractor.mkDatum(account, label) }
-  }
 
   /** Populates list of lexicons from config file. Separate function
     * for easy testing.
@@ -96,32 +83,15 @@ class ClassifierImpl(
         config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
   }
 
-  /**
-    * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers if necessary
-    * @param accounts
-    * @param labels
-    */
-  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
-    val followers = if (useFollowers) Option(loadFollowers(accounts)) else None
-
-    train(accounts, followers, labels)
-  }
-
-  /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
-    *
-    * @param accounts: Sequence of training accounts
-    * @param labels: Sequence of annotated labels for each account
-    * @return Unit
-    */
-  def train(accounts: Seq[TwitterAccount], followers: Option[Map[String, Seq[TwitterAccount]]], labels: Seq[String]) = {
-    assert(accounts.size == labels.size)
-
-    val labelSet = labels.toSet
+  def constructDataset(
+    accounts: Seq[TwitterAccount],
+    followers: Option[Map[String, Seq[TwitterAccount]]],
+    labels: Seq[String]): RVFDataset[String, String] = {
 
     // Load lexicons before calling train
     if(useDictionaries) {
       // For each label, populate list of lexicon filepaths from config
-      val lexMap = populateLexiconList(labelSet, this.variable)
+      val lexMap = populateLexiconList(labels.toSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)
     }
 
@@ -129,8 +99,7 @@ class ClassifierImpl(
       this.featureExtractor.setFollowers(followers.get)
     }
 
-    // Clear current dataset if training on new one
-    dataset = new RVFDataset[String, String]()
+    val dataset = new RVFDataset[String, String]()
 
     val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
     pb.start()
@@ -149,6 +118,31 @@ class ClassifierImpl(
     pb.stop()
 
     datums.foreach(datum => this.synchronized { dataset += datum })
+
+    dataset
+  }
+
+  /**
+    * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers if necessary
+    * @param accounts
+    * @param labels
+    */
+  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
+    val followers = if (useFollowers) Option(loadFollowers(accounts)) else None
+    train(accounts, followers, labels)
+  }
+
+  /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
+    *
+    * @param accounts: Sequence of training accounts
+    * @param labels: Sequence of annotated labels for each account
+    * @return Unit
+    */
+  def train(accounts: Seq[TwitterAccount], followers: Option[Map[String, Seq[TwitterAccount]]], labels: Seq[String]) = {
+    assert(accounts.size == labels.size)
+
+    // Clear current dataset if training on new one
+    val dataset = constructDataset(accounts, followers, labels)
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
     if (featureScaling) scaleRange = Some(Normalization.scaleByFeature(dataset, lowerBound, upperBound))
@@ -311,10 +305,7 @@ class ClassifierImpl(
     val devData = FileUtils.load(config
       .getString(s"classifiers.$ctype.devData"))
     println("Loading test accounts...")
-    val testData = if(!devOnly)
-      Some(FileUtils.load(config.getString(s"classifiers.$ctype.testData")))
-    else
-      None
+    val testData = if(!devOnly) Some(FileUtils.load(config.getString(s"classifiers.$ctype.testData"))) else None
 
     val fileExt = args.mkString("").replace("-", "").sorted
     val tweetFolds = Array(100, 500, 1000, 5000)
@@ -459,6 +450,18 @@ class ClassifierImpl(
       writer.flush()
       }
     writer.close()
+  }
+
+  def featureSelectionIncremental(accounts: Map[TwitterAccount, String], followers: Map[String, Seq[TwitterAccount]]) {
+    val dataset = constructDataset(accounts.keys.toSeq, Option(followers), accounts.values.toSeq)
+    val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
+    logger.debug(s"Found ${featureGroups.size} feature groups:")
+    for(f <- featureGroups.keySet) {
+      logger.debug(s"Group $f containing ${featureGroups.get(f).get.size} features.")
+    }
+    val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
+      dataset, Utils.svmFactory, Eval.f1ForLabel("Overweight"), featureGroups)
+    logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
   }
 }
 
