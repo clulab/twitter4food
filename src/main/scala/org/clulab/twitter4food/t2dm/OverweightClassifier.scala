@@ -115,7 +115,7 @@ object OverweightClassifier {
           FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
         }
 
-        val followers = Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1)))
+        val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
 
         for {
           portion <- portions
