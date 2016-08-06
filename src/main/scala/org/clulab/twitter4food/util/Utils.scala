@@ -16,7 +16,9 @@ object Utils {
     useBigrams: Boolean = false,
     useTopics: Boolean = false,
     useDictionaries: Boolean = false,
-    useEmbeddings: Boolean = false,
+    useAvgEmbeddings: Boolean = false,
+    useMinEmbeddings: Boolean = false,
+    useMaxEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
@@ -79,8 +81,12 @@ object Utils {
         c.copy(useTopics = true)} text "use topics"
       opt[Unit]('d', "dictionaries") action { (x, c) =>
         c.copy(useDictionaries = true)} text "use dictionaries"
-      opt[Unit]('e', "embeddings") action { (x, c) =>
-        c.copy(useEmbeddings = true)} text "use embeddings"
+      opt[Unit]('a', "avgEmbeddings") action { (x, c) =>
+        c.copy(useAvgEmbeddings = true)} text "use average embeddings"
+      opt[Unit]('n', "minEmbeddings") action { (x, c) =>
+        c.copy(useMinEmbeddings = true)} text "use minimum embeddings"
+      opt[Unit]('x', "maxEmbeddings") action { (x, c) =>
+        c.copy(useMaxEmbeddings = true)} text "use maximum embeddings"
       opt[Unit]('c', "cosineSim") action { (x, c) =>
         c.copy(useCosineSim = true)} text "use cosine similarity"
       opt[Unit]('g', "gender") action { (x, c) =>

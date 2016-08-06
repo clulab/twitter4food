@@ -28,7 +28,9 @@ class FeatureExtractor (
   val useBigrams: Boolean = false,
   val useTopics: Boolean = false,
   val useDictionaries: Boolean = false,
-  val useEmbeddings: Boolean = false,
+  val useAvgEmbeddings: Boolean = false,
+  val useMinEmbeddings: Boolean = false,
+  val useMaxEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
@@ -45,7 +47,9 @@ class FeatureExtractor (
     s"useBigrams=$useBigrams, " +
     s"useTopics=$useTopics, " +
     s"useDictionaries=$useDictionaries, " +
-    s"useEmbeddings=$useEmbeddings, " +
+    s"useAvgEmbeddings=$useAvgEmbeddings, " +
+    s"useMinEmbeddings=$useMinEmbeddings, " +
+    s"useMaxEmbeddings=$useMaxEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
@@ -80,7 +84,7 @@ class FeatureExtractor (
   } else (None, None)
 
   // Embeddings
-  val vectors = if (useEmbeddings) loadVectors else None
+  val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
 
   // Followers
@@ -121,7 +125,7 @@ class FeatureExtractor (
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
         val tmp = new GenderClassifier() // assuming unigrams only
-        tmp.learn(Array("-u"), "gender", 10.0, 1000)
+        tmp.learn(Array("-x"), "gender", 10.0, 1000)
         Some(tmp)
     }
   } else None
@@ -193,7 +197,7 @@ class FeatureExtractor (
       counter += scale(topics(tweets))
     if (useDictionaries)
       counter += dictionaries(tweets, description, account, unigrams)
-    if (useEmbeddings){
+    if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
       counter += embeddings(tweets)
     }
     if (useCosineSim)
@@ -427,10 +431,10 @@ class FeatureExtractor (
     val counter = new Counter[String]()
     // Take the average of each dimension's values over all tokens in the account
     valuesPerDim.indices.foreach{ i =>
-      counter.setCount(s"avgembedding:$i", valuesPerDim(i).sum / totalTokens)
+      if (useAvgEmbeddings) counter.setCount(s"avgembedding:$i", valuesPerDim(i).sum / totalTokens)
       if (valuesPerDim(i).nonEmpty) {
-        counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
-        counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
+        if (useMinEmbeddings) counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
+        if (useMaxEmbeddings) counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
       }
     }
     counter
@@ -538,7 +542,7 @@ class FeatureExtractor (
 
     // Calculate cosine similarity
     val result = new Counter[String]()
-    result.setCount("cosineSim:overweightCorpus", Counters.cosine(accountVec, overweightVec.get))
+    result.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
 
     result
   }

@@ -29,7 +29,9 @@ class ClassifierImpl(
   val useBigrams: Boolean,
   val useTopics: Boolean,
   val useDictionaries: Boolean,
-  val useEmbeddings: Boolean,
+  val useAvgEmbeddings: Boolean,
+  val useMinEmbeddings: Boolean,
+  val useMaxEmbeddings: Boolean,
   val useCosineSim: Boolean,
   val useFollowers: Boolean,
   val useFollowees: Boolean,
@@ -49,7 +51,9 @@ class ClassifierImpl(
     useBigrams=useBigrams,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
-    useEmbeddings=useEmbeddings,
+    useAvgEmbeddings=useAvgEmbeddings,
+    useMinEmbeddings=useMinEmbeddings,
+    useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
@@ -207,7 +211,8 @@ class ClassifierImpl(
       })
 
     val opt = config.getString(s"classifiers.${this.variable}.model")
-    val fout = s"$opt/svm_${args.mkString("").replace("-", "").sorted}_${_C}_$K.dat"
+    val nonFeats = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
+    val fout = s"$opt/svm_${args.filterNot(nonFeats.contains).sorted.mkString("").replace("-", "")}_${_C}_$K.dat"
 
     logger.info(s"Training on ${customAccounts.length} accounts, ${customAccounts.map(_.tweets.length).sum} tweets")
 
