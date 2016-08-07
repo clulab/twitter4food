@@ -24,6 +24,7 @@ object Utils {
     useFollowees: Boolean = false,
     useGender: Boolean = false,
     useRace: Boolean = false,
+    useHuman: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false,
     fpnAnalysis: Boolean = false,
@@ -93,13 +94,15 @@ object Utils {
         c.copy(useGender = true)} text "use gender classifier"
       opt[Unit]('r', "race") action { (x, c) =>
         c.copy(useRace = true)} text "use race classifier"
+      opt[Unit]('h', "human") action { (x, c) =>
+        c.copy(useHuman = true)} text "use human classifier"
       opt[Unit]('f', "followers") action { (x, c) =>
         c.copy(useFollowers = true)} text "use followers"
-      opt[Unit]('h', "followees") action { (x, c) =>
+      opt[Unit]('F', "followees") action { (x, c) =>
         c.copy(useFollowees = true)} text "use followee handles"
       opt[Unit]('D', "datumScaling") action { (x, c) =>
         c.copy(datumScaling = true)} text "use datum scaling"
-      opt[Unit]('F', "featureScaling") action { (x, c) =>
+      opt[Unit]('S', "featureScaling") action { (x, c) =>
         c.copy(featureScaling = true)} text "use feature scaling"
       opt[Unit]("analysis") action { (x, c) =>
         c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"

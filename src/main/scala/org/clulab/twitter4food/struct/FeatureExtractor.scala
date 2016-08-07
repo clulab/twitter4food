@@ -36,6 +36,7 @@ class FeatureExtractor (
   val useFollowees: Boolean = false,
   val useGender: Boolean = false,
   val useRace: Boolean = false,
+  val useHuman: Boolean = false,
   val datumScaling: Boolean = false,
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
@@ -55,6 +56,7 @@ class FeatureExtractor (
     s"useFollowees=$useFollowees, " +
     s"useGender=$useGender, " +
     s"useRace=$useRace, " +
+    s"useHuman=$useHuman, " +
     s"datumScaling=$datumScaling"
   )
 
@@ -99,20 +101,20 @@ class FeatureExtractor (
   followeeFile.close
 
   // human classifier for follower filtering
-  //  val humanClassifier = if(useFollowers) {
-  //    try {
-  //      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
-  //      val h = new HumanClassifier() // assume we're using unigrams only
-  //      h.subClassifier = Some(sub)
-  //      Some(h)
-  //    } catch {
-  //      case e: Exception =>
-  //        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
-  //        val tmp = new HumanClassifier() // assuming unigrams only
-  //        tmp.learn(Array(), "human", 10.0, 1000)
-  //        Some(tmp)
-  //    }
-  //  } else None
+  val humanClassifier = if (useHuman) {
+    try {
+      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
+      val h = new HumanClassifier() // assume we're using unigrams only
+      h.subClassifier = Some(sub)
+      Some(h)
+    } catch {
+      case e: Exception =>
+        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
+        val tmp = new HumanClassifier(useUnigrams=true, useDictionaries=true) // assuming unigrams only
+        tmp.learn(Array("-u", "-d"), "human", 10.0, 1000)
+        Some(tmp)
+    }
+  } else None
 
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
@@ -124,7 +126,7 @@ class FeatureExtractor (
     } catch {
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
-        val tmp = new GenderClassifier() // assuming unigrams only
+        val tmp = new GenderClassifier(useMaxEmbeddings=true) // assuming unigrams only
         tmp.learn(Array("-x"), "gender", 10.0, 1000)
         Some(tmp)
     }
@@ -297,8 +299,12 @@ class FeatureExtractor (
     // Find the TwitterAccount object corresponding to these handles
     val followers = handleToFollowerAccount.get.getOrElse(account.handle, Nil)
 
+    // filter out followers judged not to be humans
+    val filteredFollowers = if (useHuman) followers.filter(f => humanClassifier.get.predict(f) == "Human") else followers
+
     // Aggregate the counter for the followers using the other features being used
-    val followerCounters = for (follower <- followers.par) yield mkFeatures(follower, withFollowers = false)
+    // withFollowers must be false to prevent infinite regress
+    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, withFollowers = false)
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)

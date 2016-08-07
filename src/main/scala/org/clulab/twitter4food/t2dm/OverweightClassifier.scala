@@ -30,6 +30,7 @@ class OverweightClassifier(
   useFollowees: Boolean = false,
   useGender: Boolean = false,
   useRace: Boolean = false,
+  useHuman: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
@@ -45,6 +46,7 @@ class OverweightClassifier(
     useFollowees=useFollowees,
     useGender=useGender,
     useRace=useRace,
+    useHuman=useHuman,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "overweight") {

@@ -43,6 +43,7 @@ class HumanClassifier(
     useFollowees=useFollowees,
     useGender=false,
     useRace=false,
+    useHuman=false,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "human",
