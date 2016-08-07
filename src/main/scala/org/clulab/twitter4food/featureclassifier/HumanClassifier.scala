@@ -7,6 +7,7 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier}
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.util._
+import org.clulab.twitter4food.util.Utils._
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.slf4j.LoggerFactory
 
@@ -124,13 +125,13 @@ object HumanClassifier {
 
     dTags.foreach{
       case singular if singular.tag == "O" && isSingularPronoun(singular.token) =>
-        counter.incrementCount("__hcDescriptionSingular__")
+        counter.incrementCount("hcDescriptionSingular")
       case plural if plural.tag == "O" && isPluralPronoun(plural.token) =>
-        counter.incrementCount("__hcDescriptionPlural__")
+        counter.incrementCount("hcDescriptionPlural")
       case humanWord if humanWord.tag == "N" && getSubFeatureType(humanWord.token) == "human" =>
-        counter.incrementCount("__hcDescriptionHuman__")
+        counter.incrementCount("hcDescriptionHuman")
       case orgWord if orgWord.tag == "N" && getSubFeatureType(orgWord.token) == "org" =>
-        counter.incrementCount("__hcDescriptionOrg__")
+        counter.incrementCount("hcDescriptionOrg")
       case _ => ()
     }
 
@@ -140,34 +141,34 @@ object HumanClassifier {
 
     tTags.foreach{
       case singular if singular.tag == "O" && isSingularPronoun(singular.token) =>
-        counter.incrementCount("__hcTweetSingular__")
+        counter.incrementCount("hcTweetSingular")
       case plural if plural.tag == "O" && isPluralPronoun(plural.token) =>
-        counter.incrementCount("__hcTweetPlural__")
+        counter.incrementCount("hcTweetPlural")
       case humanWord if humanWord.tag == "N" && getSubFeatureType(humanWord.token) == "human" =>
-        counter.incrementCount("__hcTweetHuman__")
+        counter.incrementCount("hcTweetHuman")
       case orgWord if orgWord.tag == "N" && getSubFeatureType(orgWord.token) == "org" =>
-        counter.incrementCount("__hcTweetOrg__")
+        counter.incrementCount("hcTweetOrg")
       case _ => ()
     }
 
     // Maybe it's the proportion that matters
-    val ds = counter.getCount("__hcDescriptionSingular__")
-    val dp = counter.getCount("__hcDescriptionPlural__")
-    if (ds != 0 || dp != 0) counter.setCount("__hcDescriptionSingularProp__", ds / (ds + dp))
+    val ds = counter.getCount("hcDescriptionSingular")
+    val dp = counter.getCount("hcDescriptionPlural")
+    if (ds != 0 || dp != 0) counter.setCount("hcDescriptionSingularProp", ds / (ds + dp))
 
-    val dhuman = counter.getCount("__hcDescriptionHuman__")
-    val dorg = counter.getCount("__hcDescriptionOrg__")
-    if (dhuman != 0 || dorg != 0) counter.setCount("__hcDescriptionHumanProp__", dhuman / (dhuman + dorg))
+    val dhuman = counter.getCount("hcDescriptionHuman")
+    val dorg = counter.getCount("hcDescriptionOrg")
+    if (dhuman != 0 || dorg != 0) counter.setCount("hcDescriptionHumanProp", dhuman / (dhuman + dorg))
 
-    val ts = counter.getCount("__hcTweetSingular__")
-    val tp = counter.getCount("__hcTweetPlural__")
-    if (ts != 0 || tp != 0) counter.setCount("__hcTweetSingularProp__", ts / (ts + tp))
+    val ts = counter.getCount("hcTweetSingular")
+    val tp = counter.getCount("hcTweetPlural")
+    if (ts != 0 || tp != 0) counter.setCount("hcTweetSingularProp", ts / (ts + tp))
 
-    val thuman = counter.getCount("__hcTweetHuman__")
-    val torg = counter.getCount("__hcTweetOrg__")
-    if (thuman != 0 || torg != 0) counter.setCount("__hcDescriptionHumanProp__", thuman / (thuman + torg))
+    val thuman = counter.getCount("hcTweetHuman")
+    val torg = counter.getCount("hcTweetOrg")
+    if (thuman != 0 || torg != 0) counter.setCount("hcDescriptionHumanProp", thuman / (thuman + torg))
 
-    counter
+    prepend("hcCustom:", counter)
   }
 
   def main(args: Array[String]) = {
