@@ -73,7 +73,7 @@ object OverweightClassifier {
     )
     val default = allFeatures.forall(!_) // true if all features are off
 
-    val portions = if (params.learningCurve) Seq(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0) else Seq(1.0)
+    val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
 
     val nonFeatures = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
