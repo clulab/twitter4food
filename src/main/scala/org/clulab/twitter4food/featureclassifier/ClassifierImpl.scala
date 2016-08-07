@@ -496,4 +496,64 @@ object ClassifierImpl {
 
     handleToFollowerAccts
   }
+
+  def outputAnalysis(outputFile:String, header:String, accounts: Seq[TwitterAccount], cls: ClassifierImpl, labels: Set[String]) {
+    // Set progress bar
+    var numAccountsToPrint = 20
+    val numWeightsToPrint = 30
+    val printedLabel = labels.toSeq.sorted.head
+    val pb = new me.tongfei.progressbar.ProgressBar("outputAnalysis()", 100)
+    pb.start()
+    pb.maxHint(numAccountsToPrint)
+    pb.setExtraMessage(header)
+
+    // Initialize writer
+    val writer = new BufferedWriter(new FileWriter(outputFile, false))
+    var isFirst = true
+    writer.write(header)
+
+    // Iterate over accounts
+    for (account <- accounts) {
+      if (numAccountsToPrint > 0) {
+        // Analyze account
+        val (topWeights, dotProduct) = Utils.analyze(cls.subClassifier.get, labels, account, cls.featureExtractor)
+        // Only print the general weights on the features once
+        if (isFirst) {
+          for ((label, sequence) <- topWeights) {
+            writer.write(s"Top weights for $label:\n")
+            var numToPrint = numWeightsToPrint
+            for ((feature, score) <- sequence) {
+              if ((numToPrint > 0) && (score > 0.0)) {
+                writer.write(s"$feature -> $score\n")
+                numToPrint = numToPrint - 1
+              }
+            }
+            writer.write("================================\n")
+          }
+          isFirst = false
+        }
+        // Print hadamard product for every account
+        writer.write(s"Hadamard product for ${account.handle}:\n")
+        for ((label, sequence) <- dotProduct) {
+          if (label == printedLabel) {
+            var numToPrint = numWeightsToPrint
+            for ((feature, score) <- sequence) {
+              if ((numToPrint > 0) && (score > 0.0)) {
+                writer.write(s"$feature -> $score\n")
+                numToPrint = numToPrint - 1
+              }
+            }
+          }
+        }
+        writer.write("================================\n")
+      }
+      pb.step()
+      numAccountsToPrint -= 1
+    }
+    writer.close
+    pb.stop()
+  }
+
+  def fMeasure(precision: Double, recall: Double, beta: Double): Double =
+    (1 + Math.pow(beta, 2)) * ((precision * recall) / (Math.pow(beta, 2) * precision + recall))
 }
