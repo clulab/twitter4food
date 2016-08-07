@@ -27,8 +27,6 @@ class GenderClassifier(
   useCosineSim: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
-  useGender: Boolean = false,
-  useRace: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
@@ -42,8 +40,8 @@ class GenderClassifier(
     useCosineSim=useCosineSim,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
-    useGender=useGender,
-    useRace=useRace,
+    useGender=false,
+    useRace=false,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "gender"
@@ -109,8 +107,6 @@ object GenderClassifier {
         useCosineSim = params.useCosineSim,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
-        useGender = params.useGender,
-        useRace = params.useRace,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling
       )
