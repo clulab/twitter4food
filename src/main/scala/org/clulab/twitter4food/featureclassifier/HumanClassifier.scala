@@ -151,6 +151,23 @@ object HumanClassifier {
       case _ => ()
     }
 
+    // Maybe it's the proportion that matters
+    val ds = counter.getCount("__hcDescriptionSingular__")
+    val dp = counter.getCount("__hcDescriptionPlural__")
+    if (ds != 0 || dp != 0) counter.setCount("__hcDescriptionSingularProp__", ds / (ds + dp))
+
+    val dhuman = counter.getCount("__hcDescriptionHuman__")
+    val dorg = counter.getCount("__hcDescriptionOrg__")
+    if (dhuman != 0 || dorg != 0) counter.setCount("__hcDescriptionHumanProp__", dhuman / (dhuman + dorg))
+
+    val ts = counter.getCount("__hcTweetSingular__")
+    val tp = counter.getCount("__hcTweetPlural__")
+    if (ts != 0 || tp != 0) counter.setCount("__hcTweetSingularProp__", ts / (ts + tp))
+
+    val thuman = counter.getCount("__hcTweetHuman__")
+    val torg = counter.getCount("__hcTweetOrg__")
+    if (thuman != 0 || torg != 0) counter.setCount("__hcDescriptionHumanProp__", thuman / (thuman + torg))
+
     counter
   }
 
