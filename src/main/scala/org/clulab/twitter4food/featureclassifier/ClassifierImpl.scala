@@ -37,6 +37,7 @@ class ClassifierImpl(
   val useFollowees: Boolean,
   val useGender: Boolean,
   val useRace: Boolean,
+  val useHuman: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean,
   val variable: String,
@@ -59,6 +60,7 @@ class ClassifierImpl(
     useFollowees=useFollowees,
     useGender=useGender,
     useRace=useRace,
+    useHuman=useHuman,
     datumScaling=datumScaling,
     customFeatures=customFeatures)
 
