@@ -229,7 +229,7 @@ object OverweightClassifier {
       (portion, numAccounts, precision, recall, macroAvg, microAvg)
     }
 
-    println("\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
+    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
     evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
       println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
