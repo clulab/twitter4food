@@ -85,6 +85,11 @@ object GenderClassifier {
 
     val followers = if (params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
 
+    val modelDir = s"${config.getString("gender")}/model"
+    if (!Files.exists(Paths.get(modelDir))) {
+      if (new File(modelDir).mkdir()) logger.info(s"Created output directory $modelDir")
+      else logger.error(s"ERROR: failed to create output directory $modelDir")
+    }
     val modelFile = s"${config.getString("gender")}/model/$fileExt.dat"
 
     val classifiers = for {
