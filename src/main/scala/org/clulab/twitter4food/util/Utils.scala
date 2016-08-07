@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory
 
 import scala.reflect.ClassTag
 import org.clulab.learning.{Classifier, L1LinearSVMClassifier, LiblinearClassifier}
-import org.clulab.struct.Lexicon
+import org.clulab.struct.{Counter, Lexicon}
 
 import scala.collection.mutable
 
@@ -171,4 +171,11 @@ object Utils {
 
   def svmFactory():Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
 
+  // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
+  def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
+    val temp = new Counter[String]()
+    for ((label, score) <- counter.toSeq)
+      temp.setCount(prefix + label, score)
+    temp
+  }
 }

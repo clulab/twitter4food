@@ -5,6 +5,7 @@ import java.io.{BufferedReader, FileReader}
 import org.clulab.learning.{Datum, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.struct.Normalization._
+import org.clulab.twitter4food.util.Utils._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassifier}
@@ -232,14 +233,6 @@ class FeatureExtractor (
 
     // remove zero values for sparse rep
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
-  }
-
-  // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
-  def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
-    val temp = new Counter[String]()
-    for ((label, score) <- counter.toSeq)
-      temp.setCount(prefix + label, score)
-    temp
   }
 
   def setCounts(words: Seq[String], counter: Counter[String]) = {
