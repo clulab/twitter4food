@@ -47,9 +47,12 @@ class OverweightClassifier(
     useRace=useRace,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
-    variable = "overweight")
+    variable = "overweight") {
+  val labels = Set("Overweight", "Not overweight")
+}
 
 object OverweightClassifier {
+  import ClassifierImpl._
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -85,7 +88,7 @@ object OverweightClassifier {
       else logger.info(s"ERROR: failed to create output directory $outputDir")
     }
 
-    val modelFile = s"${config.getString("overweight")}/model/${fileExt}.dat"
+    val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     val classifiers = {
@@ -185,7 +188,7 @@ object OverweightClassifier {
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testSetLabels, predictedLabels, toTestOn.keys.toSeq)
 
-      val evalMetric = evalMeasures("Overweight")
+      val evalMetric = evalMeasures(oc.labels.toSeq.sorted.head)
       val precision = evalMetric.P
       val recall = evalMetric.R
 
@@ -196,12 +199,12 @@ object OverweightClassifier {
           println("False negatives:")
           evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
           println("\n====")
-          outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc)
+          outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc, oc.labels)
 
           println("False positives:")
           evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
           println("\n====")
-          outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc)
+          outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc, oc.labels)
         }
 
         // Save results
@@ -230,64 +233,4 @@ object OverweightClassifier {
         s"\t$macroAvg\t$microAvg")
     }
   }
-
-  private def outputAnalysis(outputFile:String, header:String, accounts: Seq[TwitterAccount], oc: OverweightClassifier): Unit = {
-    // Set progress bar
-    var numAccountsToPrint = 20
-    val numWeightsToPrint = 30
-    val pb = new me.tongfei.progressbar.ProgressBar("outputAnalysis()", 100)
-    pb.start()
-    pb.maxHint(numAccountsToPrint)
-    pb.setExtraMessage(header)
-
-    // Initialize writer
-    val writer = new BufferedWriter(new FileWriter(outputFile, false))
-    var isFirst = true
-    writer.write(header)
-
-    // Iterate over accounts
-    for (account <- accounts) {
-      if (numAccountsToPrint > 0) {
-        // Analyze account
-        val (topWeights, dotProduct) = Utils.analyze(oc.subClassifier.get, Set("Overweight", "Not overweight"),
-          account, oc.featureExtractor)
-        // Only print the general weights on the features once
-        if (isFirst) {
-          for ((label, sequence) <- topWeights) {
-            writer.write(s"Top weights for $label:\n")
-            var numToPrint = numWeightsToPrint
-            for ((feature, score) <- sequence) {
-              if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"$feature -> $score\n")
-                numToPrint = numToPrint - 1
-              }
-            }
-            writer.write("================================\n")
-          }
-          isFirst = false
-        }
-        // Print hadamard product for every account
-        writer.write(s"Hadamard product for ${account.handle}:\n")
-        for ((label, sequence) <- dotProduct) {
-          if (label equals "Overweight") {
-            var numToPrint = numWeightsToPrint
-            for ((feature, score) <- sequence) {
-              if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"$feature -> $score\n")
-                numToPrint = numToPrint - 1
-              }
-            }
-          }
-        }
-        writer.write("================================\n")
-      }
-      pb.step()
-      numAccountsToPrint -= 1
-    }
-    writer.close
-    pb.stop()
-  }
-
-  def fMeasure(precision: Double, recall: Double, beta: Double): Double =
-    (1 + Math.pow(beta, 2)) * ((precision * recall) / (Math.pow(beta, 2) * precision + recall))
 }
