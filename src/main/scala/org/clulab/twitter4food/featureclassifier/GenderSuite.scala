@@ -19,7 +19,7 @@ object GenderSuite {
 
     val gc = new GenderClassifier(
       useUnigrams = true,
-      useBigrams = true,
+      //useBigrams = true, // bigrams are costly and hurt performance
       useTopics = true,
       useDictionaries = true,
       useAvgEmbeddings = true,
@@ -28,7 +28,6 @@ object GenderSuite {
       useCosineSim = true,
       useFollowers = true,
       useFollowees = true,
-      useRace = true,
       datumScaling = true
     )
 
