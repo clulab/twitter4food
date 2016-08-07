@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 
 /** Gender classifier that predicts if a given twitter account is M (male)
   * or F (female)
+  *
   * @author adikou
   * @date 03-13-2016
   */
@@ -51,6 +52,7 @@ class GenderClassifier(
 }
 
 object GenderClassifier {
+
   import ClassifierImpl._
 
   def main(args: Array[String]) = {
@@ -81,7 +83,7 @@ object GenderClassifier {
       FileUtils.load(config.getString("classifiers.gender.trainingData")).toSeq
     }
 
-    val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
+    val followers = if (params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
 
     val modelFile = s"${config.getString("gender")}/model/$fileExt.dat"
 
@@ -189,3 +191,4 @@ object GenderClassifier {
         s"\t$macroAvg\t$microAvg")
     }
   }
+}
