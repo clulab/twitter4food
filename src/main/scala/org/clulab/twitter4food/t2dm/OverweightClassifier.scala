@@ -129,7 +129,7 @@ object OverweightClassifier {
         }
 
         val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
-        val followees = if(params.useFollowers) Option(ClassifierImpl.loadFollowees(toTrainOn.map(_._1), "overweight")) else None
+        val followees = if(params.useFollowees) Option(ClassifierImpl.loadFollowees(toTrainOn.map(_._1), "overweight")) else None
 
         for {
           portion <- portions
