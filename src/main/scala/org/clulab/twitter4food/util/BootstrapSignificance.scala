@@ -38,10 +38,10 @@ object BootstrapSignificance {
 
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
-
-    val baselineFeatures = config.getString("classifiers.overweight.baseline")
-    val predictionDir = new File(config.getString("classifiers.overweight.results"))
     val params = parseArgs(args)
+
+    val baselineFeatures = config.getString(s"classifiers.${params.variable}.baseline")
+    val predictionDir = new File(config.getString(s"classifiers.${params.variable}.results"))
 
     // Prefer overweightF1 >> microF1 >> macroF1
     def scoreMetric(gold: Seq[String], pred: Seq[String]): Double = {
@@ -90,7 +90,7 @@ object BootstrapSignificance {
       key <- predictions.keys
     } yield key -> new scala.collection.mutable.ListBuffer[Double]).toMap
 
-    logger.info(s"repetitions: ${params.repetitions}, models: ${predictions.size}")
+    logger.info(s"classifier: ${params.variable}, repetitions: ${params.repetitions}, models: ${predictions.size}")
 
     val pb = new me.tongfei.progressbar.ProgressBar("bootstrap", 100)
     pb.start()
