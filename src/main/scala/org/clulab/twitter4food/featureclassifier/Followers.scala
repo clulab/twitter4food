@@ -1,12 +1,11 @@
-package org.clulab.twitter4food.t2dm
+package org.clulab.twitter4food.featureclassifier
 
 import java.io.{BufferedWriter, FileWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.twitter4j.TwitterAPI
-import org.clulab.twitter4food.util.{FileUtils, MultiThreadLoader, Utils}
-import twitter4j.TwitterException
+import org.clulab.twitter4food.util.FileUtils
 
 /**
   * Created by Terron on 4/6/16.
