@@ -41,6 +41,10 @@ object Eval {
     evalMeasures(label).F
   }
 
+  def macroOnly(labels: Iterable[(String, String)]): Double = {
+    evaluate(labels.toSeq)._2
+  }
+
   def microOnly(labels: Iterable[(String, String)]): Double = {
     evaluate(labels.toSeq)._3
   }
