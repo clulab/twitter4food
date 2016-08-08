@@ -2,7 +2,7 @@ package org.clulab.twitter4food.struct
 
 import java.io.{BufferedReader, FileReader}
 
-import org.clulab.learning.{Datum, LiblinearClassifier, RVFDatum}
+import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.struct.Normalization._
 import org.clulab.twitter4food.util.Utils._
@@ -118,6 +118,7 @@ class FeatureExtractor (
         // bad to have to load followers possibly multiple times, but this should happen only rarely
         val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
         val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
+        tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
         tmp.train(trainingData.keys.toSeq, followers, trainingData.values.toSeq)
         Some(tmp)
     }
@@ -139,6 +140,7 @@ class FeatureExtractor (
         // bad to have to load followers possibly multiple times, but this should happen only rarely
         // val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
         val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+        tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
         tmp.train(trainingData.keys.toSeq, None, trainingData.values.toSeq)
         Some(tmp)
     }
