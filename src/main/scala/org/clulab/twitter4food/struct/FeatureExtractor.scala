@@ -111,8 +111,8 @@ class FeatureExtractor (
     } catch {
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
-        val tmp = new HumanClassifier(useUnigrams=true, useDictionaries=true) // assuming unigrams only
-        tmp.learn(Array("-u", "-d"), "human", 10.0, 1000)
+        val tmp = new HumanClassifier(useDictionaries=true) // assuming unigrams only
+        tmp.learn(Array("-d"), "human", 10.0, 1000)
         Some(tmp)
     }
   } else None
@@ -127,8 +127,8 @@ class FeatureExtractor (
     } catch {
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
-        val tmp = new GenderClassifier(useMaxEmbeddings=true) // assuming unigrams only
-        tmp.learn(Array("-x"), "gender", 10.0, 1000)
+        val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+        tmp.learn(Array("d", "-u", "-x"), "gender", 10.0, 1000)
         Some(tmp)
     }
   } else None

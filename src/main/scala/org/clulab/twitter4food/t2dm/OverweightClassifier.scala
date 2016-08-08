@@ -190,7 +190,7 @@ object OverweightClassifier {
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testSetLabels, predictedLabels, toTestOn.keys.toSeq)
 
-      val evalMetric = evalMeasures(oc.labels.toSeq.sorted.head)
+      val evalMetric = evalMeasures("Overweight")
       val precision = evalMetric.P
       val recall = evalMetric.R
 
