@@ -91,16 +91,8 @@ class FeatureExtractor (
   val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
 
-  // Followers
-  var handleToFollowers: Option[Map[String, Seq[String]]] = None
-
   // Followees
-  val followeeFile = scala.io.Source.fromFile(config.getString("classifiers.features.followeeRelations"))
-  val handleToFollowees: Map[String, Seq[String]] = (for (line <- followeeFile.getLines) yield {
-    val handles = line.split("\t+")
-    handles.head -> handles.tail.toSeq
-  }).toMap
-  followeeFile.close
+  var handleToFollowees: Option[Map[String, Seq[String]]] = None
 
   // human classifier for follower filtering
   val humanClassifier = if (useHuman) {
@@ -117,10 +109,11 @@ class FeatureExtractor (
           FileUtils.load(config.getString("classifiers.human.devData")) ++
           FileUtils.load(config.getString("classifiers.human.testData"))
         // bad to have to load followers possibly multiple times, but this should happen only rarely
-        val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+        val followers = None // Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+        val followees = Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "human"))
         val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
         tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-        tmp.train(trainingData.keys.toSeq, followers, trainingData.values.toSeq)
+        tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
         tmp.subClassifier.get.saveTo(modelFile)
         Some(tmp)
     }
@@ -141,15 +134,17 @@ class FeatureExtractor (
           FileUtils.load(config.getString("classifiers.gender.devData")) ++
           FileUtils.load(config.getString("classifiers.gender.testData"))
         // bad to have to load followers possibly multiple times, but this should happen only rarely
-        // val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+        val followers = None // Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+        val followees = Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
         val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
         tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-        tmp.train(trainingData.keys.toSeq, None, trainingData.values.toSeq)
+        tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
         tmp.subClassifier.get.saveTo(modelFile)
         Some(tmp)
     }
   } else None
 
+  // Followers
   var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
 
   /**
@@ -171,6 +166,10 @@ class FeatureExtractor (
       }).toMap)
     }
     this.lexicons = Some(l)
+  }
+
+  def setFollowees(followees: Map[String, Seq[String]]) = {
+    handleToFollowees = Option(followees)
   }
 
   def setFollowers(followers: Map[String, Seq[TwitterAccount]]) = {
@@ -292,7 +291,7 @@ class FeatureExtractor (
     */
   def followees(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
-    val followeeHandles: Seq[String] = handleToFollowees.getOrElse(account.handle, Nil)
+    val followeeHandles: Seq[String] = handleToFollowees.get.getOrElse(account.handle, Nil)
     setCounts(followeeHandles.map(handle => s"followeeHandle:${handle}"), counter)
     counter
   }

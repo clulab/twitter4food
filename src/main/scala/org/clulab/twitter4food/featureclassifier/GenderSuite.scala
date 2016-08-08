@@ -1,6 +1,7 @@
 package org.clulab.twitter4food.featureclassifier
 
 import com.typesafe.config.ConfigFactory
+import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{Eval, FileUtils}
 import org.slf4j.LoggerFactory
 
@@ -9,13 +10,18 @@ object GenderSuite {
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
 
-    logger.info("Loading training accounts...")
-    val train = FileUtils.load(config.getString("classifiers.gender.trainingData"))
-    logger.info("Loading dev accounts...")
-    val dev = FileUtils.load(config.getString("classifiers.gender.devData"))
+    val toTrainOn = {
+      logger.info("Loading training accounts...")
+      val train = FileUtils.load(config.getString("classifiers.gender.trainingData"))
+      logger.info("Loading dev accounts...")
+      val dev = FileUtils.load(config.getString("classifiers.gender.devData"))
+      train ++ dev
+    }
 
     logger.info("Loading follower accounts...")
-    val followers = ClassifierImpl.loadFollowers(train.keys.toSeq ++ dev.keys.toSeq)
+    val followers = Map[String, Seq[TwitterAccount]]() //ClassifierImpl.loadFollowers(toTrainOn.keys.toSeq)
+    logger.info("Loading followee accounts...")
+    val followees = ClassifierImpl.loadFollowees(toTrainOn.keys.toSeq, "gender")
 
     val gc = new GenderClassifier(
       useUnigrams = true,
@@ -26,11 +32,11 @@ object GenderSuite {
       useMinEmbeddings = true,
       useMaxEmbeddings = true,
       useCosineSim = true,
-      useFollowers = true,
+      //useFollowers = true, // we don't currently have their followers
       useFollowees = true,
       datumScaling = true
     )
 
-    gc.featureSelectionIncremental(train ++ dev, followers, Eval.microOnly)
+    gc.featureSelectionIncremental(toTrainOn, followers, followees, Eval.microOnly)
   }
 }

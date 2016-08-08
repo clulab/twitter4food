@@ -10,13 +10,18 @@ object OverweightSuite {
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
 
-    logger.info("Loading training accounts...")
-    val train = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
-    logger.info("Loading dev accounts...")
-    val dev = FileUtils.load(config.getString("classifiers.overweight.devData"))
+    val toTrainOn = {
+      logger.info("Loading training accounts...")
+      val train = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
+      logger.info("Loading dev accounts...")
+      val dev = FileUtils.load(config.getString("classifiers.overweight.devData"))
+      train ++ dev
+    }
 
     logger.info("Loading follower accounts...")
-    val followers = ClassifierImpl.loadFollowers(train.keys.toSeq ++ dev.keys.toSeq)
+    val followers = ClassifierImpl.loadFollowers(toTrainOn.keys.toSeq)
+    logger.info("Loading followee accounts...")
+    val followees = ClassifierImpl.loadFollowees(toTrainOn.keys.toSeq, "overweight")
 
     val oc = new OverweightClassifier(
       useUnigrams = true,
@@ -35,6 +40,6 @@ object OverweightSuite {
       datumScaling = true
     )
 
-    oc.featureSelectionIncremental(train ++ dev, followers, Eval.f1ForLabel("Overweight"))
+    oc.featureSelectionIncremental(toTrainOn, followers, followees, Eval.f1ForLabel("Overweight"))
   }
 }

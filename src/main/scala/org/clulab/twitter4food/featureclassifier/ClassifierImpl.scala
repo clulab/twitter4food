@@ -91,8 +91,9 @@ class ClassifierImpl(
 
   def constructDataset(
     accounts: Seq[TwitterAccount],
+    labels: Seq[String],
     followers: Option[Map[String, Seq[TwitterAccount]]],
-    labels: Seq[String]): RVFDataset[String, String] = {
+    followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
 
     // Load lexicons before calling train
     if(useDictionaries) {
@@ -101,9 +102,8 @@ class ClassifierImpl(
       this.featureExtractor.setLexicons(lexMap)
     }
 
-    if (useFollowers && followers.nonEmpty) {
-      this.featureExtractor.setFollowers(followers.get)
-    }
+    if (useFollowers && followers.nonEmpty) this.featureExtractor.setFollowers(followers.get)
+    if (useFollowees && followees.nonEmpty) this.featureExtractor.setFollowees(followees.get)
 
     val dataset = new RVFDataset[String, String]()
 
@@ -135,7 +135,8 @@ class ClassifierImpl(
     */
   def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
     val followers = if (useFollowers) Option(loadFollowers(accounts)) else None
-    train(accounts, followers, labels)
+    val followees = if (useFollowees) Option(loadFollowees(accounts, this.variable)) else None
+    train(accounts, labels, followers, followees)
   }
 
   /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
@@ -144,11 +145,14 @@ class ClassifierImpl(
     * @param labels: Sequence of annotated labels for each account
     * @return Unit
     */
-  def train(accounts: Seq[TwitterAccount], followers: Option[Map[String, Seq[TwitterAccount]]], labels: Seq[String]) = {
+  def train(accounts: Seq[TwitterAccount],
+    labels: Seq[String],
+    followers: Option[Map[String, Seq[TwitterAccount]]],
+    followees: Option[Map[String, Seq[String]]]) = {
     assert(accounts.size == labels.size)
 
     // Clear current dataset if training on new one
-    val dataset = constructDataset(accounts, followers, labels)
+    val dataset = constructDataset(accounts, labels, followers, followees)
 
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
     if (featureScaling) scaleRange = Some(Normalization.scaleByFeature(dataset, lowerBound, upperBound))
@@ -459,9 +463,11 @@ class ClassifierImpl(
     writer.close()
   }
 
-  def featureSelectionIncremental(accounts: Map[TwitterAccount, String], followers: Map[String, Seq[TwitterAccount]],
+  def featureSelectionIncremental(accounts: Map[TwitterAccount, String],
+    followers: Map[String, Seq[TwitterAccount]],
+    followees: Map[String, Seq[String]],
     evalMetric: Iterable[(String, String)] => Double) {
-    val dataset = constructDataset(accounts.keys.toSeq, Option(followers), accounts.values.toSeq)
+    val dataset = constructDataset(accounts.keys.toSeq, accounts.values.toSeq, Option(followers), Option(followees))
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
     logger.debug(s"Found ${featureGroups.size} feature groups:")
     for(f <- featureGroups.keySet) {
@@ -478,6 +484,17 @@ object ClassifierImpl {
   val config = ConfigFactory.load()
 
   val logger = LoggerFactory.getLogger(this.getClass)
+
+  def loadFollowees(accounts: Seq[TwitterAccount], variable: String): Map[String, Seq[String]] = {
+    val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followerRelations"))
+    val handleToFollowees = (for (line <- followeeFile.getLines) yield {
+      val handles = line.split("\t+")
+      handles.head -> handles.tail.toSeq
+    }).toMap
+    followeeFile.close
+
+    handleToFollowees
+  }
 
   def loadFollowers(accounts: Seq[TwitterAccount]): Map[String, Seq[TwitterAccount]] = {
     val followerFile = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations"))
