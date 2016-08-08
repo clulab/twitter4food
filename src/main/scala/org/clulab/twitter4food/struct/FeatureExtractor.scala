@@ -98,7 +98,7 @@ class FeatureExtractor (
   // human classifier for follower filtering
   val humanClassifier = if (useHuman && useFollowers) {
     val modelFile = config.getString("classifiers.overweight.humanClassifier")
-    val model = if (!Files.exists(Paths.get(modelFile))) {
+    val model = if (Files.exists(Paths.get(modelFile))) {
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
       val h = new HumanClassifier() // assume we're using unigrams only
       h.subClassifier = Option(sub)
@@ -132,7 +132,7 @@ class FeatureExtractor (
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
     val modelFile = config.getString("classifiers.overweight.genderClassifier")
-    val model = if (!Files.exists(Paths.get(modelFile))) {
+    val model = if (Files.exists(Paths.get(modelFile))) {
       logger.info(s"$modelFile found; loading...")
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
       val g = new GenderClassifier()
