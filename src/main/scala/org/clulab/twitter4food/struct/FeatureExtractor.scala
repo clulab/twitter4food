@@ -137,9 +137,9 @@ class FeatureExtractor (
           FileUtils.load(config.getString("classifiers.gender.devData")) ++
           FileUtils.load(config.getString("classifiers.gender.testData"))
         // bad to have to load followers possibly multiple times, but this should happen only rarely
-        val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+        // val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
         val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
-        tmp.train(trainingData.keys.toSeq, followers, trainingData.values.toSeq)
+        tmp.train(trainingData.keys.toSeq, None, trainingData.values.toSeq)
         Some(tmp)
     }
   } else None
