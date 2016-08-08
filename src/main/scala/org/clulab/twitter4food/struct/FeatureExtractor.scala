@@ -8,8 +8,9 @@ import org.clulab.twitter4food.struct.Normalization._
 import org.clulab.twitter4food.util.Utils._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.featureclassifier.{GenderClassifier, HumanClassifier}
+import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, GenderClassifier, HumanClassifier}
 import org.clulab.twitter4food.lda.LDA
+import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
@@ -111,8 +112,13 @@ class FeatureExtractor (
     } catch {
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
-        val tmp = new HumanClassifier(useDictionaries=true) // assuming unigrams only
-        tmp.learn(Array("-d"), "human", 10.0, 1000)
+        val trainingData = FileUtils.load(config.getString("classifiers.human.trainingData")) ++
+          FileUtils.load(config.getString("classifiers.human.devData")) ++
+          FileUtils.load(config.getString("classifiers.human.testData"))
+        // bad to have to load followers possibly multiple times, but this should happen only rarely
+        val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+        val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
+        tmp.train(trainingData.keys.toSeq, followers, trainingData.values.toSeq)
         Some(tmp)
     }
   } else None
@@ -127,8 +133,13 @@ class FeatureExtractor (
     } catch {
       case e: Exception =>
         logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
+        val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
+          FileUtils.load(config.getString("classifiers.gender.devData")) ++
+          FileUtils.load(config.getString("classifiers.gender.testData"))
+        // bad to have to load followers possibly multiple times, but this should happen only rarely
+        val followers = Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
         val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
-        tmp.learn(Array("d", "-u", "-x"), "gender", 10.0, 1000)
+        tmp.train(trainingData.keys.toSeq, followers, trainingData.values.toSeq)
         Some(tmp)
     }
   } else None
