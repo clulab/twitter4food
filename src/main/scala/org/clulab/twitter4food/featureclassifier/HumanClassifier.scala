@@ -200,6 +200,7 @@ object HumanClassifier {
     }
 
     val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
+    val followees = if(params.useFollowees) Option(ClassifierImpl.loadFollowees(toTrainOn.map(_._1), "human")) else None
 
     val modelDir = s"${config.getString("human")}/model"
     if (!Files.exists(Paths.get(modelDir))) {
@@ -231,7 +232,7 @@ object HumanClassifier {
 
       logger.info("Training classifier...")
       hc.setClassifier(new L1LinearSVMClassifier[String, String]())
-      hc.train(trainAccounts, followers, trainLabels)
+      hc.train(trainAccounts, trainLabels, followers, followees)
       // Only save models using full training
       if (maxIndex == toTrainOn.length) hc.subClassifier.get.saveTo(modelFile)
 

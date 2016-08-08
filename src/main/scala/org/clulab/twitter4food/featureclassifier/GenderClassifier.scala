@@ -83,6 +83,7 @@ object GenderClassifier {
     }
 
     val followers = if (params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
+    val followees = if (params.useFollowees) Option(ClassifierImpl.loadFollowees(toTrainOn.map(_._1), "gender")) else None
 
     val modelDir = s"${config.getString("gender")}/model"
     if (!Files.exists(Paths.get(modelDir))) {
@@ -114,7 +115,7 @@ object GenderClassifier {
 
       logger.info("Training classifier...")
       gc.setClassifier(new L1LinearSVMClassifier[String, String]())
-      gc.train(trainAccounts, followers, trainLabels)
+      gc.train(trainAccounts, trainLabels, followers, followees)
       // Only save models using full training
       if (maxIndex == toTrainOn.length) gc.subClassifier.get.saveTo(modelFile)
 

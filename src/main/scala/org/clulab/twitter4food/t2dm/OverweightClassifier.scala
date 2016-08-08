@@ -129,6 +129,7 @@ object OverweightClassifier {
         }
 
         val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
+        val followees = if(params.useFollowers) Option(ClassifierImpl.loadFollowees(toTrainOn.map(_._1), "overweight")) else None
 
         for {
           portion <- portions
@@ -154,7 +155,7 @@ object OverweightClassifier {
 
           logger.info("Training classifier...")
           oc.setClassifier(new L1LinearSVMClassifier[String, String]())
-          oc.train(trainAccounts, followers, trainLabels)
+          oc.train(trainAccounts, trainLabels, followers, followees)
           // Only save models using full training
           if (maxIndex == toTrainOn.length) oc.subClassifier.get.saveTo(modelFile)
 
