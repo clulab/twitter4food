@@ -104,14 +104,15 @@ class FeatureExtractor (
 
   // human classifier for follower filtering
   val humanClassifier = if (useHuman) {
+    val modelFile = config.getString("classifiers.overweight.humanClassifier")
     try {
-      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.humanClassifier"))
+      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
       val h = new HumanClassifier() // assume we're using unigrams only
       h.subClassifier = Some(sub)
       Some(h)
     } catch {
       case e: Exception =>
-        logger.debug(s"${config.getString("classifiers.overweight.humanClassifier")} not found; attempting to train...")
+        logger.debug(s"$modelFile not found; attempting to train...")
         val trainingData = FileUtils.load(config.getString("classifiers.human.trainingData")) ++
           FileUtils.load(config.getString("classifiers.human.devData")) ++
           FileUtils.load(config.getString("classifiers.human.testData"))
@@ -120,20 +121,22 @@ class FeatureExtractor (
         val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
         tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
         tmp.train(trainingData.keys.toSeq, followers, trainingData.values.toSeq)
+        tmp.subClassifier.get.saveTo(modelFile)
         Some(tmp)
     }
   } else None
 
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
+    val modelFile = config.getString("classifiers.overweight.genderClassifier")
     try {
-      val sub = LiblinearClassifier.loadFrom[String, String](config.getString("classifiers.overweight.genderClassifier"))
+      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
       val g = new GenderClassifier()
       g.subClassifier = Some(sub)
       Some(g)
     } catch {
       case e: Exception =>
-        logger.debug(s"${config.getString("classifiers.overweight.genderClassifier")} not found; attempting to train...")
+        logger.debug(s"$modelFile not found; attempting to train...")
         val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
           FileUtils.load(config.getString("classifiers.gender.devData")) ++
           FileUtils.load(config.getString("classifiers.gender.testData"))
@@ -142,6 +145,7 @@ class FeatureExtractor (
         val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
         tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
         tmp.train(trainingData.keys.toSeq, None, trainingData.values.toSeq)
+        tmp.subClassifier.get.saveTo(modelFile)
         Some(tmp)
     }
   } else None
