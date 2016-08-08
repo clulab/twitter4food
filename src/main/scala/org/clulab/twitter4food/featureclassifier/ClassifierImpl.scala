@@ -486,7 +486,7 @@ object ClassifierImpl {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   def loadFollowees(accounts: Seq[TwitterAccount], variable: String): Map[String, Seq[String]] = {
-    val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followerRelations"))
+    val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followeeRelations"))
     val handleToFollowees = (for (line <- followeeFile.getLines) yield {
       val handles = line.split("\t+")
       handles.head -> handles.tail.toSeq
