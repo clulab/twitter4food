@@ -1,6 +1,7 @@
 package org.clulab.twitter4food.struct
 
 import java.io.{BufferedReader, FileReader}
+import java.nio.file.{Files, Paths}
 
 import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
@@ -95,53 +96,71 @@ class FeatureExtractor (
   var handleToFollowees: Option[Map[String, Seq[String]]] = None
 
   // human classifier for follower filtering
-  val humanClassifier = if (useHuman) {
+  val humanClassifier = if (useHuman && useFollowers) {
     val modelFile = config.getString("classifiers.overweight.humanClassifier")
-    try {
+    val model = if (!Files.exists(Paths.get(modelFile))) {
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
       val h = new HumanClassifier() // assume we're using unigrams only
-      h.subClassifier = Some(sub)
-      Some(h)
-    } catch {
-      case e: Exception =>
-        logger.debug(s"$modelFile not found; attempting to train...")
-        val trainingData = FileUtils.load(config.getString("classifiers.human.trainingData")) ++
-          FileUtils.load(config.getString("classifiers.human.devData")) ++
-          FileUtils.load(config.getString("classifiers.human.testData"))
-        // bad to have to load followers possibly multiple times, but this should happen only rarely
-        val followers = None // Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
-        val followees = Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "human"))
-        val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
-        tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-        tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
-        tmp.subClassifier.get.saveTo(modelFile)
-        Some(tmp)
+      h.subClassifier = Option(sub)
+      h
+    } else {
+      // train a fresh classifier
+      logger.debug(s"$modelFile not found; attempting to train...")
+
+      val trainingData = FileUtils.load(config.getString("classifiers.human.trainingData")) ++
+        FileUtils.load(config.getString("classifiers.human.devData")) ++
+        FileUtils.load(config.getString("classifiers.human.testData"))
+      // val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
+      val tmp = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true)
+
+      // bad to have to load followers possibly multiple times, but this should happen only rarely
+      // TODO: different follower files by classifier
+      val followers = if (tmp.useFollowers) {
+        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+      } else None
+      val followees = if (tmp.useFollowees) {
+        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "human"))
+      } else None
+      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
+      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
+      tmp.subClassifier.get.saveTo(modelFile)
+      tmp
     }
+    Option(model)
   } else None
 
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
     val modelFile = config.getString("classifiers.overweight.genderClassifier")
-    try {
+    val model = if (!Files.exists(Paths.get(modelFile))) {
+      logger.info(s"$modelFile found; loading...")
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
       val g = new GenderClassifier()
-      g.subClassifier = Some(sub)
-      Some(g)
-    } catch {
-      case e: Exception =>
-        logger.debug(s"$modelFile not found; attempting to train...")
-        val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
-          FileUtils.load(config.getString("classifiers.gender.devData")) ++
-          FileUtils.load(config.getString("classifiers.gender.testData"))
-        // bad to have to load followers possibly multiple times, but this should happen only rarely
-        val followers = None // Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
-        val followees = Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
-        val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
-        tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-        tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
-        tmp.subClassifier.get.saveTo(modelFile)
-        Some(tmp)
+      g.subClassifier = Option(sub)
+      g
+    } else {
+      // train a fresh classifier
+      logger.info(s"$modelFile not found; attempting to train...")
+
+      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
+        FileUtils.load(config.getString("classifiers.gender.devData")) ++
+        FileUtils.load(config.getString("classifiers.gender.testData"))
+      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+
+      // bad to have to load followers possibly multiple times, but this should happen only rarely
+      // TODO: different follower files by classifier
+      val followers = if (tmp.useFollowers) {
+        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+      } else None
+      val followees = if (tmp.useFollowees) {
+        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
+      } else None
+      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
+      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
+      tmp.subClassifier.get.saveTo(modelFile)
+      tmp
     }
+    Option(model)
   } else None
 
   // Followers
@@ -428,6 +447,7 @@ class FeatureExtractor (
 
   /**
     * Add one feature per embedding vector dimension, the average of the non-stopwords in the account's tweets
+    *
     * @param tweets Tweets, pre-tokenized
     * @return a [[Counter]] of the averaged vector
     */
