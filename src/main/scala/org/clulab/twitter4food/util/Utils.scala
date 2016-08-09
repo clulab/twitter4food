@@ -171,7 +171,7 @@ object Utils {
 
   def svmFactory():Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
 
-  // Helper function for mapping a prefix onto all labels in a counter (to add the "follower_" prefix)
+  // Helper function for mapping a prefix onto all labels in a counter
   def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
     val temp = new Counter[String]()
     for ((label, score) <- counter.toSeq)

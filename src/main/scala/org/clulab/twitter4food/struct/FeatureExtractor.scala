@@ -100,7 +100,7 @@ class FeatureExtractor (
     val modelFile = config.getString("classifiers.overweight.humanClassifier")
     val model = if (Files.exists(Paths.get(modelFile))) {
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val h = new HumanClassifier() // assume we're using unigrams only
+      val h = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true)
       h.subClassifier = Option(sub)
       h
     } else {
@@ -135,7 +135,7 @@ class FeatureExtractor (
     val model = if (Files.exists(Paths.get(modelFile))) {
       logger.info(s"$modelFile found; loading...")
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val g = new GenderClassifier()
+      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
       g.subClassifier = Option(sub)
       g
     } else {
