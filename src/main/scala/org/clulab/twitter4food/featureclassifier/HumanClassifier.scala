@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory
   */
 
 class HumanClassifier(
-  useUnigrams: Boolean = true,
+  useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
@@ -30,7 +30,8 @@ class HumanClassifier(
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
   datumScaling: Boolean = false,
-  featureScaling: Boolean = false)
+  featureScaling: Boolean = false,
+  customFeatures: TwitterAccount => Counter[String])
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
@@ -48,7 +49,7 @@ class HumanClassifier(
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "human",
-    customFeatures = HumanClassifier.customFeatures
+    customFeatures = customFeatures
   ) {
   val labels = Set("human", "org")
 }
@@ -209,6 +210,9 @@ object HumanClassifier {
     }
     val modelFile = s"${config.getString("human")}/model/$fileExt.dat"
 
+    val customAction(twitterAccount: TwitterAccount) =>
+      if (params.useCustomAction) HumanClassifier.customFeatures(twitterAccount) else new Counter[String]()
+
     val classifiers = for {
       portion <- portions
       maxIndex = (portion * toTrainOn.length).toInt
@@ -227,7 +231,8 @@ object HumanClassifier {
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         datumScaling = params.datumScaling,
-        featureScaling = params.featureScaling
+        featureScaling = params.featureScaling,
+        customAction
       )
 
       logger.info("Training classifier...")

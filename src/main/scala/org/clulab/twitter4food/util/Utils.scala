@@ -20,6 +20,7 @@ object Utils {
     useMinEmbeddings: Boolean = false,
     useMaxEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
+    useCustomAction: Boolean = false,
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
     useGender: Boolean = false,
@@ -90,6 +91,8 @@ object Utils {
         c.copy(useMaxEmbeddings = true)} text "use maximum embeddings"
       opt[Unit]('c', "cosineSim") action { (x, c) =>
         c.copy(useCosineSim = true)} text "use cosine similarity"
+      opt[Unit]('s', "customAction") action { (x, c) =>
+        c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
       opt[Unit]('r', "race") action { (x, c) =>

@@ -65,6 +65,7 @@ class FeatureExtractor (
 
   // LDA topic model
   var topicModel: Option[LDA] = if (useTopics) {
+    logger.info("Loading LDA topic model...")
     Some(LDA.load(config.getString("lda.topicModel")))
   } else None
 
@@ -88,11 +89,12 @@ class FeatureExtractor (
     (Some(cMap.toMap), Some(hMap.toMap))
   } else (None, None)
 
-  // Embeddings
+  // Word2vec word embedding vectors
   val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
+  // tdidf vector for overweight corpus
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
 
-  // Followees
+  // Followees (to be set by setFollowees)
   var handleToFollowees: Option[Map[String, Seq[String]]] = None
 
   // human classifier for follower filtering
@@ -163,7 +165,7 @@ class FeatureExtractor (
     Option(model)
   } else None
 
-  // Followers
+  // Followers (to be set by setFollowers())
   var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
 
   /**
@@ -187,10 +189,16 @@ class FeatureExtractor (
     this.lexicons = Some(l)
   }
 
+  /**
+    * Set the value of {@link handleToFollowees}
+    */
   def setFollowees(followees: Map[String, Seq[String]]) = {
     handleToFollowees = Option(followees)
   }
 
+  /**
+    * Set the value of {@link handleToFollowerAccount}
+    */
   def setFollowers(followers: Map[String, Seq[TwitterAccount]]) = {
     handleToFollowerAccount = Option(followers)
   }
@@ -205,6 +213,9 @@ class FeatureExtractor (
     new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + this.customFeatures(account))
   }
 
+  /**
+    * Scale the counter if datumScaling is true
+    */
   def scale(counter: Counter[String]): Counter[String] = {
     if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
     counter
@@ -270,11 +281,12 @@ class FeatureExtractor (
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
   }
 
+  /**
+    * Populate a [[Counter]] with frequency counts of words in a [[Seq]]
+    */
   def setCounts(words: Seq[String], counter: Counter[String]) = {
     words.foreach(word => counter.incrementCount(word, 1))
   }
-
-  def tokenSet(tt: Array[TaggedToken]) = tt.map(t => t.token)
 
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
@@ -303,7 +315,7 @@ class FeatureExtractor (
   }
 
   /**
-    * Add a 0.0 or 1.0 feature for each followee (a.k.a. "friend" in the Twitter API) handle for this account
+    * Binary feature for each followee (a.k.a. "friend" in the Twitter API) handle for this account
     *
     * @param account [[TwitterAccount]] whose followees' handles will be sought
     * @return counter
@@ -311,7 +323,7 @@ class FeatureExtractor (
   def followees(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
     val followeeHandles: Seq[String] = handleToFollowees.get.getOrElse(account.handle, Nil)
-    setCounts(followeeHandles.map(handle => s"followeeHandle:${handle}"), counter)
+    setCounts(followeeHandles.map(handle => s"followeeHandle:$handle"), counter)
     counter
   }
 
@@ -476,6 +488,7 @@ class FeatureExtractor (
   }
 
   private def loadVectors: Option[Map[String, Array[Double]]] = {
+    logger.info("Loading word embeddings...")
     val lines = scala.io.Source.fromFile(config.getString("classifiers.features.vectors")).getLines
     lines.next() // we don't need to know how big the vocabulary or vectors are
     val vectorMap = scala.collection.mutable.Map[String, Array[Double]]()
