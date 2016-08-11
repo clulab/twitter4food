@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory
   * @date 03-13-2016
   */
 class GenderClassifier(
-  useUnigrams: Boolean = true,
+  useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
