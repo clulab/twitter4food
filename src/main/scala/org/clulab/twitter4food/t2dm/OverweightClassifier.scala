@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
 import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
-import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
 /**
