@@ -34,7 +34,8 @@ object HumanSuite {
       useCosineSim = true,
       // useFollowers = true, // we don't currently have their followers
       useFollowees = true,
-      datumScaling = true
+      datumScaling = true,
+      customFeatures = HumanClassifier.customFeatures
     )
 
     hc.featureSelectionIncremental(toTrainOn, followers, followees, Eval.microOnly)
