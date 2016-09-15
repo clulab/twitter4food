@@ -102,7 +102,7 @@ class FeatureExtractor (
     val modelFile = config.getString("classifiers.overweight.humanClassifier")
     val model = if (Files.exists(Paths.get(modelFile))) {
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val h = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true)
+      val h = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true, customFeatures = HumanClassifier.customFeatures)
       h.subClassifier = Option(sub)
       h
     } else {
@@ -113,7 +113,7 @@ class FeatureExtractor (
         FileUtils.load(config.getString("classifiers.human.devData")) ++
         FileUtils.load(config.getString("classifiers.human.testData"))
       // val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
-      val tmp = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true)
+      val tmp = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true, customFeatures = HumanClassifier.customFeatures)
 
       // bad to have to load followers possibly multiple times, but this should happen only rarely
       // TODO: different follower files by classifier
