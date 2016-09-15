@@ -49,13 +49,18 @@ class HumanClassifier(
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "human",
-    customFeatures = customFeatures
+    customFeatures=customFeatures
   ) {
   val labels = Set("human", "org")
 }
 
 object HumanClassifier {
   import ClassifierImpl._
+
+  /**
+    * An empty counter for when custom features are not desired.
+    */
+  def nullFeatures(account: TwitterAccount) = new Counter[String]()
 
   /** Add a custom feature counter for the account based on description
     * @param account Twitter account
@@ -210,7 +215,7 @@ object HumanClassifier {
     }
     val modelFile = s"${config.getString("human")}/model/$fileExt.dat"
 
-    val customAction(twitterAccount: TwitterAccount) =>
+    val customAction = (twitterAccount: TwitterAccount) =>
       if (params.useCustomAction) HumanClassifier.customFeatures(twitterAccount) else new Counter[String]()
 
     val classifiers = for {
