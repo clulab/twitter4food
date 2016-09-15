@@ -282,7 +282,7 @@ class TwitterAPI(keyset: Int) {
     sleep("showUser", isAppOnly = true)
 
     if (user.nonEmpty) {
-      if (user.get.isDefaultProfileImage) Option("default") else Option(user.get.getBiggerProfileImageURL)
+      if (user.get.isDefaultProfileImage) Option("default") else Option(user.get.getOriginalProfileImageURL)
     } else None
   }
 }
