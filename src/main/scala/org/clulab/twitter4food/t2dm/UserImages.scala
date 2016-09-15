@@ -4,10 +4,13 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.twitter4j.TwitterAPI
+import org.slf4j.LoggerFactory
 
 import scala.util.Random
 
 object UserImages {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   def retrievePics(names: Seq[String], n: Int): Map[String, String] = {
     val numProcesses = 16
@@ -21,6 +24,7 @@ object UserImages {
       val threadPics = scala.collection.mutable.Map[String, String]()
       var i = thread * chunkSize
       while (i < (thread + 1) * chunkSize & threadPics.size < goalSize) {
+        logger.debug(s"fetching ${names(i)}")
         val fetched = api.fetchProfilePic(names(i))
         if(fetched.nonEmpty) threadPics += names(i) -> fetched.get
         i += 1
@@ -57,7 +61,7 @@ object UserImages {
 
     val writer = new BufferedWriter(new FileWriter(new File(config.getString("classifiers.overweight.handles")), true))
 
-    found.foreach{case (handle, url) => writer.write(s"handle\turl\n")}
+    found.foreach{case (handle, url) => writer.write(s"$handle\t$url\n")}
 
     writer.close()
   }
