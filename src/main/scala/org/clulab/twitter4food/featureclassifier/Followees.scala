@@ -15,22 +15,24 @@ object Followees {
     }
     val numProcesses = 18
     val keySet = args(0).toInt
+    assert(numProcesses > keySet, "API key number exceeds number of API keys available!")
+
     val dataSet = if (args.length > 1) args(1) else "overweight"
     if (!Set("overweight", "gender", "human").contains(dataSet)) {
-      println(s"${dataSet} not recognized. Choose from (overweight, gender, human)")
+      println(s"$dataSet not recognized. Choose from (overweight, gender, human)")
       return
     }
 
     val config = com.typesafe.config.ConfigFactory.load
     // Input
-    var inputFile = scala.io.Source.fromFile(config.getString(s"classifiers.$dataSet.handles"))
+    var inputFile = scala.io.Source.fromFile(config.getString(s"classifiers.$dataSet.newHandles"))
     val numLines = inputFile.getLines.length
     inputFile.close()
-    inputFile = scala.io.Source.fromFile(config.getString(s"classifiers.$dataSet.handles"))
+    inputFile = scala.io.Source.fromFile(config.getString(s"classifiers.$dataSet.newHandles"))
     val lines = inputFile.getLines
 
     // Output
-    val relationsFile = config.getString(s"classifiers.$dataSet.followeeRelations") + keySet + ".txt"
+    val relationsFile = config.getString(s"classifiers.$dataSet.newFolloweeRelations") + keySet + ".txt"
     val soFar:Set[String] = if (!Files.exists(Paths.get(relationsFile)))
       Set.empty
     else {
