@@ -25,44 +25,38 @@ object Followers {
 
     val config = com.typesafe.config.ConfigFactory.load
     // Input
-    var inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
+    var inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.annotatedUsersFile"))
     val numLines = inputFile.getLines.length
     inputFile.close()
-    inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.handles"))
+    inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.annotatedUsersFile"))
 
     // Output
-    val relationsFile = config.getString("classifiers.features.followerRelations") + keySet + ".txt"
-    val accountsFile = config.getString("classifiers.features.followerAccounts") + keySet + ".txt"
+    val relationsFile = config.getString("classifiers.features.newFollowerRelations") + keySet + ".txt"
+    val accountsFile = config.getString("classifiers.features.newFollowerAccounts") + keySet + ".txt"
 
-    println(s"Will write relations to ${relationsFile}")
-    println(s"Will write accounts to ${accountsFile}")
-
-    var handles = Set[String]()
+    println(s"Will write relations to $relationsFile")
+    println(s"Will write accounts to $accountsFile")
 
     var numO = 0
     var numN = 0
 
     // Get account handles
-    for (line <- inputFile.getLines) {
+    val handles = for (line <- inputFile.getLines) yield {
       val elements = line.split("\t")
       val handle = elements(0).substring(1) // remove @ symbol
-      var label = elements(1)
-      if ((label equals "OW") || (label equals "OW*"))
-        label = "Overweight"
-      else if ((label equals "NO") || (label equals "NO*"))
-        label = "Not overweight"
-
-      if (!(label equals "Can't tell")) {
-        handles += handle
-        if ((label equals "Overweight"))
+      val h = elements(1) match {
+        case ow if ow.substring(0,1).toLowerCase == "o" => // overweight
           numO += 1
-        else if ((label equals "Not overweight"))
+          Option(handle)
+        case n if n.substring(0,1).toLowerCase == "n" => // not overweight
           numN += 1
+          Option
+        case unknown => ()
       }
     }
     inputFile.close()
 
-    println(s"Accumulated ${handles.size} handles from input file: ${numO} overweight, ${numN} not overweight")
+    println(s"Accumulated ${handles.size} handles from input file: $numO overweight, $numN not overweight")
 
 
     val window = handles.size / (numProcesses - 1)
@@ -89,10 +83,10 @@ object Followers {
     val pb = new me.tongfei.progressbar.ProgressBar("Followers", 100)
     pb.start()
     pb.maxHint(toFetch.size)
-    pb.setExtraMessage(s"keySet=${keySet}")
+    pb.setExtraMessage(s"keySet=$keySet")
 
     toFetch.foreach(follower => {
-      println(s"Fetching ${follower}...")
+      println(s"Fetching $follower...")
       val fetchedAccount = api.fetchAccount(h=follower, fetchTweets=false, fetchNetwork=true)
       if (fetchedAccount != null) {
         fetchedAccount.activeFollowers.foreach(f => followers += f)
@@ -108,7 +102,7 @@ object Followers {
     val writer = new BufferedWriter(new FileWriter(relationsFile, false))
     followers.foreach(account => {
       if (account != null) {
-        writer.write(account.handle + "\t");
+        writer.write(account.handle + "\t")
         writer.write(account.activeFollowers.map(a => a.handle).mkString("\t") + "\n")
       }
     })

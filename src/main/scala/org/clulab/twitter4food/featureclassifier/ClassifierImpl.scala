@@ -129,7 +129,7 @@ class ClassifierImpl(
   }
 
   /**
-    * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers if necessary
+    * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers/followees if necessary
     * @param accounts
     * @param labels
     */
