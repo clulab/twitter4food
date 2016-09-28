@@ -41,7 +41,7 @@ object Followers {
     var numN = 0
 
     // Get account handles
-    val handles = for (line <- inputFile.getLines) yield {
+    val handles = (for (line <- inputFile.getLines) yield {
       val elements = line.split("\t")
       val handle = elements(0).substring(1) // remove @ symbol
       val h = elements(1) match {
@@ -50,10 +50,11 @@ object Followers {
           Option(handle)
         case n if n.substring(0,1).toLowerCase == "n" => // not overweight
           numN += 1
-          Option
-        case unknown => ()
+          Option(handle)
+        case unknown => None
       }
-    }
+      h
+    }).flatten
     inputFile.close()
 
     println(s"Accumulated ${handles.size} handles from input file: $numO overweight, $numN not overweight")
