@@ -54,11 +54,10 @@ object Followers {
         case unknown => None
       }
       h
-    }).flatten
+    }).flatten.toSeq
     inputFile.close()
 
     println(s"Accumulated ${handles.size} handles from input file: $numO overweight, $numN not overweight")
-
 
     val window = handles.size / (numProcesses - 1)
 
