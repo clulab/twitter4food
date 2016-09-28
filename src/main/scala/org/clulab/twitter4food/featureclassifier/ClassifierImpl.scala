@@ -10,6 +10,9 @@ import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.util.Random
 
 /** Implementation of the FeatureClassifier trait that contains the
   * nitty-gritty of creating FeatureExtractors, adding datums,
@@ -21,8 +24,16 @@ import scala.collection.JavaConverters._
   *
   * @author adikou
   * @author tishihara
+  * @author Dane Bell
   * @date 04-02-2016
   */
+
+/** Used by Stratified K-fold CV */
+case class DatasetStratifiedFold(test: Seq[Int], train: Seq[Int]) {
+  def merge(other: DatasetStratifiedFold): DatasetStratifiedFold = {
+    new DatasetStratifiedFold(this.test ++ other.test, this.train ++ other.train)
+  }
+}
 
 class ClassifierImpl(
   val useUnigrams: Boolean,
@@ -151,6 +162,8 @@ class ClassifierImpl(
     followees: Option[Map[String, Seq[String]]]) = {
     assert(accounts.size == labels.size)
 
+    this.setClassifier(new L1LinearSVMClassifier[String, String]())
+
     // Clear current dataset if training on new one
     val dataset = constructDataset(accounts, labels, followers, followees)
 
@@ -176,7 +189,7 @@ class ClassifierImpl(
         Normalization.scaleByRange(datum, scaleRange.get, lowerBound, upperBound)
       else datum
       subClassifier.get.scoresOf(scaled)
-      } else throw new RuntimeException("ERROR: must train before using scoresOf!")
+    } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
   /** Set custom classifier prior to training
@@ -214,7 +227,7 @@ class ClassifierImpl(
       new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url,
         t.location, t.description, t.tweets.slice(0, numTweets),
         Seq[TwitterAccount]())
-      })
+    })
 
     val opt = config.getString(s"classifiers.${this.variable}.model")
     val nonFeats = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
@@ -275,7 +288,7 @@ class ClassifierImpl(
     testSet: Seq[TwitterAccount],
     writer: BufferedWriter, _C: Double, K: Int) = {
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels,
-        predictedLabels, testSet)
+      predictedLabels, testSet)
 
     val df = new java.text.DecimalFormat("#.###")
 
@@ -289,7 +302,7 @@ class ClassifierImpl(
       writer.write(s"\nl\nFP:\n")
       writer.write(s"${evalMeasures(l).FPAccounts.map(u => u.handle).mkString("\n")}\nFN:\n")
       writer.write(s"${evalMeasures(l).FNAccounts.map(u => u.handle).mkString("\n")}\n")
-        })
+    })
     writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
     writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
     writer.flush()
@@ -334,8 +347,8 @@ class ClassifierImpl(
       devData.values.toArray, testData.getOrElse(Map()).values.toArray)
 
     val writerFile = if (outputFile != null) outputFile
-      else config.getString("classifier") + s"/$ctype/output-" +
-        fileExt + ".txt"
+    else config.getString("classifier") + s"/$ctype/output-" +
+      fileExt + ".txt"
 
     val writer = new BufferedWriter(new FileWriter(
       writerFile, true))
@@ -355,11 +368,11 @@ class ClassifierImpl(
       * @return microAvg micro-average aggregated over each label
       */
     val unitTest = (trainingSet: Seq[TwitterAccount],
-      trainingLabels: Seq[String],
-      testingSet: Seq[TwitterAccount],
-      testingLabels: Seq[String],
-      _C: Double,
-      K: Int) => {
+    trainingLabels: Seq[String],
+    testingSet: Seq[TwitterAccount],
+    testingLabels: Seq[String],
+    _C: Double,
+    K: Int) => {
 
       println(s"Training with C=${_C} and top-$K tweets")
 
@@ -459,7 +472,7 @@ class ClassifierImpl(
     for(i <- tests.indices) {
       writer.write(s"${tests(i).handle}\t${labels(i)}\n")
       writer.flush()
-      }
+    }
     writer.close()
   }
 
@@ -476,6 +489,69 @@ class ClassifierImpl(
     val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
       dataset, Utils.svmFactory, evalMetric, featureGroups)
     logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
+  }
+
+  /** Creates dataset folds to be used for cross validation */
+  def mkStratifiedFolds[L, F](
+    numFolds:Int,
+    dataset:Dataset[L, F],
+    seed:Int
+  ):Iterable[DatasetStratifiedFold] = {
+    val r = new Random(seed)
+
+    val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
+    val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[DatasetStratifiedFold])).toMap
+
+    for {
+      c <- 0 until dataset.numLabels
+      i <- 0 until numFolds
+    } {
+      val cds = byClass(c)
+      val classSize = cds.length
+      val foldSize = classSize / numFolds
+      val startTest = i * foldSize
+      val endTest = if (i == numFolds - 1) math.max(classSize, (i + 1) * foldSize) else (i + 1) * foldSize
+
+      val trainFolds = new ArrayBuffer[Int]
+      if(startTest > 0)
+        trainFolds ++= cds.slice(0, startTest)
+      if(endTest < classSize)
+        trainFolds ++= cds.slice(endTest, classSize)
+
+      folds(i) += new DatasetStratifiedFold(cds.slice(startTest, endTest), trainFolds)
+    }
+    folds.map{dsfSet =>
+      dsfSet._2.foldLeft(new DatasetStratifiedFold(Nil, Nil))(_ merge _)}
+  }
+
+  /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L.
+    */
+  def stratifiedCrossValidate[L, F](
+    dataset:Dataset[L, F],
+    classifierFactory: () => Classifier[L, F],
+    numFolds:Int = 10,
+    seed:Int = 73
+  ): Seq[(L, L)] = {
+
+    val folds = mkStratifiedFolds(numFolds, dataset, seed)
+    val output = new ListBuffer[(L, L)]
+
+    for (fold <- folds) yield {
+      // Uncomment to confirm the size of each class in each fold
+      // val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+      // println(s"fold: ${balance.mkString(", ")}")
+      val classifier = classifierFactory()
+      classifier.train(dataset, fold.train.toArray)
+      val gp = for(i <- fold.test) {
+        val sys = classifier.classOf(dataset.mkDatum(i))
+        val gold = dataset.labels(i)
+        (dataset.labelLexicon.get(gold), sys)
+      }
+    }
+
+    output
   }
 }
 
