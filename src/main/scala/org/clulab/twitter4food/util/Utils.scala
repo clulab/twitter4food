@@ -30,7 +30,6 @@ object Utils {
     featureScaling: Boolean = false,
     fpnAnalysis: Boolean = false,
     runOnTest: Boolean = false,
-    noTraining: Boolean = false,
     learningCurve: Boolean = false
   )
 
@@ -111,8 +110,6 @@ object Utils {
         c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"
       opt[Unit]("test") action { (x, c) =>
         c.copy(runOnTest = true)} text "run on test dataset (default: dev dataset)"
-      opt[Unit]("noTraining") action { (x, c) =>
-        c.copy(noTraining = true)} text "don't overwrite existing classifier if one exists"
       opt[Unit]("learningCurve") action { (x, c) =>
         c.copy(learningCurve = true)} text "analyze performance "
     }
@@ -172,7 +169,7 @@ object Utils {
     img.toMap
   }
 
-  def svmFactory():Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
+  def svmFactory(): Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
 
   // Helper function for mapping a prefix onto all labels in a counter
   def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
