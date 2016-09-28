@@ -20,15 +20,12 @@ object Followers {
       sys.exit(0)
     }
 
-    val numProcesses = 16
+    val numProcesses = 18
     val keySet = args(0).toInt
 
     val config = com.typesafe.config.ConfigFactory.load
     // Input
-    var inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.annotatedUsersFile"))
-    val numLines = inputFile.getLines.length
-    inputFile.close()
-    inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.annotatedUsersFile"))
+    val inputFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.annotatedUsersFile"))
 
     // Output
     val relationsFile = config.getString("classifiers.features.newFollowerRelations") + keySet + ".txt"
@@ -54,11 +51,12 @@ object Followers {
         case unknown => None
       }
       h
-    }).flatten.toSeq
-    inputFile.close()
+    }).flatten.toList
 
     println(s"Accumulated ${handles.size} handles from input file: $numO overweight, $numN not overweight")
 
+    inputFile.close()
+    
     val window = handles.size / (numProcesses - 1)
 
     var handleItr = handles.grouped(window)
