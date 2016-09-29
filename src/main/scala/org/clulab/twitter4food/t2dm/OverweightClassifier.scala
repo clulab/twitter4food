@@ -131,7 +131,8 @@ object OverweightClassifier {
       val (gold, pred) = oc.stratifiedCrossValidate[String, String](dataset, Utils.svmFactory).unzip
 
       // Print results
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred, accts)
+      // val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred, accts)
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred)
 
       val evalMetric = evalMeasures("Overweight")
       val precision = evalMetric.P
