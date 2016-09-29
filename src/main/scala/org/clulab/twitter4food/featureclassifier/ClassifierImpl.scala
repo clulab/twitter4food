@@ -496,7 +496,7 @@ class ClassifierImpl(
     numFolds:Int,
     dataset:Dataset[L, F],
     seed:Int
-  ):Iterable[DatasetStratifiedFold] = {
+  ): Iterable[DatasetStratifiedFold] = {
     val r = new Random(seed)
 
     val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
@@ -521,7 +521,7 @@ class ClassifierImpl(
       folds(i) += new DatasetStratifiedFold(cds.slice(startTest, endTest), trainFolds)
     }
     folds.map{dsfSet =>
-      dsfSet._2.foldLeft(new DatasetStratifiedFold(Nil, Nil))(_ merge _)}
+      dsfSet._2.reduce(_ merge _)}
   }
 
   /**
@@ -537,10 +537,10 @@ class ClassifierImpl(
 
     val folds = mkStratifiedFolds(numFolds, dataset, seed)
 
-    val output = for (fold <- folds.par) yield {
+    val output = for (fold <- folds) yield {
       // Uncomment to confirm the size of each class in each fold
-      val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
-      logger.debug(s"fold: ${balance.mkString(", ")}")
+      // val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+      // logger.debug(s"fold: ${balance.mkString(", ")}")
       val classifier = classifierFactory()
       classifier.train(dataset, fold.train.toArray)
       val gp = for(i <- fold.test) yield {
@@ -551,7 +551,7 @@ class ClassifierImpl(
       gp
     }
 
-    output.flatten.seq.toSeq
+    output.flatten.toSeq
   }
 }
 
