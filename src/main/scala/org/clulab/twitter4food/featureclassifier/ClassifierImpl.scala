@@ -536,22 +536,22 @@ class ClassifierImpl(
   ): Seq[(L, L)] = {
 
     val folds = mkStratifiedFolds(numFolds, dataset, seed)
-    val output = new ListBuffer[(L, L)]
 
-    for (fold <- folds) yield {
+    val output = for (fold <- folds.par) yield {
       // Uncomment to confirm the size of each class in each fold
-      // val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
-      // println(s"fold: ${balance.mkString(", ")}")
+      val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+      logger.debug(s"fold: ${balance.mkString(", ")}")
       val classifier = classifierFactory()
       classifier.train(dataset, fold.train.toArray)
-      val gp = for(i <- fold.test) {
+      val gp = for(i <- fold.test) yield {
         val sys = classifier.classOf(dataset.mkDatum(i))
         val gold = dataset.labels(i)
         (dataset.labelLexicon.get(gold), sys)
       }
+      gp
     }
 
-    output
+    output.flatten.toSeq
   }
 }
 

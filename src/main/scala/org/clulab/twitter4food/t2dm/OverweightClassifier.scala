@@ -11,11 +11,10 @@ import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 import scala.util.Random
 
 /**
-  * Created by Terron on 2/15/16.
-  *
   * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
   *
-  * All parameters are consistent with those in FeatureExtractor
+  * @author terron
+  * @author Dane Bell
   */
 class OverweightClassifier(
   useUnigrams: Boolean = false,
