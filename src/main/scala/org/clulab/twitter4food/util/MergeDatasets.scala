@@ -30,18 +30,22 @@ object MergeDatasets {
       s"${overlapping.size + nonOverlapping.size}")
 
     // Merge accounts that have the same handles
-    val mergedAccounts = for (ol <- overlapping.keys) yield {
+    val mergedAccounts = (for (ol <- overlapping.keys) yield {
       val unmerged = datasets.filter{ case (acct, lbl) => acct.id == ol}
       val labels = unmerged.map(_._2).distinct
       assert(labels.length == 1, s"A single account ${unmerged.head._1.handle} has multiple labels!")
       val mergedAccount = unmerged.map(_._1).reduce( (a, b) => a.merge(b) )
       (mergedAccount, labels.head)
-    }
+    }).toSeq
 
-    val singletonAccounts = datasets.filter{ case (acct, lbl) => nonOverlapping.keys.toSeq contains acct.id }
+    val singletonAccounts = datasets.filter{ case (acct, lbl) => nonOverlapping.keys.toSeq contains acct.id }.toSeq
+
+    logger.debug(s"Merged: ${mergedAccounts.size}, Singletons: ${singletonAccounts.size}")
 
     val (newAccounts, newLabels) = (mergedAccounts ++ singletonAccounts).filter(_._2 != "Can't tell").unzip
 
-    saveToFile(newAccounts.toSeq, newLabels.toSeq, args.last, append = false)
+    logger.debug(s"accounts: ${newAccounts.size}, labels: ${newLabels.size}")
+
+    saveToFile(newAccounts, newLabels, args.last, append = false)
   }
 }
