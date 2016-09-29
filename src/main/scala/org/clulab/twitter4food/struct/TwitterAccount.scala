@@ -34,4 +34,9 @@ class TwitterAccount (
     activeFollowers:Seq[TwitterAccount] = this.activeFollowers): TwitterAccount = {
     new TwitterAccount(handle, id, name, lang, url, location, description, tweets, activeFollowers)
   }
+
+  def merge(that: TwitterAccount): TwitterAccount = {
+    assert(this.id == that.id, "They must be instantiations of the same account!")
+    this.copy(tweets = (this.tweets.toSet ++ that.tweets.toSet).toSeq.sortBy(_.createdAt))
+  }
 }
