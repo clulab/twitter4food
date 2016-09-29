@@ -2,6 +2,7 @@ package org.clulab.twitter4food.util
 
 import scala.collection.mutable.ArrayBuffer
 import org.clulab.twitter4food.struct.TwitterAccount
+import org.slf4j.LoggerFactory
 
 class EvalMetric {
   var TP = 0
@@ -26,6 +27,8 @@ class EvalMetric {
 }
 
 object Eval {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   def fMeasure(precision: Double, recall: Double, beta: Double): Double =
     (1 + Math.pow(beta, 2)) * ((precision * recall) /
@@ -56,9 +59,12 @@ object Eval {
 
   def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String]): (Map[String, EvalMetric], Double, Double) = {
     val labels = srcLabels.toSet
+    logger.debug(labels.mkString("{", ", ", "}"))
+
     val evalMeasures = genEvalMeasure(labels)
 
     labels.foreach(label => {
+      logger.debug(s"fMeasure for $label")
       val eval = evalMeasures(label)
       for (i <- srcLabels.indices) {
         if (srcLabels(i) equals label) {

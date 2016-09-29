@@ -5,7 +5,6 @@ import java.nio.file.{Files, Paths}
 
 import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
-import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
@@ -129,6 +128,9 @@ object OverweightClassifier {
       val dataset = oc.constructDataset(accts, lbls, followers, followees)
 
       val (gold, pred) = oc.stratifiedCrossValidate[String, String](dataset, Utils.svmFactory).unzip
+
+      logger.debug(s"${gold.length} gold labels, ${pred.length} predicted labels. " +
+        s"Label set: {${gold.toSet.mkString(", ")}}")
 
       // Print results
       // val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred, accts)
