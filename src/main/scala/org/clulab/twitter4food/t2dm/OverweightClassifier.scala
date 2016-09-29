@@ -134,7 +134,12 @@ object OverweightClassifier {
       // val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred, accts)
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred)
 
-      val evalMetric = evalMeasures("Overweight")
+      val evalMetric = if (evalMeasures.keySet contains "Overweight") {
+        evalMeasures("Overweight")
+      } else {
+        logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
+        evalMeasures.head._2
+      }
       val precision = evalMetric.P
       val recall = evalMetric.R
 
