@@ -551,7 +551,7 @@ class ClassifierImpl(
       gp
     }
 
-    output.flatten.toSeq
+    output.flatten.seq.toSeq
   }
 }
 
