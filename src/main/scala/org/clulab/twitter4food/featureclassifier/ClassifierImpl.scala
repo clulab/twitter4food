@@ -543,12 +543,11 @@ class ClassifierImpl(
       // logger.debug(s"fold: ${balance.mkString(", ")}")
       val classifier = classifierFactory()
       classifier.train(dataset, fold.train.toArray)
-      val gp = for(i <- fold.test) yield {
-        val sys = classifier.classOf(dataset.mkDatum(i))
+      for(i <- fold.test) yield {
+        val pred = classifier.classOf(dataset.mkDatum(i))
         val gold = dataset.labels(i)
-        (dataset.labelLexicon.get(gold), sys)
+        (dataset.labelLexicon.get(gold), pred)
       }
-      gp
     }
 
     output.flatten.toSeq
