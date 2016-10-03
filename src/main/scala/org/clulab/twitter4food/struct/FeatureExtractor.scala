@@ -489,7 +489,7 @@ class FeatureExtractor (
 
   private def loadVectors: Option[Map[String, Array[Double]]] = {
     logger.info("Loading word embeddings...")
-    val lines = scala.io.Source.fromFile(config.getString("classifiers.features.vectors")).getLines
+    val lines = scala.io.Source.fromFile(config.getString("classifiers.features.overweightVectors")).getLines
     lines.next() // we don't need to know how big the vocabulary or vectors are
     val vectorMap = scala.collection.mutable.Map[String, Array[Double]]()
     while (lines.hasNext) {

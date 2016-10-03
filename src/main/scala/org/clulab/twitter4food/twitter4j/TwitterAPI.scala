@@ -111,7 +111,7 @@ class TwitterAPI(keyset: Int) {
       val location = option(user.getLocation)
       val description = option(user.getDescription)
 
-      var tweets : Seq[Tweet] = null
+      var tweets: Seq[Tweet] = null
       val tweetBuffer = ArrayBuffer[Tweet]()
 
       if(fetchTweets) {

@@ -7,8 +7,7 @@ import java.util.Date
 import org.clulab.twitter4food.struct._
 
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.collection.parallel.immutable
+import scala.collection.mutable.ArrayBuffer
 
 object FileUtils {
   def saveToFile(users: Seq[TwitterAccount], labels: Seq[String],
