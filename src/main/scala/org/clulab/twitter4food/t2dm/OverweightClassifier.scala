@@ -95,20 +95,18 @@ object OverweightClassifier {
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
 
-    val desiredProps = Map( "Overweight" -> 0.3, "Not overweight" -> 0.7 )
+    // Scale number of accounts so that weights aren't too biased against Overweight
+    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
     val subsampled = Utils.subsample(labeledAccts, desiredProps)
 
-    val r = new Random(11111117)
-    val shuffledAccts = r.shuffle(subsampled)
-
-    val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(shuffledAccts.map(_._1))) else None
-    val followees = if(params.useFollowees) Option(ClassifierImpl.loadFollowees(shuffledAccts.map(_._1), "overweight")) else None
+    val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(subsampled.map(_._1))) else None
+    val followees = if(params.useFollowees) Option(ClassifierImpl.loadFollowees(subsampled.map(_._1), "overweight")) else None
 
     val evals = for {
       portion <- portions
-      maxIndex = (portion * shuffledAccts.length).toInt
+      maxIndex = (portion * subsampled.length).toInt
     } yield {
-      val (accts, lbls) = shuffledAccts.slice(0, maxIndex).unzip
+      val (accts, lbls) = subsampled.slice(0, maxIndex).unzip
 
       val oc = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
