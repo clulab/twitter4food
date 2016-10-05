@@ -94,6 +94,7 @@ object OverweightClassifier {
 
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
+
     val r = new Random(11111117)
     val shuffledAccts = r.shuffle(labeledAccts)
 
@@ -125,15 +126,15 @@ object OverweightClassifier {
       logger.info("Training classifier...")
 
       val dataset = oc.constructDataset(accts, lbls, followers, followees)
+      val desiredProps = Map( "Overweight" -> 0.3, "Not overweight" -> 0.7 )
 
-      val (gold, pred) = oc.stratifiedCrossValidate[String, String](dataset, Utils.svmFactory).unzip
+      val subsampled = Utils.subsample(dataset, desiredProps)
 
-      logger.debug(s"${gold.length} gold labels, ${pred.length} predicted labels. " +
-        s"Label set: {${gold.toSet.mkString(", ")}}")
+      val predictions = oc.stratifiedCrossValidate[String, String](subsampled, Utils.svmFactory)
 
       // Print results
       // val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred, accts)
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred)
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
 
       val evalMetric = if (evalMeasures.keySet contains "Overweight") {
         evalMeasures("Overweight")
@@ -171,13 +172,13 @@ object OverweightClassifier {
         writer.close()
 
         // Save individual predictions for bootstrap significance
-        val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-        predicted.write(s"gold\tpred\n")
-        gold.zip(pred).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
-        predicted.close()
+        val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+        predWriter.write(s"gold\tpred\n")
+        predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
+        predWriter.close()
       }
 
-      (portion, pred.length, precision, recall, macroAvg, microAvg)
+      (portion, predictions.length, precision, recall, macroAvg, microAvg)
     }
 
     println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
