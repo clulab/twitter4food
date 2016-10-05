@@ -3,12 +3,14 @@ package org.clulab.twitter4food.util
 import org.clulab.twitter4food.twitter4j._
 import org.clulab.twitter4food.struct._
 import com.typesafe.config.ConfigFactory
+import org.slf4j.LoggerFactory
 
 import scala.reflect.ClassTag
-import org.clulab.learning.{Classifier, L1LinearSVMClassifier, LiblinearClassifier}
+import org.clulab.learning._
 import org.clulab.struct.{Counter, Lexicon}
 
 import scala.collection.mutable
+import scala.util.Random
 
 object Utils {
   case class Config(
@@ -32,6 +34,8 @@ object Utils {
     runOnTest: Boolean = false,
     learningCurve: Boolean = false
   )
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   def init(keyset: Int) = {
     (new TwitterAPI(keyset), ConfigFactory.load())
@@ -177,5 +181,35 @@ object Utils {
     for ((label, score) <- counter.toSeq)
       temp.setCount(prefix + label, score)
     temp
+  }
+
+  /**
+    * Reduce a [[Dataset]] to the largest size possible to satisfy the proportions of labels designated
+    */
+  def subsample[L, F](dataset: Dataset[L, F], desiredProps: Map[L, Double], seed: Int = 773): Dataset[L, F] = {
+    assert(dataset.labelLexicon.keySet == desiredProps.keySet)
+    if (desiredProps.values.sum != 1.0) logger.warn("Desired proportions do not sum to 1!")
+
+    val r = new Random(seed)
+    val byClass = dataset.indices.groupBy(idx => dataset.labelLexicon.get(dataset.labels(idx)))
+    val currentDims = byClass.map{ case (lbl, rows) => lbl -> rows.length }
+    val currentProps = currentDims.mapValues(_ / dataset.size.toDouble)
+
+    val limiting = currentProps.map{ case (lbl, currProp) => lbl -> currProp / desiredProps(lbl) }.minBy(_._2)._1
+    val newTotal = currentDims(limiting) / desiredProps(limiting)
+    val desiredDims = desiredProps.map{ case (lbl, dprop) => lbl -> (dprop * newTotal toInt) }
+
+    logger.debug(s"Old dimensions: ${currentDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
+    logger.debug(s"New dimensions: ${desiredDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
+
+    val selected = r.shuffle(byClass.flatMap{ case (lbl, ixs) => r.shuffle(ixs).take(desiredDims(lbl)) })
+
+    val ssDataset = new RVFDataset[L, F]
+
+    selected.foreach{ s =>
+      ssDataset += dataset.mkDatum(s)
+    }
+
+    ssDataset
   }
 }

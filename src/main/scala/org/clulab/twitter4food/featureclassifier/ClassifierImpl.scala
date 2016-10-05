@@ -1,17 +1,16 @@
 package org.clulab.twitter4food.featureclassifier
 
 import org.clulab.learning._
-import org.clulab.struct.{Counter, Lexicon}
+import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
-import java.io.{BufferedWriter, FileWriter, PrintWriter}
+import java.io.{BufferedWriter, FileWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 /** Implementation of the FeatureClassifier trait that contains the
@@ -520,8 +519,7 @@ class ClassifierImpl(
 
       folds(i) += new DatasetStratifiedFold(cds.slice(startTest, endTest), trainFolds)
     }
-    folds.map{dsfSet =>
-      dsfSet._2.reduce(_ merge _)}
+    folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
   }
 
   /**
