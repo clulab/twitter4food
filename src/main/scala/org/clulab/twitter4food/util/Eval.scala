@@ -59,12 +59,10 @@ object Eval {
 
   def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String]): (Map[String, EvalMetric], Double, Double) = {
     val labels = srcLabels.toSet
-    logger.debug(labels.mkString("{", ", ", "}"))
 
     val evalMeasures = genEvalMeasure(labels)
 
     labels.foreach(label => {
-      logger.debug(s"fMeasure for $label")
       val eval = evalMeasures(label)
       for (i <- srcLabels.indices) {
         if (srcLabels(i) equals label) {
