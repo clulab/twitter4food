@@ -184,16 +184,18 @@ object Utils {
   }
 
   /**
-    * Reduce a [[Dataset]] to the largest size possible to satisfy the proportions of labels designated
+    * Reduce a Seq of [[TwitterAccount]]s to the largest size possible to satisfy the proportions of labels designated
     */
-  def subsample[L, F](dataset: Dataset[L, F], desiredProps: Map[L, Double], seed: Int = 773): Dataset[L, F] = {
-    assert(dataset.labelLexicon.keySet == desiredProps.keySet)
+  def subsample(accounts: (Seq[(TwitterAccount, String)]),
+    desiredProps: Map[String, Double],
+    seed: Int = 773): Seq[(TwitterAccount, String)] = {
+    assert(accounts.map(_._2).toSet == desiredProps.keySet)
     if (desiredProps.values.sum != 1.0) logger.warn("Desired proportions do not sum to 1!")
 
     val r = new Random(seed)
-    val byClass = dataset.indices.groupBy(idx => dataset.labelLexicon.get(dataset.labels(idx)))
-    val currentDims = byClass.map{ case (lbl, rows) => lbl -> rows.length }
-    val currentProps = currentDims.mapValues(_ / dataset.size.toDouble)
+    val byClass = accounts.groupBy(_._2)
+    val currentDims = byClass.map{ case (lbl, accts) => lbl -> accts.length }
+    val currentProps = currentDims.mapValues(_ / accounts.length.toDouble)
 
     val limiting = currentProps.map{ case (lbl, currProp) => lbl -> currProp / desiredProps(lbl) }.minBy(_._2)._1
     val newTotal = currentDims(limiting) / desiredProps(limiting)
@@ -202,14 +204,8 @@ object Utils {
     logger.debug(s"Old dimensions: ${currentDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
     logger.debug(s"New dimensions: ${desiredDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
 
-    val selected = r.shuffle(byClass.flatMap{ case (lbl, ixs) => r.shuffle(ixs).take(desiredDims(lbl)) })
+    val selected = r.shuffle(byClass.flatMap{ case (lbl, accts) => r.shuffle(accts).take(desiredDims(lbl)) })
 
-    val ssDataset = new RVFDataset[L, F]
-
-    selected.foreach{ s =>
-      ssDataset += dataset.mkDatum(s)
-    }
-
-    ssDataset
+    selected.toSeq
   }
 }

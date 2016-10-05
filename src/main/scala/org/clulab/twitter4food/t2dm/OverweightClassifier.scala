@@ -95,8 +95,11 @@ object OverweightClassifier {
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
 
+    val desiredProps = Map( "Overweight" -> 0.3, "Not overweight" -> 0.7 )
+    val subsampled = Utils.subsample(labeledAccts, desiredProps)
+
     val r = new Random(11111117)
-    val shuffledAccts = r.shuffle(labeledAccts)
+    val shuffledAccts = r.shuffle(subsampled)
 
     val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(shuffledAccts.map(_._1))) else None
     val followees = if(params.useFollowees) Option(ClassifierImpl.loadFollowees(shuffledAccts.map(_._1), "overweight")) else None
@@ -126,11 +129,7 @@ object OverweightClassifier {
       logger.info("Training classifier...")
 
       val dataset = oc.constructDataset(accts, lbls, followers, followees)
-      val desiredProps = Map( "Overweight" -> 0.3, "Not overweight" -> 0.7 )
-
-      val subsampled = Utils.subsample(dataset, desiredProps)
-
-      val predictions = oc.stratifiedCrossValidate[String, String](subsampled, Utils.svmFactory)
+      val predictions = oc.stratifiedCrossValidate[String, String](dataset, Utils.svmFactory)
 
       // Print results
       // val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred, accts)
