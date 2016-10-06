@@ -1,15 +1,17 @@
 package org.clulab.twitter4food.featureclassifier
 
 import org.clulab.learning._
-import org.clulab.struct.{Counter, Lexicon}
+import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
-import java.io.{BufferedWriter, FileWriter, PrintWriter}
+import java.io.{BufferedWriter, FileWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 /** Implementation of the FeatureClassifier trait that contains the
   * nitty-gritty of creating FeatureExtractors, adding datums,
@@ -21,8 +23,16 @@ import scala.collection.JavaConverters._
   *
   * @author adikou
   * @author tishihara
+  * @author Dane Bell
   * @date 04-02-2016
   */
+
+/** Used by Stratified K-fold CV */
+case class DatasetStratifiedFold(test: Seq[Int], train: Seq[Int]) {
+  def merge(other: DatasetStratifiedFold): DatasetStratifiedFold = {
+    new DatasetStratifiedFold(this.test ++ other.test, this.train ++ other.train)
+  }
+}
 
 class ClassifierImpl(
   val useUnigrams: Boolean,
@@ -130,6 +140,7 @@ class ClassifierImpl(
 
   /**
     * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers/followees if necessary
+    *
     * @param accounts
     * @param labels
     */
@@ -150,6 +161,8 @@ class ClassifierImpl(
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]]) = {
     assert(accounts.size == labels.size)
+
+    this.setClassifier(new L1LinearSVMClassifier[String, String]())
 
     // Clear current dataset if training on new one
     val dataset = constructDataset(accounts, labels, followers, followees)
@@ -176,7 +189,7 @@ class ClassifierImpl(
         Normalization.scaleByRange(datum, scaleRange.get, lowerBound, upperBound)
       else datum
       subClassifier.get.scoresOf(scaled)
-      } else throw new RuntimeException("ERROR: must train before using scoresOf!")
+    } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
   /** Set custom classifier prior to training
@@ -214,7 +227,7 @@ class ClassifierImpl(
       new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url,
         t.location, t.description, t.tweets.slice(0, numTweets),
         Seq[TwitterAccount]())
-      })
+    })
 
     val opt = config.getString(s"classifiers.${this.variable}.model")
     val nonFeats = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
@@ -275,7 +288,7 @@ class ClassifierImpl(
     testSet: Seq[TwitterAccount],
     writer: BufferedWriter, _C: Double, K: Int) = {
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels,
-        predictedLabels, testSet)
+      predictedLabels, testSet)
 
     val df = new java.text.DecimalFormat("#.###")
 
@@ -289,7 +302,7 @@ class ClassifierImpl(
       writer.write(s"\nl\nFP:\n")
       writer.write(s"${evalMeasures(l).FPAccounts.map(u => u.handle).mkString("\n")}\nFN:\n")
       writer.write(s"${evalMeasures(l).FNAccounts.map(u => u.handle).mkString("\n")}\n")
-        })
+    })
     writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
     writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
     writer.flush()
@@ -334,8 +347,8 @@ class ClassifierImpl(
       devData.values.toArray, testData.getOrElse(Map()).values.toArray)
 
     val writerFile = if (outputFile != null) outputFile
-      else config.getString("classifier") + s"/$ctype/output-" +
-        fileExt + ".txt"
+    else config.getString("classifier") + s"/$ctype/output-" +
+      fileExt + ".txt"
 
     val writer = new BufferedWriter(new FileWriter(
       writerFile, true))
@@ -355,11 +368,11 @@ class ClassifierImpl(
       * @return microAvg micro-average aggregated over each label
       */
     val unitTest = (trainingSet: Seq[TwitterAccount],
-      trainingLabels: Seq[String],
-      testingSet: Seq[TwitterAccount],
-      testingLabels: Seq[String],
-      _C: Double,
-      K: Int) => {
+    trainingLabels: Seq[String],
+    testingSet: Seq[TwitterAccount],
+    testingLabels: Seq[String],
+    _C: Double,
+    K: Int) => {
 
       println(s"Training with C=${_C} and top-$K tweets")
 
@@ -459,7 +472,7 @@ class ClassifierImpl(
     for(i <- tests.indices) {
       writer.write(s"${tests(i).handle}\t${labels(i)}\n")
       writer.flush()
-      }
+    }
     writer.close()
   }
 
@@ -476,6 +489,146 @@ class ClassifierImpl(
     val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
       dataset, Utils.svmFactory, evalMetric, featureGroups)
     logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
+  }
+
+  /** Creates dataset folds to be used for cross validation */
+  def mkStratifiedFolds[L, F](
+    numFolds:Int,
+    dataset:Dataset[L, F],
+    seed:Int
+  ): Iterable[DatasetStratifiedFold] = {
+    val r = new Random(seed)
+
+    val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
+    val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[DatasetStratifiedFold])).toMap
+
+    for {
+      c <- 0 until dataset.numLabels
+      i <- 0 until numFolds
+    } {
+      val cds = byClass(c)
+      val classSize = cds.length
+      val foldSize = classSize / numFolds
+      val startTest = i * foldSize
+      val endTest = if (i == numFolds - 1) math.max(classSize, (i + 1) * foldSize) else (i + 1) * foldSize
+
+      val trainFolds = new ArrayBuffer[Int]
+      if(startTest > 0)
+        trainFolds ++= cds.slice(0, startTest)
+      if(endTest < classSize)
+        trainFolds ++= cds.slice(endTest, classSize)
+
+      folds(i) += new DatasetStratifiedFold(cds.slice(startTest, endTest), trainFolds)
+    }
+    folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
+  }
+
+  /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L.
+    */
+  def stratifiedCrossValidate[L, F](
+    dataset:Dataset[L, F],
+    classifierFactory: () => Classifier[L, F],
+    numFolds:Int = 10,
+    seed:Int = 73
+  ): Seq[(L, L)] = {
+
+    val folds = mkStratifiedFolds(numFolds, dataset, seed)
+
+    val output = for (fold <- folds) yield {
+      if(logger.isDebugEnabled) {
+        val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+        logger.debug(s"fold: ${balance.mkString(", ")}")
+      }
+      val classifier = classifierFactory()
+      classifier.train(dataset, fold.train.toArray)
+      for(i <- fold.test) yield {
+        val gold = dataset.labelLexicon.get(dataset.labels(i))
+        val pred = classifier.classOf(dataset.mkDatum(i))
+        (gold, pred)
+      }
+    }
+
+    output.flatten.toSeq
+  }
+
+  /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
+    */
+  def overweightCV(
+    dataset:Dataset[String, String],
+    classifierFactory: () => LiblinearClassifier[String, String],
+    numFolds:Int = 10,
+    seed:Int = 73
+  ): (Seq[(String, String)],
+    Map[String, Seq[(String, Double)]],
+    Seq[Map[String, Seq[(String, Double)]]],
+    Seq[Map[String, Seq[(String, Double)]]]) = {
+
+    val numFeatures = 30
+    val numAccts = 20
+
+    val folds = mkStratifiedFolds(numFolds, dataset, seed)
+
+    val results = (for (fold <- folds) yield {
+      if(logger.isDebugEnabled) {
+        val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+        logger.debug(s"fold: ${balance.mkString(", ")}")
+      }
+      val classifier = classifierFactory()
+      classifier.train(dataset, fold.train.toArray)
+      val W = classifier.getWeights()
+      val predictions = for(i <- fold.test) yield {
+        val gold = dataset.labelLexicon.get(dataset.labels(i))
+        val datum = dataset.mkDatum(i)
+        val pred = classifier.classOf(datum)
+        val score = classifier.scoresOf(datum)
+        (gold, pred, datum, score)
+      }
+      (W, predictions)
+    }).toSeq
+
+    val allFeats = dataset.featureLexicon.keySet
+    val (allWeights, predictions) = results.unzip
+    val g = predictions.flatten.map(_._1)
+    val p = predictions.flatten.map(_._2)
+    val evalInput = g.zip(p)
+
+    val avgWeights = (for {
+      l <- dataset.labelLexicon.keySet
+    } yield {
+      val c = new Counter[String]
+      allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
+      c.mapValues(_ / allWeights.length)
+      l -> c
+    }).toMap
+
+    val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
+
+    val pToW = (for {
+      i <- results.indices
+      p <- results(i)._2
+    } yield p -> i).toMap
+
+    val owScale = predictions
+      .flatten
+      .filter(acct => acct._1 != "Overweight" && acct._2 == "Overweight") // only false positives
+      .sortBy(_._4.getCount("Overweight"))
+      .reverse
+      .take(numAccts)
+    val noScale = predictions
+      .flatten
+      .filter(acct => acct._1 == "Overweight" && acct._2 != "Overweight") // only false negatives
+      .sortBy(_._4.getCount("Not overweight"))
+      .reverse
+      .take(numAccts)
+
+    val falsePos = owScale.map(acct => Utils.analyze(allWeights(pToW(acct)), acct._3))
+    val falseNeg = noScale.map(acct => Utils.analyze(allWeights(pToW(acct)), acct._3))
+
+    (evalInput, topWeights, falsePos, falseNeg)
   }
 }
 
@@ -516,7 +669,50 @@ object ClassifierImpl {
     handleToFollowerAccts
   }
 
-  def outputAnalysis(outputFile:String, header:String, accounts: Seq[TwitterAccount], cls: ClassifierImpl, labels: Set[String]) {
+  def outputAnalysis(outputDir: String,
+    weights: Map[String, Seq[(String, Double)]],
+    falsePos: Seq[Map[String, Seq[(String, Double)]]],
+    falseNeg: Seq[Map[String, Seq[(String, Double)]]]): Unit = {
+
+    val numWeights = 30
+    val numAccts = 20
+
+    val barrier = "=" * 25
+    // Initialize writer
+    var writer = new BufferedWriter(new FileWriter(outputDir + "/weights.txt", false))
+    weights.foreach { case (label, feats) =>
+      writer.write(s"$label weights\n$barrier\n")
+      writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
+      writer.write("\n")
+    }
+    writer.close()
+
+    writer = new BufferedWriter(new FileWriter(outputDir + "/falsePositives.txt", false))
+    writer.write(s"False positives\n$barrier\n\n")
+    falsePos.foreach{ acct =>
+      acct.foreach{ case (label, feats) =>
+        writer.write(s"$label weights\n$barrier\n")
+        writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
+        writer.write("\n")
+      }
+      writer.write(s"$barrier\n$barrier\n\n")
+    }
+    writer.close()
+
+    writer = new BufferedWriter(new FileWriter(outputDir + "/falseNegatives.txt", false))
+    writer.write(s"False negatives\n$barrier\n\n")
+    falseNeg.foreach{ acct =>
+      acct.foreach{ case (label, feats) =>
+        writer.write(s"$label weights\n$barrier\n")
+        writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
+        writer.write("\n")
+      }
+      writer.write(s"$barrier\n$barrier\n\n")
+    }
+    writer.close()
+  }
+
+  def outputAnalysis(outputFile: String, header: String, accounts: Seq[TwitterAccount], cls: ClassifierImpl, labels: Set[String]) {
     // Set progress bar
     var numAccountsToPrint = 20
     val numWeightsToPrint = 30
