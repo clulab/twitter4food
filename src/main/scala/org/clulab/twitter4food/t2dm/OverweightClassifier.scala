@@ -127,10 +127,9 @@ object OverweightClassifier {
       logger.info("Training classifier...")
 
       val dataset = oc.constructDataset(accts, lbls, followers, followees)
-      val predictions = oc.stratifiedCrossValidate[String, String](dataset, Utils.svmFactory)
+      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(dataset, Utils.svmFactory)
 
       // Print results
-      // val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(gold, pred, accts)
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
 
       val evalMetric = if (evalMeasures.keySet contains "Overweight") {
@@ -144,19 +143,10 @@ object OverweightClassifier {
 
       // Write analysis only on full portion
       if (portion == 1.0) {
-//        if (params.fpnAnalysis & oc.subClassifier.nonEmpty &
-//          (evalMetric.FNAccounts.nonEmpty || evalMetric.FPAccounts.nonEmpty)) {
-//          // Perform analysis on false negatives and false positives
-//          println("False negatives:")
-//          evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
-//          println("\n====")
-//          outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc, oc.labels)
-//
-//          println("False positives:")
-//          evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
-//          println("\n====")
-//          outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc, oc.labels)
-//        }
+        if (params.fpnAnalysis) {
+          // Perform analysis on false negatives and false positives
+          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
+        }
 
         // Save results
         val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))

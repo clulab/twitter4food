@@ -142,6 +142,21 @@ object Utils {
     (topWeights, dotProduct)
   }
 
+  def analyze(w: Map[String, Counter[String]], d:Datum[String, String]): Map[String, Seq[(String, Double)]] = {
+    w.keys.foldLeft(Map[String, Seq[(String, Double)]]())(
+      (map, l) => {
+        val weightMap = w(l).toSeq.toMap
+        val feats = d.featuresCounter.toSeq
+        map + (l -> feats.filter(f => weightMap.contains(f._1))
+          .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
+      })
+  }
+
+  def analyze(filename: String, labels: Set[String], d: Datum[String, String]):
+  Map[String, Seq[(String, Double)]] = {
+    analyze(LiblinearClassifier.loadFrom[String, String](filename).getWeights(), d)
+  }
+
   def analyze(filename: String, labels: Set[String], test: TwitterAccount,
     fe: FeatureExtractor):
   (Map[String, Seq[(String, Double)]], Map[String, Seq[(String, Double)]]) = {
@@ -173,7 +188,7 @@ object Utils {
     img.toMap
   }
 
-  def svmFactory(): Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
+  def svmFactory(): LiblinearClassifier[String, String] = new L1LinearSVMClassifier[String, String]()
 
   // Helper function for mapping a prefix onto all labels in a counter
   def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
