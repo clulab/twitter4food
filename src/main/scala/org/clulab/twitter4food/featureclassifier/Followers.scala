@@ -56,7 +56,7 @@ object Followers {
     println(s"Accumulated ${handles.size} handles from input file: $numO overweight, $numN not overweight")
 
     inputFile.close()
-    
+
     val window = handles.size / (numProcesses - 1)
 
     var handleItr = handles.grouped(window)

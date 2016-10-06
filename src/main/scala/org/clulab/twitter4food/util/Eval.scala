@@ -2,6 +2,7 @@ package org.clulab.twitter4food.util
 
 import scala.collection.mutable.ArrayBuffer
 import org.clulab.twitter4food.struct.TwitterAccount
+import org.slf4j.LoggerFactory
 
 class EvalMetric {
   var TP = 0
@@ -18,18 +19,20 @@ class EvalMetric {
   var beta = 0.0
   var F = Eval.fMeasure(P, R, beta)
   val df = new java.text.DecimalFormat("#.###")
-  
+
   override def toString = {
     s"(P: ${df.format(P)}\tR: ${df.format(R)}\tF-1: ${df.format(F)}\t" +
-    s"A: ${df.format(A)})" 
+      s"A: ${df.format(A)})"
   }
-} 
+}
 
 object Eval {
 
+  val logger = LoggerFactory.getLogger(this.getClass)
+
   def fMeasure(precision: Double, recall: Double, beta: Double): Double =
-    (1 + Math.pow(beta, 2)) * ((precision * recall) / 
-    (Math.pow(beta, 2) * precision + recall))
+    (1 + Math.pow(beta, 2)) * ((precision * recall) /
+      (Math.pow(beta, 2) * precision + recall))
 
   def genEvalMeasure(labels: Set[String]) = {
     labels.foldLeft(Map[String, EvalMetric]())(
@@ -56,6 +59,7 @@ object Eval {
 
   def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String]): (Map[String, EvalMetric], Double, Double) = {
     val labels = srcLabels.toSet
+
     val evalMeasures = genEvalMeasure(labels)
 
     labels.foreach(label => {
@@ -96,9 +100,9 @@ object Eval {
       for(i <- srcLabels.indices) {
         if(srcLabels(i) equals label) {
           if(predictedLabels(i) equals label) {
-              eval.TP += 1
-              eval.TPAccounts += accounts(i)
-            } 
+            eval.TP += 1
+            eval.TPAccounts += accounts(i)
+          }
           else {
             eval.FN += 1
             eval.FNAccounts += accounts(i)

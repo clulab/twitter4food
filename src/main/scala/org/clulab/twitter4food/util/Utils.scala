@@ -3,12 +3,14 @@ package org.clulab.twitter4food.util
 import org.clulab.twitter4food.twitter4j._
 import org.clulab.twitter4food.struct._
 import com.typesafe.config.ConfigFactory
+import org.slf4j.LoggerFactory
 
 import scala.reflect.ClassTag
-import org.clulab.learning.{Classifier, L1LinearSVMClassifier, LiblinearClassifier}
+import org.clulab.learning._
 import org.clulab.struct.{Counter, Lexicon}
 
 import scala.collection.mutable
+import scala.util.Random
 
 object Utils {
   case class Config(
@@ -30,9 +32,10 @@ object Utils {
     featureScaling: Boolean = false,
     fpnAnalysis: Boolean = false,
     runOnTest: Boolean = false,
-    noTraining: Boolean = false,
     learningCurve: Boolean = false
   )
+
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   def init(keyset: Int) = {
     (new TwitterAPI(keyset), ConfigFactory.load())
@@ -111,8 +114,6 @@ object Utils {
         c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"
       opt[Unit]("test") action { (x, c) =>
         c.copy(runOnTest = true)} text "run on test dataset (default: dev dataset)"
-      opt[Unit]("noTraining") action { (x, c) =>
-        c.copy(noTraining = true)} text "don't overwrite existing classifier if one exists"
       opt[Unit]("learningCurve") action { (x, c) =>
         c.copy(learningCurve = true)} text "analyze performance "
     }
@@ -139,6 +140,21 @@ object Utils {
       })
 
     (topWeights, dotProduct)
+  }
+
+  def analyze(w: Map[String, Counter[String]], d:Datum[String, String]): Map[String, Seq[(String, Double)]] = {
+    w.keys.foldLeft(Map[String, Seq[(String, Double)]]())(
+      (map, l) => {
+        val weightMap = w(l).toSeq.toMap
+        val feats = d.featuresCounter.toSeq
+        map + (l -> feats.filter(f => weightMap.contains(f._1))
+          .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
+      })
+  }
+
+  def analyze(filename: String, labels: Set[String], d: Datum[String, String]):
+  Map[String, Seq[(String, Double)]] = {
+    analyze(LiblinearClassifier.loadFrom[String, String](filename).getWeights(), d)
   }
 
   def analyze(filename: String, labels: Set[String], test: TwitterAccount,
@@ -172,7 +188,7 @@ object Utils {
     img.toMap
   }
 
-  def svmFactory():Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
+  def svmFactory(): LiblinearClassifier[String, String] = new L1LinearSVMClassifier[String, String]()
 
   // Helper function for mapping a prefix onto all labels in a counter
   def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
@@ -180,5 +196,31 @@ object Utils {
     for ((label, score) <- counter.toSeq)
       temp.setCount(prefix + label, score)
     temp
+  }
+
+  /**
+    * Reduce a Seq of [[TwitterAccount]]s to the largest size possible to satisfy the proportions of labels designated
+    */
+  def subsample(accounts: (Seq[(TwitterAccount, String)]),
+    desiredProps: Map[String, Double],
+    seed: Int = 773): Seq[(TwitterAccount, String)] = {
+    assert(accounts.map(_._2).toSet == desiredProps.keySet)
+    if (desiredProps.values.sum != 1.0) logger.warn("Desired proportions do not sum to 1!")
+
+    val r = new Random(seed)
+    val byClass = accounts.groupBy(_._2)
+    val currentDims = byClass.map{ case (lbl, accts) => lbl -> accts.length }
+    val currentProps = currentDims.mapValues(_ / accounts.length.toDouble)
+
+    val limiting = currentProps.map{ case (lbl, currProp) => lbl -> currProp / desiredProps(lbl) }.minBy(_._2)._1
+    val newTotal = currentDims(limiting) / desiredProps(limiting)
+    val desiredDims = desiredProps.map{ case (lbl, dprop) => lbl -> (dprop * newTotal toInt) }
+
+    logger.debug(s"Old dimensions: ${currentDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
+    logger.debug(s"New dimensions: ${desiredDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
+
+    val selected = r.shuffle(byClass.flatMap{ case (lbl, accts) => r.shuffle(accts).take(desiredDims(lbl)) })
+
+    selected.toSeq
   }
 }
