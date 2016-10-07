@@ -479,7 +479,8 @@ class ClassifierImpl(
   def featureSelectionIncremental(accounts: Map[TwitterAccount, String],
     followers: Map[String, Seq[TwitterAccount]],
     followees: Map[String, Seq[String]],
-    evalMetric: Iterable[(String, String)] => Double) {
+    evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+
     val dataset = constructDataset(accounts.keys.toSeq, accounts.values.toSeq, Option(followers), Option(followees))
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
     logger.debug(s"Found ${featureGroups.size} feature groups:")
@@ -488,7 +489,19 @@ class ClassifierImpl(
     }
     val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
       dataset, Utils.svmFactory, evalMetric, featureGroups)
+
     logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
+
+    dataset.keepOnly(chosenGroups.flatMap(g => featureGroups(g)))
+  }
+
+  def featureSelectionByFrequency(accounts: Map[TwitterAccount, String],
+    followers: Map[String, Seq[TwitterAccount]],
+    followees: Map[String, Seq[String]],
+    evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+    val dataset = constructDataset(accounts.keys.toSeq, accounts.values.toSeq, Option(followers), Option(followees))
+    val chosenFeatures = Datasets.featureSelectionByFrequency(dataset, Utils.svmFactory, evalMetric)
+    dataset.keepOnly(chosenFeatures)
   }
 
   /** Creates dataset folds to be used for cross validation */
