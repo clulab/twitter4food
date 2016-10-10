@@ -28,9 +28,16 @@ import scala.util.Random
   */
 
 /** Used by Stratified K-fold CV */
-case class DatasetStratifiedFold(test: Seq[Int], train: Seq[Int]) {
-  def merge(other: DatasetStratifiedFold): DatasetStratifiedFold = {
-    new DatasetStratifiedFold(this.test ++ other.test, this.train ++ other.train)
+case class TrainTestFold(test: Seq[Int], train: Seq[Int]) {
+  def merge(other: TrainTestFold): TrainTestFold = {
+    new TrainTestFold(this.test ++ other.test, this.train ++ other.train)
+  }
+}
+
+/** Used by Stratified K-fold CV */
+case class TrainDevTestFold(test: Seq[Int], dev: Seq[Int], train: Seq[Int]) {
+  def merge(other: TrainDevTestFold): TrainDevTestFold = {
+    new TrainDevTestFold(this.test ++ other.test, this.dev ++ other.dev, this.train ++ other.train)
   }
 }
 
@@ -175,11 +182,11 @@ class ClassifierImpl(
   }
 
   /** Essentially the test method, called by classOf method in FeatureExtractor
-    * Populate datum for the test account and return the predicted scores 
+    * Populate datum for the test account and return the predicted scores
     * for each label.
     *
     * @param  account Test account
-    * @return Counter[String] predicted scores for each label 
+    * @return Counter[String] predicted scores for each label
     *         that classOf calls argmax on.
     */
   override def scoresOf(account: TwitterAccount): Counter[String] = {
@@ -270,7 +277,7 @@ class ClassifierImpl(
     predictedLabels
   }
 
-  /** Part 3/3 of test suite. Following calls to {@link _train} and 
+  /** Part 3/3 of test suite. Following calls to {@link _train} and
     * {@link _test}, _evaluate prints and writes to file, the F-1 scores
     * and (Precision, Recall, Accuracy, F-1 score) for each label, along
     * with macro- and micro- averages for the system.
@@ -311,7 +318,7 @@ class ClassifierImpl(
   }
 
   /** Pick one of (C, K) and store in gridCbyK and pick (C,,max,,, K,,max,,)
-    * such that accuracy for that micro-average for that tuple in dev set 
+    * such that accuracy for that micro-average for that tuple in dev set
     * is maximum. Use the max values and train with trainSet++devSet and test
     * with testSet.
     *
@@ -336,7 +343,7 @@ class ClassifierImpl(
     val cFolds = Array(0.001, 0.1, 10, 1000)
 
     /*
-     * (i)  Tune parameters 
+     * (i)  Tune parameters
      * (ii) Pick top-K tweets
      */
 
@@ -363,7 +370,7 @@ class ClassifierImpl(
       * @param trainingLabels
       * @param testingSet
       * @param testingLabels
-      * @param _C hyperparameter for subClassifier 
+      * @param _C hyperparameter for subClassifier
       * @param K threshold for top-K tweets for each user
       * @return microAvg micro-average aggregated over each label
       */
@@ -504,16 +511,35 @@ class ClassifierImpl(
     dataset.keepOnly(chosenFeatures)
   }
 
+  def featureSelectionIncremental(dataset:Dataset[String, String], evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+    val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
+    logger.debug(s"Found ${featureGroups.size} feature groups:")
+    for(f <- featureGroups.keySet) {
+      logger.debug(s"Group $f containing ${featureGroups.get(f).get.size} features.")
+    }
+    val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
+      dataset, Utils.svmFactory, evalMetric, featureGroups)
+
+    logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
+
+    dataset.keepOnly(chosenGroups.flatMap(g => featureGroups(g)))
+  }
+
+  def featureSelectionByFrequency(dataset:Dataset[String, String], evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+    val chosenFeatures = Datasets.featureSelectionByFrequency(dataset, Utils.svmFactory, evalMetric)
+    dataset.keepOnly(chosenFeatures)
+  }
+
   /** Creates dataset folds to be used for cross validation */
-  def mkStratifiedFolds[L, F](
+  def mkStratifiedTrainTestFolds[L, F](
     numFolds:Int,
     dataset:Dataset[L, F],
     seed:Int
-  ): Iterable[DatasetStratifiedFold] = {
+  ): Iterable[TrainTestFold] = {
     val r = new Random(seed)
 
     val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
-    val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[DatasetStratifiedFold])).toMap
+    val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[TrainTestFold])).toMap
 
     for {
       c <- 0 until dataset.numLabels
@@ -531,7 +557,39 @@ class ClassifierImpl(
       if(endTest < classSize)
         trainFolds ++= cds.slice(endTest, classSize)
 
-      folds(i) += new DatasetStratifiedFold(cds.slice(startTest, endTest), trainFolds)
+      folds(i) += new TrainTestFold(cds.slice(startTest, endTest), trainFolds)
+    }
+    folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
+  }
+
+  /** Creates dataset folds to be used for cross validation */
+  def mkStratifiedTrainDevTestFolds[L, F](
+    numFolds:Int,
+    dataset:Dataset[L, F],
+    seed:Int
+  ): Iterable[TrainDevTestFold] = {
+    val r = new Random(seed)
+
+    val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
+    val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[TrainDevTestFold])).toMap
+
+    for {
+      c <- 0 until dataset.numLabels
+      i <- 0 until numFolds
+      j = (i + 1) % numFolds
+    } {
+      val cds = byClass(c)
+      val classSize = cds.length
+      val foldSize = classSize / numFolds
+      val startTest = i * foldSize
+      val endTest = if (i == numFolds - 1) math.max(classSize, (i + 1) * foldSize) else (i + 1) * foldSize
+      val startDev = j * foldSize
+      val endDev = if (j == numFolds - 1) math.max(classSize, (j + 1) * foldSize) else (j + 1) * foldSize
+
+      val nonTrain = (startTest until endTest) ++ (startDev until endDev)
+      val trainFolds = cds.indices.filterNot(ix => nonTrain.contains(ix))
+
+      folds(i) += new TrainDevTestFold(cds.slice(startTest, endTest), cds.slice(startDev, endDev), trainFolds.map(cds.apply))
     }
     folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
   }
@@ -547,7 +605,7 @@ class ClassifierImpl(
     seed:Int = 73
   ): Seq[(L, L)] = {
 
-    val folds = mkStratifiedFolds(numFolds, dataset, seed)
+    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed)
 
     val output = for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
@@ -583,7 +641,7 @@ class ClassifierImpl(
     val numFeatures = 30
     val numAccts = 20
 
-    val folds = mkStratifiedFolds(numFolds, dataset, seed)
+    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed)
 
     val results = (for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
@@ -642,6 +700,46 @@ class ClassifierImpl(
     val falseNeg = noScale.map(acct => Utils.analyze(allWeights(pToW(acct)), acct._3))
 
     (evalInput, topWeights, falsePos, falseNeg)
+  }
+
+
+  /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
+    */
+  def fscv(
+    dataset:Dataset[String, String],
+    classifierFactory: () => LiblinearClassifier[String, String],
+    evalMetric: Iterable[(String, String)] => Double,
+    numFolds:Int = 10,
+    seed:Int = 73
+  ): Seq[(String, String)] = {
+
+    val numFeatures = 30
+    val numAccts = 20
+
+    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed).toSeq
+
+    val results = for {
+      fold <- folds
+    } yield {
+      if(logger.isDebugEnabled) {
+        val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+        logger.debug(s"fold: ${balance.mkString(", ")}")
+      }
+      val tunedDataset = featureSelectionIncremental(Utils.keepRows(dataset, fold.train.toArray), evalMetric)
+      val classifier = classifierFactory()
+      classifier.train(tunedDataset)
+      val predictions = for(i <- fold.test) yield {
+        val gold = dataset.labelLexicon.get(dataset.labels(i))
+        val datum = dataset.mkDatum(i)
+        val pred = classifier.classOf(datum)
+        (gold, pred)
+      }
+      predictions
+    }
+
+    results.flatten
   }
 }
 
