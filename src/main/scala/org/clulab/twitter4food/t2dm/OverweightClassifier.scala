@@ -99,8 +99,15 @@ object OverweightClassifier {
     val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
     val subsampled = Utils.subsample(labeledAccts, desiredProps)
 
-    val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(subsampled.map(_._1))) else None
-    val followees = if(params.useFollowees) Option(ClassifierImpl.loadFollowees(subsampled.map(_._1), "overweight")) else None
+    val followers = if(params.useFollowers) {
+      logger.info("Loading follower accounts...")
+      Option(ClassifierImpl.loadFollowers(subsampled.map(_._1)))
+    } else None
+
+    val followees = if(params.useFollowees) {
+      logger.info("Loading followee accounts...")
+      Option(ClassifierImpl.loadFollowees(subsampled.map(_._1), "overweight"))
+    } else None
 
     val evals = for {
       portion <- portions

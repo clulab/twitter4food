@@ -11,18 +11,17 @@ object OverweightSuite {
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
 
-    val toTrainOn = {
-      logger.info("Loading training accounts...")
-      val train = FileUtils.load(config.getString("classifiers.overweight.trainingData"))
-      logger.info("Loading dev accounts...")
-      val dev = FileUtils.load(config.getString("classifiers.overweight.devData"))
-      train ++ dev
-    }
+    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
+
+    // Scale number of accounts so that weights aren't too biased against Overweight
+    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
+    val subsampled = Utils.subsample(labeledAccts, desiredProps)
+    val (accounts, labels) = subsampled.unzip
 
     logger.info("Loading follower accounts...")
-    val followers = ClassifierImpl.loadFollowers(toTrainOn.keys.toSeq)
+    val followers = ClassifierImpl.loadFollowers(accounts)
     logger.info("Loading followee accounts...")
-    val followees = ClassifierImpl.loadFollowees(toTrainOn.keys.toSeq, "overweight")
+    val followees = ClassifierImpl.loadFollowees(accounts, "overweight")
 
     val oc = new OverweightClassifier(
       useUnigrams = true,
@@ -41,9 +40,9 @@ object OverweightSuite {
       datumScaling = true
     )
 
-    val dataset = oc.featureSelectionIncremental(toTrainOn, followers, followees, Eval.f1ForLabel("Overweight"))
+    val dataset = oc.constructDataset(accounts, labels, Option(followers), Option(followees))
 
-    val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(dataset, Utils.svmFactory)
+    val predictions = oc.fscv(dataset, Utils.svmFactory, Eval.f1ForLabel("Overweight"))
 
     // Print results
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)

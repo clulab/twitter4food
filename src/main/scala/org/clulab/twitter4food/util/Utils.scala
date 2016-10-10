@@ -223,4 +223,15 @@ object Utils {
 
     selected.toSeq
   }
+
+  def keepRows[L, F](dataset: Dataset[L, F], rowsToKeep: Array[Int]): RVFDataset[L, F] = {
+    val ds = dataset.asInstanceOf[RVFDataset[L, F]]
+    new RVFDataset(
+      dataset.labelLexicon,
+      dataset.featureLexicon,
+      rowsToKeep.map(ds.labels.apply).to[mutable.ArrayBuffer],
+      rowsToKeep.map(ds.features.apply).to[mutable.ArrayBuffer],
+      rowsToKeep.map(ds.values.apply).to[mutable.ArrayBuffer]
+    )
+  }
 }
