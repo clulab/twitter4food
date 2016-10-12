@@ -297,10 +297,21 @@ class FeatureExtractor (
     */
   def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
+    val foodWords = lexicons.get("Overweight")("activity_words")
+    val activityWords = lexicons.get("Overweight")("food_words")
+    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
 
     // Extract ngrams
     def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
-      text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
+      text
+        .filter(w => foodWords.contains(w) || activityWords.contains(w) || owHashtags.contains(w))
+        //.filter(w => foodWords.contains(w) || activityWords.contains(w))
+        //.filter(activityWords.contains)
+        //.filter(foodWords.contains)
+        //.filter(owHashtags.contains)
+        .sliding(n)
+        .toList
+        .map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
     }
 
     // Filter ngrams by their POS tags
@@ -423,6 +434,7 @@ class FeatureExtractor (
       // Load dictionaries
       val foodWords = lexicons.get("Overweight")("food_words")
       val hashtags = lexicons.get("Overweight")("overweight_hashtags")
+      val activityWords = lexicons.get("Overweight")("activity_words")
       // keep track of the average calorie and health grade of the food words mentioned
       val calCount = new ArrayBuffer[Double]()
       val healthCount = new ArrayBuffer[Int]()
@@ -438,6 +450,10 @@ class FeatureExtractor (
         }
         if(hashtags contains k) {
           result.incrementCount("dictionary:hashtagDict", ng.getCount(k))
+          result.incrementCount("dictionary:overweightDict", ng.getCount(k))
+        }
+        if(activityWords contains k) {
+          result.incrementCount("dictionary:activityDict", ng.getCount(k))
           result.incrementCount("dictionary:overweightDict", ng.getCount(k))
         }
       }

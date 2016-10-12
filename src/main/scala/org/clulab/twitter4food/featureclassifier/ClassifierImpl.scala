@@ -113,7 +113,7 @@ class ClassifierImpl(
     followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
 
     // Load lexicons before calling train
-    if(useDictionaries) {
+    if(useDictionaries | useUnigrams | useBigrams) {
       // For each label, populate list of lexicon filepaths from config
       val lexMap = populateLexiconList(labels.toSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)
