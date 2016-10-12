@@ -11,7 +11,7 @@ import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, GenderClassifier, HumanClassifier}
 import org.clulab.twitter4food.lda.LDA
-import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.util.{FileUtils, Tokenizer}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
@@ -297,28 +297,27 @@ class FeatureExtractor (
     */
   def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
-    val foodWords = lexicons.get("Overweight")("activity_words")
-    val activityWords = lexicons.get("Overweight")("food_words")
-    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
+
+    val filteredTweets = for {
+      tweet <- tweets
+      joined = tweet.mkString(" ")
+    } yield {
+      val tt = Tokenizer.annotate(joined.toLowerCase)
+      filterTags(tt)
+    }
+    val filteredDescription = {
+      val tt = Tokenizer.annotate(description.mkString(" ").toLowerCase)
+      filterTags(tt)
+    }
 
     // Extract ngrams
     def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
-      text
-        .filter(w => foodWords.contains(w) || activityWords.contains(w) || owHashtags.contains(w))
-        //.filter(w => foodWords.contains(w) || activityWords.contains(w))
-        //.filter(activityWords.contains)
-        //.filter(foodWords.contains)
-        //.filter(owHashtags.contains)
-        .sliding(n)
-        .toList
-        .map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
+      text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
     }
 
-    // Filter ngrams by their POS tags
-    setCounts(populateNGrams(n, description), counter)
+    setCounts(populateNGrams(n, filteredDescription), counter)
 
-    // Filter further by ensuring we get English tweets and non-empty strings
-    tweets.foreach{ tweet =>
+    filteredTweets.foreach{ tweet =>
       setCounts(populateNGrams(n, tweet), counter)
     }
 
@@ -621,17 +620,31 @@ object FeatureExtractor {
 
   // NOTE: all features that run over description and tweets should probably apply this for consistency.
   // If the feature calculator uses tokenized tweets, this should already be done, but stopwords aren't filtered
+//  def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
+//    val emptyString = "^[\\s\b]*$"
+//    val lumped = for (tt <- tagTok) yield {
+//      (tt.token, tt.tag) match {
+//        case (site, "U") => Some("<URL>")
+//        case (handle, "@") => Some("<@MENTION>")
+//        case (number, "$") => Some("<NUMBER>")
+//        case (garbage, "G") => None
+//        case (rt, "~") => None
+//        case (token, tag) if token.matches(emptyString) => None
+//        case (token, tag) => Some(token)
+//      }
+//    }
+//    lumped.flatten
+//  }
+
   def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
-    val emptyString = "^[\\s\b]*$"
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
-        case (site, "U") => Some("<URL>")
-        case (handle, "@") => Some("<@MENTION>")
-        case (number, "$") => Some("<NUMBER>")
-        case (garbage, "G") => None
-        case (rt, "~") => None
-        case (token, tag) if token.matches(emptyString) => None
-        case (token, tag) => Some(token)
+        case ("<URL>", tag) => None
+        case ("<@MENTION>", tag) => None
+        case ("<NUMBER>", tag) => None
+        case (noun, "N") => Some(noun)
+        case (verb, "V") => Some(verb)
+        case (token, tag) => None
       }
     }
     lumped.flatten
