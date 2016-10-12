@@ -642,8 +642,16 @@ object FeatureExtractor {
         case ("<URL>", tag) => None
         case ("<@MENTION>", tag) => None
         case ("<NUMBER>", tag) => None
+        case (hashtag, "#") => Some(hashtag)
+        case (pn, "^") => Some(pn)
+        case (pnposs, "Z") => Some(pnposs)
+        case (pnverb, "M") => Some(pnverb)
+        case (adj, "A") => Some(adj)
+        case (adv, "R") => Some(adv)
         case (noun, "N") => Some(noun)
+        case (nounposs, "S") => Some(nounposs)
         case (verb, "V") => Some(verb)
+        case (emoticon, "E") => Some(emoticon)
         case (token, tag) => None
       }
     }
