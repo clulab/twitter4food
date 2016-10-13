@@ -133,8 +133,7 @@ object OverweightClassifier {
 
       logger.info("Training classifier...")
 
-      val dataset = oc.constructDataset(accts, lbls, followers, followees)
-      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(dataset, Utils.svmFactory)
+      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
