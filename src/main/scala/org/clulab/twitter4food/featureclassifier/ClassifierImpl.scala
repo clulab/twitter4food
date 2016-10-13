@@ -145,7 +145,7 @@ class ClassifierImpl(
     datums.foreach(datum => this.synchronized { dataset += datum })
 
     // filter out unigram features that appear in less than freqBound accounts.
-    val (unigrams, others) = dataset.featureLexicon.indices.partition(i => dataset.featureLexicon.get(i).substring(0,7) == "1-grams:")
+    val (unigrams, others) = dataset.featureLexicon.indices.partition(i => dataset.featureLexicon.get(i).substring(0,7) == "1-gram:")
     val commoner = unigrams.filter(i => dataset.features.count(row => row.contains(i)) >= freqBound)
 
     dataset.keepOnly(commoner.toSet ++ others.toSet)
