@@ -147,7 +147,7 @@ class ClassifierImpl(
     // filter out unigram features that appear in less than freqBound accounts.
     val features = Datasets.sortFeaturesByFrequency(dataset)
     val smallFeats = Datasets.keepMoreFrequent(features, freqBound)
-    val filtered = dataset.keepOnly(smallFeats)
+    val filtered = dataset.keepOnly(smallFeats).asInstanceOf[RVFDataset[String, String]]
 
     filtered
   }
