@@ -93,6 +93,8 @@ class ClassifierImpl(
   val lowerBound = 0.0
   val upperBound = 1.0
 
+  val freqBound = 2
+
   /** Populates list of lexicons from config file. Separate function
     * for easy testing.
     *
@@ -141,6 +143,12 @@ class ClassifierImpl(
     pb.stop()
 
     datums.foreach(datum => this.synchronized { dataset += datum })
+
+    // filter out unigram features that appear in less than freqBound accounts.
+    val (unigrams, others) = dataset.featureLexicon.indices.partition(i => dataset.featureLexicon.get(i).substring(0,7) == "1-grams:")
+    val commoner = unigrams.filter(i => dataset.features.count(row => row.contains(i)) >= freqBound)
+
+    dataset.keepOnly(commoner.toSet ++ others.toSet)
 
     dataset
   }
