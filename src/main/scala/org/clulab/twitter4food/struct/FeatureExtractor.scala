@@ -303,10 +303,7 @@ class FeatureExtractor (
       text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
     }
 
-    // Filter ngrams by their POS tags
     setCounts(populateNGrams(n, description), counter)
-
-    // Filter further by ensuring we get English tweets and non-empty strings
     tweets.foreach{ tweet =>
       setCounts(populateNGrams(n, tweet), counter)
     }
