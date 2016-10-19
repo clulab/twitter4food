@@ -234,4 +234,6 @@ object Utils {
       rowsToKeep.map(ds.values.apply).to[mutable.ArrayBuffer]
     )
   }
+
+  def dehashtag(wd: String): String = wd.replaceFirst("#", "")
 }

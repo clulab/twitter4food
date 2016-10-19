@@ -314,10 +314,7 @@ class FeatureExtractor (
         .map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
     }
 
-    // Filter ngrams by their POS tags
     setCounts(populateNGrams(n, description), counter)
-
-    // Filter further by ensuring we get English tweets and non-empty strings
     tweets.foreach{ tweet =>
       setCounts(populateNGrams(n, tweet), counter)
     }
@@ -441,12 +438,13 @@ class FeatureExtractor (
 
       // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
       val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
-      ng.keySet.foreach{k =>
-        if(foodWords contains k) {
-          result.incrementCount("dictionary:foodDict", ng.getCount(k))
-          result.incrementCount("dictionary:overweightDict", ng.getCount(k))
-          if (calories.get.contains(k)) calCount.append(calories.get(k))
-          if (healthiness.get.contains(k)) healthCount.append(healthiness.get(k))
+      ng.keySet.foreach{ k =>
+        val wd = dehashtag(k)
+        if(foodWords contains wd) {
+          result.incrementCount("dictionary:foodDict", ng.getCount(wd))
+          result.incrementCount("dictionary:overweightDict", ng.getCount(wd))
+          if (calories.get.contains(k)) calCount.append(calories.get(wd))
+          if (healthiness.get.contains(k)) healthCount.append(healthiness.get(wd))
         }
         if(hashtags contains k) {
           result.incrementCount("dictionary:hashtagDict", ng.getCount(k))
