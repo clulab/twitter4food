@@ -434,6 +434,7 @@ class FeatureExtractor (
     else if(cType equals "overweight") {
       // Load dictionaries
       val foodWords = lexicons.get("Overweight")("food_words")
+      val restaurants = lexicons.get("Overweight")("restaurant_hashtags")
       val hashtags = lexicons.get("Overweight")("overweight_hashtags")
       val activityWords = lexicons.get("Overweight")("activity_words")
       // keep track of the average calorie and health grade of the food words mentioned
@@ -456,6 +457,9 @@ class FeatureExtractor (
         }
         if(activityWords contains k) {
           result.incrementCount("dictionary:activityDict", ng.getCount(k))
+        }
+        if(restaurants contains k) {
+          result.incrementCount("dictionary:restaurantDict", ng.getCount(k))
           result.incrementCount("dictionary:overweightDict", ng.getCount(k))
         }
       }
