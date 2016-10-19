@@ -299,12 +299,16 @@ class FeatureExtractor (
     val counter = new Counter[String]
     val foodWords = lexicons.get("Overweight")("activity_words")
     val activityWords = lexicons.get("Overweight")("food_words")
+    val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
     val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
 
     // Extract ngrams
     def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
       text
-        .filter(w => foodWords.contains(w) || activityWords.contains(w) || owHashtags.contains(w))
+        .filter(w => foodWords.contains(w) ||
+          activityWords.contains(w) ||
+          restaurantWords.contains(w) ||
+          owHashtags.contains(w))
         //.filter(w => foodWords.contains(w) || activityWords.contains(w))
         //.filter(activityWords.contains)
         //.filter(foodWords.contains)
