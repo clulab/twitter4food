@@ -236,11 +236,13 @@ object Utils {
     val lexMap = ci.populateLexiconList(Set("Overweight"), "overweight")
     ci.featureExtractor.setLexicons(lexMap)
     val lexicon = ci.featureExtractor.lexicons.get.values.head.values.flatMap(_.keySet).toSet
-    accounts.filter{ acct =>
+    val filtered = accounts.filter{ acct =>
       val tweetWds = acct._1.tweets.flatMap(_.text.split(" +").map(dehashtag))
       val numRelevant = tweetWds.count(lexicon.contains)
       numRelevant >= threshold
     }
+    logger.info(s"${accounts.length - filtered.length} accounts had too few relevant terms and were ignored.")
+    filtered
   }
 
   /**
@@ -249,11 +251,13 @@ object Utils {
     * @return
     */
   def filterByRepetition(accounts: Seq[(TwitterAccount, String)], threshold: Double = 0.01): Seq[(TwitterAccount, String)] = {
-    accounts.filter{ case (acct, lbl) =>
+    val filtered = accounts.filter{ case (acct, lbl) =>
       val reps = acct.tweets.map(_.text).groupBy(identity).mapValues(_.size)
       val repeated = reps.filter{ case (t, rep) => rep > 1 }.values.sum.toFloat
       repeated / reps.values.sum < threshold
     }
+    logger.info(s"${accounts.length - filtered.length} accounts had too many repeated tweets and were ignored.")
+    filtered
   }
 
   def keepRows[L, F](dataset: Dataset[L, F], rowsToKeep: Array[Int]): RVFDataset[L, F] = {
