@@ -231,7 +231,7 @@ object Utils {
     * @param threshold
     * @return
     */
-  def filterByLexicon(accounts: Seq[(TwitterAccount, String)], threshold: Int = 10): Seq[(TwitterAccount, String)] = {
+  def filterByLexicon(accounts: Seq[(TwitterAccount, String)], lower: Int = 10, upper: Int = 5000): Seq[(TwitterAccount, String)] = {
     val ci = new ClassifierImpl(false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,"overweight")
     val lexMap = ci.populateLexiconList(Set("Overweight"), "overweight")
     ci.featureExtractor.setLexicons(lexMap)
@@ -241,9 +241,9 @@ object Utils {
       val tweetWds = acct._1.tweets.flatMap(_.text.split(" +").map(dehashtag))
       val numRelevant = tweetWds.count(lexicon.contains)
       if (numRelevant > mostWords._2) mostWords = (acct._1.handle, numRelevant)
-      numRelevant >= threshold
+      numRelevant >= lower && numRelevant <= upper
     }
-    logger.info(s"${accounts.length - filtered.length} accounts had fewer than $threshold relevant terms and were ignored.")
+    logger.info(s"${accounts.length - filtered.length} accounts had < $lower or > $upper relevant terms and were ignored.")
     logger.debug(s"${mostWords._1} had the most relevant words with ${mostWords._2}")
     filtered
   }
