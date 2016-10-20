@@ -93,6 +93,9 @@ object OverweightClassifier {
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
 
+    // Filter out spammy users
+    //val nonSpam = Utils.filterByRepetition(labeledAccts)
+
     // Filter users so that only ones we have a shot at classifying are used
     val relevantAccts = Utils.filterByLexicon(labeledAccts)
 

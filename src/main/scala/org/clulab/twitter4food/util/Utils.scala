@@ -205,19 +205,19 @@ object Utils {
   def subsample(accounts: Seq[(TwitterAccount, String)],
     desiredProps: Map[String, Double],
     seed: Int = 773): Seq[(TwitterAccount, String)] = {
-    assert(accounts.map(_._2).toSet == desiredProps.keySet)
     if (desiredProps.values.sum != 1.0) logger.warn("Desired proportions do not sum to 1!")
 
     val r = new Random(seed)
     val byClass = accounts.groupBy(_._2)
     val currentDims = byClass.map{ case (lbl, accts) => lbl -> accts.length }
+    logger.debug(s"Old dimensions: ${currentDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
     val currentProps = currentDims.mapValues(_ / accounts.length.toDouble)
+    assert(accounts.map(_._2).toSet == desiredProps.keySet)
 
     val limiting = currentProps.map{ case (lbl, currProp) => lbl -> currProp / desiredProps(lbl) }.minBy(_._2)._1
     val newTotal = currentDims(limiting) / desiredProps(limiting)
     val desiredDims = desiredProps.map{ case (lbl, dprop) => lbl -> (dprop * newTotal toInt) }
 
-    logger.debug(s"Old dimensions: ${currentDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
     logger.debug(s"New dimensions: ${desiredDims.map(pair => s"${pair._1} -> ${pair._2}").mkString(", ")}")
 
     val selected = r.shuffle(byClass.flatMap{ case (lbl, accts) => r.shuffle(accts).take(desiredDims(lbl)) })
@@ -231,7 +231,15 @@ object Utils {
     accounts.filter{ acct =>
       val tweetWds = acct._1.tweets.flatMap(_.text.split(" +").map(dehashtag))
       val numRelevant = tweetWds.count(lexicon.contains)
-      numRelevant > 9
+      numRelevant > 1
+    }
+  }
+
+  def filterByRepetition(accounts: Seq[(TwitterAccount, String)]): Seq[(TwitterAccount, String)] = {
+    accounts.filter{ case (acct, lbl) =>
+      val reps = acct.tweets.map(_.text).groupBy(identity).mapValues(_.size)
+      val repeated = reps.filter{ case (t, rep) => rep > 1 }.values.sum.toFloat
+      repeated / reps.values.sum < 0.01
     }
   }
 
