@@ -8,8 +8,6 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
-import scala.util.Random
-
 /**
   * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
   *
@@ -94,6 +92,9 @@ object OverweightClassifier {
 
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
+
+    // Filter users so that only ones we have a shot at classifying are used
+    val relevantAccts = Utils.filterByLexicon(labeledAccts)
 
     // Scale number of accounts so that weights aren't too biased against Overweight
     val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )

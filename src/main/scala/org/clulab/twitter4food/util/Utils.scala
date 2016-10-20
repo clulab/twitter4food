@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import scala.reflect.ClassTag
 import org.clulab.learning._
 import org.clulab.struct.{Counter, Lexicon}
+import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 
 import scala.collection.mutable
 import scala.util.Random
@@ -201,7 +202,7 @@ object Utils {
   /**
     * Reduce a Seq of [[TwitterAccount]]s to the largest size possible to satisfy the proportions of labels designated
     */
-  def subsample(accounts: (Seq[(TwitterAccount, String)]),
+  def subsample(accounts: Seq[(TwitterAccount, String)],
     desiredProps: Map[String, Double],
     seed: Int = 773): Seq[(TwitterAccount, String)] = {
     assert(accounts.map(_._2).toSet == desiredProps.keySet)
@@ -222,6 +223,16 @@ object Utils {
     val selected = r.shuffle(byClass.flatMap{ case (lbl, accts) => r.shuffle(accts).take(desiredDims(lbl)) })
 
     selected.toSeq
+  }
+
+  def filterByLexicon(accounts: Seq[(TwitterAccount, String)]): Seq[(TwitterAccount, String)] = {
+    val ci = new ClassifierImpl(false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,"overweight")
+    val lexicon = ci.populateLexiconList(Set("Overweight"), "overweight").values.flatten.toSet
+    accounts.filter{ acct =>
+      val tweetWds = acct._1.tweets.flatMap(_.text.split(" +").map(dehashtag))
+      val numRelevant = tweetWds.count(lexicon.contains)
+      numRelevant > 9
+    }
   }
 
   def keepRows[L, F](dataset: Dataset[L, F], rowsToKeep: Array[Int]): RVFDataset[L, F] = {
