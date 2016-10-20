@@ -225,21 +225,34 @@ object Utils {
     selected.toSeq
   }
 
-  def filterByLexicon(accounts: Seq[(TwitterAccount, String)]): Seq[(TwitterAccount, String)] = {
+  /**
+    * Only allow [[TwitterAccount]]s that have at least <i>threshold</i> relevant terms
+    * @param accounts
+    * @param threshold
+    * @return
+    */
+  def filterByLexicon(accounts: Seq[(TwitterAccount, String)], threshold: Int = 10): Seq[(TwitterAccount, String)] = {
     val ci = new ClassifierImpl(false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,"overweight")
-    val lexicon = ci.populateLexiconList(Set("Overweight"), "overweight").values.flatten.toSet
+    val lexMap = ci.populateLexiconList(Set("Overweight"), "overweight")
+    ci.featureExtractor.setLexicons(lexMap)
+    val lexicon = ci.featureExtractor.lexicons.get.values.head.values.flatMap(_.keySet).toSet
     accounts.filter{ acct =>
       val tweetWds = acct._1.tweets.flatMap(_.text.split(" +").map(dehashtag))
       val numRelevant = tweetWds.count(lexicon.contains)
-      numRelevant > 1
+      numRelevant >= threshold
     }
   }
 
-  def filterByRepetition(accounts: Seq[(TwitterAccount, String)]): Seq[(TwitterAccount, String)] = {
+  /**
+    * Only allow [[TwitterAccount]]s that have fewer than 0 <= <i>threshold</i> >= 1 proportion repeated tweets.
+    * @param accounts
+    * @return
+    */
+  def filterByRepetition(accounts: Seq[(TwitterAccount, String)], threshold: Double = 0.01): Seq[(TwitterAccount, String)] = {
     accounts.filter{ case (acct, lbl) =>
       val reps = acct.tweets.map(_.text).groupBy(identity).mapValues(_.size)
       val repeated = reps.filter{ case (t, rep) => rep > 1 }.values.sum.toFloat
-      repeated / reps.values.sum < 0.01
+      repeated / reps.values.sum < threshold
     }
   }
 
