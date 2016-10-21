@@ -94,10 +94,10 @@ object OverweightClassifier {
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
 
     // Filter out spammy users
-    val nonSpam = Utils.filterByRepetition(labeledAccts, threshold = 0.10)
+    val nonSpam = Utils.filterByRepetition(labeledAccts, threshold = 0.30)
 
     // Filter users so that only ones we have a shot at classifying are used
-    val relevantAccts = Utils.filterByLexicon(nonSpam, lower = 10, upper = 5000)
+    val relevantAccts = Utils.filterByLexicon(nonSpam, lower = 1, upper = 5000)
 
     // Scale number of accounts so that weights aren't too biased against Overweight
     val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
