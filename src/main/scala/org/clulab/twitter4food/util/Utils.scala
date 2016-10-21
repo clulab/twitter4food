@@ -1,5 +1,8 @@
 package org.clulab.twitter4food.util
 
+import java.io.{BufferedWriter, FileWriter}
+import java.nio.file.{Files, Paths}
+
 import org.clulab.twitter4food.twitter4j._
 import org.clulab.twitter4food.struct._
 import com.typesafe.config.ConfigFactory
@@ -11,6 +14,7 @@ import org.clulab.struct.{Counter, Lexicon}
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 object Utils {
@@ -225,10 +229,23 @@ object Utils {
     selected.toSeq
   }
 
+  def writeCSV[T](toWrite: ArrayBuffer[(String, T)], fileName: String): Unit = {
+    val config = ConfigFactory.load
+    val outFile = s"${config.getString("classifier")}/$fileName.csv"
+    if (!Files.exists(Paths.get(outFile))) {
+      val writer = new BufferedWriter(new FileWriter(outFile))
+      writer.write(s"handle,$fileName\n")
+      toWrite.foreach{ case (handle, stat) => writer.write(s"$handle,$stat\n") }
+      writer.close()
+    }
+  }
+
   /**
     * Only allow [[TwitterAccount]]s that have at least <i>threshold</i> relevant terms
+    *
     * @param accounts
-    * @param threshold
+    * @param lower
+    * @param upper
     * @return
     */
   def filterByLexicon(accounts: Seq[(TwitterAccount, String)], lower: Int = 10, upper: Int = 5000): Seq[(TwitterAccount, String)] = {
@@ -237,33 +254,45 @@ object Utils {
     ci.featureExtractor.setLexicons(lexMap)
     val lexicon = ci.featureExtractor.lexicons.get.values.head.values.flatMap(_.keySet).toSet
     var mostWords = ("default", 0)
-    val filtered = accounts.filter{ acct =>
-      val tweetWds = acct._1.tweets.flatMap(_.text.split(" +").map(dehashtag))
+    val relevanceDistribution = ArrayBuffer[(String, Int)]()
+
+    val filtered = accounts.filter{ case (acct, lbl) =>
+      val tweetWds = acct.tweets.flatMap(_.text.split(" +").map(dehashtag))
       val numRelevant = tweetWds.count(lexicon.contains)
-      if (numRelevant > mostWords._2) mostWords = (acct._1.handle, numRelevant)
+      relevanceDistribution.append((acct.handle, numRelevant))
+      if (numRelevant > mostWords._2) mostWords = (acct.handle, numRelevant)
       numRelevant >= lower && numRelevant <= upper
     }
     logger.info(s"${accounts.length - filtered.length} accounts had < $lower or > $upper relevant terms and were ignored.")
     logger.debug(s"${mostWords._1} had the most relevant words with ${mostWords._2}")
+    writeCSV(relevanceDistribution, "relevantTerms")
+
     filtered
   }
 
   /**
     * Only allow [[TwitterAccount]]s that have fewer than 0 <= <i>threshold</i> >= 1 proportion repeated tweets.
+    *
     * @param accounts
+    * @param threshold
     * @return
     */
   def filterByRepetition(accounts: Seq[(TwitterAccount, String)], threshold: Double = 0.01): Seq[(TwitterAccount, String)] = {
     var mostRepetitive = ("default", 0.0)
+    val repetitionDistribution = ArrayBuffer[(String, Float)]()
+
     val filtered = accounts.filter{ case (acct, lbl) =>
       val reps = acct.tweets.map(_.text).groupBy(identity).mapValues(_.size)
       val repeated = reps.filter{ case (t, rep) => rep > 1 }.values.sum.toFloat
       val percRepeated = repeated / reps.values.sum
+      repetitionDistribution.append((acct.handle, percRepeated))
       if (percRepeated > mostRepetitive._2) mostRepetitive = (acct.handle, percRepeated)
       repeated / reps.values.sum < threshold
     }
     logger.info(s"${accounts.length - filtered.length} accounts had ${threshold * 100.0}% or more repeated tweets and were ignored.")
     logger.debug(s"${mostRepetitive._1} was most repetitive with ${mostRepetitive._2 * 100.0}% being repeated")
+    writeCSV[Float](repetitionDistribution, "percentRepeated")
+
     filtered
   }
 
