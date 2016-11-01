@@ -19,6 +19,7 @@ import scala.util.Random
 class OverweightClassifier(
   useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
+  useName: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
   useAvgEmbeddings: Boolean = false,
@@ -36,6 +37,7 @@ class OverweightClassifier(
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,
@@ -69,6 +71,7 @@ object OverweightClassifier {
     val allFeatures = Seq(
       params.useUnigrams,
       params.useBigrams,
+      params.useName,
       params.useTopics,
       params.useDictionaries,
       params.useAvgEmbeddings,
@@ -123,6 +126,7 @@ object OverweightClassifier {
       val oc = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
         useBigrams = params.useBigrams,
+        useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
         useAvgEmbeddings = params.useAvgEmbeddings,

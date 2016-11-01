@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory
 class HumanClassifier(
   useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
+  useName: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
   useAvgEmbeddings: Boolean = false,
@@ -36,6 +37,7 @@ class HumanClassifier(
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,
@@ -229,6 +231,7 @@ object HumanClassifier {
       val hc = new HumanClassifier(
         useUnigrams = params.useUnigrams,
         useBigrams = params.useBigrams,
+        useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
         useAvgEmbeddings = params.useAvgEmbeddings,

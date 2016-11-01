@@ -44,6 +44,7 @@ case class TrainDevTestFold(test: Seq[Int], dev: Seq[Int], train: Seq[Int]) {
 class ClassifierImpl(
   val useUnigrams: Boolean,
   val useBigrams: Boolean,
+  val useName: Boolean,
   val useTopics: Boolean,
   val useDictionaries: Boolean,
   val useAvgEmbeddings: Boolean,
@@ -68,6 +69,7 @@ class ClassifierImpl(
   val featureExtractor = new FeatureExtractor(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,

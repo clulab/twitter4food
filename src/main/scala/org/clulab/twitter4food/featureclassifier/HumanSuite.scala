@@ -26,6 +26,7 @@ object HumanSuite {
     val hc = new HumanClassifier(
       useUnigrams = true,
       //useBigrams = true, // bigrams are costly and hurt performance
+      useName = true,
       useTopics = true,
       useDictionaries = true,
       useAvgEmbeddings = true,

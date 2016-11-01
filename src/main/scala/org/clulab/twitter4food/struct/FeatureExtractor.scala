@@ -29,6 +29,7 @@ import scala.collection.mutable.ArrayBuffer
 class FeatureExtractor (
   val useUnigrams: Boolean = false,
   val useBigrams: Boolean = false,
+  val useName: Boolean = false,
   val useTopics: Boolean = false,
   val useDictionaries: Boolean = false,
   val useAvgEmbeddings: Boolean = false,
@@ -50,6 +51,7 @@ class FeatureExtractor (
   val logger = LoggerFactory.getLogger(this.getClass)
   logger.info(s"useUnigrams=$useUnigrams, " +
     s"useBigrams=$useBigrams, " +
+    s"useName=$useName, " +
     s"useTopics=$useTopics, " +
     s"useDictionaries=$useDictionaries, " +
     s"useAvgEmbeddings=$useAvgEmbeddings, " +
@@ -244,6 +246,8 @@ class FeatureExtractor (
     }
     if (useBigrams)
       counter += scale(ngrams(2, tweets, description))
+    if (useName)
+      counter += name(account)
     if (useTopics)
       counter += scale(topics(tweets))
     if (useDictionaries)
@@ -292,6 +296,18 @@ class FeatureExtractor (
     words.foreach(word => counter.incrementCount(word, 1))
   }
 
+  // Character ngrams
+  def charNGrams(n: Int, text: String, prefix: String = ""): Seq[String] = {
+    assert(n > 0, "Cannot populate n-grams of length < 1")
+    val padded = ("^" * (n-1)) + text + ("^" * (n - 1))
+    padded.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix:", "", ""))
+  }
+
+  // Token ngrams
+  def tokenNGrams(n: Int, text: Array[String], prefix: String = ""): Seq[String] = {
+    text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
+  }
+
   /**
     * Adds ngrams from account's description and tweets with raw frequencies as weights.
     *
@@ -302,15 +318,35 @@ class FeatureExtractor (
   def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
 
-    // Extract ngrams
-    def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
-      text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
+    // special prefix for description tokens since they summarize an account more than tweets
+    setCounts(tokenNGrams(n, description, "desc"), counter)
+
+    // n-gram for tweets
+    tweets.foreach{ tweet =>
+      setCounts(tokenNGrams(n, tweet), counter)
     }
 
-    setCounts(populateNGrams(n, description), counter)
-    tweets.foreach{ tweet =>
-      setCounts(populateNGrams(n, tweet), counter)
-    }
+    counter
+  }
+
+  /**
+    * Character n-grams based on user's name and handle
+    * @param account the [[TwitterAccount]] being analyzed
+    * @return a [[Counter]] of name-based n-grams
+    */
+  def name(account: TwitterAccount): Counter[String] = {
+    val counter = new Counter[String]
+    val cleanHandle = account.handle.replaceFirst("@", "")
+
+    // 1-, 2-, and 3-grams for the user's handle
+    setCounts(charNGrams(1, cleanHandle, "handle"), counter)
+    setCounts(charNGrams(2, cleanHandle, "handle"), counter)
+    setCounts(charNGrams(3, cleanHandle, "handle"), counter)
+
+    // 1-, 2-, and 3-grams for the user's name
+    setCounts(charNGrams(1, account.name, "name"), counter)
+    setCounts(charNGrams(2, account.name, "name"), counter)
+    setCounts(charNGrams(3, account.name, "name"), counter)
 
     counter
   }
@@ -384,8 +420,8 @@ class FeatureExtractor (
     account: TwitterAccount,
     ngramCounter: Option[Counter[String]]): Counter[String] = {
 
-    val result = new Counter[String]()
-    if(lexicons.isEmpty) return result
+    val counter = new Counter[String]()
+    if(lexicons.isEmpty) return counter
 
     // Classifier type
     val cType = lexicons.get.keys.head match {
@@ -415,8 +451,8 @@ class FeatureExtractor (
 
               val dS = if (!lexName.contains("name")) description.count(lexicon.contains) else 0
 
-              if(dS > 0) result.incrementCount(s"dictionary:lex_${k}_${lexName}_description", dS)
-              if(nS > 0) result.incrementCount(s"dictionary:lex_${k}_${lexName}_name", nS)
+              if(dS > 0) counter.incrementCount(s"dictionary:lex_${k}_${lexName}_description", dS)
+              if(nS > 0) counter.incrementCount(s"dictionary:lex_${k}_${lexName}_name", nS)
           }
       }
     }
@@ -438,37 +474,37 @@ class FeatureExtractor (
       ng.keySet.foreach{ k =>
         val wd = dehashtag(k)
         if(foodWords contains wd) {
-          result.incrementCount("dictionary:foodDict", ng.getCount(wd))
-          result.incrementCount("dictionary:overweightDict", ng.getCount(wd))
+          counter.incrementCount("dictionary:foodDict", ng.getCount(wd))
+          counter.incrementCount("dictionary:overweightDict", ng.getCount(wd))
           if (calories.get.contains(k)) calCount.append(calories.get(wd))
           if (healthiness.get.contains(k)) healthCount.append(healthiness.get(wd))
         }
         if(hashtags contains k) {
-          result.incrementCount("dictionary:hashtagDict", ng.getCount(k))
-          result.incrementCount("dictionary:overweightDict", ng.getCount(k))
+          counter.incrementCount("dictionary:hashtagDict", ng.getCount(k))
+          counter.incrementCount("dictionary:overweightDict", ng.getCount(k))
         }
         if(activityWords contains k) {
-          result.incrementCount("dictionary:activityDict", ng.getCount(k))
+          counter.incrementCount("dictionary:activityDict", ng.getCount(k))
         }
         if(restaurants contains k) {
-          result.incrementCount("dictionary:restaurantDict", ng.getCount(k))
-          result.incrementCount("dictionary:overweightDict", ng.getCount(k))
+          counter.incrementCount("dictionary:restaurantDict", ng.getCount(k))
+          counter.incrementCount("dictionary:overweightDict", ng.getCount(k))
         }
       }
       // Scale by number of tweets (number of tokens also a possibility)
       if (datumScaling) {
         val scalingFactor = tweets.length.toDouble
-        result.keySet.foreach{ k => result.setCount(k, result.getCount(k) / scalingFactor)}
+        counter.keySet.foreach{ k => counter.setCount(k, counter.getCount(k) / scalingFactor)}
       }
       // Add features for average calories and health grade of food words mentioned (if any were)
       // Don't scale these, since they're averages
       if (calCount.nonEmpty)
-        result.setCount("dictionary:averageCalories", calCount.sum / calCount.size.toDouble)
+        counter.setCount("dictionary:averageCalories", calCount.sum / calCount.size.toDouble)
       if (healthCount.nonEmpty)
-        result.setCount("dictionary:averageHealthScore", healthCount.sum.toDouble / healthCount.size.toDouble)
+        counter.setCount("dictionary:averageHealthScore", healthCount.sum.toDouble / healthCount.size.toDouble)
     }
 
-    result
+    counter
   }
 
   /**
@@ -606,10 +642,10 @@ class FeatureExtractor (
     )
 
     // Calculate cosine similarity
-    val result = new Counter[String]()
-    result.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
+    val counter = new Counter[String]
+    counter.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
 
-    result
+    counter
   }
 
   /**
@@ -619,8 +655,8 @@ class FeatureExtractor (
     * @return a [[Counter]] with time and day features
     */
   def timeDate(tweets: Seq[Tweet]): Counter[String] = {
-    val result = new Counter[String]()
-    if (tweets.isEmpty) return result
+    val counter = new Counter[String]
+    if (tweets.isEmpty) return counter
     val numTweets = tweets.length.toDouble
 
     // Convert java.util.Date into java.time.LocalDateTime
@@ -629,25 +665,25 @@ class FeatureExtractor (
 
     // What hour of the day is the user most likely to tweet (0-23 hr)? This is intentionally an Int division.
     val hours = dateTimes.map(_.getHour)
-    result.setCount("timeDate:avghr", hours.sum / hours.length)
+    counter.setCount("timeDate:avghr", hours.sum / hours.length)
 
     // What proportion of tweets are written in each hour span of the day
     val hrHist = hours.groupBy(identity).mapValues(_.length / numTweets)
-    hrHist.foreach{ case (hr, prop) => result.setCount(s"timeDate:hr$hr", prop) }
+    hrHist.foreach{ case (hr, prop) => counter.setCount(s"timeDate:hr$hr", prop) }
 
     // What is the standard deviation of the tweet time (constant vs. peaky, for example) in hours
     val seconds = dateTimes.map(t => t.getHour.toDouble * 60 * 60 + t.getMinute * 60 + t.getSecond)
     val mean = seconds.sum / numTweets
     val sd = scala.math.sqrt(seconds.map(s => scala.math.pow(s - mean, 2)).sum / numTweets) / 60 / 60
-    result.setCount("timeDate:sd", sd)
+    counter.setCount("timeDate:sd", sd)
 
     // What day of the week is the user most likely to tweet?
     val dayOfWeek = dateTimes.map(_.getDayOfWeek)
 
     val dayHist = dayOfWeek.groupBy(identity).mapValues(_.length / numTweets)
-    dayHist.foreach{ case (day, prop) => result.setCount(s"timeDate:$day", prop) }
+    dayHist.foreach{ case (day, prop) => counter.setCount(s"timeDate:$day", prop) }
 
-    result
+    counter
   }
 }
 

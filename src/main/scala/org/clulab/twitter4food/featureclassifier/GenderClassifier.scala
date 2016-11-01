@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 class GenderClassifier(
   useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
+  useName: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
   useAvgEmbeddings: Boolean = false,
@@ -33,6 +34,7 @@ class GenderClassifier(
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,
@@ -103,6 +105,7 @@ object GenderClassifier {
       val gc = new GenderClassifier(
         useUnigrams = params.useUnigrams,
         useBigrams = params.useBigrams,
+        useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
         useAvgEmbeddings = params.useAvgEmbeddings,
