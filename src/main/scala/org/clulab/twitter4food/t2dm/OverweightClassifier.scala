@@ -96,7 +96,9 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
+    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+      .toSeq
+      .filter(_._1.tweets.nonEmpty)
 
     // Scale number of accounts so that weights aren't too biased against Overweight
     val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
