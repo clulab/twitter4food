@@ -343,8 +343,8 @@ class FeatureExtractor (
     setCounts(charNGrams(2, cleanHandle, "handle"), counter)
     setCounts(charNGrams(3, cleanHandle, "handle"), counter)
 
-    if (account.name.length > 3) setCounts(tokenNGrams(1, account.name, "name"), counter)
-     
+    if (account.name.length > 3) setCounts(tokenNGrams(1, account.name.split(" +"), "name"), counter)
+
     // 1-, 2-, and 3-grams for the user's name
     setCounts(charNGrams(1, account.name, "name"), counter)
     setCounts(charNGrams(2, account.name, "name"), counter)
