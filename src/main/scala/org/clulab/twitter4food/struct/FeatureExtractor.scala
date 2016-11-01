@@ -617,13 +617,11 @@ class FeatureExtractor (
     // What hour of the day is the user most likely to tweet (0-23 hr)
     val hours = dateTimes.map(_.getHour)
     result.setCount("timeDate:avghr", hours.sum / hours.length)
-    logger.debug(s"Average hour: ${hours.sum / hours.length}")
 
     // What proportion of tweets are written in each hour span of the day
     val hrHist = hours.groupBy(identity).mapValues(_.length / tweets.length.toFloat)
     hrHist.foreach{ case (hr, prop) => result.setCount(s"timeDate:hr$hr", prop) }
-    logger.debug(s"${hrHist.map(hr => s"${hr._1} -> ${hr._2}").mkString(", ")}")
-
+    
     // What day of the week is the user most likely to tweet?
     val dayOfWeek = dateTimes.map(_.getDayOfWeek)
 
