@@ -32,6 +32,7 @@ object OverweightSuite {
       useMinEmbeddings = true,
       useMaxEmbeddings = true,
       useCosineSim = true,
+      useTimeDate = true,
       useFollowers = true,
       useFollowees = true,
       useGender = true,
