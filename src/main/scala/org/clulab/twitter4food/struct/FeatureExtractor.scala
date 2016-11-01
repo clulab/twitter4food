@@ -374,7 +374,10 @@ class FeatureExtractor (
   /**
     * Count the number of times a word from the relevant dictionary appears
     *
-    * @return counter - Return one counter fine-tuned for a particular classifier
+    * @param tweets pre-tokenized tweet text
+    * @param description pre-tokenized account description text
+    * @param account the whole [[TwitterAccount]] being analyzed
+    * @return a [[Counter]] for a classifier-specific set of custom dictionaries
     */
   def dictionaries(tweets: Seq[Array[String]],
     description: Array[String],
@@ -472,7 +475,7 @@ class FeatureExtractor (
     * Add one feature per embedding vector dimension, the average of the non-stopwords in the account's tweets
     *
     * @param tweets Tweets, pre-tokenized
-    * @return a [[Counter]] of the averaged vector
+    * @return a [[Counter]] of the averaged, minimum, and/or maximum vector
     */
   def embeddings(tweets: Seq[Array[String]]): Counter[String] = {
     // Number of dimensions
@@ -588,7 +591,10 @@ class FeatureExtractor (
     * Calculates the cosine similarity between the TFIDF vector of the account's description
     * and tweets and the TFIDF vector of the overweight corpus.
     *
-    * @return counter
+    * @param ngramCounter A unigram counter, if one exists
+    * @param tweets tweet text, pre-tokenized
+    * @param description the account description
+    * @return a [[Counter]] with a single cosine similarity feature
     */
   def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Array[String]],
     description: Array[String]): Counter[String] = {
@@ -606,28 +612,39 @@ class FeatureExtractor (
     result
   }
 
+  /**
+    * A set of features describing the time and day the account tweets.
+
+    * @param tweets [[Tweet]]s of the account for time/date info
+    * @return a [[Counter]] with time and day features
+    */
   def timeDate(tweets: Seq[Tweet]): Counter[String] = {
     val result = new Counter[String]()
     if (tweets.isEmpty) return result
+    val numTweets = tweets.length.toDouble
 
     // Convert java.util.Date into java.time.LocalDateTime
     val zid = java.time.ZoneId.of("GMT")
     val dateTimes = tweets.map(w => java.time.LocalDateTime.ofInstant(w.createdAt.toInstant, zid))
 
-    // What hour of the day is the user most likely to tweet (0-23 hr)
+    // What hour of the day is the user most likely to tweet (0-23 hr)? This is intentionally an Int division.
     val hours = dateTimes.map(_.getHour)
     result.setCount("timeDate:avghr", hours.sum / hours.length)
-    logger.debug(s"Average hour: ${hours.sum / hours.length}")
 
     // What proportion of tweets are written in each hour span of the day
-    val hrHist = hours.groupBy(identity).mapValues(_.length / tweets.length.toFloat)
+    val hrHist = hours.groupBy(identity).mapValues(_.length / numTweets)
     hrHist.foreach{ case (hr, prop) => result.setCount(s"timeDate:hr$hr", prop) }
-    logger.debug(s"${hrHist.map(hr => s"${hr._1} -> ${hr._2}").mkString(", ")}")
+
+    // What is the standard deviation of the tweet time (constant vs. peaky, for example) in hours
+    val seconds = dateTimes.map(t => t.getHour.toDouble * 60 * 60 + t.getMinute * 60 + t.getSecond)
+    val mean = seconds.sum / numTweets
+    val sd = scala.math.sqrt(seconds.map(s => scala.math.pow(s - mean, 2)).sum / numTweets) / 60 / 60
+    result.setCount("timeDate:sd", sd)
 
     // What day of the week is the user most likely to tweet?
     val dayOfWeek = dateTimes.map(_.getDayOfWeek)
 
-    val dayHist = dayOfWeek.groupBy(identity).mapValues(_.length / tweets.length.toFloat)
+    val dayHist = dayOfWeek.groupBy(identity).mapValues(_.length / numTweets)
     dayHist.foreach{ case (day, prop) => result.setCount(s"timeDate:$day", prop) }
 
     result
