@@ -32,6 +32,7 @@ object GenderSuite {
       useMinEmbeddings = true,
       useMaxEmbeddings = true,
       useCosineSim = true,
+      useTimeDate = true,
       //useFollowers = true, // we don't currently have their followers
       useFollowees = true,
       datumScaling = true

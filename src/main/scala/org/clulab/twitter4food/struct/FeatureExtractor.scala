@@ -35,6 +35,7 @@ class FeatureExtractor (
   val useMinEmbeddings: Boolean = false,
   val useMaxEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
+  val useTimeDate: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useGender: Boolean = false,
@@ -55,6 +56,7 @@ class FeatureExtractor (
     s"useMinEmbeddings=$useMinEmbeddings, " +
     s"useMaxEmbeddings=$useMaxEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
+    s"useTimeDate=$useTimeDate, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useGender=$useGender, " +
@@ -251,6 +253,8 @@ class FeatureExtractor (
     }
     if (useCosineSim)
       counter += cosineSim(unigrams, tweets, description)
+    if (useTimeDate)
+      counter += timeDate(account.tweets)
     if (useFollowees)
       counter += scale(followees(account))
 
@@ -598,6 +602,31 @@ class FeatureExtractor (
     // Calculate cosine similarity
     val result = new Counter[String]()
     result.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
+
+    result
+  }
+
+  def timeDate(tweets: Seq[Tweet]): Counter[String] = {
+    val result = new Counter[String]()
+    if (tweets.isEmpty) return result
+
+    // Convert java.util.Date into java.time.LocalDateTime
+    val zid = java.time.ZoneId.of("GMT")
+    val dateTimes = tweets.map(w => java.time.LocalDateTime.ofInstant(w.createdAt.toInstant, zid))
+
+    // What hour of the day is the user most likely to tweet (0-23 hr)
+    val hours = dateTimes.map(_.getHour)
+    result.setCount("timeDate:avghr", hours.sum / hours.length)
+
+    // What proportion of tweets are written in each hour span of the day
+    val hrHist = hours.groupBy(identity).mapValues(_.length / tweets.length.toFloat)
+    hrHist.foreach{ case (hr, prop) => result.setCount(s"timeDate:hr$hr", prop) }
+
+    // What day of the week is the user most likely to tweet?
+    val dayOfWeek = dateTimes.map(_.getDayOfWeek)
+
+    val dayHist = dayOfWeek.groupBy(identity).mapValues(_.length / tweets.length.toFloat)
+    dayHist.foreach{ case (day, prop) => result.setCount(s"timeDate:$day", prop) }
 
     result
   }
