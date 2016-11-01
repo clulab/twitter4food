@@ -725,9 +725,6 @@ class ClassifierImpl(
     seed:Int = 73
   ): Seq[(String, String)] = {
 
-    val numFeatures = 30
-    val numAccts = 20
-
     val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed).toSeq
 
     val results = for {
