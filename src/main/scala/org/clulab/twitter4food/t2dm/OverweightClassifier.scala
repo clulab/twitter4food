@@ -75,6 +75,7 @@ object OverweightClassifier {
       params.useMinEmbeddings,
       params.useMaxEmbeddings,
       params.useCosineSim,
+      params.useTimeDate,
       params.useFollowees
     )
     val default = allFeatures.forall(!_) // true if all features are off
@@ -126,6 +127,7 @@ object OverweightClassifier {
         useMinEmbeddings = params.useMinEmbeddings,
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
+        useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useGender = params.useGender,
