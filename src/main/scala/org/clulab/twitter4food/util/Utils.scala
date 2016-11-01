@@ -84,7 +84,7 @@ object Utils {
       opt[Unit]('b', "bigrams") action { (x, c) =>
         c.copy(useBigrams = true)} text "use bigrams"
       opt[Unit]('t', "topics") action { (x, c) =>
-        c.copy(useTopics = true)} text "use topics"
+        c.copy(useTopics = true)} text "use LDA topics"
       opt[Unit]('d', "dictionaries") action { (x, c) =>
         c.copy(useDictionaries = true)} text "use dictionaries"
       opt[Unit]('a', "avgEmbeddings") action { (x, c) =>
@@ -102,11 +102,11 @@ object Utils {
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
       opt[Unit]('r', "race") action { (x, c) =>
-        c.copy(useRace = true)} text "use race classifier"
+        c.copy(useRace = true)} text "use race classifier (not implemented)"
       opt[Unit]('h', "human") action { (x, c) =>
         c.copy(useHuman = true)} text "use human classifier"
       opt[Unit]('f', "followers") action { (x, c) =>
-        c.copy(useFollowers = true)} text "use followers"
+        c.copy(useFollowers = true)} text "use followers' features (same as this user)"
       opt[Unit]('F', "followees") action { (x, c) =>
         c.copy(useFollowees = true)} text "use followee handles"
       opt[Unit]('D', "datumScaling") action { (x, c) =>
@@ -121,7 +121,11 @@ object Utils {
         c.copy(learningCurve = true)} text "analyze performance "
     }
 
-    parser.parse(args, Config()).getOrElse(Config())
+    val opts = parser.parse(args, Config())
+
+    if(opts.isEmpty) throw new IllegalArgumentException(s"args ${args.mkString(" ")} are not supported!")
+
+    opts.get
   }
 
   def analyze(c: LiblinearClassifier[String, String], labels: Set[String],
