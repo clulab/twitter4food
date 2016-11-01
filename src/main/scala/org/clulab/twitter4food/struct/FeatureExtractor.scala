@@ -330,7 +330,7 @@ class FeatureExtractor (
   }
 
   /**
-    * Character n-grams based on user's name and handle
+    * Character/word n-grams based on user's name and handle
     * @param account the [[TwitterAccount]] being analyzed
     * @return a [[Counter]] of name-based n-grams
     */
@@ -343,6 +343,8 @@ class FeatureExtractor (
     setCounts(charNGrams(2, cleanHandle, "handle"), counter)
     setCounts(charNGrams(3, cleanHandle, "handle"), counter)
 
+    if (account.name.length > 3) setCounts(tokenNGrams(1, account.name, "name"), counter)
+     
     // 1-, 2-, and 3-grams for the user's name
     setCounts(charNGrams(1, account.name, "name"), counter)
     setCounts(charNGrams(2, account.name, "name"), counter)
