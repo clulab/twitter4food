@@ -16,6 +16,7 @@ object Utils {
   case class Config(
     useUnigrams: Boolean = false,
     useBigrams: Boolean = false,
+    useName: Boolean = false,
     useTopics: Boolean = false,
     useDictionaries: Boolean = false,
     useAvgEmbeddings: Boolean = false,
@@ -83,6 +84,8 @@ object Utils {
         c.copy(useUnigrams = true)} text "use unigrams"
       opt[Unit]('b', "bigrams") action { (x, c) =>
         c.copy(useBigrams = true)} text "use bigrams"
+      opt[Unit]('i', "name") action { (x, c) =>
+        c.copy(useName = true)} text "use n-grams generated from name and handle"
       opt[Unit]('t', "topics") action { (x, c) =>
         c.copy(useTopics = true)} text "use LDA topics"
       opt[Unit]('d', "dictionaries") action { (x, c) =>
