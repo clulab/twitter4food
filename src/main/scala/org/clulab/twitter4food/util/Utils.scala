@@ -259,7 +259,7 @@ object Utils {
     * @return
     */
   def filterByLexicon(accounts: Seq[(TwitterAccount, String)], lower: Int = 10, upper: Int = 5000): Seq[(TwitterAccount, String)] = {
-    val ci = new ClassifierImpl(false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,"overweight")
+    val ci = new ClassifierImpl(false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,"overweight")
     val lexMap = ci.populateLexiconList(Set("Overweight"), "overweight")
     ci.featureExtractor.setLexicons(lexMap)
     val lexicon = ci.featureExtractor.lexicons.get.values.head.values.flatMap(_.keySet).toSet
