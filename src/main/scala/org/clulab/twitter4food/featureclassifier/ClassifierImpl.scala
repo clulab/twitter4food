@@ -1,15 +1,17 @@
 package org.clulab.twitter4food.featureclassifier
 
 import org.clulab.learning._
-import org.clulab.struct.{Counter, Lexicon}
+import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
-import java.io.{BufferedWriter, FileWriter, PrintWriter}
+import java.io.{BufferedWriter, FileWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 /** Implementation of the FeatureClassifier trait that contains the
   * nitty-gritty of creating FeatureExtractors, adding datums,
@@ -21,46 +23,70 @@ import scala.collection.JavaConverters._
   *
   * @author adikou
   * @author tishihara
+  * @author Dane Bell
   * @date 04-02-2016
   */
+
+/** Used by Stratified K-fold CV */
+case class TrainTestFold(test: Seq[Int], train: Seq[Int]) {
+  def merge(other: TrainTestFold): TrainTestFold = {
+    new TrainTestFold(this.test ++ other.test, this.train ++ other.train)
+  }
+}
+
+/** Used by Stratified K-fold CV */
+case class TrainDevTestFold(test: Seq[Int], dev: Seq[Int], train: Seq[Int]) {
+  def merge(other: TrainDevTestFold): TrainDevTestFold = {
+    new TrainDevTestFold(this.test ++ other.test, this.dev ++ other.dev, this.train ++ other.train)
+  }
+}
 
 class ClassifierImpl(
   val useUnigrams: Boolean,
   val useBigrams: Boolean,
+  val useName: Boolean,
   val useTopics: Boolean,
   val useDictionaries: Boolean,
-  val useEmbeddings: Boolean,
+  val useAvgEmbeddings: Boolean,
+  val useMinEmbeddings: Boolean,
+  val useMaxEmbeddings: Boolean,
   val useCosineSim: Boolean,
+  val useTimeDate: Boolean,
   val useFollowers: Boolean,
   val useFollowees: Boolean,
   val useGender: Boolean,
   val useRace: Boolean,
+  val useHuman: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean,
   val variable: String,
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()
 ) extends FeatureClassifier {
 
+  import ClassifierImpl._
+
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
-    useEmbeddings=useEmbeddings,
+    useAvgEmbeddings=useAvgEmbeddings,
+    useMinEmbeddings=useMinEmbeddings,
+    useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
+    useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=useGender,
     useRace=useRace,
+    useHuman=useHuman,
     datumScaling=datumScaling,
     customFeatures=customFeatures)
 
   /** subClassifier that does the actual training over {@link dataset} */
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
-
-  /** Real-valued dataset that stores Datum[String, String] */
-  var dataset = new RVFDataset[String, String]()
 
   /** config file that fetches filepaths */
   val config = ConfigFactory.load()
@@ -70,16 +96,6 @@ class ClassifierImpl(
   var scaleRange: Option[ScaleRange[String]] = None
   val lowerBound = 0.0
   val upperBound = 1.0
-
-  /** Adds (label, Datum[String, String] to {@link dataset})
-    *
-    * @param account TwitterAccount to make a datum out of.
-    * @param label associated label
-    * @return Unit
-    */
-  def addDatum(account: TwitterAccount, label: String) = {
-    this.synchronized { dataset += featureExtractor.mkDatum(account, label) }
-  }
 
   /** Populates list of lexicons from config file. Separate function
     * for easy testing.
@@ -94,27 +110,23 @@ class ClassifierImpl(
         config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
   }
 
-
-  /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
-    *
-    * @param accounts: Sequence of training accounts
-    * @param labels: Sequence of annotated labels for each account
-    * @return Unit
-    */
-  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
-    assert(accounts.size == labels.size)
-
-    val labelSet = labels.toSet
+  def constructDataset(
+    accounts: Seq[TwitterAccount],
+    labels: Seq[String],
+    followers: Option[Map[String, Seq[TwitterAccount]]],
+    followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
 
     // Load lexicons before calling train
     if(useDictionaries) {
       // For each label, populate list of lexicon filepaths from config
-      val lexMap = populateLexiconList(labelSet, this.variable)
+      val lexMap = populateLexiconList(labels.toSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)
     }
 
-    // Clear current dataset if training on new one
-    dataset = new RVFDataset[String, String]()
+    if (useFollowers && followers.nonEmpty) this.featureExtractor.setFollowers(followers.get)
+    if (useFollowees && followees.nonEmpty) this.featureExtractor.setFollowees(followees.get)
+
+    val dataset = new RVFDataset[String, String]()
 
     val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
     pb.start()
@@ -134,6 +146,38 @@ class ClassifierImpl(
 
     datums.foreach(datum => this.synchronized { dataset += datum })
 
+    dataset
+  }
+
+  /**
+    * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers/followees if necessary
+    *
+    * @param accounts
+    * @param labels
+    */
+  def train(accounts: Seq[TwitterAccount], labels: Seq[String]) = {
+    val followers = if (useFollowers) Option(loadFollowers(accounts)) else None
+    val followees = if (useFollowees) Option(loadFollowees(accounts, this.variable)) else None
+    train(accounts, labels, followers, followees)
+  }
+
+  /** Sequentially adds a [[RVFDatum]] of (label, mkDatum(account))
+    *
+    * @param accounts: Sequence of training accounts
+    * @param labels: Sequence of annotated labels for each account
+    * @return Unit
+    */
+  def train(accounts: Seq[TwitterAccount],
+    labels: Seq[String],
+    followers: Option[Map[String, Seq[TwitterAccount]]],
+    followees: Option[Map[String, Seq[String]]]) = {
+    assert(accounts.size == labels.size)
+
+    this.setClassifier(new L1LinearSVMClassifier[String, String]())
+
+    // Clear current dataset if training on new one
+    val dataset = constructDataset(accounts, labels, followers, followees)
+
     // normalize in place by feature (see FeatureExtractor for scaling by datum)
     if (featureScaling) scaleRange = Some(Normalization.scaleByFeature(dataset, lowerBound, upperBound))
 
@@ -142,11 +186,11 @@ class ClassifierImpl(
   }
 
   /** Essentially the test method, called by classOf method in FeatureExtractor
-    * Populate datum for the test account and return the predicted scores 
+    * Populate datum for the test account and return the predicted scores
     * for each label.
     *
     * @param  account Test account
-    * @return Counter[String] predicted scores for each label 
+    * @return Counter[String] predicted scores for each label
     *         that classOf calls argmax on.
     */
   override def scoresOf(account: TwitterAccount): Counter[String] = {
@@ -156,7 +200,7 @@ class ClassifierImpl(
         Normalization.scaleByRange(datum, scaleRange.get, lowerBound, upperBound)
       else datum
       subClassifier.get.scoresOf(scaled)
-      } else throw new RuntimeException("ERROR: must train before using scoresOf!")
+    } else throw new RuntimeException("ERROR: must train before using scoresOf!")
   }
 
   /** Set custom classifier prior to training
@@ -194,10 +238,11 @@ class ClassifierImpl(
       new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url,
         t.location, t.description, t.tweets.slice(0, numTweets),
         Seq[TwitterAccount]())
-      })
+    })
 
     val opt = config.getString(s"classifiers.${this.variable}.model")
-    val fout = s"$opt/svm_${args.mkString("").replace("-", "").sorted}_${_C}_$K.dat"
+    val nonFeats = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
+    val fout = s"$opt/svm_${args.filterNot(nonFeats.contains).sorted.mkString("").replace("-", "")}_${_C}_$K.dat"
 
     logger.info(s"Training on ${customAccounts.length} accounts, ${customAccounts.map(_.tweets.length).sum} tweets")
 
@@ -236,7 +281,7 @@ class ClassifierImpl(
     predictedLabels
   }
 
-  /** Part 3/3 of test suite. Following calls to {@link _train} and 
+  /** Part 3/3 of test suite. Following calls to {@link _train} and
     * {@link _test}, _evaluate prints and writes to file, the F-1 scores
     * and (Precision, Recall, Accuracy, F-1 score) for each label, along
     * with macro- and micro- averages for the system.
@@ -254,7 +299,7 @@ class ClassifierImpl(
     testSet: Seq[TwitterAccount],
     writer: BufferedWriter, _C: Double, K: Int) = {
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels,
-        predictedLabels, testSet)
+      predictedLabels, testSet)
 
     val df = new java.text.DecimalFormat("#.###")
 
@@ -268,7 +313,7 @@ class ClassifierImpl(
       writer.write(s"\nl\nFP:\n")
       writer.write(s"${evalMeasures(l).FPAccounts.map(u => u.handle).mkString("\n")}\nFN:\n")
       writer.write(s"${evalMeasures(l).FNAccounts.map(u => u.handle).mkString("\n")}\n")
-        })
+    })
     writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
     writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
     writer.flush()
@@ -277,7 +322,7 @@ class ClassifierImpl(
   }
 
   /** Pick one of (C, K) and store in gridCbyK and pick (C,,max,,, K,,max,,)
-    * such that accuracy for that micro-average for that tuple in dev set 
+    * such that accuracy for that micro-average for that tuple in dev set
     * is maximum. Use the max values and train with trainSet++devSet and test
     * with testSet.
     *
@@ -295,17 +340,14 @@ class ClassifierImpl(
     val devData = FileUtils.load(config
       .getString(s"classifiers.$ctype.devData"))
     println("Loading test accounts...")
-    val testData = if(!devOnly)
-      Some(FileUtils.load(config.getString(s"classifiers.$ctype.testData")))
-    else
-      None
+    val testData = if(!devOnly) Some(FileUtils.load(config.getString(s"classifiers.$ctype.testData"))) else None
 
     val fileExt = args.mkString("").replace("-", "").sorted
     val tweetFolds = Array(100, 500, 1000, 5000)
     val cFolds = Array(0.001, 0.1, 10, 1000)
 
     /*
-     * (i)  Tune parameters 
+     * (i)  Tune parameters
      * (ii) Pick top-K tweets
      */
 
@@ -316,8 +358,8 @@ class ClassifierImpl(
       devData.values.toArray, testData.getOrElse(Map()).values.toArray)
 
     val writerFile = if (outputFile != null) outputFile
-      else config.getString("classifier") + s"/$ctype/output-" +
-        fileExt + ".txt"
+    else config.getString("classifier") + s"/$ctype/output-" +
+      fileExt + ".txt"
 
     val writer = new BufferedWriter(new FileWriter(
       writerFile, true))
@@ -332,16 +374,16 @@ class ClassifierImpl(
       * @param trainingLabels
       * @param testingSet
       * @param testingLabels
-      * @param _C hyperparameter for subClassifier 
+      * @param _C hyperparameter for subClassifier
       * @param K threshold for top-K tweets for each user
       * @return microAvg micro-average aggregated over each label
       */
     val unitTest = (trainingSet: Seq[TwitterAccount],
-      trainingLabels: Seq[String],
-      testingSet: Seq[TwitterAccount],
-      testingLabels: Seq[String],
-      _C: Double,
-      K: Int) => {
+    trainingLabels: Seq[String],
+    testingSet: Seq[TwitterAccount],
+    testingLabels: Seq[String],
+    _C: Double,
+    K: Int) => {
 
       println(s"Training with C=${_C} and top-$K tweets")
 
@@ -441,7 +483,414 @@ class ClassifierImpl(
     for(i <- tests.indices) {
       writer.write(s"${tests(i).handle}\t${labels(i)}\n")
       writer.flush()
-      }
+    }
     writer.close()
   }
+
+  def featureSelectionIncremental(accounts: Map[TwitterAccount, String],
+    followers: Map[String, Seq[TwitterAccount]],
+    followees: Map[String, Seq[String]],
+    evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+
+    val dataset = constructDataset(accounts.keys.toSeq, accounts.values.toSeq, Option(followers), Option(followees))
+    val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
+    logger.debug(s"Found ${featureGroups.size} feature groups:")
+    for(f <- featureGroups.keySet) {
+      logger.debug(s"Group $f containing ${featureGroups.get(f).get.size} features.")
+    }
+    val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
+      dataset, Utils.svmFactory, evalMetric, featureGroups)
+
+    logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
+
+    dataset.keepOnly(chosenGroups.flatMap(g => featureGroups(g)))
+  }
+
+  def featureSelectionByFrequency(accounts: Map[TwitterAccount, String],
+    followers: Map[String, Seq[TwitterAccount]],
+    followees: Map[String, Seq[String]],
+    evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+    val dataset = constructDataset(accounts.keys.toSeq, accounts.values.toSeq, Option(followers), Option(followees))
+    val chosenFeatures = Datasets.featureSelectionByFrequency(dataset, Utils.svmFactory, evalMetric)
+    dataset.keepOnly(chosenFeatures)
+  }
+
+  def featureSelectionIncremental(dataset:Dataset[String, String], evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+    val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
+    logger.debug(s"Found ${featureGroups.size} feature groups:")
+    for(f <- featureGroups.keySet) {
+      logger.debug(s"Group $f containing ${featureGroups.get(f).get.size} features.")
+    }
+    val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
+      dataset, Utils.svmFactory, evalMetric, featureGroups)
+
+    logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
+
+    dataset.keepOnly(chosenGroups.flatMap(g => featureGroups(g)))
+  }
+
+  def featureSelectionByFrequency(dataset:Dataset[String, String], evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+    val chosenFeatures = Datasets.featureSelectionByFrequency(dataset, Utils.svmFactory, evalMetric)
+    dataset.keepOnly(chosenFeatures)
+  }
+
+  /** Creates dataset folds to be used for cross validation */
+  def mkStratifiedTrainTestFolds[L, F](
+    numFolds:Int,
+    dataset:Dataset[L, F],
+    seed:Int
+  ): Iterable[TrainTestFold] = {
+    val r = new Random(seed)
+
+    val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
+    val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[TrainTestFold])).toMap
+
+    for {
+      c <- 0 until dataset.numLabels
+      i <- 0 until numFolds
+    } {
+      val cds = byClass(c)
+      val classSize = cds.length
+      val foldSize = classSize / numFolds
+      val startTest = i * foldSize
+      val endTest = if (i == numFolds - 1) math.max(classSize, (i + 1) * foldSize) else (i + 1) * foldSize
+
+      val trainFolds = new ArrayBuffer[Int]
+      if(startTest > 0)
+        trainFolds ++= cds.slice(0, startTest)
+      if(endTest < classSize)
+        trainFolds ++= cds.slice(endTest, classSize)
+
+      folds(i) += new TrainTestFold(cds.slice(startTest, endTest), trainFolds)
+    }
+    folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
+  }
+
+  /** Creates dataset folds to be used for cross validation */
+  def mkStratifiedTrainDevTestFolds[L, F](
+    numFolds:Int,
+    dataset:Dataset[L, F],
+    seed:Int
+  ): Iterable[TrainDevTestFold] = {
+    val r = new Random(seed)
+
+    val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
+    val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[TrainDevTestFold])).toMap
+
+    for {
+      c <- 0 until dataset.numLabels
+      i <- 0 until numFolds
+      j = (i + 1) % numFolds
+    } {
+      val cds = byClass(c)
+      val classSize = cds.length
+      val foldSize = classSize / numFolds
+      val startTest = i * foldSize
+      val endTest = if (i == numFolds - 1) math.max(classSize, (i + 1) * foldSize) else (i + 1) * foldSize
+      val startDev = j * foldSize
+      val endDev = if (j == numFolds - 1) math.max(classSize, (j + 1) * foldSize) else (j + 1) * foldSize
+
+      val nonTrain = (startTest until endTest) ++ (startDev until endDev)
+      val trainFolds = cds.indices.filterNot(ix => nonTrain.contains(ix))
+
+      folds(i) += new TrainDevTestFold(cds.slice(startTest, endTest), cds.slice(startDev, endDev), trainFolds.map(cds.apply))
+    }
+    folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
+  }
+
+  /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L.
+    */
+  def stratifiedCrossValidate[L, F](
+    dataset:Dataset[L, F],
+    classifierFactory: () => Classifier[L, F],
+    numFolds:Int = 10,
+    seed:Int = 73
+  ): Seq[(L, L)] = {
+
+    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed)
+
+    val output = for (fold <- folds) yield {
+      if(logger.isDebugEnabled) {
+        val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+        logger.debug(s"fold: ${balance.mkString(", ")}")
+      }
+      val classifier = classifierFactory()
+      classifier.train(dataset, fold.train.toArray)
+      for(i <- fold.test) yield {
+        val gold = dataset.labelLexicon.get(dataset.labels(i))
+        val pred = classifier.classOf(dataset.mkDatum(i))
+        (gold, pred)
+      }
+    }
+
+    output.flatten.toSeq
+  }
+
+  /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
+    */
+  def overweightCV(
+    accounts:Seq[TwitterAccount],
+    labels:Seq[String],
+    followers: Option[Map[String, Seq[TwitterAccount]]],
+    followees: Option[Map[String, Seq[String]]],
+    classifierFactory: () => LiblinearClassifier[String, String],
+    numFolds:Int = 10,
+    seed:Int = 73
+  ): (Seq[(String, String)],
+    Map[String, Seq[(String, Double)]],
+    Seq[(String, Map[String, Seq[(String, Double)]])],
+    Seq[(String, Map[String, Seq[(String, Double)]])]) = {
+
+    val numFeatures = 30
+    val numAccts = 20
+
+    // Important: this dataset is sorted by account handle
+    val dataset = constructDataset(accounts, labels, followers, followees)
+    val handles = accounts.map(_.handle).sorted
+
+    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed)
+
+    val results = (for (fold <- folds) yield {
+      if(logger.isDebugEnabled) {
+        val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+        logger.debug(s"fold: ${balance.mkString(", ")}")
+      }
+      val classifier = classifierFactory()
+      classifier.train(dataset, fold.train.toArray)
+      val W = classifier.getWeights()
+      val predictions = for(i <- fold.test) yield {
+        val handle = handles(i)
+        val gold = dataset.labelLexicon.get(dataset.labels(i))
+        val datum = dataset.mkDatum(i)
+        val pred = classifier.classOf(datum)
+        val score = classifier.scoresOf(datum)
+        (handle, gold, pred, datum, score)
+      }
+      (W, predictions)
+    }).toSeq
+
+    val allFeats = dataset.featureLexicon.keySet
+    val (allWeights, predictions) = results.unzip
+    val g = predictions.flatten.map(_._2)
+    val p = predictions.flatten.map(_._3)
+    val evalInput = g.zip(p)
+
+    val avgWeights = (for {
+      l <- dataset.labelLexicon.keySet
+    } yield {
+      val c = new Counter[String]
+      allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
+      c.mapValues(_ / allWeights.length)
+      l -> c
+    }).toMap
+
+    val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
+
+    val pToW = (for {
+      i <- results.indices
+      p <- results(i)._2
+    } yield p -> i).toMap
+
+    val owScale = predictions
+      .flatten
+      .filter(acct => acct._2 != "Overweight" && acct._3 == "Overweight") // only false positives
+      .sortBy(_._5.getCount("Overweight"))
+      .reverse
+      .take(numAccts)
+    val noScale = predictions
+      .flatten
+      .filter(acct => acct._2 == "Overweight" && acct._3 != "Overweight") // only false negatives
+      .sortBy(_._5.getCount("Not overweight"))
+      .reverse
+      .take(numAccts)
+
+    val falsePos = owScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+    val falseNeg = noScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+
+    (evalInput, topWeights, falsePos, falseNeg)
+  }
+
+
+  /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
+    */
+  def fscv(
+    dataset:Dataset[String, String],
+    classifierFactory: () => LiblinearClassifier[String, String],
+    evalMetric: Iterable[(String, String)] => Double,
+    numFolds:Int = 10,
+    seed:Int = 73
+  ): Seq[(String, String)] = {
+
+    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed).toSeq
+
+    val results = for {
+      fold <- folds
+    } yield {
+      if(logger.isDebugEnabled) {
+        val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
+        logger.debug(s"fold: ${balance.mkString(", ")}")
+      }
+      val tunedDataset = featureSelectionIncremental(Utils.keepRows(dataset, fold.train.toArray), evalMetric)
+      val classifier = classifierFactory()
+      classifier.train(tunedDataset)
+      val predictions = for(i <- fold.test) yield {
+        val gold = dataset.labelLexicon.get(dataset.labels(i))
+        val datum = dataset.mkDatum(i)
+        val pred = classifier.classOf(datum)
+        (gold, pred)
+      }
+      predictions
+    }
+
+    results.flatten
+  }
+}
+
+object ClassifierImpl {
+  /** config file that fetches filepaths */
+  val config = ConfigFactory.load()
+
+  val logger = LoggerFactory.getLogger(this.getClass)
+
+  def loadFollowees(accounts: Seq[TwitterAccount], variable: String): Map[String, Seq[String]] = {
+    val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followeeRelations"))
+    val handleToFollowees = (for (line <- followeeFile.getLines) yield {
+      val handles = line.split("\t+")
+      handles.head -> handles.tail.toSeq
+    }).toMap
+    followeeFile.close
+
+    handleToFollowees
+  }
+
+  def loadFollowers(accounts: Seq[TwitterAccount]): Map[String, Seq[TwitterAccount]] = {
+    val followerFile = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations"))
+    val handleToFollowers: Map[String, Seq[String]] = (for (line <- followerFile.getLines) yield {
+      val handles = line.split("\t")
+      handles.head -> handles.tail.toSeq
+    }).toMap
+    followerFile.close
+
+    val accountsFileStr = config.getString("classifiers.features.followerAccounts")
+    val followerAccounts = FileUtils.load(accountsFileStr)
+    val handleToFollowerAccts = accounts.map{ account =>
+      val followerAccount = handleToFollowers.getOrElse(account.handle, Nil).flatMap { followerHandle =>
+        followerAccounts.find{ case(f, label) => f.handle == followerHandle }
+      }.map(_._1)
+      account.handle -> followerAccount
+    }.toMap
+
+    handleToFollowerAccts
+  }
+
+  def outputAnalysis(outputDir: String,
+    weights: Map[String, Seq[(String, Double)]],
+    falsePos: Seq[(String, Map[String, Seq[(String, Double)]])],
+    falseNeg: Seq[(String, Map[String, Seq[(String, Double)]])]): Unit = {
+
+    val numWeights = 30
+    val numAccts = 20
+
+    val barrier = "=" * 25
+    // Initialize writer
+    var writer = new BufferedWriter(new FileWriter(outputDir + "/weights.txt", false))
+    weights.foreach { case (label, feats) =>
+      writer.write(s"$label weights\n$barrier\n")
+      writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
+      writer.write("\n")
+    }
+    writer.close()
+
+    writer = new BufferedWriter(new FileWriter(outputDir + "/falsePositives.txt", false))
+    writer.write(s"False positives\n$barrier\n\n")
+    falsePos.foreach{ case (handle, acct) =>
+      writer.write(s"$barrier\n$handle\n$barrier\n")
+      acct.foreach{ case (label, feats) =>
+        writer.write(s"$label weights\n$barrier\n")
+        writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
+        writer.write("\n")
+      }
+      writer.write(s"$barrier\n$barrier\n\n")
+    }
+    writer.close()
+
+    writer = new BufferedWriter(new FileWriter(outputDir + "/falseNegatives.txt", false))
+    writer.write(s"False negatives\n$barrier\n\n")
+    falseNeg.foreach{ case (handle, acct) =>
+      writer.write(s"$barrier\n$handle\n$barrier\n")
+      acct.foreach{ case (label, feats) =>
+        writer.write(s"$label weights\n$barrier\n")
+        writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
+        writer.write("\n")
+      }
+      writer.write(s"$barrier\n$barrier\n\n")
+    }
+    writer.close()
+  }
+
+  def outputAnalysis(outputFile: String, header: String, accounts: Seq[TwitterAccount], cls: ClassifierImpl, labels: Set[String]) {
+    // Set progress bar
+    var numAccountsToPrint = 20
+    val numWeightsToPrint = 30
+    val printedLabel = labels.toSeq.sorted.head
+    val pb = new me.tongfei.progressbar.ProgressBar("outputAnalysis()", 100)
+    pb.start()
+    pb.maxHint(numAccountsToPrint)
+    pb.setExtraMessage(header)
+
+    // Initialize writer
+    val writer = new BufferedWriter(new FileWriter(outputFile, false))
+    var isFirst = true
+    writer.write(header)
+
+    // Iterate over accounts
+    for (account <- accounts) {
+      if (numAccountsToPrint > 0) {
+        // Analyze account
+        val (topWeights, dotProduct) = Utils.analyze(cls.subClassifier.get, labels, account, cls.featureExtractor)
+        // Only print the general weights on the features once
+        if (isFirst) {
+          for ((label, sequence) <- topWeights) {
+            writer.write(s"Top weights for $label:\n")
+            var numToPrint = numWeightsToPrint
+            for ((feature, score) <- sequence) {
+              if ((numToPrint > 0) && (score > 0.0)) {
+                writer.write(s"$feature -> $score\n")
+                numToPrint = numToPrint - 1
+              }
+            }
+            writer.write("================================\n")
+          }
+          isFirst = false
+        }
+        // Print hadamard product for every account
+        writer.write(s"Hadamard product for ${account.handle}:\n")
+        for ((label, sequence) <- dotProduct) {
+          if (label == printedLabel) {
+            var numToPrint = numWeightsToPrint
+            for ((feature, score) <- sequence) {
+              if ((numToPrint > 0) && (score > 0.0)) {
+                writer.write(s"$feature -> $score\n")
+                numToPrint = numToPrint - 1
+              }
+            }
+          }
+        }
+        writer.write("================================\n")
+      }
+      pb.step()
+      numAccountsToPrint -= 1
+    }
+    writer.close
+    pb.stop()
+  }
+
+  def fMeasure(precision: Double, recall: Double, beta: Double): Double =
+    (1 + Math.pow(beta, 2)) * ((precision * recall) / (Math.pow(beta, 2) * precision + recall))
 }

@@ -14,121 +14,23 @@ import scala.util.Random
 object BootstrapSignificance {
 
   case class Config(
-    useOverweightF1:Boolean = false,
-    useMicroF1:Boolean = false,
-    useMacroF1:Boolean = false,
+    variable: String = "overweight",
+    scoreMetric: String = "Overweight",
     repetitions:Int = 10000)
-
-  /**
-    * Micro F1, i.e. harmonic mean of precision and recall across all items regardless of true class.
-    * This biases the results toward larger classes, which may be the desired behavior.
-    * @param gold true labels
-    * @param pred predicted labels
-    * @return micro F1 (0.0 - 1.0 range)
-    */
-  def microF1(gold: Seq[String], pred: Seq[String]): Double = {
-    assert(gold.length == pred.length)
-    val tp: Double = (for (i <- gold.indices) yield if (gold(i) == pred(i)) 1 else 0).sum
-    val fn: Double = (for {
-      lbl <- gold.distinct
-      i <- gold.indices
-      if gold(i) == lbl && pred(i) != lbl
-    } yield 1).sum
-    val fp: Double = (for {
-      lbl <- gold.distinct
-      i <- gold.indices
-      if gold(i) != lbl && pred(i) == lbl
-    } yield 1).sum
-
-    if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
-  }
-
-  /**
-    * The harmonic mean of precision and recall is calculated for each class, then these are averaged.
-    * This makes every class as "important," in that the score is not biased by the size of the class.
-    * @param gold true labels
-    * @param pred predicted labels
-    * @return macro F1 (0.0 - 1.0 range)
-    */
-  def macroF1(gold: Seq[String], pred: Seq[String]): Double = {
-    assert(gold.length == pred.length)
-    val labels = gold.distinct
-
-    val tps = for {
-      lbl <- labels
-      tpForLabel = (for (i <- gold.indices) yield if (gold(i) == pred(i) && gold(i) == lbl) 1.0 else 0.0).sum
-    } yield tpForLabel
-
-    val fns = for {
-      lbl <- gold.distinct
-      fnForLabel = (for (i <- gold.indices) yield if (gold(i) == lbl && pred(i) != lbl) 1.0 else 0.0).sum
-    } yield fnForLabel
-
-    val fps = for {
-      lbl <- gold.distinct
-      fpForLabel = (for (i <- gold.indices) yield if (gold(i) != lbl && pred(i) == lbl) 1.0 else 0.0).sum
-    } yield fpForLabel
-
-    // problematic if the number of classes is huge
-    val tp: Double = tps.sum / tps.length
-    val fn: Double = fns.sum / fns.length
-    val fp: Double = fps.sum / fps.length
-
-    if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
-  }
-
-  /**
-    * F1 score just for the Overweight class (neither micro nor macro averaging)
-    * @param gold true labels
-    * @param pred predicted labels
-    * @return F1 score (0.0 - 1.0 range)
-    */
-  def overweightF1(gold: Seq[String], pred: Seq[String]): Double = {
-    assert(gold.length == pred.length)
-    val tp = (for (i <- gold.indices) yield if (gold(i) == "Overweight" && pred(i) == "Overweight") 1.0 else 0.0).sum
-    val fp = (for (i <- gold.indices) yield if (gold(i) != "Overweight" && pred(i) == "Overweight") 1.0 else 0.0).sum
-    val fn = (for (i <- gold.indices) yield if (gold(i) == "Overweight" && pred(i) != "Overweight") 1.0 else 0.0).sum
-    if (tp == 0) 0 else 2.0 * tp / (2.0 * tp + fn + fp)
-  }
-
-  /**
-    * Recall just for the Overweight class
-    * @param gold true labels
-    * @param pred predicted labels
-    * @return recall score (0.0 - 1.0 range)
-    */
-  def owRecall(gold: Seq[String], pred: Seq[String]): Double = {
-    assert(gold.length == pred.length)
-    val owTrue = gold.indices.filter(ix => gold(ix) == "Overweight")
-    val owFound = owTrue.count(ix => pred(ix) == "Overweight")
-    owFound.toDouble / owTrue.length.toDouble
-  }
-
-  /**
-    * Precision just for the Overweight class
-    * @param gold true labels
-    * @param pred predicted labels
-    * @return precision score (0.0 - 1.0 range)
-    */
-  def owPrecision(gold: Seq[String], pred: Seq[String]): Double = {
-    assert(gold.length == pred.length)
-    val owFound = pred.indices.filter(ix => pred(ix) == "Overweight")
-    val owTrue = owFound.count(ix => gold(ix) == "Overweight")
-    owTrue.toDouble / owFound.length.toDouble
-  }
 
   def main(args: Array[String]): Unit = {
     def parseArgs(args: Array[String]): Config = {
       val parser = new scopt.OptionParser[Config]("bootstrapping") {
         head("bootstrapping", "0.x")
-        opt[Unit]('o', "overweightF1") action { (x, c) =>
-          c.copy(useOverweightF1 = true)} text "use only F1 for the overweight class"
-        opt[Unit]('i', "microF1") action { (x, c) =>
-          c.copy(useMicroF1 = true)} text "use microF1"
-        opt[Unit]('a', "macroF1") action { (x, c) =>
-          c.copy(useMacroF1 = true)} text "use macroF1"
+        opt[String]('v', "variable") action { (x, c) =>
+          c.copy(variable = x)
+        } text "classifier to evaluate"
+        opt[String]('s', "scoreMetric") action { (x, c) =>
+          c.copy(scoreMetric = x)
+        } text "metric for scoring; can be 'micro', 'macro', or a variable name for unaveraged F1"
         opt[Int]('r', "repetitions") action { (x, c) =>
-          c.copy(repetitions = x) } text "number of repetitions in bootstrap"
+          c.copy(repetitions = x)
+        } text "number of repetitions in bootstrap"
       }
 
       parser.parse(args, Config()).get
@@ -136,17 +38,19 @@ object BootstrapSignificance {
 
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
-
-    val baselineFeatures = config.getString("classifiers.overweight.baseline")
-    val predictionDir = new File(config.getString("classifiers.overweight.results"))
     val params = parseArgs(args)
 
+    val baselineFeatures = config.getString(s"classifiers.${params.variable}.baseline")
+    val predictionDir = new File(config.getString(s"classifiers.${params.variable}.results"))
+
     // Prefer overweightF1 >> microF1 >> macroF1
-    def scoreMetric(gold: Seq[String], pred: Seq[String]): Double =
-      if (params.useOverweightF1) overweightF1(gold, pred)
-      else if (params.useMicroF1) microF1(gold, pred)
-      else if (params.useMacroF1) macroF1(gold, pred)
-      else overweightF1(gold, pred)
+    def scoreMetric(gold: Seq[String], pred: Seq[String]): Double = {
+      params.scoreMetric match {
+        case "macro" => Eval.macroOnly(gold.zip(pred))
+        case "micro" => Eval.microOnly(gold.zip(pred))
+        case lbl => Eval.f1ForLabel(lbl)(gold.zip(pred))
+      }
+    }
 
     // The directory of results files must exist
     assert(predictionDir.exists && predictionDir.isDirectory)
@@ -186,7 +90,7 @@ object BootstrapSignificance {
       key <- predictions.keys
     } yield key -> new scala.collection.mutable.ListBuffer[Double]).toMap
 
-    logger.info(s"repetitions: ${params.repetitions}, models: ${predictions.size}")
+    logger.info(s"classifier: ${params.variable}, repetitions: ${params.repetitions}, models: ${predictions.size}")
 
     val pb = new me.tongfei.progressbar.ProgressBar("bootstrap", 100)
     pb.start()
@@ -212,19 +116,19 @@ object BootstrapSignificance {
     pb.stop()
 
     // Calculate all stats just to be sure.
-    val prec = (for (k <- predictions.keys) yield k -> owPrecision(gold, predictions(k))).toMap
-    val recall = (for (k <- predictions.keys) yield k -> owRecall(gold, predictions(k))).toMap
-    val owF1 = (for (k <- predictions.keys) yield k -> overweightF1(gold, predictions(k))).toMap
-    val iF1 = (for (k <- predictions.keys) yield k -> microF1(gold, predictions(k))).toMap
-    val aF1 = (for (k <- predictions.keys) yield k -> macroF1(gold, predictions(k))).toMap
+    val stats = (for (k <- predictions.keys) yield {
+      val (eval, macroAvg, microAvg) = Eval.evaluate(gold, predictions(k))
+      val lbl = if (!Seq("micro","macro").contains(params.scoreMetric)) params.scoreMetric else gold.distinct.sorted.head
+      k -> (eval(lbl).P, eval(lbl).R, eval(lbl).F, microAvg, macroAvg)
+    }).toMap
 
     // print out results
     println("model\tprecision\trecall\toverweight F1\tmicro F1\tmacro F1\tpval")
     betterThanBaseline.toSeq.sortBy(_._1).reverse.foreach{
       case (featureSet, isBetter) =>
         val baselineLabel = if (featureSet == baselineFeatures) " (baseline)" else ""
-        println(f"$featureSet$baselineLabel\t${prec(featureSet)}%1.4f\t${recall(featureSet)}%1.4f\t" +
-          f"${owF1(featureSet)}%1.4f\t${iF1(featureSet)}%1.4f\t${aF1(featureSet)}%1.4f\t" +
+        println(f"$featureSet$baselineLabel\t${stats(featureSet)._1}%1.4f\t${stats(featureSet)._2}%1.4f\t" +
+          f"${stats(featureSet)._3}%1.4f\t${stats(featureSet)._4}%1.4f\t${stats(featureSet)._5}%1.4f\t" +
           f"${1.0 - isBetter.sum / params.repetitions.toDouble}%1.4f")
     }
   }

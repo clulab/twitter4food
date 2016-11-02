@@ -1,47 +1,72 @@
 package org.clulab.twitter4food.featureclassifier
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.{Files, Paths}
+
+import com.typesafe.config.ConfigFactory
+import org.clulab.learning.{L1LinearSVMClassifier, LiblinearClassifier}
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.util._
+import org.clulab.twitter4food.util.Utils._
 import org.clulab.twitter4food.struct.TwitterAccount
+import org.slf4j.LoggerFactory
 
-/** Classifier to predict if a given twitter account represents an organization
+/**
+  * Classifier to predict if a given twitter account represents an organization
   * or an individual. Implements a customFeatures method to parse the account
   * description and count #(words) that fall in person/organization Synset
   * @author adikou 
-  * @date 01-22-16.
+  * @date 01-22-16
   */
 
 class HumanClassifier(
-    useUnigrams: Boolean = true,
-    useBigrams: Boolean = false,
-    useTopics: Boolean = false,
-    useDictionaries: Boolean = false,
-    useEmbeddings: Boolean = false,
-    useCosineSim: Boolean = false,
-    useFollowers: Boolean = false,
-    useFollowees: Boolean = false,
-    useGender: Boolean = false,
-    useRace: Boolean = false,
-    datumScaling: Boolean = false,
-    featureScaling: Boolean = false)
+  useUnigrams: Boolean = false,
+  useBigrams: Boolean = false,
+  useName: Boolean = false,
+  useTopics: Boolean = false,
+  useDictionaries: Boolean = false,
+  useAvgEmbeddings: Boolean = false,
+  useMinEmbeddings: Boolean = false,
+  useMaxEmbeddings: Boolean = false,
+  useCosineSim: Boolean = false,
+  useTimeDate: Boolean = false,
+  useFollowers: Boolean = false,
+  useFollowees: Boolean = false,
+  datumScaling: Boolean = false,
+  featureScaling: Boolean = false,
+  customFeatures: TwitterAccount => Counter[String])
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
-    useEmbeddings=useEmbeddings,
+    useAvgEmbeddings=useAvgEmbeddings,
+    useMinEmbeddings=useMinEmbeddings,
+    useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
+    useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
-    useGender=useGender,
-    useRace=useRace,
+    useGender=false,
+    useRace=false,
+    useHuman=false,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "human",
-    customFeatures = HumanClassifier.customFeatures
-  )
+    customFeatures=customFeatures
+  ) {
+  val labels = Set("human", "org")
+}
 
 object HumanClassifier {
+  import ClassifierImpl._
+
+  /**
+    * An empty counter for when custom features are not desired.
+    */
+  def nullFeatures(account: TwitterAccount) = new Counter[String]()
+
   /** Add a custom feature counter for the account based on description
     * @param account Twitter account
     * @return counter custom Counter[String] that keeps a count of "wn_human"
@@ -111,13 +136,13 @@ object HumanClassifier {
 
     dTags.foreach{
       case singular if singular.tag == "O" && isSingularPronoun(singular.token) =>
-        counter.incrementCount("__hcDescriptionSingular__")
+        counter.incrementCount("hcDescriptionSingular")
       case plural if plural.tag == "O" && isPluralPronoun(plural.token) =>
-        counter.incrementCount("__hcDescriptionPlural__")
+        counter.incrementCount("hcDescriptionPlural")
       case humanWord if humanWord.tag == "N" && getSubFeatureType(humanWord.token) == "human" =>
-        counter.incrementCount("__hcDescriptionHuman__")
+        counter.incrementCount("hcDescriptionHuman")
       case orgWord if orgWord.tag == "N" && getSubFeatureType(orgWord.token) == "org" =>
-        counter.incrementCount("__hcDescriptionOrg__")
+        counter.incrementCount("hcDescriptionOrg")
       case _ => ()
     }
 
@@ -127,37 +152,182 @@ object HumanClassifier {
 
     tTags.foreach{
       case singular if singular.tag == "O" && isSingularPronoun(singular.token) =>
-        counter.incrementCount("__hcTweetSingular__")
+        counter.incrementCount("hcTweetSingular")
       case plural if plural.tag == "O" && isPluralPronoun(plural.token) =>
-        counter.incrementCount("__hcTweetPlural__")
+        counter.incrementCount("hcTweetPlural")
       case humanWord if humanWord.tag == "N" && getSubFeatureType(humanWord.token) == "human" =>
-        counter.incrementCount("__hcTweetHuman__")
+        counter.incrementCount("hcTweetHuman")
       case orgWord if orgWord.tag == "N" && getSubFeatureType(orgWord.token) == "org" =>
-        counter.incrementCount("__hcTweetOrg__")
+        counter.incrementCount("hcTweetOrg")
       case _ => ()
     }
 
-    counter
+    // Maybe it's the proportion that matters
+    val ds = counter.getCount("hcDescriptionSingular")
+    val dp = counter.getCount("hcDescriptionPlural")
+    if (ds != 0 || dp != 0) counter.setCount("hcDescriptionSingularProp", ds / (ds + dp))
+
+    val dhuman = counter.getCount("hcDescriptionHuman")
+    val dorg = counter.getCount("hcDescriptionOrg")
+    if (dhuman != 0 || dorg != 0) counter.setCount("hcDescriptionHumanProp", dhuman / (dhuman + dorg))
+
+    val ts = counter.getCount("hcTweetSingular")
+    val tp = counter.getCount("hcTweetPlural")
+    if (ts != 0 || tp != 0) counter.setCount("hcTweetSingularProp", ts / (ts + tp))
+
+    val thuman = counter.getCount("hcTweetHuman")
+    val torg = counter.getCount("hcTweetOrg")
+    if (thuman != 0 || torg != 0) counter.setCount("hcDescriptionHumanProp", thuman / (thuman + torg))
+
+    prepend("hcCustom:", counter)
   }
 
   def main(args: Array[String]) = {
-    val params = TestUtils.parseArgs(args)
-    val (api, config) = TestUtils.init(0)
-    val hc = new HumanClassifier(
-      useUnigrams = params.useUnigrams,
-      useBigrams = params.useBigrams,
-      useTopics = params.useTopics,
-      useDictionaries = params.useDictionaries,
-      useEmbeddings = params.useEmbeddings,
-      useCosineSim = params.useCosineSim,
-      useFollowers = params.useFollowers,
-      useFollowees = params.useFollowees,
-      useGender = params.useGender,
-      useRace = params.useRace,
-      datumScaling = params.datumScaling,
-      featureScaling = params.featureScaling)
-    hc.runTest(args, "human")
-    // hc.learn(args, "human", 0.001, 50)
-    // val predictedLabels = hc.predict(config.getString("classifiers.overweight.allTestData"))
+    val params = Utils.parseArgs(args)
+    val config = ConfigFactory.load
+    val logger = LoggerFactory.getLogger(this.getClass)
+
+    val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
+
+    val nonFeatures = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
+    // This model and results are specified by all input args that represent featuresets
+    val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
+
+    val outputDir = config.getString("classifier") + "/human/results/" + fileExt
+    if (!Files.exists(Paths.get(outputDir))) {
+      if (new File(outputDir).mkdir()) logger.info(s"Created output directory $outputDir")
+      else logger.info(s"ERROR: failed to create output directory $outputDir")
+    }
+
+    val toTrainOn = if (params.runOnTest) {
+      logger.info("Loading training accounts...")
+      val trainData = FileUtils.load(config.getString("classifiers.human.trainingData")).toSeq
+      logger.info("Loading dev accounts...")
+      val devData = FileUtils.load(config.getString("classifiers.human.devData")).toSeq
+      trainData ++ devData
+    } else {
+      logger.info("Loading training accounts...")
+      FileUtils.load(config.getString("classifiers.human.trainingData")).toSeq
+    }
+
+    val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
+    val followees = if(params.useFollowees) Option(ClassifierImpl.loadFollowees(toTrainOn.map(_._1), "human")) else None
+
+    val modelDir = s"${config.getString("human")}/model"
+    if (!Files.exists(Paths.get(modelDir))) {
+      if (new File(modelDir).mkdir()) logger.info(s"Created output directory $modelDir")
+      else logger.error(s"ERROR: failed to create output directory $modelDir")
+    }
+    val modelFile = s"${config.getString("human")}/model/$fileExt.dat"
+
+    val customAction = (twitterAccount: TwitterAccount) =>
+      if (params.useCustomAction) HumanClassifier.customFeatures(twitterAccount) else new Counter[String]()
+
+    val classifiers = for {
+      portion <- portions
+      maxIndex = (portion * toTrainOn.length).toInt
+    } yield {
+      val (trainAccounts, trainLabels) = toTrainOn.slice(0, maxIndex).unzip
+
+      val hc = new HumanClassifier(
+        useUnigrams = params.useUnigrams,
+        useBigrams = params.useBigrams,
+        useName = params.useName,
+        useTopics = params.useTopics,
+        useDictionaries = params.useDictionaries,
+        useAvgEmbeddings = params.useAvgEmbeddings,
+        useMinEmbeddings = params.useMinEmbeddings,
+        useMaxEmbeddings = params.useMaxEmbeddings,
+        useCosineSim = params.useCosineSim,
+        useTimeDate = params.useTimeDate,
+        useFollowers = params.useFollowers,
+        useFollowees = params.useFollowees,
+        datumScaling = params.datumScaling,
+        featureScaling = params.featureScaling,
+        customAction
+      )
+
+      logger.info("Training classifier...")
+      hc.setClassifier(new L1LinearSVMClassifier[String, String]())
+      hc.train(trainAccounts, trainLabels, followers, followees)
+      // Only save models using full training
+      if (maxIndex == toTrainOn.length) hc.subClassifier.get.saveTo(modelFile)
+
+      (portion, maxIndex, hc)
+    }
+    val toTestOn = if (params.runOnTest) {
+      logger.info("Loading test accounts...")
+      FileUtils.load(config.getString("classifiers.human.testData"))
+    } else {
+      logger.info("Loading dev accounts...")
+      FileUtils.load(config.getString("classifiers.human.devData"))
+    }
+
+    val evals = for ((portion, numAccounts, hc) <- classifiers) yield {
+
+      // Set progress bar
+      val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+      pb.start()
+      pb.maxHint(toTestOn.size)
+      pb.setExtraMessage("Testing on dev accounts...")
+
+      // Classify accounts
+      val testSetLabels = toTestOn.values.toSeq
+      val predictedLabels = toTestOn.keys.toSeq.map { u =>
+        pb.step()
+        hc.classify(u)
+      }
+
+      pb.stop()
+
+      // Print results
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testSetLabels, predictedLabels, toTestOn.keys.toSeq)
+
+      val evalMetric = evalMeasures(hc.labels.toSeq.sorted.head)
+      val precision = evalMetric.P
+      val recall = evalMetric.R
+
+      if (portion == 1.0) {
+        if (params.fpnAnalysis & hc.subClassifier.nonEmpty &
+          (evalMetric.FNAccounts.nonEmpty || evalMetric.FPAccounts.nonEmpty)) {
+          // Perform analysis on false negatives and false positives
+          println("False negatives:")
+          evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
+          println("\n====")
+          outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, hc, hc.labels)
+
+          println("False positives:")
+          evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
+          println("\n====")
+          outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, hc, hc.labels)
+        }
+
+        // Save results
+        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
+        writer.write(s"Precision: $precision\n")
+        writer.write(s"Recall: $recall\n")
+        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
+        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
+        writer.write(s"Macro average: $macroAvg\n")
+        writer.write(s"Micro average: $microAvg\n")
+        writer.close()
+
+        // Save individual predictions for bootstrap significance
+        val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+        predicted.write(s"gold\tpred\n")
+        testSetLabels.zip(predictedLabels).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
+        predicted.close()
+      }
+
+      (portion, numAccounts, precision, recall, macroAvg, microAvg)
+    }
+
+    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
+    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+        s"\t$macroAvg\t$microAvg")
+    }
+
+
   }
 }

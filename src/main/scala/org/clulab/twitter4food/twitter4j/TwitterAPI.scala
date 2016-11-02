@@ -269,4 +269,20 @@ class TwitterAPI(keyset: Int) {
     }
     screenNames
   }
+
+  def fetchProfilePic(h: String): Option[String] ={
+    val handle = sanitizeHandle(h)
+    val user = try {
+      Option(appOnlyTwitter.showUser(handle))
+    } catch {
+      case te: TwitterException =>
+        println(s"ErrorCode = ${te.getErrorCode}\tErrorMsg = ${te.getErrorMessage}")
+        None
+    }
+    sleep("showUser", isAppOnly = true)
+
+    if (user.nonEmpty) {
+      if (user.get.isDefaultProfileImage) Option("default") else Option(user.get.getOriginalProfileImageURL)
+    } else None
+  }
 }

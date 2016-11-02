@@ -3,8 +3,12 @@ package org.clulab.twitter4food.util
 import java.io._
 import java.text.SimpleDateFormat
 import java.util.Date
+
 import org.clulab.twitter4food.struct._
+
+import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, Map}
+import scala.collection.parallel.immutable
 
 object FileUtils {
   def saveToFile(users: Seq[TwitterAccount], labels: Seq[String],
@@ -48,7 +52,7 @@ object FileUtils {
     var handle, name, label, id = ""
     var desc, lang, location, url = ""
     var numTweets = 0
-    val accounts = Map[TwitterAccount, String]()
+    val accounts = mutable.Map[TwitterAccount, String]()
     val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
     pb.start()
     if(lines.hasNext) {
