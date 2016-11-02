@@ -101,11 +101,11 @@ object OverweightClassifier {
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 
-    // Filter out spammy users
-    val nonSpam = Utils.filterByRepetition(labeledAccts, threshold = 0.30)
+    // Filter out spammy users (more than 2.5 standard deviations above mean)
+    val nonSpam = Utils.filterByRepetition(labeledAccts, threshold = 0.46)
 
     // Filter users so that only ones we have a shot at classifying are used
-    val relevantAccts = Utils.filterByLexicon(nonSpam, lower = 1, upper = 5000)
+    val relevantAccts = Utils.filterByLexicon(nonSpam, lower = 1, upper = 5973)
 
     // Scale number of accounts so that weights aren't too biased against Overweight
     val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
