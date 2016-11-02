@@ -11,11 +11,12 @@ import org.clulab.twitter4food.util.Utils._
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.slf4j.LoggerFactory
 
-/** Classifier to predict if a given twitter account represents an organization
+/**
+  * Classifier to predict if a given twitter account represents an organization
   * or an individual. Implements a customFeatures method to parse the account
   * description and count #(words) that fall in person/organization Synset
   * @author adikou 
-  * @date 01-22-16.
+  * @date 01-22-16
   */
 
 class HumanClassifier(

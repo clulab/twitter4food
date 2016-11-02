@@ -17,14 +17,32 @@ import org.slf4j.LoggerFactory
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Created by Terron on 2/9/16.
-  *
   * Designed to be used in tandem with a classifier, with the features
   * to be included "turned on" with the inputted parameters. The features
   * listed here are fairly general - custom features can be added with
   * the polymorphic mkDatum function.
   *
   * All parameters are flags for which features should be used.
+  *
+  * @author Terron Ishida
+  * @author Dane Bell
+  * @param useUnigrams unigram token features
+  * @param useBigrams bigram token features
+  * @param useName name- and handle-based char features
+  * @param useTopics Latent Dirichlet Analysis topic features
+  * @param useDictionaries classifier-specific custom dictionaries
+  * @param useAvgEmbeddings average embeddings of all account words
+  * @param useMinEmbeddings minimum (by dimension) embeddings of all account words
+  * @param useMaxEmbeddings maximum (by dimension) embeddings of all account words
+  * @param useCosineSim similarity to a corpus of overweight-related tweets
+  * @param useTimeDate time- and day-based features
+  * @param useFollowers domain transfer from follower acccounts
+  * @param useFollowees account followee handles
+  * @param useGender domain transfer based on classification of account gender
+  * @param useRace domain transfer based on classification of account race
+  * @param useHuman limit follower domain transfer to those judged as human
+  * @param datumScaling scale by account
+  * @param customFeatures use classifier-specific custom features
   */
 class FeatureExtractor (
   val useUnigrams: Boolean = false,
@@ -141,7 +159,7 @@ class FeatureExtractor (
     val model = if (Files.exists(Paths.get(modelFile))) {
       logger.info(s"$modelFile found; loading...")
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
       g.subClassifier = Option(sub)
       g
     } else {
@@ -180,7 +198,6 @@ class FeatureExtractor (
   /** Reads a sequence of filenames for each label as a sequence of lexicons
     *
     * @param lexiconMap A map of (label -> sequence of filenames)
-    * @return Unit
     */
   def setLexicons(lexiconMap: Map[String, Seq[String]]) = {
     val l = lexiconMap map {
@@ -208,17 +225,17 @@ class FeatureExtractor (
   }
 
   /**
-    * Ultimately what should be called by the classifier when training.
+    * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
     *
-    * @param account TwitterAccount to extract features from
-    * @param label Classification label associated with this account
+    * @param account [[TwitterAccount]] to extract features from
+    * @param label classification label associated with this account
     */
   def mkDatum(account: TwitterAccount, label: String): Datum[String, String] = {
     new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + this.customFeatures(account))
   }
 
   /**
-    * Scale the counter if datumScaling is true
+    * Scales a [[Counter]] if {@link datumScaling} is true
     */
   def scale(counter: Counter[String]): Counter[String] = {
     if (datumScaling) scaleByDatum(counter, 0.0, 1.0)
@@ -226,10 +243,10 @@ class FeatureExtractor (
   }
 
   /**
-    * Generates the feature counter for this account
+    * Returns a [[Counter]] containing all the features signified by constructor flags
     *
-    * @param account
-    * @return Counter of all features signified by constructor flags
+    * @param account the [[TwitterAccount]] under analysis
+    * @param withFollowers include {@link account}'s followers if true
     */
   def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
@@ -296,24 +313,29 @@ class FeatureExtractor (
     words.foreach(word => counter.incrementCount(word, 1))
   }
 
-  // Character ngrams
+  /**
+    * Returns the text cut into strings of <i>n</i> characters (with padding)
+    */
   def charNGrams(n: Int, text: String, prefix: String = ""): Seq[String] = {
-    assert(n > 0, "Cannot populate n-grams of length < 1")
+    assert(n > 0, "Cannot populate charactern-grams of length < 1")
     val padded = ("^" * (n-1)) + text + ("^" * (n - 1))
     padded.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix:", "", ""))
   }
 
-  // Token ngrams
+  /**
+    * Returns pretokenized text cut into strings of <i>n</i> tokens (with padding)
+    */
   def tokenNGrams(n: Int, text: Array[String], prefix: String = ""): Seq[String] = {
+    assert(n > 0, "Cannot populate token n-grams of length < 1")
+    val padded = Seq.fill(n-1)("<s>") ++ text ++ Seq.fill(n-1)("</s>")
     text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
   }
 
   /**
-    * Adds ngrams from account's description and tweets with raw frequencies as weights.
+    * Returns a [[Counter]] of ngrams from account's description and tweets with raw frequencies as weights.
     *
     * @param n Degree of n-gram (e.g. 1 refers to unigrams)
     * @param description Text description of [[TwitterAccount]]
-    * @return counter
     */
   def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
@@ -330,9 +352,8 @@ class FeatureExtractor (
   }
 
   /**
-    * Character/word n-grams based on user's name and handle
-    * @param account the [[TwitterAccount]] being analyzed
-    * @return a [[Counter]] of name-based n-grams
+    * Returns a [[Counter]] of character/word n-grams based on user's name and handle
+    * @param account the [[TwitterAccount]] under analysis
     */
   def name(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
@@ -354,10 +375,10 @@ class FeatureExtractor (
   }
 
   /**
-    * Binary feature for each followee (a.k.a. "friend" in the Twitter API) handle for this account
+    * Returns a [[Counter]] representing a binary feature for each followee (a.k.a. "friend" in the Twitter API) handle
+    * for this account
     *
     * @param account [[TwitterAccount]] whose followees' handles will be sought
-    * @return counter
     */
   def followees(account: TwitterAccount): Counter[String] = {
     val counter = new Counter[String]
@@ -367,10 +388,10 @@ class FeatureExtractor (
   }
 
   /**
-    * Adds the flagged features to a new counter for domain adaptation.
+    * Returns a [[Counter]] of all the flagged features for the current [[TwitterAccount]]'s followers for domain
+    * adaptation.
     *
     * @param account [[TwitterAccount]] whose followers will be annotated
-    * @return counter
     */
   def followers(account: TwitterAccount): Counter[String] = {
     assert(handleToFollowerAccount.nonEmpty)
@@ -392,10 +413,10 @@ class FeatureExtractor (
   }
 
   /**
-    * Add a feature for each topic in the topic model, and count instances in the account's tweets
+    * Returns a [[Counter]] containing a feature for each topic in the topic model, counting instances in the
+    * account's tweets
     *
-    * @param tweets Tokenized, filtered [[Tweet]] text
-    * @return a [[Counter]] of topics for this account
+    * @param tweets tokenized, filtered [[Tweet]] text
     */
   def topics(tweets: Seq[Array[String]]): Counter[String] = {
     val topics = new Counter[String]
@@ -410,12 +431,11 @@ class FeatureExtractor (
   }
 
   /**
-    * Count the number of times a word from the relevant dictionary appears
+    * Returns a [[Counter]] for the number of times a word from the classifier-relevant custom dictionary appears
     *
     * @param tweets pre-tokenized tweet text
     * @param description pre-tokenized account description text
-    * @param account the whole [[TwitterAccount]] being analyzed
-    * @return a [[Counter]] for a classifier-specific set of custom dictionaries
+    * @param account the whole [[TwitterAccount]] under analysis
     */
   def dictionaries(tweets: Seq[Array[String]],
     description: Array[String],
@@ -510,7 +530,8 @@ class FeatureExtractor (
   }
 
   /**
-    * Add one feature per embedding vector dimension, the average of the non-stopwords in the account's tweets
+    * Returns a [[Counter]] containing one feature per embedding vector dimension, which may correspond to the average,
+    * minimum, and/or maximum value of each dimension of the non-stopwords in the account's tweets.
     *
     * @param tweets Tweets, pre-tokenized
     * @return a [[Counter]] of the averaged, minimum, and/or maximum vector
@@ -539,6 +560,7 @@ class FeatureExtractor (
     counter
   }
 
+  // Loads the embeddings for creating embedding-related features
   private def loadVectors: Option[Map[String, Array[Double]]] = {
     logger.info("Loading word embeddings...")
     val lines = scala.io.Source.fromFile(config.getString("classifiers.features.vectors")).getLines
