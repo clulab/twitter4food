@@ -44,12 +44,14 @@ case class TrainDevTestFold(test: Seq[Int], dev: Seq[Int], train: Seq[Int]) {
 class ClassifierImpl(
   val useUnigrams: Boolean,
   val useBigrams: Boolean,
+  val useName: Boolean,
   val useTopics: Boolean,
   val useDictionaries: Boolean,
   val useAvgEmbeddings: Boolean,
   val useMinEmbeddings: Boolean,
   val useMaxEmbeddings: Boolean,
   val useCosineSim: Boolean,
+  val useTimeDate: Boolean,
   val useFollowers: Boolean,
   val useFollowees: Boolean,
   val useGender: Boolean,
@@ -67,12 +69,14 @@ class ClassifierImpl(
   val featureExtractor = new FeatureExtractor(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,
     useMinEmbeddings=useMinEmbeddings,
     useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
+    useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=useGender,
@@ -722,9 +726,6 @@ class ClassifierImpl(
     numFolds:Int = 10,
     seed:Int = 73
   ): Seq[(String, String)] = {
-
-    val numFeatures = 30
-    val numAccts = 20
 
     val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed).toSeq
 

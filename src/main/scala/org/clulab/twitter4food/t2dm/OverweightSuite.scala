@@ -26,12 +26,14 @@ object OverweightSuite {
     val oc = new OverweightClassifier(
       useUnigrams = true,
       // useBigrams = true, // bigrams are costly and hurt performance
+      useName = true,
       useTopics = true,
       useDictionaries = true,
       useAvgEmbeddings = true,
       useMinEmbeddings = true,
       useMaxEmbeddings = true,
       useCosineSim = true,
+      useTimeDate = true,
       useFollowers = true,
       useFollowees = true,
       useGender = true,

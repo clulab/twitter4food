@@ -21,12 +21,14 @@ object Utils {
   case class Config(
     useUnigrams: Boolean = false,
     useBigrams: Boolean = false,
+    useName: Boolean = false,
     useTopics: Boolean = false,
     useDictionaries: Boolean = false,
     useAvgEmbeddings: Boolean = false,
     useMinEmbeddings: Boolean = false,
     useMaxEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
+    useTimeDate: Boolean = false,
     useCustomAction: Boolean = false,
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
@@ -87,8 +89,10 @@ object Utils {
         c.copy(useUnigrams = true)} text "use unigrams"
       opt[Unit]('b', "bigrams") action { (x, c) =>
         c.copy(useBigrams = true)} text "use bigrams"
+      opt[Unit]('i', "name") action { (x, c) =>
+        c.copy(useName = true)} text "use n-grams generated from name and handle"
       opt[Unit]('t', "topics") action { (x, c) =>
-        c.copy(useTopics = true)} text "use topics"
+        c.copy(useTopics = true)} text "use LDA topics"
       opt[Unit]('d', "dictionaries") action { (x, c) =>
         c.copy(useDictionaries = true)} text "use dictionaries"
       opt[Unit]('a', "avgEmbeddings") action { (x, c) =>
@@ -99,16 +103,18 @@ object Utils {
         c.copy(useMaxEmbeddings = true)} text "use maximum embeddings"
       opt[Unit]('c', "cosineSim") action { (x, c) =>
         c.copy(useCosineSim = true)} text "use cosine similarity"
+      opt[Unit]('w', "timeDate") action { (x, c) =>
+        c.copy(useTimeDate = true)} text "use tweet time and date"
       opt[Unit]('s', "customAction") action { (x, c) =>
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
       opt[Unit]('r', "race") action { (x, c) =>
-        c.copy(useRace = true)} text "use race classifier"
+        c.copy(useRace = true)} text "use race classifier (not implemented)"
       opt[Unit]('h', "human") action { (x, c) =>
         c.copy(useHuman = true)} text "use human classifier"
       opt[Unit]('f', "followers") action { (x, c) =>
-        c.copy(useFollowers = true)} text "use followers"
+        c.copy(useFollowers = true)} text "use followers' features (same as this user)"
       opt[Unit]('F', "followees") action { (x, c) =>
         c.copy(useFollowees = true)} text "use followee handles"
       opt[Unit]('D', "datumScaling") action { (x, c) =>
@@ -123,7 +129,11 @@ object Utils {
         c.copy(learningCurve = true)} text "analyze performance "
     }
 
-    parser.parse(args, Config()).getOrElse(Config())
+    val opts = parser.parse(args, Config())
+
+    if(opts.isEmpty) throw new IllegalArgumentException(s"args ${args.mkString(" ")} are not supported!")
+
+    opts.get
   }
 
   def analyze(c: LiblinearClassifier[String, String], labels: Set[String],

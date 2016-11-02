@@ -17,12 +17,14 @@ import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 class OverweightClassifier(
   useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
+  useName: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
   useAvgEmbeddings: Boolean = false,
   useMinEmbeddings: Boolean = false,
   useMaxEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
+  useTimeDate: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
   useGender: Boolean = false,
@@ -33,12 +35,14 @@ class OverweightClassifier(
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,
     useMinEmbeddings=useMinEmbeddings,
     useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
+    useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=useGender,
@@ -65,12 +69,14 @@ object OverweightClassifier {
     val allFeatures = Seq(
       params.useUnigrams,
       params.useBigrams,
+      params.useName,
       params.useTopics,
       params.useDictionaries,
       params.useAvgEmbeddings,
       params.useMinEmbeddings,
       params.useMaxEmbeddings,
       params.useCosineSim,
+      params.useTimeDate,
       params.useFollowees
     )
     val default = allFeatures.forall(!_) // true if all features are off
@@ -91,7 +97,9 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
+    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+      .toSeq
+      .filter(_._1.tweets.nonEmpty)
 
     // Filter out spammy users
     val nonSpam = Utils.filterByRepetition(labeledAccts, threshold = 0.30)
@@ -122,12 +130,14 @@ object OverweightClassifier {
       val oc = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
         useBigrams = params.useBigrams,
+        useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
         useAvgEmbeddings = params.useAvgEmbeddings,
         useMinEmbeddings = params.useMinEmbeddings,
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
+        useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useGender = params.useGender,
