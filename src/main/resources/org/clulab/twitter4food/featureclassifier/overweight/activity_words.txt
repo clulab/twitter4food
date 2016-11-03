@@ -1,4 +1,4 @@
-1296
+1308
 S
 0 10k
 1 5k
@@ -1296,3 +1296,15 @@ S
 1293 #yukigassen
 1294 #zuiquan
 1295 #épée
+1296 crossfit
+1297 #crossfit
+1298 cardio
+1299 #cardio
+1300 workout
+1301 #workout
+1302 pool
+1303 #pool
+1304 bowling
+1305 #bowling
+1306 fishing
+1307 #fishing
