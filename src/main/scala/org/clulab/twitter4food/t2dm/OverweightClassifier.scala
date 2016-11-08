@@ -143,7 +143,7 @@ object OverweightClassifier {
 
       logger.info("Training classifier...")
 
-      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
+      val (predictions, avgWeights, falsePos, falseNeg, contentious) = oc.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
@@ -161,7 +161,7 @@ object OverweightClassifier {
       if (portion == 1.0) {
         if (params.fpnAnalysis) {
           // Perform analysis on false negatives and false positives
-          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
+          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg, contentious)
         }
 
         // Save results

@@ -370,13 +370,6 @@ class ClassifierImpl(
     /** For a given classifier, load its associated train, dev, and test
       * accounts, and write results to file.
       *
-      * @param trainingSet
-      * @param trainingLabels
-      * @param testingSet
-      * @param testingLabels
-      * @param _C hyperparameter for subClassifier
-      * @param K threshold for top-K tweets for each user
-      * @return microAvg micro-average aggregated over each label
       */
     val unitTest = (trainingSet: Seq[TwitterAccount],
     trainingLabels: Seq[String],
@@ -640,10 +633,7 @@ class ClassifierImpl(
     classifierFactory: () => LiblinearClassifier[String, String],
     numFolds:Int = 10,
     seed:Int = 73
-  ): (Seq[(String, String)],
-    Map[String, Seq[(String, Double)]],
-    Seq[(String, Map[String, Seq[(String, Double)]])],
-    Seq[(String, Map[String, Seq[(String, Double)]])]) = {
+  ): (Seq[(String, String)], Map[String, Seq[(String, Double)]], Weight, Weight, Weight) = {
 
     val numFeatures = 30
     val numAccts = 20
@@ -707,11 +697,17 @@ class ClassifierImpl(
       .sortBy(_._5.getCount("Not overweight"))
       .reverse
       .take(numAccts)
+    val clashScale = predictions
+      .flatten
+      .sortBy(p => p._5.getCount("Not overweight") * p._5.getCount("Overweight"))
+      .reverse
+      .take(numAccts)
 
     val falsePos = owScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
     val falseNeg = noScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+    val mostContentious = clashScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
 
-    (evalInput, topWeights, falsePos, falseNeg)
+    (evalInput, topWeights, falsePos, falseNeg, mostContentious)
   }
 
 
@@ -753,6 +749,8 @@ class ClassifierImpl(
 }
 
 object ClassifierImpl {
+  type Weight = Seq[(String, Map[String, Seq[(String, Double)]])]
+
   /** config file that fetches filepaths */
   val config = ConfigFactory.load()
 
@@ -791,8 +789,9 @@ object ClassifierImpl {
 
   def outputAnalysis(outputDir: String,
     weights: Map[String, Seq[(String, Double)]],
-    falsePos: Seq[(String, Map[String, Seq[(String, Double)]])],
-    falseNeg: Seq[(String, Map[String, Seq[(String, Double)]])]): Unit = {
+    falsePos: Weight,
+    falseNeg: Weight,
+    contentious: Weight): Unit = {
 
     val numWeights = 30
     val numAccts = 20
@@ -822,6 +821,19 @@ object ClassifierImpl {
 
     writer = new BufferedWriter(new FileWriter(outputDir + "/falseNegatives.txt", false))
     writer.write(s"False negatives\n$barrier\n\n")
+    falseNeg.foreach{ case (handle, acct) =>
+      writer.write(s"$barrier\n$handle\n$barrier\n")
+      acct.foreach{ case (label, feats) =>
+        writer.write(s"$label weights\n$barrier\n")
+        writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
+        writer.write("\n")
+      }
+      writer.write(s"$barrier\n$barrier\n\n")
+    }
+    writer.close()
+
+    writer = new BufferedWriter(new FileWriter(outputDir + "/mostContentious.txt", false))
+    writer.write(s"Most contentious\n$barrier\n\n")
     falseNeg.foreach{ case (handle, acct) =>
       writer.write(s"$barrier\n$handle\n$barrier\n")
       acct.foreach{ case (label, feats) =>
