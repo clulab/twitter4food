@@ -138,13 +138,13 @@ object ExamineUser extends App {
       sb.append("No tweets found!\n")
     } else {
       val relevance = ta.normalTweets
-        .groupBy(_.text).map(_._2.head) // remove repeats
+        .groupBy(_.text.substring(0,40)).map(_._2.head) // remove repeats
         .map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
       val relevantTerms = relevance.values.toSeq
       val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
       val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
-      sb.append(s"Relevant terms per tweet: $relevantPerTweet\n")
-      sb.append(s"tweets with > 0 relevant terms: $percentRelevant%\n")
+      sb.append(f"Relevant terms per tweet: $relevantPerTweet%1.3f\n")
+      sb.append(f"tweets with > 0 relevant terms: $percentRelevant%1.1f%\n")
 
       val mostRelevant = relevance.toSeq.sortBy(_._2).reverse.take(tweetsToDisplay).sortBy(_._1.createdAt)
       sb.append("Most relevant tweets:\n")
