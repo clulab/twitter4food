@@ -134,7 +134,9 @@ object ExamineUser extends App {
     sb.append(s"Name: ${ta.name}\n")
     sb.append(s"Description: ${ta.description}\n")
 
-    val relevance = ta.normalTweets.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
+    val relevance = ta.normalTweets
+      .groupBy(_.text).map(_._2.head) // remove repeats
+      .map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
     val relevantTerms = relevance.values.toSeq
     val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
     val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
