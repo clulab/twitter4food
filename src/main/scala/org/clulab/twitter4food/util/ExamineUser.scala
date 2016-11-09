@@ -33,7 +33,7 @@ object ExamineUser extends App {
   var lexicon = Set[String]()
 
   printCorpora
-  
+
   while (users.isEmpty) {
     reader.readLine match {
       case "1" => // overweight
@@ -62,6 +62,8 @@ object ExamineUser extends App {
   reader.setHistory(history)
 
   var running = true
+
+  printCommands
 
   while(running) {
     reader.readLine match {
@@ -127,9 +129,10 @@ object ExamineUser extends App {
     */
   def summarize(ta: TwitterAccount, lbl: String, tweetsToDisplay: Int = 10): String = {
     val sb = new StringBuilder
-    sb.append(s"${ta.handle} => $lbl\n")
-    sb.append(s"\tName: ${ta.name}\n")
-    sb.append(s"\tDescription: ${ta.description}\n")
+    sb.append(s"Handle: ${ta.handle}\n")
+    sb.append(s"Label: $lbl\n")
+    sb.append(s"Name: ${ta.name}\n")
+    sb.append(s"Description: ${ta.description}\n")
 
     val relevance = ta.tweets.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
     val relevantTerms = relevance.values.toSeq
