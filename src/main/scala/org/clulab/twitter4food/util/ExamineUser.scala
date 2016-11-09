@@ -134,18 +134,22 @@ object ExamineUser extends App {
     sb.append(s"Name: ${ta.name}\n")
     sb.append(s"Description: ${ta.description}\n")
 
-    val relevance = ta.normalTweets
-      .groupBy(_.text).map(_._2.head) // remove repeats
-      .map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
-    val relevantTerms = relevance.values.toSeq
-    val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
-    val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
-    sb.append(s"Relevant terms per tweet: $relevantPerTweet\n")
-    sb.append(s"tweets with > 0 relevant terms: $percentRelevant%\n")
+    if (ta.tweets.isEmpty) {
+      sb.append("No tweets found!")
+    } else {
+      val relevance = ta.normalTweets
+        .groupBy(_.text).map(_._2.head) // remove repeats
+        .map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
+      val relevantTerms = relevance.values.toSeq
+      val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
+      val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
+      sb.append(s"Relevant terms per tweet: $relevantPerTweet\n")
+      sb.append(s"tweets with > 0 relevant terms: $percentRelevant%\n")
 
-    val mostRelevant = relevance.toSeq.sortBy(_._2).reverse.take(tweetsToDisplay).sortBy(_._1.createdAt)
-    sb.append("Most relevant tweets:\n")
-    mostRelevant.foreach(t => sb.append(s"\t[${t._1.createdAt}] ${t._1.text}\n"))
-    sb.toString
+      val mostRelevant = relevance.toSeq.sortBy(_._2).reverse.take(tweetsToDisplay).sortBy(_._1.createdAt)
+      sb.append("Most relevant tweets:\n")
+      mostRelevant.foreach(t => sb.append(s"\t[${t._1.createdAt}] ${t._1.text}\n"))
+      sb.toString
+    }
   }
 }
