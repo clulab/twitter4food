@@ -127,14 +127,14 @@ object ExamineUser extends App {
   /**
     * Returns a summary of a Twitter Account based on a dictionary of relevant terms
     */
-  def summarize(ta: TwitterAccount, lbl: String, tweetsToDisplay: Int = 10): String = {
+  def summarize(ta: TwitterAccount, lbl: String, tweetsToDisplay: Int = 25): String = {
     val sb = new StringBuilder
     sb.append(s"Handle: ${ta.handle}\n")
     sb.append(s"Label: $lbl\n")
     sb.append(s"Name: ${ta.name}\n")
     sb.append(s"Description: ${ta.description}\n")
 
-    val relevance = ta.tweets.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
+    val relevance = ta.normalTweets.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
     val relevantTerms = relevance.values.toSeq
     val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
     val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
