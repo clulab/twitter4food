@@ -97,19 +97,6 @@ class ClassifierImpl(
   val lowerBound = 0.0
   val upperBound = 1.0
 
-  /** Populates list of lexicons from config file. Separate function
-    * for easy testing.
-    *
-    * @param labelSet Set of labels
-    * @param ctype Type of classifier
-    * @return map of label -> Seq of lexicon file names
-    */
-  def populateLexiconList(labelSet: Set[String], ctype: String) = {
-    labelSet.foldLeft(Map[String, Seq[String]]())(
-      (m, l) => m + (l ->
-        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
-  }
-
   def constructDataset(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
@@ -757,6 +744,19 @@ object ClassifierImpl {
   val config = ConfigFactory.load()
 
   val logger = LoggerFactory.getLogger(this.getClass)
+
+  /** Populates list of lexicons from config file. Separate function
+    * for easy testing.
+    *
+    * @param labelSet Set of labels
+    * @param ctype Type of classifier
+    * @return map of label -> Seq of lexicon file names
+    */
+  def populateLexiconList(labelSet: Set[String], ctype: String) = {
+    labelSet.foldLeft(Map[String, Seq[String]]())(
+      (m, l) => m + (l ->
+        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
+  }
 
   def loadFollowees(accounts: Seq[TwitterAccount], variable: String): Map[String, Seq[String]] = {
     val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followeeRelations"))
