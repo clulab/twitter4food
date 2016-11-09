@@ -135,7 +135,7 @@ object ExamineUser extends App {
     sb.append(s"Description: ${ta.description}\n")
 
     if (ta.tweets.isEmpty) {
-      sb.append("No tweets found!")
+      sb.append("No tweets found!\n")
     } else {
       val relevance = ta.normalTweets
         .groupBy(_.text).map(_._2.head) // remove repeats
@@ -149,7 +149,7 @@ object ExamineUser extends App {
       val mostRelevant = relevance.toSeq.sortBy(_._2).reverse.take(tweetsToDisplay).sortBy(_._1.createdAt)
       sb.append("Most relevant tweets:\n")
       mostRelevant.foreach(t => sb.append(s"\t[${t._1.createdAt}] ${t._1.text}\n"))
-      sb.toString
     }
+    sb.toString
   }
 }
