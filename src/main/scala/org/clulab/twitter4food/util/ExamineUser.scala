@@ -32,6 +32,8 @@ object ExamineUser extends App {
   var users = Map[TwitterAccount,String]()
   var lexicon = Set[String]()
 
+  printCorpora
+  
   while (users.isEmpty) {
     reader.readLine match {
       case "1" => // overweight
@@ -80,6 +82,12 @@ object ExamineUser extends App {
         }
     }
   }
+
+  // manual terminal cleanup
+  reader.getTerminal().restore()
+  reader.shutdown()
+
+
 
   def printCorpora: Unit = {
     println("[1] overweight classifier corpus")
