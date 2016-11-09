@@ -7,7 +7,6 @@ package org.clulab.twitter4food.struct
   */
 class TwitterAccount (
   // TODO: add network information
-  // TODO: Currently only stores top 100 tweets
   // TODO: Filter RTs and replies
 
   val handle: String,
