@@ -133,13 +133,12 @@ object ExamineUser extends App {
     sb.append(s"Label: $lbl\n")
     sb.append(s"Name: ${ta.name}\n")
     sb.append(s"Description: ${ta.description}\n")
+    // normal tweets (not replies or addressed tweets) w/o repeats
+    val normals = ta.normalTweets.groupBy(_.text.substring(0,40)).map(_._2.head)
+    sb.append(s"# tweets: ${normals.length}")
 
-    if (ta.tweets.isEmpty) {
-      sb.append("No tweets found!\n")
-    } else {
-      val relevance = ta.normalTweets
-        .groupBy(_.text.substring(0,40)).map(_._2.head) // remove repeats
-        .map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
+    if (ta.tweets.nonEmpty) {
+      val relevance = normals.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
       val relevantTerms = relevance.values.toSeq
       val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
       val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
