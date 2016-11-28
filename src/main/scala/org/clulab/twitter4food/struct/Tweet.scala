@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.struct
 
+import java.util
+
 /**
   * Stores information about an individual tweet
   * User: mihais
@@ -35,4 +37,6 @@ class Tweet (val text: String,
     * Returns true if the tweet is "normal", i.e. not a retweet or addressed to other accounts
     */
   def isNormal: Boolean = !this.isAddressed && !this.isRetweet
+
+  def asFeatures: util.Collection[String] = this.text.split("\\s+").to[util.Collection]
 }

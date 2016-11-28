@@ -20,6 +20,10 @@ class TwitterAccount (
 
   override def toString = s"$handle: ($name, $description)"
 
+  def size: Int = this.tweets.length
+
+  def datum(i: Int) = tweets(i)
+
   /**
     * Returns a copy of this [[TwitterAccount]], optionally specifying new input values
     */
