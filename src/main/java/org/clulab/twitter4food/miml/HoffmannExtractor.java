@@ -136,7 +136,10 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
     labelIndex = dataset.labelIndex();
     // add the NIL label
-    labelIndex.add(RelationMention.UNRELATED);
+
+    // TODO Dane: not needed; this is explicit in our model
+    // Dane: add ORGs with RelationMention.UNRELATED label
+    //labelIndex.add(RelationMention.UNRELATED);
     nilIndex = labelIndex.indexOf(RelationMention.UNRELATED);
     zFeatureIndex = dataset.featureIndex();
 
@@ -157,6 +160,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       // traverse the relation dataset
       for(int i = 0; i < dataset.size(); i ++){
         int [][] crtGroup = dataset.getDataArray()[i];
+        // TODO Dane: fetch the values as well, and pass them to trainJointly
         Set<Integer> goldPos = dataset.getPositiveLabelsArray()[i];
 
         trainJointly(crtGroup, goldPos, posUpdateStats, negUpdateStats);
@@ -181,14 +185,17 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
           Counter<Integer> posUpdateStats,
           Counter<Integer> negUpdateStats) {
     // all local predictions using local Z models
+    // Dane: this is simply generating *all* predictions for each tweet
     List<Counter<Integer>> zs = estimateZ(crtGroup);
     // best predictions for each mention
+    // Dane: this is picking the best label for each tweet
     int [] zPredicted = generateZPredicted(zs);
 
     // yPredicted - Y labels predicted using the current Zs (full inference)
+    // Dane: this is picking the account label supported by most tweets
     Counter<Integer> yPredicted = estimateY(zPredicted);
 
-    if(updateCondition(yPredicted.keySet(), goldPos)){
+    if(updateCondition(yPredicted.keySet(), goldPos)){ // Dane: this is checking if the account label != gold (no need to change anything)
       // conditional inference
       Set<Integer> [] zUpdate = generateZUpdate(goldPos, zs);
       // update weights
@@ -209,9 +216,26 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       // list of all possible gold labels for this mention (z)
       // for theoretical reasons this is a set, but in practice it will have a single value
       // also, for NIL labels, this set is empty
+      // TODO Dane: for you, for NIL labels, this set is *not* empty, it has _NR
       Set<Integer> gold = goldZ[i];
       int pred = predictedZ[i];
       int [] datum = group[i];
+
+      // TODO Dane IMPORTANT: this can be simplified in your case, because NIL is just another label
+      // The whole block changes
+
+      // negative update
+      if(! gold.contains(pred)) {
+        zWeights[pred].update(datum, -1.0);
+        // TODO Dane: add stats on number of neg updates (negUpdateStats)
+      }
+      // positive update
+      for(int l: gold) {
+        if(l != pred) {
+          zWeights[l].update(datum, +1.0);
+          // TODO Dane: add stats on number of pos updates (posUpdateStats)
+        }
+      }
 
       // negative update
       if(pred != nilIndex && ! gold.contains(pred)) {
@@ -328,6 +352,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       zUpdate[i] = new HashSet<Integer>();
 
     // build all edges, for NIL + gold labels
+    // Dane: this is the graph in Fig 3; it is exhaustive: from each mention to all labels!
     List<Edge> edges = new ArrayList<Edge>();
     for(int m = 0; m < zs.size(); m ++) {
       for(Integer y: zs.get(m).keySet()) {
@@ -339,6 +364,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
 
     // there are more Ys than mentions
+    // Dane: this doesn't apply to you
     if(goldPos.size() > zs.size()) {
       // sort in descending order of scores
       Collections.sort(edges, new Comparator<Edge>() {
@@ -365,7 +391,15 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
     // there are more mentions than relations
 
+    //
+    //
+    // TODO Dane: THIS IS THE IMPORTANT BLOCK OF CODE
+    //
+    //
+
     // for each Y, pick the highest edge from an unmapped mention
+    // Dane: this is where we flip the ones that are most easily flippable to the gold label
+    // This should work as is
     Map<Integer, List<Edge>> edgesByY = byY(edges);
     for(Integer y: goldPos) {
       List<Edge> es = edgesByY.get(y);
@@ -373,7 +407,10 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       for(Edge e: es) {
         if(zUpdate[e.mention].size() == 0) {
           zUpdate[e.mention].add(e.y);
-          break;
+          break; // this means that the condition is satisfied
+          // TODO Dane: change this to your constraint
+          // Currently, this is happy if "at least one" tweet has the correct label
+          // You should have at least K% tweets with the gold label
         }
       }
     }
@@ -385,7 +422,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         List<Edge> es = edgesByZ.get(m);
         assert(es != null);
         assert(es.size() > 0);
-        if(nilIndex != es.get(0).y) {
+        if(nilIndex != es.get(0).y) { // TOOD Dane: change this! We allow NIL predictions in our model
           zUpdate[m].add(es.get(0).y);
         }
       }
@@ -401,7 +438,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   private Counter<Integer> estimateY(int [] zPredicted) {
     Counter<Integer> ys = new ClassicCounter<Integer>();
     for(int zp: zPredicted) {
-      if(zp != nilIndex) {
+      if(zp != nilIndex) { // TODO Dane: this is no longer necessary; we allow nilIndex for entire accounts, i.e., ORGs
         ys.setCount(zp, 1);
       }
     }
@@ -418,10 +455,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
   private Counter<Integer> estimateZ(int [] datum) {
     Counter<Integer> vector = new ClassicCounter<Integer>();
-    for(int d: datum) vector.incrementCount(d);
+    for(int d: datum) vector.incrementCount(d); // TODO Dane: use actual feature values in "vector"
 
     Counter<Integer> scores = new ClassicCounter<Integer>();
     for(int label = 0; label < zWeights.length; label ++){
+      // TODO Dane: make sure dot product is using feature values
       double score = zWeights[label].dotProduct(vector);
       scores.setCount(label, score);
     }

@@ -539,6 +539,7 @@ public class MultiR {
           p.trainY,
           true); // this is just a LR
     } else if(p.type == ModelType.AT_LEAST_ONCE) {
+      // TODO Dane: use this model first!
       extractor = new HoffmannExtractor(p.numberOfTrainEpochs);
     } else {
       throw new RuntimeException("ERROR: unsupported model type: " + p.type);
