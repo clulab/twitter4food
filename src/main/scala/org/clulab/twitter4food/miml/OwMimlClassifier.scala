@@ -10,6 +10,8 @@ import org.clulab.twitter4food.struct.RvfMLDataset
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
+import scalaj.collection.Imports._
+
 object OwMimlClassifier {
   def main(args:Array[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
@@ -65,7 +67,7 @@ object OwMimlClassifier {
 
     val byClass: Map[Int, Seq[Int]] = r
       .shuffle[Int, IndexedSeq](dataset.getDataArray.indices)
-      .groupBy(idx => dataset.getLabelsArray()(idx).toArray.asInstanceOf[Array[Int]].head)
+      .groupBy(idx => dataset.getLabelsArray()(idx).asScala.head)
     val folds = (for (i <- 0 until numFolds) yield (i, new ArrayBuffer[TrainTestFold])).toMap
 
     for {
