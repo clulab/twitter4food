@@ -4,18 +4,15 @@ import org.clulab.twitter4food.struct.{RvfMLDataset, TwitterAccount}
 import org.clulab.twitter4food.util.{FileUtils, Utils}
 import org.clulab.twitter4food.util.Utils.Config
 import org.slf4j.LoggerFactory
-import edu.stanford.nlp.util.HashIndex
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 
 import scala.collection.mutable.ArrayBuffer
 
 object OverweightDataConstructor {
 
-  import org.clulab.twitter4food.featureclassifier.ClassifierImpl._
-
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def constructMimlDataset[L,F](params: Config): RvfMLDataset[L,F] = {
+  def constructMimlDataset(accounts: Seq[(TwitterAccount, String)], params: Config): RvfMLDataset[String, String] = {
 
     // List of features that can apply to a single tweet (not followers, e.g.)
     // if these are all false, set default to true to use unigrams anyway
@@ -53,30 +50,30 @@ object OverweightDataConstructor {
       variable = "overweight"
     )
 
-    logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
-      .toSeq
-      .filter(_._1.tweets.nonEmpty)
+    logger.info("Splitting accounts into instances...")
+    val ds = new RvfMLDataset[String, String](accounts.length)
 
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
-
-    val features = new ArrayBuffer[ArrayBuffer[Array[Int]]]
-    val values = new ArrayBuffer[ArrayBuffer[Array[Double]]]
-    val featureIndex = new HashIndex[F]
-    val labelIndex = new HashIndex[L]
-    val labels = new ArrayBuffer[Set[Int]]
-
-    for ((account, label) <- subsampled) {
+    for ((account, lbl) <- accounts) {
+      // Dataset with one row per instance (tweet)
+      // The datasets labels are meaningless for now, hence "NONCE" -- this shouldn't be passed forward
       val instances = splitAccount(account)
-      val dataset = ci.constructDataset(instances, List.fill(instances.length)(label), None, None)
-      features.append(dataset.features)
-      values.append(dataset.values)
-      // TODO: Add to featureIndex and labelIndex -- MAKE SURE INDICES ALIGN TO APPENDED FEATURES
+      val dataset = ci.constructDataset(instances, List.fill(instances.length)("NONCE"), followers = None, followees = None)
+
+      // Add by feature NAME, not feature INDEX
+      val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
+      // MIML solvers need java.lang.Doubles
+      val javaValues = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
+      // a singleton set containing the gold label
+      val label = new java.util.HashSet[String](1)
+      label.add(lbl)
+      // add this account (datum) with all its instances
+      ds.add(label, listify(featureStrings), listify(javaValues))
     }
+
+    ds
   }
 
+  // Spoof a separate twitter account for each tweet just to piggyback on feature generation
   def splitAccount(account: TwitterAccount): Seq[TwitterAccount] = {
     for (tweet <- account.tweets) yield {
       new TwitterAccount(
@@ -91,6 +88,17 @@ object OverweightDataConstructor {
         Nil
       )
     }
+  }
+
+  // Scala Array* to java List
+  def listify[T](array: ArrayBuffer[Array[T]]): java.util.List[java.util.List[T]] = {
+    val list = new java.util.ArrayList[java.util.ArrayList[T]](array.length)
+    array.foreach{ inner =>
+      val el = new java.util.ArrayList[T](inner.length)
+      inner.foreach(t => el.add(t))
+      list.add(el)
+    }
+    list.asInstanceOf[java.util.List[java.util.List[T]]]
   }
 
 }

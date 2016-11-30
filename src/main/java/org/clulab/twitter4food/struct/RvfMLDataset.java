@@ -207,5 +207,4 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     values[size] = datumValues;
   }
 
-
 }

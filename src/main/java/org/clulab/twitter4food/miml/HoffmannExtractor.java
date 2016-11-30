@@ -3,18 +3,18 @@ package org.clulab.twitter4food.miml;
 import edu.stanford.nlp.ie.machinereading.structure.RelationMention;
 import edu.stanford.nlp.stats.ClassicCounter;
 import edu.stanford.nlp.stats.Counter;
-import edu.stanford.nlp.util.ErasureUtils;
-import edu.stanford.nlp.util.Index;
-import edu.stanford.nlp.util.Pair;
-import edu.stanford.nlp.util.PropertiesUtils;
+import edu.stanford.nlp.util.*;
 import org.clulab.twitter4food.struct.MultiLabelDataset;
+import org.clulab.twitter4food.struct.RvfMLDataset;
 
 import java.io.*;
 import java.util.*;
 
 /**
- * Implements as closely as possible the MultiR algorithm from (Hoffmann et al., 2011)
+ * Implements as closely as possible the MultiR algorithm from (Hoffmann et al., 2011),
+ * edited to apply to Twitter accounts rather than entity relations in text.
  * @author Mihai
+ * @author Dane
  */
 public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   private static final long serialVersionUID = 1L;
@@ -129,17 +129,15 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     Log.severe("epochs = " + epochs);
   }
 
+  @Override
   public void train(MultiLabelDataset<String, String> dataset) {
     Log.severe("Training the \"at least once\" model using "
-            + dataset.featureIndex().size() + " features and "
-            + "the following labels: " + dataset.labelIndex().toString());
+        + dataset.featureIndex().size() + " features and "
+        + "the following labels: " + dataset.labelIndex().toString());
 
     labelIndex = dataset.labelIndex();
     // add the NIL label
-
-    // TODO Dane: not needed; this is explicit in our model
-    // Dane: add ORGs with RelationMention.UNRELATED label
-    //labelIndex.add(RelationMention.UNRELATED);
+    labelIndex.add(RelationMention.UNRELATED);
     nilIndex = labelIndex.indexOf(RelationMention.UNRELATED);
     zFeatureIndex = dataset.featureIndex();
 
@@ -160,8 +158,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       // traverse the relation dataset
       for(int i = 0; i < dataset.size(); i ++){
         int [][] crtGroup = dataset.getDataArray()[i];
-        // TODO Dane: fetch the values as well, and pass them to trainJointly
-        Set<Integer> goldPos = dataset.getPositiveLabelsArray()[i];
+        Set<Integer> goldPos = dataset.getLabelsArray()[i];
 
         trainJointly(crtGroup, goldPos, posUpdateStats, negUpdateStats);
 
@@ -170,9 +167,54 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       }
 
       Log.severe("Epoch #" + t + " completed. Inspected " +
-              dataset.size() + " datum groups. Performed " +
-              posUpdateStats.getCount(LABEL_ALL) + " ++ updates and " +
-              negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
+          dataset.size() + " datum groups. Performed " +
+          posUpdateStats.getCount(LABEL_ALL) + " ++ updates and " +
+          negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
+    }
+
+    // finalize learning: add the last vector to the avg for each label
+    for(LabelWeights zw: zWeights) zw.addToAverage();
+  }
+
+  public void train(RvfMLDataset<String, String> dataset) {
+    Log.severe("Training the majority model using "
+        + dataset.featureIndex().size() + " features and "
+        + "the following labels: " + dataset.labelIndex().toString());
+
+    labelIndex = dataset.labelIndex();
+    nilIndex = labelIndex.indexOf(RelationMention.UNRELATED);
+    zFeatureIndex = dataset.featureIndex();
+
+    zWeights = new LabelWeights[labelIndex.size()];
+    for(int i = 0; i < zWeights.length; i ++)
+      zWeights[i] = new LabelWeights(dataset.featureIndex().size());
+
+    // repeat for a number of epochs
+    for(int t = 0; t < epochs; t ++){
+      // randomize the data set in each epoch
+      // use a fixed seed for replicability
+      Log.severe("Started epoch #" + t + "...");
+      dataset.randomize(t);
+
+      Counter<Integer> posUpdateStats = new ClassicCounter<Integer>();
+      Counter<Integer> negUpdateStats = new ClassicCounter<Integer>();
+
+      // traverse the relation dataset
+      for(int i = 0; i < dataset.size(); i ++){
+        int [][] crtGroup = dataset.getDataArray()[i];
+        double [][] crtGroupValues = dataset.getValueArray()[i];
+        Set<Integer> gold = dataset.getLabelsArray()[i];
+
+        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats);
+
+        // update the number of iterations an weight vector has survived
+        for(LabelWeights zw: zWeights) zw.updateSurvivalIterations();
+      }
+
+      Log.severe("Epoch #" + t + " completed. Inspected " +
+          dataset.size() + " datum groups. Performed " +
+          posUpdateStats.getCount(LABEL_ALL) + " ++ updates and " +
+          negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
     }
 
     // finalize learning: add the last vector to the avg for each label
@@ -180,22 +222,44 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   }
 
   private void trainJointly(
-          int [][] crtGroup,
-          Set<Integer> goldPos,
-          Counter<Integer> posUpdateStats,
-          Counter<Integer> negUpdateStats) {
+      int [][] crtGroup,
+      Set<Integer> goldPos,
+      Counter<Integer> posUpdateStats,
+      Counter<Integer> negUpdateStats) {
     // all local predictions using local Z models
-    // Dane: this is simply generating *all* predictions for each tweet
     List<Counter<Integer>> zs = estimateZ(crtGroup);
     // best predictions for each mention
-    // Dane: this is picking the best label for each tweet
     int [] zPredicted = generateZPredicted(zs);
 
     // yPredicted - Y labels predicted using the current Zs (full inference)
-    // Dane: this is picking the account label supported by most tweets
     Counter<Integer> yPredicted = estimateY(zPredicted);
 
-    if(updateCondition(yPredicted.keySet(), goldPos)){ // Dane: this is checking if the account label != gold (no need to change anything)
+    if(updateCondition(yPredicted.keySet(), goldPos)){
+      // conditional inference
+      Set<Integer> [] zUpdate = generateZUpdate(goldPos, zs);
+      // update weights
+      updateZModel(zUpdate, zPredicted, crtGroup, posUpdateStats, negUpdateStats);
+    }
+  }
+
+  private void trainJointly(
+      int [][] crtGroup,
+      double [][] crtGroupValues,
+      Set<Integer> goldPos,
+      Counter<Integer> posUpdateStats,
+      Counter<Integer> negUpdateStats) {
+    // all local predictions using local Z models
+    // this is simply generating *all* predictions for each tweet
+    List<Counter<Integer>> zs = estimateZ(crtGroup, crtGroupValues);
+    // best predictions for each instance
+    int [] zPredicted = generateZPredicted(zs);
+
+    // yPredicted - Y labels predicted using the current Zs (full inference)
+    // this is picking the account label supported by most instances
+    Counter<Integer> yPredicted = estimateY(zPredicted);
+
+    // this is checking if the account label != gold (no need to change anything)
+    if(updateCondition(yPredicted.keySet(), goldPos)){
       // conditional inference
       Set<Integer> [] zUpdate = generateZUpdate(goldPos, zs);
       // update weights
@@ -204,65 +268,35 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   }
 
   private void updateZModel(
-          Set<Integer> [] goldZ,
-          int [] predictedZ,
-          int [][] group,
-          Counter<Integer> posUpdateStats,
-          Counter<Integer> negUpdateStats) {
+      Set<Integer> [] goldZ,
+      int [] predictedZ,
+      int [][] group,
+      Counter<Integer> posUpdateStats,
+      Counter<Integer> negUpdateStats) {
     assert(goldZ.length == group.length);
     assert(predictedZ.length == group.length);
 
     for(int i = 0; i < group.length; i ++) {
       // list of all possible gold labels for this mention (z)
       // for theoretical reasons this is a set, but in practice it will have a single value
-      // also, for NIL labels, this set is empty
-      // TODO Dane: for you, for NIL labels, this set is *not* empty, it has _NR
+      // for NIL labels, this set is *not* empty, it has _NR (RelationMention.UNRELATED)
       Set<Integer> gold = goldZ[i];
       int pred = predictedZ[i];
       int [] datum = group[i];
 
-      // TODO Dane IMPORTANT: this can be simplified in your case, because NIL is just another label
-      // The whole block changes
-
       // negative update
       if(! gold.contains(pred)) {
         zWeights[pred].update(datum, -1.0);
-        // TODO Dane: add stats on number of neg updates (negUpdateStats)
+        negUpdateStats.incrementCount(pred);
+        negUpdateStats.incrementCount(LABEL_ALL);
       }
       // positive update
       for(int l: gold) {
         if(l != pred) {
           zWeights[l].update(datum, +1.0);
-          // TODO Dane: add stats on number of pos updates (posUpdateStats)
-        }
-      }
-
-      // negative update
-      if(pred != nilIndex && ! gold.contains(pred)) {
-        zWeights[pred].update(datum, -1.0);
-        negUpdateStats.incrementCount(pred);
-        negUpdateStats.incrementCount(LABEL_ALL);
-      }
-
-      // negative update for NIL
-      if(pred == nilIndex && gold.size() != 0){
-        zWeights[nilIndex].update(datum, -1.0);
-        negUpdateStats.incrementCount(pred);
-      }
-
-      // positive update(s)
-      for(int l: gold) {
-        if(l != nilIndex && l != pred) {
-          zWeights[l].update(datum, +1.0);
           posUpdateStats.incrementCount(l);
           posUpdateStats.incrementCount(LABEL_ALL);
         }
-      }
-
-      // positive update for NIL
-      if(gold.size() == 0 && pred != nilIndex){
-        zWeights[nilIndex].update(datum, +1.0);
-        posUpdateStats.incrementCount(nilIndex);
       }
     }
   }
@@ -345,14 +379,14 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
   /** The conditional inference from (Hoffmann et al., 2011) */
   private Set<Integer> [] generateZUpdate(
-          Set<Integer> goldPos,
-          List<Counter<Integer>> zs) {
+      Set<Integer> goldPos,
+      List<Counter<Integer>> zs) {
     Set<Integer> [] zUpdate = ErasureUtils.uncheckedCast(new Set[zs.size()]);
     for(int i = 0; i < zUpdate.length; i ++)
       zUpdate[i] = new HashSet<Integer>();
 
     // build all edges, for NIL + gold labels
-    // Dane: this is the graph in Fig 3; it is exhaustive: from each mention to all labels!
+    // this is the graph in Hoffman Fig 3; it is exhaustive: from each mention to all labels!
     List<Edge> edges = new ArrayList<Edge>();
     for(int m = 0; m < zs.size(); m ++) {
       for(Integer y: zs.get(m).keySet()) {
@@ -364,7 +398,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
 
     // there are more Ys than mentions
-    // Dane: this doesn't apply to you
+    // this doesn't apply to our Twitter accounts' single labels with multiple tweets
+    /*
     if(goldPos.size() > zs.size()) {
       // sort in descending order of scores
       Collections.sort(edges, new Comparator<Edge>() {
@@ -388,29 +423,25 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
       return zUpdate;
     }
+    */
 
     // there are more mentions than relations
 
-    //
-    //
-    // TODO Dane: THIS IS THE IMPORTANT BLOCK OF CODE
-    //
-    //
-
-    // for each Y, pick the highest edge from an unmapped mention
-    // Dane: this is where we flip the ones that are most easily flippable to the gold label
-    // This should work as is
+    // for each Y, pick the highest edge(s) from an unmapped mention
+    // this is where we flip the ones that are most easily flippable to the gold label
     Map<Integer, List<Edge>> edgesByY = byY(edges);
     for(Integer y: goldPos) {
       List<Edge> es = edgesByY.get(y);
       assert(es != null);
+      int flipThreshold = howManyToFlip(es, y);
+      int flipped = 0;
       for(Edge e: es) {
+        if(flipped >= flipThreshold) {
+          break; // this means that the condition is satisfied
+        }
         if(zUpdate[e.mention].size() == 0) {
           zUpdate[e.mention].add(e.y);
-          break; // this means that the condition is satisfied
-          // TODO Dane: change this to your constraint
-          // Currently, this is happy if "at least one" tweet has the correct label
-          // You should have at least K% tweets with the gold label
+          flipped++;
         }
       }
     }
@@ -422,13 +453,49 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         List<Edge> es = edgesByZ.get(m);
         assert(es != null);
         assert(es.size() > 0);
-        if(nilIndex != es.get(0).y) { // TOOD Dane: change this! We allow NIL predictions in our model
-          zUpdate[m].add(es.get(0).y);
-        }
+        zUpdate[m].add(es.get(0).y); // allow NILs as well
       }
     }
 
     return zUpdate;
+  }
+
+  /**
+   * Determine how many labels to flip according to proportion weighed against the other labels.
+   */
+  private int howManyToFlip(List<Edge> edges, int y) {
+    Map<Integer, List<Edge>> edgesByZ = byZ(edges);
+    double minimumGolds = 0.1;
+    double majorityThreshold = 0.5;
+    double golds = 0.0;
+    double nils = 0.0;
+    double others = 0.0;
+    for(int m = 0; m < edgesByZ.keySet().size(); m ++) {
+      List<Edge> es = edgesByZ.get(m);
+      assert(es != null);
+      assert(es.size() > 0);
+      if(es.get(0).y == y)
+        golds++;
+      else if(es.get(0).y == nilIndex)
+        nils++;
+      else others++;
+    }
+
+    double total = golds + nils + others;
+    double toMajority = Math.ceil(majorityThreshold * (golds + others));
+    // gold is _NF or golds are more than 10% of the total labels -- flip the greatest among:
+    // 0
+    // # needed to exceed other (non-nil) label
+    if(y == nilIndex || golds > 0.10 * total)
+      return (int) Math.max(0.0, toMajority);
+    // too few golds -- flip the greatest number among:
+    // 1
+    // # needed to get to minimumGolds proportion
+    // # needed to exceed other (non-nil) label
+    else {
+      double toMinimum = Math.round(minimumGolds * total) - golds;
+      return (int) Math.max(1.0, Math.max(toMinimum, toMajority));
+    }
   }
 
   /**
@@ -438,9 +505,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   private Counter<Integer> estimateY(int [] zPredicted) {
     Counter<Integer> ys = new ClassicCounter<Integer>();
     for(int zp: zPredicted) {
-      if(zp != nilIndex) { // TODO Dane: this is no longer necessary; we allow nilIndex for entire accounts, i.e., ORGs
-        ys.setCount(zp, 1);
-      }
+      ys.setCount(zp, 1);
     }
     return ys;
   }
@@ -455,11 +520,33 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
   private Counter<Integer> estimateZ(int [] datum) {
     Counter<Integer> vector = new ClassicCounter<Integer>();
-    for(int d: datum) vector.incrementCount(d); // TODO Dane: use actual feature values in "vector"
+    for(int d: datum) vector.incrementCount(d);
 
     Counter<Integer> scores = new ClassicCounter<Integer>();
     for(int label = 0; label < zWeights.length; label ++){
-      // TODO Dane: make sure dot product is using feature values
+      double score = zWeights[label].dotProduct(vector);
+      scores.setCount(label, score);
+    }
+
+    return scores;
+  }
+
+  private List<Counter<Integer>> estimateZ(int [][] datums, double [][] values) {
+    List<Counter<Integer>> zs = new ArrayList<Counter<Integer>>();
+    for(int i = 0; i < datums.length; i++) {
+      zs.add(estimateZ(datums[i], values[i]));
+    }
+    return zs;
+  }
+
+  private Counter<Integer> estimateZ(int [] datum, double [] value) {
+    Counter<Integer> vector = new ClassicCounter<Integer>();
+    for(int i = 0; i < datum.length; i++) {
+      vector.incrementCount(datum[i], value[i]);
+    }
+
+    Counter<Integer> scores = new ClassicCounter<Integer>();
+    for(int label = 0; label < zWeights.length; label ++){
       double score = zWeights[label].dotProduct(vector);
       scores.setCount(label, score);
     }
@@ -484,20 +571,20 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
   private static int pickBestLabel(Counter<Integer> scores) {
     assert(scores.size() > 0);
-    List<Pair<Integer, Double>> sortedScores = sortPredictions(scores);
+    List<Pair<Integer, Double>> sortedScores = sortIntPredictions(scores);
     return sortedScores.iterator().next().first();
   }
 
-  private static List<Pair<Integer, Double>> sortPredictions(Counter<Integer> scores) {
+  private static List<Pair<Integer, Double>> sortIntPredictions(Counter<Integer> scores) {
     List<Pair<Integer, Double>> sortedScores = new ArrayList<Pair<Integer,Double>>();
     for(Integer key: scores.keySet()) {
       sortedScores.add(new Pair<Integer, Double>(key, scores.getCount(key)));
     }
-    sortPredictions(sortedScores);
+    sortIntPredictions(sortedScores);
     return sortedScores;
   }
 
-  private static void sortPredictions(List<Pair<Integer, Double>> scores) {
+  private static void sortIntPredictions(List<Pair<Integer, Double>> scores) {
     Collections.sort(scores, new Comparator<Pair<Integer, Double>>() {
       @Override
       public int compare(Pair<Integer, Double> o1, Pair<Integer, Double> o2) {
@@ -512,6 +599,32 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     });
   }
 
+  public static List<Pair<String, Double>> sortStringPredictions(Counter<String> scores) {
+    List<Pair<String, Double>> sortedScores = new ArrayList<Pair<String,Double>>();
+    for(String key: scores.keySet()) {
+      sortedScores.add(new Pair<String, Double>(key, scores.getCount(key)));
+    }
+    sortStringPredictions(sortedScores);
+    return sortedScores;
+  }
+
+  private static void sortStringPredictions(List<Pair<String, Double>> scores) {
+    Collections.sort(scores, new Comparator<Pair<String, Double>>() {
+      @Override
+      public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
+        if(o1.second() > o2.second()) return -1;
+        if(o1.second().equals(o2.second())){
+          // this is an arbitrary decision to disambiguate ties
+          int c = o1.first().compareTo(o2.first());
+          if(c < 0) return -1;
+          else if(c == 0) return 0;
+          return 1;
+        }
+        return 1;
+      }
+    });
+  }
+
   @Override
   public Counter<String> classifyMentions(List<Collection<String>> mentions) {
     Counter<String> bestZScores = new ClassicCounter<String>();
@@ -522,14 +635,14 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Collection<String> mentionFeatures = mentions.get(i);
       Counter<String> mentionScores = classifyMention(mentionFeatures);
 
-      Pair<String, Double> topPrediction = JointBayesRelationExtractor.sortPredictions(mentionScores).get(0);
+      Pair<String, Double> topPrediction = sortStringPredictions(mentionScores).get(0);
       String l = topPrediction.first();
       double s = topPrediction.second();
 
       // update the best score for this label if necessary
       // exclude the NIL label from this; it is not propagated in the Y layer
       if(! l.equals(RelationMention.UNRELATED) &&
-         (! bestZScores.containsKey(l) || bestZScores.getCount(l) < s)) {
+          (! bestZScores.containsKey(l) || bestZScores.getCount(l) < s)) {
         bestZScores.setCount(l, s);
       }
     }
@@ -547,6 +660,46 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     return scores;
   }
+//
+//  private List<Counter<Integer>> classifyAccounts(RvfMLDataset<String, String> dataset) {
+//    List<List<Counter<Integer>>> predictedLabels = new ArrayList<List<Counter<Integer>>>();
+//    for(int i = 0; i < dataset.size(); i++) {
+//      List<Counter<Integer>> instanceLabels = new ArrayList<Counter<Integer>>();
+//      int[][] rowFeatures = dataset.getDataArray()[i];
+//      double[][] rowValues = dataset.getValueArray()[i];
+//      for(int j = 0; j < dataset; j++){
+//        Counter<Integer> scores = new ClassicCounter<Integer>();
+//      predictedLabels.add(scores);
+//    }
+//    return predictedLabels;
+//  }
+//
+//  public Triple<Double, Double, Double> test(RvfMLDataset<String, String> dataset) {
+//    Set<Integer>[] goldLabels = dataset.getLabelsArray();
+//    List<Counter<Integer>> predictedLabels = classifyAccounts(dataset);
+//
+//    return score(goldLabels, predictedLabels);
+//  }
+//
+//  public static Triple<Double, Double, Double> score(
+//      Set<Integer>[] goldLabels,
+//      List<Counter<Integer>> predictedLabels) {
+//    int total = 0, predicted = 0, correct = 0;
+//    for(int i = 0; i < goldLabels.length; i ++) {
+//      Set<Integer> gold = goldLabels[i];
+//      Counter<Integer> preds = predictedLabels.get(i);
+//      total += gold.size();
+//      predicted += preds.size();
+//      for(Integer label: preds.keySet()) {
+//        if(gold.contains(label)) correct ++;
+//      }
+//    }
+//
+//    double p = (double) correct / (double) predicted;
+//    double r = (double) correct / (double) total;
+//    double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
+//    return new Triple<Double, Double, Double>(p, r, f1);
+//  }
 
   @Override
   public void save(String modelPath) throws IOException {
@@ -592,6 +745,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     zFeatureIndex = ErasureUtils.uncheckedCast(in.readObject());
   }
 
+  /*
   public static RelationExtractor load(String modelPath, Properties props) throws IOException, ClassNotFoundException {
     InputStream is = new FileInputStream(modelPath);
     ObjectInputStream in = new ObjectInputStream(is);
@@ -601,4 +755,5 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     is.close();
     return ex;
   }
+  */
 }

@@ -28,7 +28,8 @@ libraryDependencies ++= Seq(
   "net.sf.trove4j" % "trove4j" % "2.0.2",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
   "com.github.scopt" %% "scopt" % "3.4.0",
-  "me.tongfei" % "progressbar" % "0.4.0"
+  "me.tongfei" % "progressbar" % "0.4.0",
+  "org.scalaj" %% "scalaj-collection" % "1.6"
 )
 
 dependencyOverrides += "net.sf.trove4j" % "trove4j" % "2.0.2"
