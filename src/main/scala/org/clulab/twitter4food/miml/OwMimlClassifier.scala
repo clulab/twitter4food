@@ -10,8 +10,6 @@ import org.clulab.twitter4food.struct.RvfMLDataset
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-import scalaj.collection.Imports._
-
 object OwMimlClassifier {
   def main(args:Array[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
