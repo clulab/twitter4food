@@ -179,7 +179,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
       List<F> ifeats = newFeatures.get(i);
       List<Double> ivals = newValues.get(i);
       int[] iFeatures = new int[ifeats.size()];
-      double[] iValues = new double[ifeats.size()];
+      double[] iValues = new double[ivals.size()];
       int j = 0; // source index
       int k = 0; // target index
       while (j < ifeats.size()) {
@@ -191,6 +191,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
           iValues[k] = ivals.get(j);
           k++;
         }
+        j++;
       }
 
       int [] trimmedFeatures = new int[j];

@@ -19,7 +19,7 @@ object OwMimlClassifier {
     val params = Utils.parseArgs(args)
     val config = ConfigFactory.load
 
-    val unrel = RelationMention.UNRELATED
+    val unrelated = RelationMention.UNRELATED
 
     // load all accounts labeled either "Overweight" or "Not overweight"
     logger.info("Loading Twitter accounts")
@@ -32,10 +32,10 @@ object OwMimlClassifier {
       .toSeq
       .filter(_._2 == "org")
       .filter(_._1.tweets.nonEmpty)
-      .map{ case (acct, lbl) => (acct, unrel) }
+      .map{ case (acct, lbl) => (acct, unrelated) }
 
     // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.4, "Not overweight" -> 0.4, unrel -> 0.2 )
+    val desiredProps = Map( "Overweight" -> 0.4, "Not overweight" -> 0.4, unrelated -> 0.2 )
     val subsampled = Utils.subsample(owAccts ++ orgAccts, desiredProps)
 
     val dataset = OverweightDataConstructor.constructMimlDataset(subsampled, params)

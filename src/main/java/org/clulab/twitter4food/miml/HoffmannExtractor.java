@@ -660,46 +660,46 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     return scores;
   }
-//
-//  private List<Counter<Integer>> classifyAccounts(RvfMLDataset<String, String> dataset) {
-//    List<List<Counter<Integer>>> predictedLabels = new ArrayList<List<Counter<Integer>>>();
-//    for(int i = 0; i < dataset.size(); i++) {
-//      List<Counter<Integer>> instanceLabels = new ArrayList<Counter<Integer>>();
-//      int[][] rowFeatures = dataset.getDataArray()[i];
-//      double[][] rowValues = dataset.getValueArray()[i];
-//      for(int j = 0; j < dataset; j++){
-//        Counter<Integer> scores = new ClassicCounter<Integer>();
-//      predictedLabels.add(scores);
-//    }
-//    return predictedLabels;
-//  }
-//
-//  public Triple<Double, Double, Double> test(RvfMLDataset<String, String> dataset) {
-//    Set<Integer>[] goldLabels = dataset.getLabelsArray();
-//    List<Counter<Integer>> predictedLabels = classifyAccounts(dataset);
-//
-//    return score(goldLabels, predictedLabels);
-//  }
-//
-//  public static Triple<Double, Double, Double> score(
-//      Set<Integer>[] goldLabels,
-//      List<Counter<Integer>> predictedLabels) {
-//    int total = 0, predicted = 0, correct = 0;
-//    for(int i = 0; i < goldLabels.length; i ++) {
-//      Set<Integer> gold = goldLabels[i];
-//      Counter<Integer> preds = predictedLabels.get(i);
-//      total += gold.size();
-//      predicted += preds.size();
-//      for(Integer label: preds.keySet()) {
-//        if(gold.contains(label)) correct ++;
-//      }
-//    }
-//
-//    double p = (double) correct / (double) predicted;
-//    double r = (double) correct / (double) total;
-//    double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
-//    return new Triple<Double, Double, Double>(p, r, f1);
-//  }
+
+  private List<Counter<Integer>> classifyAccounts(RvfMLDataset<String, String> dataset) {
+    List<List<Counter<Integer>>> predictedLabels = new ArrayList<List<Counter<Integer>>>();
+    for(int i = 0; i < dataset.size(); i++) {
+      int[][] rowFeatures = dataset.getDataArray()[i];
+      double[][] rowValues = dataset.getValueArray()[i];
+      List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
+      // best predictions for each instance
+      int [] zPredicted = generateZPredicted(zs);
+
+    }
+    return predictedLabels;
+  }
+
+  public Triple<Double, Double, Double> test(RvfMLDataset<String, String> dataset) {
+    Set<Integer>[] goldLabels = dataset.getLabelsArray();
+    List<Counter<Integer>> predictedLabels = classifyAccounts(dataset);
+
+    return score(goldLabels, predictedLabels);
+  }
+
+  public static Triple<Double, Double, Double> score(
+      Set<Integer>[] goldLabels,
+      List<Counter<Integer>> predictedLabels) {
+    int total = 0, predicted = 0, correct = 0;
+    for(int i = 0; i < goldLabels.length; i ++) {
+      Set<Integer> gold = goldLabels[i];
+      Counter<Integer> preds = predictedLabels.get(i);
+      total += gold.size();
+      predicted += preds.size();
+      for(Integer label: preds.keySet()) {
+        if(gold.contains(label)) correct ++;
+      }
+    }
+
+    double p = (double) correct / (double) predicted;
+    double r = (double) correct / (double) total;
+    double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
+    return new Triple<Double, Double, Double>(p, r, f1);
+  }
 
   @Override
   public void save(String modelPath) throws IOException {
