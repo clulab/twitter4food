@@ -207,7 +207,24 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     assert(i == newFeatures.size());
     data[size] = datumFeatures;
     values[size] = datumValues;
-    System.out.print("size " + String.valueOf(size) + " of " + String.valueOf(Array.getLength(values)));
+    // System.out.print("size " + String.valueOf(size) + " of " + String.valueOf(Array.getLength(values)) + "\n");
+    ensureSize();
   }
 
+  @SuppressWarnings("unchecked")
+  protected void ensureSize() {
+    if (labels.length == size) {
+      Set<Integer> [] newLabels = new Set[size * 2];
+      System.arraycopy(labels, 0, newLabels, 0, size);
+      labels = newLabels;
+
+      int[][][] newData = new int[size * 2][][];
+      System.arraycopy(data, 0, newData, 0, size);
+      data = newData;
+
+      double[][][] newValues = new double[size * 2][][];
+      System.arraycopy(values, 0, newValues, 0, size);
+      values = newValues;
+    }
+  }
 }

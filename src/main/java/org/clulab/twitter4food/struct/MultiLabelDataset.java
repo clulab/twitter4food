@@ -245,7 +245,7 @@ public class MultiLabelDataset<L, F> implements Serializable {
       
       int[][][] newData = new int[size * 2][][];
       System.arraycopy(data, 0, newData, 0, size);
-      data = newData;      
+      data = newData;
     }
   }
 }
