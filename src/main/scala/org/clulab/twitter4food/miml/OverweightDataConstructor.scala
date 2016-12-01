@@ -53,6 +53,7 @@ object OverweightDataConstructor {
     logger.info("Splitting accounts into instances...")
     val ds = new RvfMLDataset[String, String](accounts.length)
 
+    var i = 0
     for ((account, lbl) <- accounts) {
       // Dataset with one row per instance (tweet)
       // The datasets labels are meaningless for now, hence "NONCE" -- this shouldn't be passed forward
@@ -67,6 +68,8 @@ object OverweightDataConstructor {
       val label = new java.util.HashSet[String](1)
       label.add(lbl)
       // add this account (datum) with all its instances
+      logger.debug(s"$i: ${account.name} -> $lbl")
+      i += 1
       ds.add(label, listify(featureStrings), listify(javaValues))
     }
 
