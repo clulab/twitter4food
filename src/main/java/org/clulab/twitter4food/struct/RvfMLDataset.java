@@ -3,6 +3,7 @@ package org.clulab.twitter4food.struct;
 import edu.stanford.nlp.util.HashIndex;
 import edu.stanford.nlp.util.Index;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
@@ -206,6 +207,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     assert(i == newFeatures.size());
     data[size] = datumFeatures;
     values[size] = datumValues;
+    System.out.print("size " + String.valueOf(size) + " of " + String.valueOf(Array.getLength(values)));
   }
 
 }

@@ -58,7 +58,12 @@ object OverweightDataConstructor {
       // Dataset with one row per instance (tweet)
       // The datasets labels are meaningless for now, hence "NONCE" -- this shouldn't be passed forward
       val instances = splitAccount(account)
-      val dataset = ci.constructDataset(instances, List.fill(instances.length)("NONCE"), followers = None, followees = None)
+      val dataset = ci.constructDataset(instances,
+        List.fill(instances.length)("NONCE"),
+        followers = None,
+        followees = None,
+        progressBar = false
+      )
 
       // Add by feature NAME, not feature INDEX
       val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))

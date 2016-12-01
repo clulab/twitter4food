@@ -101,7 +101,8 @@ class ClassifierImpl(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     followers: Option[Map[String, Seq[TwitterAccount]]],
-    followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
+    followees: Option[Map[String, Seq[String]]],
+    progressBar: Boolean = true): RVFDataset[String, String] = {
 
     // Load lexicons before calling train
     if(useDictionaries) {
@@ -116,20 +117,22 @@ class ClassifierImpl(
     val dataset = new RVFDataset[String, String]()
 
     val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
-    pb.start()
-    pb.maxHint(accounts.size)
-    pb.setExtraMessage("Populating...")
+    if (progressBar) {
+      pb.start()
+      pb.maxHint(accounts.size)
+      pb.setExtraMessage("Populating...")
+    }
 
     // make datums
     val datums = ((accounts.toArray zip labels).par map {
       case (account, label) => {
-        pb.step()
+        if (progressBar) pb.step()
         // keep handle to sort with
         (account.handle, featureExtractor.mkDatum(account, label))
       }
     }).seq.sortBy(_._1).unzip._2
 
-    pb.stop()
+    if (progressBar) pb.stop()
 
     datums.foreach(datum => this.synchronized { dataset += datum })
 
