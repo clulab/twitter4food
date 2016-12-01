@@ -332,7 +332,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   Map<Integer, List<Edge>> byY(List<Edge> edges) {
     Map<Integer, List<Edge>> edgesByY = new HashMap<Integer, List<Edge>>();
     for(Edge e: edges) {
-      if(e.y == nilIndex) continue;
+      //if(e.y == nilIndex) continue; // nilIndex labels are allowed!
       List<Edge> yEdges = edgesByY.get(e.y);
       if(yEdges == null) {
         yEdges = new ArrayList<Edge>();
@@ -405,7 +405,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(Integer y: goldPos) {
       List<Edge> es = edgesByY.get(y);
       assert(es != null);
-      System.out.print(String.valueOf(es.size()) + "\n");
+      //System.out.print(String.valueOf(es.size()) + "\n");
       int flipThreshold = howManyToFlip(es, y);
       int flipped = 0;
       for(Edge e: es) {
