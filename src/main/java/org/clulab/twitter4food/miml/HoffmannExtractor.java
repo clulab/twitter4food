@@ -405,7 +405,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(Integer y: goldPos) {
       List<Edge> es = edgesByY.get(y);
       assert(es != null);
-      System.out.print(String.valueOf(es.size()) + "\n")
+      System.out.print(String.valueOf(es.size()) + "\n");
       int flipThreshold = howManyToFlip(es, y);
       int flipped = 0;
       for(Edge e: es) {
