@@ -47,7 +47,7 @@ object OwMimlClassifier {
     val seed = 71
     val partitions = mkStratifiedTrainTestFolds[String, String](numFolds, dataset, seed)
 
-    for (partition <- partitions) {
+    for (partition <- partitions.par) {
       val extractor = new HoffmannExtractor(config.getInt("classifiers.miml.epochs"))
       logger.info("Preparing partition...")
       val (train, test) = cutDataset(dataset, partition)

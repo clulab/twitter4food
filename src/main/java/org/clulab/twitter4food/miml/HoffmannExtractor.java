@@ -150,7 +150,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(int t = 0; t < epochs; t ++){
       // randomize the data set in each epoch
       // use a fixed seed for replicability
-      Log.severe("Started epoch #" + t + "...");
+      Log.info("Started epoch #" + t + "...");
+      Log.info("Randomizing...");
       dataset.randomize(t);
 
       Counter<Integer> posUpdateStats = new ClassicCounter<Integer>();
@@ -158,6 +159,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
       // traverse the relation dataset
       for(int i = 0; i < dataset.size(); i ++){
+        Log.info("Row " + i);
         int [][] crtGroup = dataset.getDataArray()[i];
         Set<Integer> goldPos = dataset.getLabelsArray()[i];
 
