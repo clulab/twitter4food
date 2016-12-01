@@ -48,9 +48,10 @@ object OwMimlClassifier {
     val partitions = mkStratifiedTrainTestFolds[String, String](numFolds, dataset, seed)
 
     for (partition <- partitions.par) {
+      val ds = dataset.copy()
       val extractor = new HoffmannExtractor(config.getInt("classifiers.miml.epochs"))
       logger.info("Preparing partition...")
-      val (train, test) = cutDataset(dataset, partition)
+      val (train, test) = cutDataset(ds, partition)
       logger.info("Randomizing partition...")
       dataset.randomize(1)
       logger.info("Applying feature count threshold...")

@@ -227,4 +227,20 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
       values = newValues;
     }
   }
+
+  public RvfMLDataset<L, F> copy() {
+    return new RvfMLDataset<L, F>(this.getDataArray().clone(),
+        this.getValueArray().clone(),
+        cloneFIndex(featureIndex),
+        cloneLIndex(labelIndex),
+        labels.clone());
+  }
+
+  private Index<L> cloneLIndex(Index<L> from) {
+    return new HashIndex<L>(from);
+  }
+
+  private Index<F> cloneFIndex(Index<F> from) {
+    return new HashIndex<F>(from);
+  }
 }
