@@ -19,6 +19,7 @@ import java.util.*;
 public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   private static final long serialVersionUID = 1L;
   private static final int LABEL_ALL = -1;
+  private static final double noneThreshold = 0.5;
 
   /**
    * Stores weight information for one label
@@ -397,42 +398,14 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       }
     }
 
-    // there are more Ys than mentions
-    // this doesn't apply to our Twitter accounts' single labels with multiple tweets
-    /*
-    if(goldPos.size() > zs.size()) {
-      // sort in descending order of scores
-      Collections.sort(edges, new Comparator<Edge>() {
-        @Override
-        public int compare(Edge o1, Edge o2) {
-          if(o1.score > o2.score) return -1;
-          else if(o1.score == o2.score) return 0;
-          return 1;
-        }
-      });
-
-      // traverse edges and cover as many Ys as possible
-      Set<Integer> coveredYs = new HashSet<Integer>();
-      for(Edge e: edges) {
-        if(e.y == nilIndex) continue;
-        if(! coveredYs.contains(e.y) && zUpdate[e.mention].size() == 0) {
-          zUpdate[e.mention].add(e.y);
-          coveredYs.add(e.y);
-        }
-      }
-
-      return zUpdate;
-    }
-    */
-
-    // there are more mentions than relations
-
+    // assume there are more mentions than relations
     // for each Y, pick the highest edge(s) from an unmapped mention
     // this is where we flip the ones that are most easily flippable to the gold label
     Map<Integer, List<Edge>> edgesByY = byY(edges);
     for(Integer y: goldPos) {
       List<Edge> es = edgesByY.get(y);
       assert(es != null);
+      System.out.print(String.valueOf(es.size()) + "\n")
       int flipThreshold = howManyToFlip(es, y);
       int flipped = 0;
       for(Edge e: es) {
@@ -464,6 +437,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
    * Determine how many labels to flip according to proportion weighed against the other labels.
    */
   private int howManyToFlip(List<Edge> edges, int y) {
+    if (edges.size() == 0) return 0;
     Map<Integer, List<Edge>> edgesByZ = byZ(edges);
     double minimumGolds = 0.1;
     double majorityThreshold = 0.5;
@@ -662,14 +636,28 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   }
 
 //  private List<Counter<Integer>> classifyAccounts(RvfMLDataset<String, String> dataset) {
-//    List<List<Counter<Integer>>> predictedLabels = new ArrayList<List<Counter<Integer>>>();
+//    List<Counter<Integer>> predictedLabels = new ArrayList<Counter<Integer>>();
 //    for(int i = 0; i < dataset.size(); i++) {
 //      int[][] rowFeatures = dataset.getDataArray()[i];
 //      double[][] rowValues = dataset.getValueArray()[i];
 //      List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
 //      // best predictions for each instance
 //      int [] zPredicted = generateZPredicted(zs);
+//      // for now, give NIL label if above threshold, otherwise choose majority label
+//      Counter<Integer> iLabels = new ClassicCounter<>();
+//      for(int j = 0; j < zPredicted.length; j++)
+//        iLabels.incrementCount(zPredicted[j]);
+//      Counter<Integer> iLabel = new ClassicCounter<>();
+//      if(iLabels.getCount(nilIndex) > noneThreshold * (double) iLabels.size()) {
+//        iLabel.incrementCount(nilIndex);
+//      } else {
+//        int greatestIndex = nilIndex;
+//        double greatestValue = 0.0;
+//        for(kv: iLabels.entrySet().iterator()) {
 //
+//        }
+//      }
+//      predictedLabels.add(iLabel);
 //    }
 //    return predictedLabels;
 //  }

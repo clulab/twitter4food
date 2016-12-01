@@ -13,6 +13,9 @@ import scala.util.Random
 import scalaj.collection.Imports._
 
 object OwMimlClassifier {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
+
   def main(args:Array[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -46,9 +49,13 @@ object OwMimlClassifier {
 
     for (partition <- partitions) {
       val extractor = new HoffmannExtractor(config.getInt("classifiers.miml.epochs"))
+      logger.info("Preparing partition...")
       val (train, test) = cutDataset(dataset, partition)
+      logger.info("Randomizing partition...")
       dataset.randomize(1)
+      logger.info("Applying feature count threshold...")
       dataset.applyFeatureCountThreshold(config.getDouble("classifiers.miml.featureCountThreshold"))
+      logger.info("Training...")
       extractor.train(train)
 //      var relations = new java.util.ArrayList[java.util.List[java.util.Collection[String]]]()
 //      var goldLabels = new java.util.ArrayList[java.util.Set[String]]()
