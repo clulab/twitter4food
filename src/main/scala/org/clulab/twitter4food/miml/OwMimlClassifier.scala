@@ -60,18 +60,27 @@ object OwMimlClassifier {
       val pred = extractor.classifyAccounts(test)
 
       val score = HoffmannExtractor.score(test.getLabelsArray, pred)
-      (score.first, score.second, score.third)
+      val p = score.first.toDouble
+      val r = score.second.toDouble
+      val f = score.third.toDouble
+      println(score.first)
+      println(score.second)
+      println(score.third)
+      logger.debug(f"p: $p%1.4f, r: $r%1.4f, f1: $f%1.4f")
+      (p, r, f)
     }
 
-    val ps = scores.map(_._1.toDouble).toSeq
-    val rs = scores.map(_._2.toDouble).toSeq
-    val fs = scores.map(_._3.toDouble).toSeq
+    val ps = scores.map(_._1).toArray
+    val rs = scores.map(_._2).toArray
+    val fs = scores.map(_._3).toArray
 
     val p = ps.sum / ps.length
     val r = rs.sum / rs.length
     val f = fs.sum / fs.length
 
-    displayScores(args.sorted.mkString("").replaceAll("-", ""), p,r,f)
+    val modelName = args.sorted.mkString("").replaceAll("-", "")
+
+    displayScores(modelName, p, r, f)
   }
 
   /** Creates dataset folds to be used for cross validation */
