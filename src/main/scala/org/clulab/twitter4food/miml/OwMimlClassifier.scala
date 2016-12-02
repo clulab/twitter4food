@@ -38,7 +38,7 @@ object OwMimlClassifier {
       .map{ case (acct, lbl) => (acct, unrelated) }
 
     // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.4, "Not overweight" -> 0.4, unrelated -> 0.2 )
+    val desiredProps = Map( "Overweight" -> 0.25, "Not overweight" -> 0.25, unrelated -> 0.5 )
     val subsampled = Utils.subsample(owAccts ++ orgAccts, desiredProps)
 
     val dataset = OverweightDataConstructor.constructMimlDataset(subsampled, params)
