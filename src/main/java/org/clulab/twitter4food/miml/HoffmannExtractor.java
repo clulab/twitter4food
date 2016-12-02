@@ -680,7 +680,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   public static Triple<Double, Double, Double> score(
       Set<Integer>[] goldLabels,
       List<Counter<Integer>> predictedLabels) {
-    int total = 0, predicted = 0, correct = 0;
+    double total = 0, predicted = 0, correct = 0;
     for(int i = 0; i < goldLabels.length; i ++) {
       Set<Integer> gold = goldLabels[i];
       Counter<Integer> preds = predictedLabels.get(i);
@@ -691,8 +691,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       }
     }
 
-    double p = (double) correct / (double) predicted;
-    double r = (double) correct / (double) total;
+    double p = correct / predicted;
+    double r = correct / total;
     double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
     System.out.print("p: " + p + ", r: " + r + ", f1: " + f1 + "\n");
     return new Triple<Double, Double, Double>(p, r, f1);
