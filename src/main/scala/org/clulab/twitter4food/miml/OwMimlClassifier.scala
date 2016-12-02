@@ -47,22 +47,31 @@ object OwMimlClassifier {
     val seed = 71
     val partitions = mkStratifiedTrainTestFolds[String, String](numFolds, dataset, seed)
 
-    for (partition <- partitions.par) {
-      val ds = dataset.copy()
+    val scores = for (partition <- partitions) yield {
       val extractor = new HoffmannExtractor(config.getInt("classifiers.miml.epochs"))
       logger.info("Preparing partition...")
-      val (train, test) = cutDataset(ds, partition)
+      val (train, test) = cutDataset(dataset, partition)
       logger.info("Randomizing partition...")
       dataset.randomize(1)
       logger.info("Applying feature count threshold...")
       dataset.applyFeatureCountThreshold(config.getDouble("classifiers.miml.featureCountThreshold"))
       logger.info("Training...")
       extractor.train(train)
-//      var relations = new java.util.ArrayList[java.util.List[java.util.Collection[String]]]()
-//      var goldLabels = new java.util.ArrayList[java.util.Set[String]]()
-//      var predictedLabels = new java.util.ArrayList[java.util.Set[String]]()
-//      val score = extractor.test(relations, goldLabels, predictedLabels)
+      val pred = extractor.classifyAccounts(test)
+
+      val score = HoffmannExtractor.score(test.getLabelsArray, pred)
+      (score.first, score.second, score.third)
     }
+
+    val ps = scores.map(_._1.toDouble).toSeq
+    val rs = scores.map(_._2.toDouble).toSeq
+    val fs = scores.map(_._3.toDouble).toSeq
+
+    val p = ps.sum / ps.length
+    val r = rs.sum / rs.length
+    val f = fs.sum / fs.length
+
+    displayScores(args.sorted.mkString("").replaceAll("-", ""), p,r,f)
   }
 
   /** Creates dataset folds to be used for cross validation */
@@ -151,5 +160,14 @@ object OwMimlClassifier {
         valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
     }
     (train,test)
+  }
+
+  def displayScores(features: String, p: Double, r: Double, f: Double): Unit = {
+    val boundary = "-" * 50
+    println(boundary)
+    println("feats\tprec\trecl\tf1")
+    println(boundary)
+    println(f"$features\t$p%1.4f\t$r%1.4f\t$f%1.4f\t")
+    println(boundary)
   }
 }

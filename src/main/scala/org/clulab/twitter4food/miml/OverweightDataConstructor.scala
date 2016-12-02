@@ -72,12 +72,12 @@ object OverweightDataConstructor {
       // Add by feature NAME, not feature INDEX
       val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
       // MIML solvers need java.lang.Doubles
-      val javaValues = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
+      val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
       // a singleton set containing the gold label
       val label = new java.util.HashSet[String](1)
       label.add(lbl)
       // add this account (datum) with all its instances
-      ds.add(label, listify(featureStrings), listify(javaValues))
+      ds.add(label, listify(featureStrings), listify(valuesJava))
       pb.step()
     }
 
