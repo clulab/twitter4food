@@ -58,6 +58,7 @@ object OwMimlClassifier {
       logger.info("Training...")
       extractor.train(train)
       val pred = extractor.classifyAccounts(test)
+      logger.debug(s"${pred.size()} predictions...")
 
       val score = HoffmannExtractor.score(test.getLabelsArray, pred)
       val p = score.first.toDouble
@@ -164,6 +165,8 @@ object OwMimlClassifier {
         dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
         valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
     }
+    logger.debug(s"train length ${train.getDataArray.length}; test length ${test.getDataArray.length}")
+    logger.debug(s"train labels ${train.getLabelsArray.length}; test labels ${test.getLabelsArray.length}")
     (train,test)
   }
 
