@@ -63,10 +63,6 @@ object OwMimlClassifier {
       val p = score.first.toDouble
       val r = score.second.toDouble
       val f = score.third.toDouble
-      println(score.first)
-      println(score.second)
-      println(score.third)
-      logger.debug(f"p: $p%1.4f, r: $r%1.4f, f1: $f%1.4f")
       (p, r, f)
     }
 

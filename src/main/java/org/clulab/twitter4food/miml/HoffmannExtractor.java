@@ -694,6 +694,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     double p = (double) correct / (double) predicted;
     double r = (double) correct / (double) total;
     double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
+    System.out.print("p: " + p + ", r: " + r + ", f1: " + f1 + "\n");
     return new Triple<Double, Double, Double>(p, r, f1);
   }
 
