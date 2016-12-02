@@ -667,6 +667,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       }
       predictedLabels.add(iLabel);
     }
+    logger.info(predictedLabels.size() + " labels predicted\n");
     return predictedLabels;
   }
 
@@ -680,7 +681,10 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   public static Triple<Double, Double, Double> score(
       Set<Integer>[] goldLabels,
       List<Counter<Integer>> predictedLabels) {
-    double total = 0, predicted = 0, correct = 0;
+    assert(goldLabels.length == predictedLabels.size());
+    if(goldLabels.length == 0)
+      logger.warning("Trying to evaluate on 0 datums!");
+    double total = 0.0, predicted = 0.0, correct = 0.0;
     for(int i = 0; i < goldLabels.length; i ++) {
       Set<Integer> gold = goldLabels[i];
       Counter<Integer> preds = predictedLabels.get(i);
@@ -691,8 +695,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       }
     }
 
-    double p = correct / predicted;
-    double r = correct / total;
+    double p = (predicted != 0 ? correct / predicted : 0.0);
+    double r = (total != 0 ? correct / total : 0.0);
     double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
     System.out.print("p: " + p + ", r: " + r + ", f1: " + f1 + "\n");
     return new Triple<Double, Double, Double>(p, r, f1);
