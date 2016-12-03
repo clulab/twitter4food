@@ -101,7 +101,7 @@ object OwMimlClassifier {
       val classSize = cds.length
       val foldSize = classSize / numFolds
       val startTest = i * foldSize
-      val endTest = if (i == numFolds - 1) math.max(classSize, (i + 1) * foldSize) else (i + 1) * foldSize
+      val endTest = if (i == numFolds - 1) classSize else (i + 1) * foldSize
       logger.debug(s"class $c size $classSize -> fold size $foldSize ($startTest to $endTest)")
 
       val trainFolds = new ArrayBuffer[Int]
@@ -111,6 +111,7 @@ object OwMimlClassifier {
         trainFolds ++= cds.slice(endTest, classSize)
 
       folds(i) += new TrainTestFold(cds.slice(startTest, endTest), trainFolds)
+      logger.debug(s"added fold with ${folds(i).last.test.size} train and ${folds(i).last.test.size} test")
     }
     folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
   }
@@ -162,7 +163,7 @@ object OwMimlClassifier {
     fold.test.foreach{ i =>
       val labelSet = new java.util.HashSet[L](1)
       labelSet.add(labels(i))
-      train.add(labelSet,
+      test.add(labelSet,
         dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
         valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
     }
