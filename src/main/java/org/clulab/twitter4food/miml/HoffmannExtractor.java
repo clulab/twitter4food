@@ -650,9 +650,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         iLabels.incrementCount(zPredicted[j]);
       Counter<Integer> iLabel = new ClassicCounter<>();
       // for now, give NIL label if above threshold, otherwise choose majority label
-      if(iLabels.getCount(nilIndex) > noneThreshold * (double) iLabels.size()) {
-        iLabel.incrementCount(nilIndex);
-      } else {
+//      if(iLabels.getCount(nilIndex) > noneThreshold * (double) iLabels.size()) {
+//        iLabel.incrementCount(nilIndex);
+//      } else {
         int greatestIndex = nilIndex;
         double greatestValue = 0.0;
         Iterator<Map.Entry<Integer, Double>> kvs = iLabels.entrySet().iterator();
@@ -664,7 +664,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
           }
         }
         iLabel.incrementCount(greatestIndex);
-      }
+//      }
       predictedLabels.add(iLabel);
     }
     logger.info(predictedLabels.size() + " labels predicted\n");
