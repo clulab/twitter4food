@@ -38,7 +38,7 @@ object OwMimlClassifier {
       .map{ case (acct, lbl) => (acct, unrelated) }
 
     // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.25, "Not overweight" -> 0.25, unrelated -> 0.5 )
+    val desiredProps = Map( "Overweight" -> 0.4, "Not overweight" -> 0.4, unrelated -> 0.2 )
     val subsampled = Utils.subsample(owAccts ++ orgAccts, desiredProps)
 
     val dataset = OverweightDataConstructor.constructMimlDataset(subsampled, params)
@@ -102,7 +102,6 @@ object OwMimlClassifier {
       val foldSize = classSize / numFolds
       val startTest = i * foldSize
       val endTest = if (i == numFolds - 1) classSize else (i + 1) * foldSize
-      logger.debug(s"class $c size $classSize -> fold size $foldSize ($startTest to $endTest)")
 
       val trainFolds = new ArrayBuffer[Int]
       if(startTest > 0)
@@ -111,7 +110,6 @@ object OwMimlClassifier {
         trainFolds ++= cds.slice(endTest, classSize)
 
       folds(i) += new TrainTestFold(cds.slice(startTest, endTest), trainFolds)
-      logger.debug(s"added fold with ${folds(i).last.test.size} train and ${folds(i).last.test.size} test")
     }
     folds.map{ dsfSet => dsfSet._2.reduce(_ merge _) }
   }
@@ -167,8 +165,6 @@ object OwMimlClassifier {
         dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
         valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
     }
-    logger.debug(s"train length ${train.getDataArray.length}; test length ${test.getDataArray.length}")
-    logger.debug(s"train labels ${train.getLabelsArray.length}; test labels ${test.getLabelsArray.length}")
     (train,test)
   }
 
