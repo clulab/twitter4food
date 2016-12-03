@@ -102,6 +102,7 @@ object OwMimlClassifier {
       val foldSize = classSize / numFolds
       val startTest = i * foldSize
       val endTest = if (i == numFolds - 1) math.max(classSize, (i + 1) * foldSize) else (i + 1) * foldSize
+      logger.debug(s"class $c size $classSize -> fold size $foldSize ($startTest to $endTest)")
 
       val trainFolds = new ArrayBuffer[Int]
       if(startTest > 0)
