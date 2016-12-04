@@ -294,13 +294,13 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         negUpdateStats.incrementCount(LABEL_ALL);
       }
       // positive update
-//      for(int l: gold) {
-//        if(l != pred) {
-//          zWeights[l].update(datum, +1.0);
-//          posUpdateStats.incrementCount(l);
-//          posUpdateStats.incrementCount(LABEL_ALL);
-//        }
-//      }
+      for(int l: gold) {
+        if(l != pred) {
+          zWeights[l].update(datum, +1.0);
+          posUpdateStats.incrementCount(l);
+          posUpdateStats.incrementCount(LABEL_ALL);
+        }
+      }
     }
   }
 
