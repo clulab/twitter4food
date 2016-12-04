@@ -464,10 +464,10 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     // # needed to exceed other (non-nil) label
     if(y == nilIndex || golds > 0.10 * total)
       return (int) Math.max(0.0, toMajority);
-    // too few golds -- flip the greatest number among:
-    // 1
-    // # needed to get to minimumGolds proportion
-    // # needed to exceed other (non-nil) label
+      // too few golds -- flip the greatest number among:
+      // 1
+      // # needed to get to minimumGolds proportion
+      // # needed to exceed other (non-nil) label
     else {
       double toMinimum = Math.round(minimumGolds * total) - golds;
       return (int) Math.max(1.0, Math.max(toMinimum, toMajority));
@@ -637,34 +637,59 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     return scores;
   }
 
+  private Counter<Integer> softmaxInstance(Counter<Integer> inst) {
+    Counter<Integer> exp = new ClassicCounter<Integer>();
+    Iterator<Map.Entry<Integer, Double>> instEntries = inst.entrySet().iterator();
+    while(instEntries.hasNext()) {
+      Map.Entry<Integer, Double> kv = instEntries.next();
+      Double exponentiated = java.lang.Math.exp(kv.getValue());
+      exp.setCount(kv.getKey(), exponentiated);
+    }
+    Double allE = exp.values().stream().reduce(0.0, (x,y) -> x + y);
+    Iterator<Map.Entry<Integer, Double>> expEntries = exp.entrySet().iterator();
+    while(expEntries.hasNext()) {
+      Map.Entry<Integer, Double> kv = expEntries.next();
+      exp.setCount(kv.getKey(), kv.getValue() / allE);
+    }
+    return exp;
+  }
+
+  private List<Counter<Integer>> softmaxInstance(List<Counter<Integer>> inst) {
+    ArrayList<Counter<Integer>> exp = new ArrayList<>(inst.size());
+    for(int i = 0; i < inst.size(); i++){
+      exp.add(softmaxInstance(inst.get(i)));
+    }
+    return exp;
+  }
+
+  private Counter<Integer> softmaxAccount(List<Counter<Integer>> inst, int numKeys) {
+    Counter<Integer> sm = new ClassicCounter<>(numKeys);
+    for(int i = 0; i < numKeys; i++) {
+      double prob = 1.0;
+      for(int j = 0; j < inst.size(); j++) {
+        prob *= 1 - inst.get(j).getCount(i);
+      }
+      sm.setCount(i, 1 - prob);
+    }
+    return sm;
+  }
+
   public List<Counter<Integer>> classifyAccounts(RvfMLDataset<String, String> dataset) {
     List<Counter<Integer>> predictedLabels = new ArrayList<Counter<Integer>>();
     for(int i = 0; i < dataset.size(); i++) {
       int[][] rowFeatures = dataset.getDataArray()[i];
       double[][] rowValues = dataset.getValueArray()[i];
       List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
-      // best predictions for each instance
-      int [] zPredicted = generateZPredicted(zs);
-      Counter<Integer> iLabels = new ClassicCounter<>();
-      for(int j = 0; j < zPredicted.length; j++)
-        iLabels.incrementCount(zPredicted[j]);
+      Counter<Integer> sm = softmaxAccount(zs, dataset.labelIndex.size());
+
       Counter<Integer> iLabel = new ClassicCounter<>();
-      // for now, give NIL label if above threshold, otherwise choose majority label
-//      if(iLabels.getCount(nilIndex) > noneThreshold * (double) iLabels.size()) {
-//        iLabel.incrementCount(nilIndex);
-//      } else {
-        int greatestIndex = nilIndex;
-        double greatestValue = 0.0;
-        Iterator<Map.Entry<Integer, Double>> kvs = iLabels.entrySet().iterator();
-        while (kvs.hasNext()) {
-          Map.Entry<Integer, Double> kv = kvs.next();
-          if (kv.getKey() != nilIndex & kv.getValue() > greatestValue) {
-            greatestIndex = kv.getKey();
-            greatestValue = kv.getValue();
-          }
-        }
-        iLabel.incrementCount(greatestIndex);
-//      }
+      Map.Entry<Integer, Double> bestLabel = null;
+      for(Map.Entry<Integer, Double> entry: sm.entrySet()) {
+        if (bestLabel == null || entry.getValue() > bestLabel.getValue())
+          bestLabel = entry;
+      }
+
+      iLabel.incrementCount(bestLabel.getKey());
       predictedLabels.add(iLabel);
     }
     logger.info(predictedLabels.size() + " labels predicted\n");
