@@ -60,10 +60,11 @@ object OverweightDataConstructor {
 
     for ((account, lbl) <- accounts) {
       // Dataset with one row per instance (tweet)
-      // The datasets labels are meaningless for now, hence "NONCE" -- this shouldn't be passed forward
+      // The datasets labels are meaningless for now, hence "Overweight" to allow dictionary loading
+      // "Overweight" label shouldn't be passed forward
       val instances = splitAccount(account)
       val dataset = ci.constructDataset(instances,
-        List.fill(instances.length)("NONCE"),
+        List.fill(instances.length)("Overweight"),
         followers = None,
         followees = None,
         progressBar = false
