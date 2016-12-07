@@ -259,8 +259,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     // yPredicted - Y labels predicted using the current Zs (full inference)
     Counter<Integer> yPredicted = estimateY(zPredicted);
 
+    int y = yPredicted.keySet().iterator().next();
     // always update epochLabels (NB: assume only one label in set)
-    epochLabels.incrementCount(yPredicted.keySet().iterator().next());
+    epochLabels.incrementCount(y);
 
     // counter to find proportions of instance labels
     Counter<Integer> insts = new ClassicCounter<>();
@@ -269,7 +270,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     for(int lbl: insts.keySet()){
       double prop = insts.getCount(lbl) / (double) zPredicted.length;
-      instLabels.get(lbl).add(prop);
+      instLabels.get(y).add(prop);
     }
 
     if(updateCondition(yPredicted.keySet(), goldPos)){
@@ -298,8 +299,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     // this is picking the account label supported by most instances
     Counter<Integer> yPredicted = estimateY(zPredicted);
 
+    int y = yPredicted.keySet().iterator().next();
     // always update epochLabels (NB: assume only one label in set)
-    epochLabels.incrementCount(yPredicted.keySet().iterator().next());
+    epochLabels.incrementCount(y);
 
     // counter to find proportions of instance labels
     Counter<Integer> insts = new ClassicCounter<>();
@@ -308,7 +310,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     for(int lbl: insts.keySet()){
       double prop = insts.getCount(lbl) / (double) zPredicted.length;
-      instLabels.get(lbl).add(prop);
+      instLabels.get(y).add(prop);
     }
 
     // this is checking if the account label != gold (no need to change anything)
