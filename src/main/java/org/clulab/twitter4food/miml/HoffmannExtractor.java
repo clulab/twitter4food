@@ -161,7 +161,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       for(int i = 0; i < dataset.labelIndex.size(); i++){
         instLabels.put(i, new HashMap<Integer, List<Double>>());
         for(int j = 0; j < dataset.labelIndex.size(); i++) {
-          instLabels.get(i).put(j, new ArrayList<Double>());
+          instLabels.getOrDefault(i, new HashMap<Integer, List<Double>>()).put(j, new ArrayList<Double>());
         }
       }
 
@@ -213,9 +213,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> epochLabels = new ClassicCounter<Integer>();
       Map<Integer, Map<Integer, List<Double>>> instLabels = new HashMap<Integer, Map<Integer, List<Double>>>();
       for(int i = 0; i < dataset.labelIndex.size(); i++){
-        instLabels.put(i, new HashMap<Integer, List<Double>>());
         for(int j = 0; j < dataset.labelIndex.size(); i++) {
-          instLabels.get(i).put(j, new ArrayList<Double>());
+          instLabels.getOrDefault(i, new HashMap<Integer, List<Double>>()).put(j, new ArrayList<Double>());
         }
       }
 
