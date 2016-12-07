@@ -157,9 +157,12 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> posUpdateStats = new ClassicCounter<Integer>();
       Counter<Integer> negUpdateStats = new ClassicCounter<Integer>();
       Counter<Integer> epochLabels = new ClassicCounter<Integer>();
-      Map<Integer, List<Double>> instLabels = new HashMap<Integer, List<Double>>();
+      Map<Integer, Map<Integer, List<Double>>> instLabels = new HashMap<Integer, Map<Integer, List<Double>>>();
       for(int i = 0; i < dataset.labelIndex.size(); i++){
-        instLabels.put(i, new ArrayList<Double>());
+        instLabels.put(i, new HashMap<Integer, List<Double>>());
+        for(int j = 0; j < dataset.labelIndex.size(); i++) {
+          instLabels.get(i).put(j, new ArrayList<Double>());
+        }
       }
 
       // traverse the relation dataset
@@ -208,9 +211,12 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> posUpdateStats = new ClassicCounter<Integer>();
       Counter<Integer> negUpdateStats = new ClassicCounter<Integer>();
       Counter<Integer> epochLabels = new ClassicCounter<Integer>();
-      Map<Integer, List<Double>> instLabels = new HashMap<Integer, List<Double>>();
+      Map<Integer, Map<Integer, List<Double>>> instLabels = new HashMap<Integer, Map<Integer, List<Double>>>();
       for(int i = 0; i < dataset.labelIndex.size(); i++){
-        instLabels.put(i, new ArrayList<Double>());
+        instLabels.put(i, new HashMap<Integer, List<Double>>());
+        for(int j = 0; j < dataset.labelIndex.size(); i++) {
+          instLabels.get(i).put(j, new ArrayList<Double>());
+        }
       }
 
       // traverse the relation dataset
@@ -231,13 +237,13 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
           negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
       Log.info("Label distribution: " + epochLabels.toString());
 
-      for(int i = 0; i < dataset.labelIndex.size(); i++){ // i: predicted class label
-        Counter<Integer> lblInstDist = new ClassicCounter<>();
-        List<Double> lblInstLbls = instLabels.get(i);
-        int nRows = lblInstLbls.size();
-        for(int j = 0; j < nRows; j++){ // j: predicted instance label
-          double avgProp = lblInstLbls.stream().mapToDouble(k -> k).sum() / (double) nRows;
-          lblInstDist.setCount(j, avgProp);
+      int nLabels = dataset.labelIndex.size();
+      for(int i = 0; i < nLabels; i++){ // i: predicted class label
+        Counter<String> lblInstDist = new ClassicCounter<>();
+        Map<Integer, List<Double>> lblInstLbls = instLabels.get(i);
+        for(Map.Entry<Integer, List<Double>> kv: lblInstLbls.entrySet()) {
+          double avgProp = kv.getValue().stream().mapToDouble(k -> k).sum() / (double) lblInstLbls.size();
+          lblInstDist.setCount(dataset.labelIndex.get(kv.getKey()), avgProp);
         }
         Log.info("Label distribution for accts predicted " + i + ": " + lblInstDist.toString());
       }
@@ -253,7 +259,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> posUpdateStats,
       Counter<Integer> negUpdateStats,
       Counter<Integer> epochLabels,
-      Map<Integer, List<Double>> instLabels) {
+      Map<Integer, Map<Integer, List<Double>>> instLabels) {
     // all local predictions using local Z models
     List<Counter<Integer>> zs = estimateZ(crtGroup);
     // best predictions for each mention
@@ -273,7 +279,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     for(int lbl: insts.keySet()){
       double prop = insts.getCount(lbl) / (double) zPredicted.length;
-      instLabels.get(y).add(prop);
+      instLabels.get(y).get(lbl).add(prop);
     }
 
     if(updateCondition(yPredicted.keySet(), goldPos)){
@@ -291,7 +297,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> posUpdateStats,
       Counter<Integer> negUpdateStats,
       Counter<Integer> epochLabels,
-      Map<Integer, List<Double>> instLabels) {
+      Map<Integer, Map<Integer, List<Double>>> instLabels) {
     // all local predictions using local Z models
     // this is simply generating *all* predictions for each tweet
     List<Counter<Integer>> zs = estimateZ(crtGroup, crtGroupValues);
@@ -313,7 +319,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     for(int lbl: insts.keySet()){
       double prop = insts.getCount(lbl) / (double) zPredicted.length;
-      instLabels.get(y).add(prop);
+      instLabels.get(y).get(lbl).add(prop);
     }
 
     // this is checking if the account label != gold (no need to change anything)
