@@ -125,14 +125,14 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     this.epochs = epochs;
   }
   public HoffmannExtractor(Properties props) {
-    Log.severe("HoffmannExtractor configured with the following properties:");
+    Log.info("HoffmannExtractor configured with the following properties:");
     this.epochs = PropertiesUtils.getInt(props, Props.PERCEPTRON_EPOCHS, 10);
-    Log.severe("epochs = " + epochs);
+    Log.info("epochs = " + epochs);
   }
 
   @Override
   public void train(MultiLabelDataset<String, String> dataset) {
-    Log.severe("Training the \"at least once\" model using "
+    Log.info("Training the \"at least once\" model using "
         + dataset.featureIndex().size() + " features and "
         + "the following labels: " + dataset.labelIndex().toString());
 
@@ -156,6 +156,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
       Counter<Integer> posUpdateStats = new ClassicCounter<Integer>();
       Counter<Integer> negUpdateStats = new ClassicCounter<Integer>();
+      Counter<Integer> epochLabels = new ClassicCounter<Integer>();
+      Map<Integer, List<Double>> instLabels = new HashMap<Integer, List<Double>>();
+      for(int i = 0; i < dataset.labelIndex.size(); i++){
+        instLabels.put(i, new ArrayList<Double>());
+      }
 
       // traverse the relation dataset
       for(int i = 0; i < dataset.size(); i ++){
@@ -163,13 +168,13 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         int [][] crtGroup = dataset.getDataArray()[i];
         Set<Integer> goldPos = dataset.getLabelsArray()[i];
 
-        trainJointly(crtGroup, goldPos, posUpdateStats, negUpdateStats);
+        trainJointly(crtGroup, goldPos, posUpdateStats, negUpdateStats, epochLabels, instLabels);
 
         // update the number of iterations an weight vector has survived
         for(LabelWeights zw: zWeights) zw.updateSurvivalIterations();
       }
 
-      Log.severe("Epoch #" + t + " completed. Inspected " +
+      Log.info("Epoch #" + t + " completed. Inspected " +
           dataset.size() + " datum groups. Performed " +
           posUpdateStats.getCount(LABEL_ALL) + " ++ updates and " +
           negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
@@ -180,7 +185,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   }
 
   public void train(RvfMLDataset<String, String> dataset) {
-    Log.severe("Training the majority model using "
+    Log.info("Training the majority model using "
         + dataset.featureIndex().size() + " features and "
         + "the following labels: " + dataset.labelIndex().toString());
 
@@ -196,11 +201,16 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(int t = 0; t < epochs; t ++){
       // randomize the data set in each epoch
       // use a fixed seed for replicability
-      Log.severe("Started epoch #" + t + "...");
+      Log.info("Started epoch #" + t + "...");
       dataset.randomize(t);
 
       Counter<Integer> posUpdateStats = new ClassicCounter<Integer>();
       Counter<Integer> negUpdateStats = new ClassicCounter<Integer>();
+      Counter<Integer> epochLabels = new ClassicCounter<Integer>();
+      Map<Integer, List<Double>> instLabels = new HashMap<Integer, List<Double>>();
+      for(int i = 0; i < dataset.labelIndex.size(); i++){
+        instLabels.put(i, new ArrayList<Double>());
+      }
 
       // traverse the relation dataset
       for(int i = 0; i < dataset.size(); i ++){
@@ -208,16 +218,26 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         double [][] crtGroupValues = dataset.getValueArray()[i];
         Set<Integer> gold = dataset.getLabelsArray()[i];
 
-        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats);
+        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats, epochLabels, instLabels);
 
         // update the number of iterations an weight vector has survived
         for(LabelWeights zw: zWeights) zw.updateSurvivalIterations();
       }
 
-      Log.severe("Epoch #" + t + " completed. Inspected " +
+      Log.info("Epoch #" + t + " completed. Inspected " +
           dataset.size() + " datum groups. Performed " +
           posUpdateStats.getCount(LABEL_ALL) + " ++ updates and " +
           negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
+      Log.info("Label distribution: " + epochLabels.toString());
+
+      for(int i = 0; i < dataset.labelIndex.size(); i++){
+        Counter<Integer> lblInstDist = new ClassicCounter<>();
+        for(int j = 0; j < instLabels.size(); j++){
+          double avgProp = instLabels.get(j).stream().mapToDouble(k -> k).sum() / instLabels.get(j).size();
+          lblInstDist.setCount(j, avgProp);
+        }
+        Log.info("Label distribution for accts predicted " + i + ": " + lblInstDist.toString());
+      }
     }
 
     // finalize learning: add the last vector to the avg for each label
@@ -228,7 +248,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       int [][] crtGroup,
       Set<Integer> goldPos,
       Counter<Integer> posUpdateStats,
-      Counter<Integer> negUpdateStats) {
+      Counter<Integer> negUpdateStats,
+      Counter<Integer> epochLabels,
+      Map<Integer, List<Double>> instLabels) {
     // all local predictions using local Z models
     List<Counter<Integer>> zs = estimateZ(crtGroup);
     // best predictions for each mention
@@ -236,6 +258,19 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
     // yPredicted - Y labels predicted using the current Zs (full inference)
     Counter<Integer> yPredicted = estimateY(zPredicted);
+
+    // always update epochLabels (NB: assume only one label in set)
+    epochLabels.incrementCount(yPredicted.keySet().iterator().next());
+
+    // counter to find proportions of instance labels
+    Counter<Integer> insts = new ClassicCounter<>();
+    for(int pred: zPredicted){
+      insts.incrementCount(pred);
+    }
+    for(int lbl: insts.keySet()){
+      double prop = insts.getCount(lbl) / (double) zPredicted.length;
+      instLabels.get(lbl).add(prop);
+    }
 
     if(updateCondition(yPredicted.keySet(), goldPos)){
       // conditional inference
@@ -250,7 +285,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       double [][] crtGroupValues,
       Set<Integer> goldPos,
       Counter<Integer> posUpdateStats,
-      Counter<Integer> negUpdateStats) {
+      Counter<Integer> negUpdateStats,
+      Counter<Integer> epochLabels,
+      Map<Integer, List<Double>> instLabels) {
     // all local predictions using local Z models
     // this is simply generating *all* predictions for each tweet
     List<Counter<Integer>> zs = estimateZ(crtGroup, crtGroupValues);
@@ -260,6 +297,19 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     // yPredicted - Y labels predicted using the current Zs (full inference)
     // this is picking the account label supported by most instances
     Counter<Integer> yPredicted = estimateY(zPredicted);
+
+    // always update epochLabels (NB: assume only one label in set)
+    epochLabels.incrementCount(yPredicted.keySet().iterator().next());
+
+    // counter to find proportions of instance labels
+    Counter<Integer> insts = new ClassicCounter<>();
+    for(int pred: zPredicted){
+      insts.incrementCount(pred);
+    }
+    for(int lbl: insts.keySet()){
+      double prop = insts.getCount(lbl) / (double) zPredicted.length;
+      instLabels.get(lbl).add(prop);
+    }
 
     // this is checking if the account label != gold (no need to change anything)
     if(updateCondition(yPredicted.keySet(), goldPos)){
@@ -693,6 +743,12 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       predictedLabels.add(iLabel);
     }
     logger.info(predictedLabels.size() + " labels predicted\n");
+    Counter<Integer> allPredicted = new ClassicCounter<Integer>(predictedLabels.size());
+    for(int i = 0; i < predictedLabels.size(); i++) {
+      allPredicted.incrementCount(predictedLabels.get(i).keySet().iterator().next());
+    }
+    logger.info("label distribution: " + allPredicted.toString());
+
     return predictedLabels;
   }
 
