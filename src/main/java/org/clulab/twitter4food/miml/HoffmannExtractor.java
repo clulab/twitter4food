@@ -178,6 +178,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
           dataset.size() + " datum groups. Performed " +
           posUpdateStats.getCount(LABEL_ALL) + " ++ updates and " +
           negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
+      Log.info("Label distribution: " + epochLabels.toString());
     }
 
     // finalize learning: add the last vector to the avg for each label
@@ -230,10 +231,12 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
           negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
       Log.info("Label distribution: " + epochLabels.toString());
 
-      for(int i = 0; i < dataset.labelIndex.size(); i++){
+      for(int i = 0; i < dataset.labelIndex.size(); i++){ // i: predicted class label
         Counter<Integer> lblInstDist = new ClassicCounter<>();
-        for(int j = 0; j < instLabels.size(); j++){
-          double avgProp = instLabels.get(j).stream().mapToDouble(k -> k).sum() / instLabels.get(j).size();
+        List<Double> lblInstLbls = instLabels.get(i);
+        int nRows = lblInstLbls.size();
+        for(int j = 0; j < nRows; j++){ // j: predicted instance label
+          double avgProp = lblInstLbls.stream().mapToDouble(k -> k).sum() / (double) nRows;
           lblInstDist.setCount(j, avgProp);
         }
         Log.info("Label distribution for accts predicted " + i + ": " + lblInstDist.toString());
