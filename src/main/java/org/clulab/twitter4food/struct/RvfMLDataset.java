@@ -1,9 +1,9 @@
 package org.clulab.twitter4food.struct;
 
+import org.clulab.twitter4food.miml.Log;
 import edu.stanford.nlp.util.HashIndex;
 import edu.stanford.nlp.util.Index;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
@@ -121,6 +121,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
   public void applyFeatureCountThreshold(double threshold) {
     float[] counts = getFeatureCounts();
 
+    Log.info("# features before thresholding: " + featureIndex.size());
     //
     // rebuild the feature index
     //
@@ -160,6 +161,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
         }
       }
     }
+    Log.info("# features after thresholding: " + featureIndex.size());
   }
 
   public void add(Set<L> y, List<List<F>> newFeatures, List<List<Double>> newValues) {
