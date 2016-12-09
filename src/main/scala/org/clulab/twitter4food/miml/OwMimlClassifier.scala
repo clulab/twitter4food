@@ -49,12 +49,12 @@ object OwMimlClassifier {
 
     val scores = for (partition <- partitions) yield {
       val extractor = new HoffmannExtractor(config.getInt("classifiers.miml.epochs"))
-      logger.info("Preparing partition...")
-      val (train, test) = cutDataset(dataset, partition)
       logger.info("Randomizing partition...")
       dataset.randomize(1)
       logger.info("Applying feature count threshold...")
       dataset.applyFeatureCountThreshold(config.getDouble("classifiers.miml.featureCountThreshold"))
+      logger.info("Preparing partition...")
+      val (train, test) = cutDataset(dataset, partition)
       logger.info("Training...")
       extractor.train(train)
       val pred = extractor.classifyAccounts(test)
