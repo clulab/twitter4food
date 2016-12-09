@@ -213,6 +213,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> epochLabels = new ClassicCounter<Integer>();
       Map<Integer, Map<Integer, List<Double>>> instLabels = new HashMap<Integer, Map<Integer, List<Double>>>();
       for(int i = 0; i < dataset.labelIndex.size(); i++){
+        instLabels.put(i, new HashMap<Integer, List<Double>>());
         for(int j = 0; j < dataset.labelIndex.size(); j++) {
           instLabels.getOrDefault(i, new HashMap<Integer, List<Double>>()).put(j, new ArrayList<Double>());
         }
@@ -318,9 +319,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     for(int lbl: insts.keySet()){
       double prop = insts.getCount(lbl) / (double) zPredicted.length;
-      if(instLabels.containsKey(y) & instLabels.get(y).containsKey(lbl)) {
-        instLabels.get(y).get(lbl).add(prop);
-      }
+      instLabels.get(y).getOrDefault(lbl, new ArrayList<Double>()).add(prop);
     }
 
     // this is checking if the account label != gold (no need to change anything)
