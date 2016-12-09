@@ -242,10 +242,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         Counter<String> lblInstDist = new ClassicCounter<>();
         Map<Integer, List<Double>> lblInstLbls = instLabels.get(i);
         for(Map.Entry<Integer, List<Double>> kv: lblInstLbls.entrySet()) {
-          double avgProp = kv.getValue().stream().mapToDouble(k -> k).sum() / (double) lblInstLbls.size();
+          List<Double> props = kv.getValue();
+          double avgProp = props.stream().mapToDouble(x->x).sum() / (double) props.size();
           lblInstDist.setCount(dataset.labelIndex.get(kv.getKey()), avgProp);
         }
-        Log.info("Label distribution for accts predicted " + i + ": " + lblInstDist.toString());
+        Log.info("Label distribution for accts predicted " + dataset.labelIndex.get(i) + ": " + lblInstDist.toString());
       }
     }
 
@@ -322,7 +323,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       instLabels.get(y).getOrDefault(lbl, new ArrayList<Double>()).add(prop);
     }
 
-    // this is checking if the account label != gold (no need to change anything)
+    // this is checking if the account label != gold
     if(updateCondition(yPredicted.keySet(), goldPos)){
       // conditional inference
       Set<Integer> [] zUpdate = generateZUpdate(goldPos, zs);
