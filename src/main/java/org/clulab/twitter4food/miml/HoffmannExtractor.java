@@ -318,7 +318,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     for(int lbl: insts.keySet()){
       double prop = insts.getCount(lbl) / (double) zPredicted.length;
-      instLabels.get(y).get(lbl).add(prop);
+      if(instLabels.containsKey(y) & instLabels.get(y).containsKey(lbl)) {
+        instLabels.get(y).get(lbl).add(prop);
+      }
     }
 
     // this is checking if the account label != gold (no need to change anything)

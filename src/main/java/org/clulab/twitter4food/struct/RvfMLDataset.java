@@ -153,12 +153,8 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
             valueList.add(values[i][j][k]);
           }
         }
-        data[i][j] = new int[featList.size()];
-        values[i][j] = new double[valueList.size()];
-        for(int k = 0; k < data[i][j].length; k ++) {
-          data[i][j][k] = featList.get(k);
-          values[i][j][k] = valueList.get(k);
-        }
+        data[i][j] = featList.stream().mapToInt(x -> x).toArray();
+        values[i][j] = valueList.stream().mapToDouble(x -> x).toArray();
       }
     }
     Log.info("# features after thresholding: " + featureIndex.size());
