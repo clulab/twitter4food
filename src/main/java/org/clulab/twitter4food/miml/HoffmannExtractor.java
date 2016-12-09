@@ -503,7 +503,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   private int howManyToFlip(List<Edge> edges, int y) {
     if (edges.size() == 0) return 0;
     Map<Integer, List<Edge>> edgesByZ = byZ(edges);
-    double minimumGolds = 0.1;
+    double minimumGolds = 0.5;
     double majorityThreshold = 0.5;
     double golds = 0.0;
     double nils = 0.0;
@@ -521,10 +521,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
     double total = golds + nils + others;
     double toMajority = Math.ceil(majorityThreshold * (golds + others));
-    // gold is _NF or golds are more than 10% of the total labels -- flip the greatest among:
+    // gold is _NF or golds are more than majorityThreshold of the total labels -- flip the greatest among:
     // 0
     // # needed to exceed other (non-nil) label
-    if(y == nilIndex || golds > 0.10 * total)
+    //if(y == nilIndex || golds > minimumGolds * total)
+    if(golds > minimumGolds * total)
       return (int) Math.max(0.0, toMajority);
       // too few golds -- flip the greatest number among:
       // 1
