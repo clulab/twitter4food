@@ -181,7 +181,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
           dataset.size() + " datum groups. Performed " +
           posUpdateStats.getCount(LABEL_ALL) + " ++ updates and " +
           negUpdateStats.getCount(LABEL_ALL) + " -- updates.");
-      Log.info("Label distribution: " + epochLabels.toString());
+      Log.info("gold label distribution: " + epochLabels.toString());
     }
 
     // finalize learning: add the last vector to the avg for each label
@@ -350,11 +350,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       int [] datum = group[i];
 
       // negative update
-      if(! gold.contains(pred)) {
-        zWeights[pred].update(datum, -1.0);
-        negUpdateStats.incrementCount(pred);
-        negUpdateStats.incrementCount(LABEL_ALL);
-      }
+      // if(! gold.contains(pred)) {
+      //   zWeights[pred].update(datum, -1.0);
+      //   negUpdateStats.incrementCount(pred);
+      //   negUpdateStats.incrementCount(LABEL_ALL);
+      // }
       // positive update
       for(int l: gold) {
         if(l != pred) {
@@ -760,7 +760,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(int i = 0; i < predictedLabels.size(); i++) {
       allPredicted.incrementCount(predictedLabels.get(i).keySet().iterator().next());
     }
-    logger.info("label distribution: " + allPredicted.toString());
+    logger.info("predicted label distribution: " + allPredicted.toString());
 
     return predictedLabels;
   }
@@ -791,6 +791,31 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
 
     double p = (predicted != 0 ? correct / predicted : 0.0);
     double r = (total != 0 ? correct / total : 0.0);
+    double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
+    System.out.print("p: " + p + ", r: " + r + ", f1: " + f1 + "\n");
+    return new Triple<Double, Double, Double>(p, r, f1);
+  }
+
+  public static Triple<Double, Double, Double> score(
+      Set<Integer>[] goldLabels,
+      List<Counter<Integer>> predictedLabels,
+      int posLabel) {
+    assert(goldLabels.length == predictedLabels.size());
+    if(goldLabels.length == 0)
+      logger.warning("Trying to evaluate on 0 datums!");
+    double tp = 0.0, tn = 0.0, fp = 0.0, fn = 0.0;
+    for(int i = 0; i < goldLabels.length; i ++) {
+      Set<Integer> gold = goldLabels[i];
+      Counter<Integer> preds = predictedLabels.get(i);
+
+      if(gold.contains(posLabel) & preds.containsKey(posLabel)) tp ++;
+      else if(!gold.contains(posLabel) & !preds.containsKey(posLabel)) tn ++;
+      else if(!gold.contains(posLabel) & preds.containsKey(posLabel)) fp ++;
+      else if(gold.contains(posLabel) & !preds.containsKey(posLabel)) fn ++;
+    }
+
+    double p = (tp+fp != 0 ? tp/(tp+fp) : 0.0);
+    double r = (tp+fn != 0 ? tp/(tp+fn) : 0.0);
     double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
     System.out.print("p: " + p + ", r: " + r + ", f1: " + f1 + "\n");
     return new Triple<Double, Double, Double>(p, r, f1);

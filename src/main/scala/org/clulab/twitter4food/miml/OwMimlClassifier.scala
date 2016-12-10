@@ -60,7 +60,7 @@ object OwMimlClassifier {
       val pred = extractor.classifyAccounts(test)
       logger.debug(s"${pred.size()} predictions...")
 
-      val score = HoffmannExtractor.score(test.getLabelsArray, pred)
+      val score = HoffmannExtractor.score(test.getLabelsArray, pred, test.labelIndex.indexOf("Overweight"))
       val p = score.first.toDouble
       val r = score.second.toDouble
       val f = score.third.toDouble
