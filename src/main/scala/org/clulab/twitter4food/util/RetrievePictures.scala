@@ -20,7 +20,11 @@ object RetrievePictures {
 
     val numProcesses = 16
     val chunkSize = ids.length / numProcesses
-    val picUrlsPar = for {
+
+    val base = config.getString("classifiers.overweight.profilePictures")
+    val pattern = """(.*)[.]([^.]*)""".r
+
+    for {
       thread <- (0 until numProcesses).par
       api = new TwitterAPI(thread)
     } yield {
@@ -28,31 +32,21 @@ object RetrievePictures {
       for (i <- thread * chunkSize until (thread + 1) * chunkSize) {
         logger.debug(s"fetching ${ids(i)}")
         val fetched = api.fetchProfilePic(ids(i))
-        if(fetched.nonEmpty) threadPics += ids(i) -> fetched.get
+        if(fetched.nonEmpty) {
+          val id = ids(i)
+          val url = fetched.get
+          Thread.sleep(250 + scala.util.Random.nextInt(500)) // Sleep to avoid spamming the server
+          val extension = url match { case pattern(fn, ext) => ext }
+          try {
+            new URL(url) #> new File(base + id + "." + extension) !!
+          } catch {
+            case e: Exception => logger.error(s"$url not found for user $id")
+          }
+        }
       }
       threadPics.toMap
     }
 
-    val picUrls = picUrlsPar.seq.flatten.toMap
-    val base = config.getString("classifiers.overweight.profilePictures")
-    val pat = """(.*)[.]([^.]*)""".r
-
-    val pb = new me.tongfei.progressbar.ProgressBar("fetch", 100)
-    pb.start()
-    pb.maxHint(picUrls.size)
-    pb.setExtraMessage("fetching...")
-
-    for((id, url) <- picUrls) {
-      Thread.sleep(250 + scala.util.Random.nextInt(750)) // Sleep to avoid spamming the server
-      val extension = url match { case pat(fn, ext) => fn }
-      try {
-        new URL(url) #> new File(base + id + "." + extension) !!
-      } catch {
-        case e: Exception => logger.error(s"$url not found for user $id")
-      }
-      pb.step()
-    }
-    pb.stop()
     logger.info("Profile pictures retrieved")
   }
 }
