@@ -37,10 +37,22 @@ object RetrievePictures {
     val base = config.getString("classifiers.overweight.profilePictures")
     val pat = """(.*)[.]([^.]*)""".r
 
+    val pb = new me.tongfei.progressbar.ProgressBar("fetch", 100)
+    pb.start()
+    pb.maxHint(picUrls.size)
+    pb.setExtraMessage("fetching...")
+
     for((id, url) <- picUrls) {
-      Thread.sleep(250 + scala.util.Random.nextInt(500)) // Sleep to avoid spamming the server
+      Thread.sleep(250 + scala.util.Random.nextInt(750)) // Sleep to avoid spamming the server
       val extension = url match { case pat(fn, ext) => fn }
-      new URL(url) #> new File(base + id + "." + extension) !!
+      try {
+        new URL(url) #> new File(base + id + "." + extension) !!
+      } catch {
+        case e: Exception => logger.error(s"$url not found for user $id")
+      }
+      pb.step()
     }
+    pb.stop()
+    logger.info("Profile pictures retrieved")
   }
 }
