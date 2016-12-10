@@ -21,12 +21,7 @@ import org.slf4j.LoggerFactory
 
 class TwitterAPI(keyset: Int) {
 
-  val AccountSleepTime = 5050
-  val AppOnlySleepTime = 3050
-  val QueryOnlySleepTime = 2050
-  val UserSleepTime = 5050
   val MaxTweetCount = 200
-  val MaxPageCount = 16
 
   private val UserOnly = 0
   private val AppOnly = 1
@@ -274,6 +269,21 @@ class TwitterAPI(keyset: Int) {
     val handle = sanitizeHandle(h)
     val user = try {
       Option(appOnlyTwitter.showUser(handle))
+    } catch {
+      case te: TwitterException =>
+        println(s"ErrorCode = ${te.getErrorCode}\tErrorMsg = ${te.getErrorMessage}")
+        None
+    }
+    sleep("showUser", isAppOnly = true)
+
+    if (user.nonEmpty) {
+      if (user.get.isDefaultProfileImage) Option("default") else Option(user.get.getOriginalProfileImageURL)
+    } else None
+  }
+
+  def fetchProfilePic(id: Long): Option[String] ={
+    val user = try {
+      Option(appOnlyTwitter.showUser(id))
     } catch {
       case te: TwitterException =>
         println(s"ErrorCode = ${te.getErrorCode}\tErrorMsg = ${te.getErrorMessage}")
