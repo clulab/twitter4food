@@ -22,7 +22,7 @@ object RetrievePictures {
     val chunkSize = ids.length / numProcesses
 
     val base = config.getString("classifiers.overweight.profilePictures")
-    val pattern = """(.*)[.]([^.]*)""".r
+    val pattern = """(.+)[.]([^.]+)$""".r
 
     for {
       thread <- (0 until numProcesses).par
@@ -36,7 +36,13 @@ object RetrievePictures {
           val id = ids(i)
           val url = fetched.get
           Thread.sleep(250 + scala.util.Random.nextInt(500)) // Sleep to avoid spamming the server
-          val extension = url match { case pattern(fn, ext) => ext }
+          val extension = url.toLowerCase match {
+              case pattern(fn, "jpg") => "jpg"
+              case pattern(fn, "jpeg") => "jpeg"
+              case pattern(fn, "png") => "png"
+              case pattern(fn, "gif") => "gif"
+              case unknown => "jpg" // just try jpg
+            }
           try {
             new URL(url) #> new File(base + id + "." + extension) !!
           } catch {
