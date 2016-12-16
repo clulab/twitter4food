@@ -503,8 +503,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   private int howManyToFlip(List<Edge> edges, int y) {
     if (edges.size() == 0) return 0;
     Map<Integer, List<Edge>> edgesByZ = byZ(edges);
-    double minimumGolds = 0.5;
-    double majorityThreshold = 0.5;
+    double minimumGolds = 0.01;
+    double majorityThreshold = 0.01;
     double golds = 0.0;
     double nils = 0.0;
     double others = 0.0;
@@ -520,7 +520,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
 
     double total = golds + nils + others;
-    double toMajority = Math.ceil(majorityThreshold * (golds + others));
+    double toMajority = Math.ceil(majorityThreshold * (others)) + 1;
     // gold is _NF or golds are more than majorityThreshold of the total labels -- flip the greatest among:
     // 0
     // # needed to exceed other (non-nil) label
@@ -748,7 +748,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> iLabel = new ClassicCounter<>();
       Map.Entry<Integer, Double> bestLabel = null;
       for(Map.Entry<Integer, Double> entry: sm.entrySet()) {
-        if (bestLabel == null || entry.getValue() > bestLabel.getValue())
+//        if (bestLabel == null || entry.getValue() > bestLabel.getValue())
+//          bestLabel = entry;
+        if (bestLabel == null)
+          bestLabel = entry;
+        else if (entry.getValue() > bestLabel.getValue())
           bestLabel = entry;
       }
 

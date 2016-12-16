@@ -31,15 +31,17 @@ object OwMimlClassifier {
       .filter(_._1.tweets.nonEmpty)
 
     // load human/organization dataset, discard humans, and mark organizations as nil ("_NF")
-    val orgAccts = FileUtils.load(config.getString("classifiers.miml.neg"))
-      .toSeq
-      .filter(_._2 == "org")
-      .filter(_._1.tweets.nonEmpty)
-      .map{ case (acct, lbl) => (acct, unrelated) }
+//    val orgAccts = FileUtils.load(config.getString("classifiers.miml.neg"))
+//      .toSeq
+//      .filter(_._2 == "org")
+//      .filter(_._1.tweets.nonEmpty)
+//      .map{ case (acct, lbl) => (acct, unrelated) }
 
     // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.4, "Not overweight" -> 0.4, unrelated -> 0.2 )
-    val subsampled = Utils.subsample(owAccts ++ orgAccts, desiredProps)
+//    val desiredProps = Map( "Overweight" -> 0.4, "Not overweight" -> 0.4, unrelated -> 0.2 )
+    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5)
+//    val subsampled = Utils.subsample(owAccts ++ orgAccts, desiredProps)
+    val subsampled = Utils.subsample(owAccts, desiredProps)
 
     val dataset = OverweightDataConstructor.constructMimlDataset(subsampled, params)
 
