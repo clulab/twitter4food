@@ -188,7 +188,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(LabelWeights zw: zWeights) zw.addToAverage();
   }
 
-  public void train(RvfMLDataset<String, String> dataset) {
+  public void train(RvfMLDataset<String, String> dataset) throws IOException {
     Log.info("Training the majority model using "
         + dataset.featureIndex().size() + " features and "
         + "the following labels: " + dataset.labelIndex().toString());
@@ -225,7 +225,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         double [][] crtGroupValues = dataset.getValueArray()[i];
         Set<Integer> gold = dataset.getLabelsArray()[i];
 
-        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats, epochLabels, instLabels);
+        BufferedWriter writer = new BufferedWriter(new FileWriter(new File("/work/dane/instanceLabels" + t + ".txt")));
+        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats, epochLabels, instLabels, writer);
+        writer.close();
 
         // update the number of iterations an weight vector has survived
         for(LabelWeights zw: zWeights) zw.updateSurvivalIterations();
@@ -291,19 +293,25 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
   }
 
-  private void trainJointly(
+  private void trainJointly (
       int [][] crtGroup,
       double [][] crtGroupValues,
       Set<Integer> goldPos,
       Counter<Integer> posUpdateStats,
       Counter<Integer> negUpdateStats,
       Counter<Integer> epochLabels,
-      Map<Integer, Map<Integer, List<Double>>> instLabels) {
+      Map<Integer, Map<Integer, List<Double>>> instLabels,
+      BufferedWriter writer) throws IOException {
     // all local predictions using local Z models
     // this is simply generating *all* predictions for each tweet
     List<Counter<Integer>> zs = estimateZ(crtGroup, crtGroupValues);
     // best predictions for each instance
     int [] zPredicted = generateZPredicted(zs);
+
+    for(int z: zPredicted) {
+      writer.write(z + " ");
+    }
+    writer.write("\n");
 
     // yPredicted - Y labels predicted using the current Zs (full inference)
     // this is picking the account label supported by most instances
@@ -350,11 +358,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       int [] datum = group[i];
 
       // negative update
-      // if(! gold.contains(pred)) {
-      //   zWeights[pred].update(datum, -1.0);
-      //   negUpdateStats.incrementCount(pred);
-      //   negUpdateStats.incrementCount(LABEL_ALL);
-      // }
+      if(! gold.contains(pred)) {
+        zWeights[pred].update(datum, -1.0);
+        negUpdateStats.incrementCount(pred);
+        negUpdateStats.incrementCount(LABEL_ALL);
+      }
       // positive update
       for(int l: gold) {
         if(l != pred) {
