@@ -194,6 +194,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         + "the following labels: " + dataset.labelIndex().toString());
 
     labelIndex = dataset.labelIndex();
+    // add the NIL label
+    labelIndex.add(RelationMention.UNRELATED);
     nilIndex = labelIndex.indexOf(RelationMention.UNRELATED);
     zFeatureIndex = dataset.featureIndex();
 
@@ -728,24 +730,25 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(int i = 0; i < inst.size(); i++){
       exp.add(softmaxInstance(inst.get(i)));
     }
-    // Initialize counter with 1s for infinite probabilities
+    // Initialize counter with 1s for infinite probabilities (0 because log(1) = 0
     Counter<Integer> probs = new ClassicCounter<>(nLabels);
-    probs.setDefaultReturnValue(1.0);
+    probs.setDefaultReturnValue(0.0);
 
     // Compute noisy or with help from already-computed instance softmaxes
+    // Computed using logs to help with overflow
     for(int i = 0; i < exp.size(); i++){
       for(int j = 0; j < nLabels; j++){
         double sm = 0.0;
         if (exp.get(i).containsKey(j)) {
           sm = exp.get(i).getCount(j);
         }
-        probs.setCount(j, probs.getCount(j) * (1 - sm));
+        probs.setCount(j, probs.getCount(j) + Math.log(1.0 - sm));
       }
     }
 
     // subtract from 1 to complete noisy or
     for(int i = 0; i < nLabels; i++){
-      probs.setCount(i, 1.0 - probs.getCount(i));
+      probs.setCount(i, 1.0 - Math.exp(probs.getCount(i)));
     }
 
     return probs;
