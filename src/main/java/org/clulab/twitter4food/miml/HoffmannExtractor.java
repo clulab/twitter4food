@@ -528,12 +528,12 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
 
     double total = golds + nils + others;
-    double toMajority = Math.ceil(majorityThreshold * (others)) + 1;
+    double toMajority = others - golds + 1;
     // gold is _NF or golds are more than majorityThreshold of the total labels -- flip the greatest among:
     // 0
     // # needed to exceed other (non-nil) label
     //if(y == nilIndex || golds > minimumGolds * total)
-    if(golds > minimumGolds * total)
+    if(golds >= minimumGolds * total)
       return (int) Math.max(0.0, toMajority);
       // too few golds -- flip the greatest number among:
       // 1
@@ -725,15 +725,36 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     return exp;
   }
 
-  private List<Counter<Integer>> softmaxInstance(List<Counter<Integer>> inst) {
+  private Counter<Integer> noisyOr(List<Counter<Integer>> inst, int nLabels) {
     ArrayList<Counter<Integer>> exp = new ArrayList<>(inst.size());
     for(int i = 0; i < inst.size(); i++){
       exp.add(softmaxInstance(inst.get(i)));
     }
-    return exp;
+    // Initialize counter with 1s for infinite probabilities
+    Counter<Integer> probs = new ClassicCounter<>(nLabels);
+    probs.setDefaultReturnValue(1.0);
+
+    // Compute noisy or with help from already-computed instance softmaxes
+    for(int i = 0; i < exp.size(); i++){
+      for(int j = 0; j < nLabels; j++){
+        double sm = 0.0;
+        if (exp.get(i).containsKey(j)) {
+          sm = exp.get(i).getCount(j);
+        }
+        probs.setCount(j, probs.getCount(j) * (1 - sm));
+      }
+    }
+
+    // subtract from 1 to complete noisy or
+    for(int i = 0; i < nLabels; i++){
+      probs.setCount(i, 1.0 - probs.getCount(i));
+    }
+
+    return probs;
   }
 
-  private Counter<Integer> softmaxAccount(List<Counter<Integer>> inst, int numKeys) {
+  /*
+  private Counter<Integer> noisyOr(List<Counter<Integer>> inst, int numKeys) {
     Counter<Integer> sm = new ClassicCounter<>(numKeys);
     for(int i = 0; i < numKeys; i++) {
       double prob = 1.0;
@@ -744,6 +765,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
     return sm;
   }
+  */
 
   public List<Counter<Integer>> classifyAccounts(RvfMLDataset<String, String> dataset) {
     List<Counter<Integer>> predictedLabels = new ArrayList<Counter<Integer>>();
@@ -751,16 +773,16 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       int[][] rowFeatures = dataset.getDataArray()[i];
       double[][] rowValues = dataset.getValueArray()[i];
       List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
-      Counter<Integer> sm = softmaxAccount(zs, dataset.labelIndex.size());
+      Counter<Integer> sm = noisyOr(zs, dataset.labelIndex.size());
 
       Counter<Integer> iLabel = new ClassicCounter<>();
       Map.Entry<Integer, Double> bestLabel = null;
       for(Map.Entry<Integer, Double> entry: sm.entrySet()) {
 //        if (bestLabel == null || entry.getValue() > bestLabel.getValue())
 //          bestLabel = entry;
-        if (bestLabel == null)
+        if (bestLabel == null && entry.getKey() != nilIndex)
           bestLabel = entry;
-        else if (entry.getValue() > bestLabel.getValue())
+        else if (entry.getValue() > bestLabel.getValue() && entry.getKey() != nilIndex)
           bestLabel = entry;
       }
 
