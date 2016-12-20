@@ -143,7 +143,7 @@ object ExamineUser extends App {
       val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
       val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
       sb.append(f"Relevant terms per tweet: $relevantPerTweet%1.3f\n")
-      sb.append(f"tweets with > 0 relevant terms: $percentRelevant%1.1f%\n")
+      sb.append(f"tweets with > 0 relevant terms: $percentRelevant%1.1f\n")
 
       val mostRelevant = relevance.toSeq.sortBy(_._2).reverse.take(tweetsToDisplay).sortBy(_._1.createdAt)
       sb.append("Most relevant tweets:\n")
