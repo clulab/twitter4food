@@ -84,26 +84,36 @@ object OverweightDataConstructor {
       // The datasets labels are meaningless for now, hence "Overweight" to allow dictionary loading
       // "Overweight" label shouldn't be passed forward
       val instances = splitAccount(account)
-      val dataset = ci.constructDataset(instances,
-        List.fill(instances.length)("Overweight"),
-        followers = None,
-        followees = None,
-        progressBar = false
-      )
 
-      // Add by feature NAME, not feature INDEX
-      val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
-      // MIML solvers need java.lang.Doubles
-      val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
-      // a singleton set containing the gold label
-      val label = new java.util.HashSet[String](1)
-      label.add(lbl)
-      // add this account (datum) with all its instances
-      ds.add(label, listify(featureStrings), listify(valuesJava))
+      var sz = 0
+
+      if (instances.length >= 10) {
+        val dataset = ci.constructDataset(instances,
+          List.fill(instances.length)("Overweight"),
+          followers = None,
+          followees = None,
+          progressBar = false
+        )
+
+        // Add by feature NAME, not feature INDEX
+        val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
+        // MIML solvers need java.lang.Doubles
+        val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
+        // a singleton set containing the gold label
+        val label = new java.util.HashSet[String](1)
+        label.add(lbl)
+        // add this account (datum) with all its instances
+        ds.add(label, listify(featureStrings), listify(valuesJava))
+
+        sz = ds.size
+      }
+
       pb.step()
 
-      (account.handle, account.tweets.length, dataset.size)
+      (account.handle, account.tweets.length, sz)
     }
+
+    pb.stop()
 
     val writer = new BufferedWriter(new FileWriter("/work/dane/tweetStatistics.tsv"))
     writer.write("handle\tbefore\tafter\n")
@@ -111,8 +121,6 @@ object OverweightDataConstructor {
       writer.write(s"$handle\t$before\t$after\n")
     }
     writer.close()
-
-    pb.stop()
 
     ds
   }
