@@ -19,7 +19,6 @@ import java.util.*;
 public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   private static final long serialVersionUID = 1L;
   private static final int LABEL_ALL = -1;
-  private static final double noneThreshold = 0.5;
 
   /**
    * Stores weight information for one label
@@ -481,8 +480,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(Integer y: goldPos) {
       List<Edge> es = edgesByY.get(y);
       assert(es != null);
-      //System.out.print(String.valueOf(es.size()) + "\n");
-      int flipThreshold = howManyToFlip(es, y);
+      int flipThreshold = howManyToFlip(es.size());
       int flipped = 0;
       for(Edge e: es) {
         if(flipped >= flipThreshold) {
@@ -502,7 +500,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         List<Edge> es = edgesByZ.get(m);
         assert(es != null);
         assert(es.size() > 0);
-        zUpdate[m].add(es.get(0).y); // allow NILs as well
+        if(nilIndex != es.get(0).y) {
+          zUpdate[m].add(es.get(0).y); // allow NILs as well
+        }
       }
     }
 
@@ -512,41 +512,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
   /**
    * Determine how many labels to flip according to proportion weighed against the other labels.
    */
-  private int howManyToFlip(List<Edge> edges, int y) {
-    if (edges.size() == 0) return 0;
-    Map<Integer, List<Edge>> edgesByZ = byZ(edges);
-    double minimumGolds = 0.01;
-    double majorityThreshold = 0.01;
-    double golds = 0.0;
-    double nils = 0.0;
-    double others = 0.0;
-    for(int m = 0; m < edgesByZ.keySet().size(); m ++) {
-      List<Edge> es = edgesByZ.get(m);
-      assert(es != null);
-      assert(es.size() > 0);
-      if(es.get(0).y == y)
-        golds++;
-      else if(es.get(0).y == nilIndex)
-        nils++;
-      else others++;
-    }
+  private int howManyToFlip(int ofHowMany) {
+    if (ofHowMany == 0) return 0;
+    int prop = (int) Math.round((double) ofHowMany / (double) labelIndex.size());
 
-    double total = golds + nils + others;
-    double toMajority = others - golds + 1;
-    // gold is _NF or golds are more than majorityThreshold of the total labels -- flip the greatest among:
-    // 0
-    // # needed to exceed other (non-nil) label
-    //if(y == nilIndex || golds > minimumGolds * total)
-    if(golds >= minimumGolds * total)
-      return (int) Math.max(0.0, toMajority);
-      // too few golds -- flip the greatest number among:
-      // 1
-      // # needed to get to minimumGolds proportion
-      // # needed to exceed other (non-nil) label
-    else {
-      double toMinimum = Math.round(minimumGolds * total) - golds;
-      return (int) Math.max(1.0, Math.max(toMinimum, toMajority));
-    }
+    return Math.min(prop + 1, ofHowMany);
   }
 
   /**
