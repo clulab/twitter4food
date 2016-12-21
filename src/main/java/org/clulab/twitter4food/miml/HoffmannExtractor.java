@@ -222,18 +222,16 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       }
 
       // traverse the relation dataset
-      BufferedWriter writer = new BufferedWriter(new FileWriter(new File("/work/dane/instanceLabels" + t + ".txt")));
       for(int i = 0; i < dataset.size(); i ++){
         int [][] crtGroup = dataset.getDataArray()[i];
         double [][] crtGroupValues = dataset.getValueArray()[i];
         Set<Integer> gold = dataset.getLabelsArray()[i];
 
-        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats, epochLabels, instLabels, writer);
+        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats, epochLabels, instLabels);
 
         // update the number of iterations an weight vector has survived
         for(LabelWeights zw: zWeights) zw.updateSurvivalIterations();
       }
-      writer.close();
 
       Log.info("Epoch #" + t + " completed. Inspected " +
           dataset.size() + " datum groups. Performed " +
@@ -302,8 +300,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> posUpdateStats,
       Counter<Integer> negUpdateStats,
       Counter<Integer> epochLabels,
-      Map<Integer, Map<Integer, List<Double>>> instLabels,
-      BufferedWriter writer) throws IOException {
+      Map<Integer, Map<Integer, List<Double>>> instLabels) throws IOException {
     // all local predictions using local Z models
     // this is simply generating *all* predictions for each tweet
     List<Counter<Integer>> zs = estimateZ(crtGroup, crtGroupValues);
@@ -314,9 +311,17 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     // this is picking the account label supported by most instances
     Counter<Integer> yPredicted = estimateY(zPredicted);
 
-    int y = yPredicted.keySet().iterator().next();
+    int y = -1;
+    double yval = -1000.0;
 
-    writer.write(y + "\n");
+    if(yPredicted.keySet().size() > 1)
+      logger.severe("yPredicted is of size > 1");
+
+    for(int yp: yPredicted.keySet()) {
+      if (yPredicted.getCount(yp) > yval)
+        y = yp;
+        yval = yPredicted.getCount(yp);
+    }
 
     // always update epochLabels (NB: assume only one label in set)
     epochLabels.incrementCount(y);
