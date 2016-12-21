@@ -226,8 +226,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         int [][] crtGroup = dataset.getDataArray()[i];
         double [][] crtGroupValues = dataset.getValueArray()[i];
         Set<Integer> gold = dataset.getLabelsArray()[i];
+        int nLabels = dataset.numClasses();
 
-        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats, epochLabels, instLabels);
+        trainJointly(crtGroup, crtGroupValues, gold, posUpdateStats, negUpdateStats, epochLabels, instLabels, nLabels);
 
         // update the number of iterations an weight vector has survived
         for(LabelWeights zw: zWeights) zw.updateSurvivalIterations();
@@ -300,28 +301,26 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Counter<Integer> posUpdateStats,
       Counter<Integer> negUpdateStats,
       Counter<Integer> epochLabels,
-      Map<Integer, Map<Integer, List<Double>>> instLabels) throws IOException {
+      Map<Integer, Map<Integer, List<Double>>> instLabels,
+      int nLabels) throws IOException {
     // all local predictions using local Z models
     // this is simply generating *all* predictions for each tweet
     List<Counter<Integer>> zs = estimateZ(crtGroup, crtGroupValues);
-    // best predictions for each instance
+
+    // best predictions for each mention
     int [] zPredicted = generateZPredicted(zs);
 
-    // yPredicted - Y labels predicted using the current Zs (full inference)
-    // this is picking the account label supported by most instances
-    Counter<Integer> yPredicted = estimateY(zPredicted);
+    Counter<Integer> sm = noisyOr(zs, nLabels);
 
-    int y = -1;
-    double yval = -1000.0;
-
-    if(yPredicted.keySet().size() > 1)
-      logger.severe("yPredicted is of size > 1");
-
-    for(int yp: yPredicted.keySet()) {
-      if (yPredicted.getCount(yp) > yval)
-        y = yp;
-        yval = yPredicted.getCount(yp);
+    Map.Entry<Integer, Double> bestLabel = null;
+    for(Map.Entry<Integer, Double> entry: sm.entrySet()) {
+      if (bestLabel == null && entry.getKey() != nilIndex)
+        bestLabel = entry;
+      else if (entry.getValue() > bestLabel.getValue() && entry.getKey() != nilIndex)
+        bestLabel = entry;
     }
+    int y = bestLabel.getKey();
+    Set<Integer> yPredicted = Collections.singleton(y);
 
     // always update epochLabels (NB: assume only one label in set)
     epochLabels.incrementCount(y);
@@ -337,7 +336,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     }
 
     // this is checking if the account label != gold
-    if(updateCondition(yPredicted.keySet(), goldPos)){
+    if(updateCondition(yPredicted, goldPos)){
       // conditional inference
       Set<Integer> [] zUpdate = generateZUpdate(goldPos, zs);
       // update weights
