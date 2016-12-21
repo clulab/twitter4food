@@ -122,6 +122,8 @@ object OverweightDataConstructor {
     }
     writer.close()
 
+    logger.debug(s"${accounts.length} accounts before filtering; ${ds.size()} after filtering")
+
     ds
   }
 
