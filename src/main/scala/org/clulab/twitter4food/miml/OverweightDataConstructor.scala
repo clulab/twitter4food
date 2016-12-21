@@ -105,7 +105,7 @@ object OverweightDataConstructor {
         // add this account (datum) with all its instances
         ds.add(label, listify(featureStrings), listify(valuesJava))
 
-        sz = ds.size
+        sz = dataset.size
       }
 
       pb.step()
