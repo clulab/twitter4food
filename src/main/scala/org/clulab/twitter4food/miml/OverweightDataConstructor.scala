@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.miml
 
+import java.io.{BufferedWriter, FileWriter}
+
 import com.typesafe.config.ConfigFactory
 import org.clulab.struct.Lexicon
 import org.clulab.twitter4food.struct.{RvfMLDataset, TwitterAccount}
@@ -77,7 +79,7 @@ object OverweightDataConstructor {
     pb.maxHint(accounts.size)
     pb.setExtraMessage("splitting...")
 
-    for ((account, lbl) <- accounts) {
+    val numTweets = for ((account, lbl) <- accounts) yield {
       // Dataset with one row per instance (tweet)
       // The datasets labels are meaningless for now, hence "Overweight" to allow dictionary loading
       // "Overweight" label shouldn't be passed forward
@@ -99,7 +101,16 @@ object OverweightDataConstructor {
       // add this account (datum) with all its instances
       ds.add(label, listify(featureStrings), listify(valuesJava))
       pb.step()
+
+      (account.handle, account.tweets.length, dataset.size)
     }
+
+    val writer = new BufferedWriter(new FileWriter("/work/dane/tweetStatistics.tsv"))
+    writer.write("handle\tbefore\tafter\n")
+    numTweets.foreach { case (handle, before, after) =>
+      writer.write(s"$handle\t$before\t$after\n")
+    }
+    writer.close()
 
     pb.stop()
 
