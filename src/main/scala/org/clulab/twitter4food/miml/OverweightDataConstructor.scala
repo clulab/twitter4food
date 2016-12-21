@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.miml
 
+import com.typesafe.config.ConfigFactory
+import org.clulab.struct.Lexicon
 import org.clulab.twitter4food.struct.{RvfMLDataset, TwitterAccount}
 import org.clulab.twitter4food.util.{FileUtils, Utils}
 import org.clulab.twitter4food.util.Utils.Config
@@ -7,10 +9,27 @@ import org.slf4j.LoggerFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 
 import scala.collection.mutable.ArrayBuffer
+import scalaj.collection.Imports._
 
 object OverweightDataConstructor {
 
   val logger = LoggerFactory.getLogger(this.getClass)
+  val config = ConfigFactory.load
+
+  val lexLocations = config.getStringList("classifiers.overweight.Overweight.lexicons").asScalaMutable
+
+  val lexicons = for (loc <- lexLocations.toArray) yield {
+    Lexicon.loadFrom[String](loc)
+  }
+
+  val lexicon = lexicons.reduce{ (a: Lexicon[String], b: Lexicon[String]) => mergeLexicons(a, b) }
+
+  def mergeLexicons[T](a: Lexicon[T], b: Lexicon[T]): Lexicon[T] = {
+    val c = new Lexicon[T]()
+    a.keySet.foreach( k => c.add(k) )
+    b.keySet.foreach( k => c.add(k) )
+    c
+  }
 
   def constructMimlDataset(accounts: Seq[(TwitterAccount, String)], params: Config): RvfMLDataset[String, String] = {
 
@@ -89,7 +108,10 @@ object OverweightDataConstructor {
 
   // Spoof a separate twitter account for each tweet just to piggyback on feature generation
   def splitAccount(account: TwitterAccount): Seq[TwitterAccount] = {
-    for (tweet <- account.tweets) yield {
+    for {
+      tweet <- account.tweets
+      if tweet.text.split(" +").exists(lexicon.contains)
+    } yield {
       new TwitterAccount(
         account.handle,
         account.id,
@@ -97,7 +119,7 @@ object OverweightDataConstructor {
         account.lang,
         account.url,
         account.location,
-        account.description,
+        "",
         Seq(tweet),
         Nil
       )
