@@ -82,6 +82,20 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       survivalIterations = 0;
     }
 
+    void update(int [] datum, double [] datumValues, double weight) {
+      // add this vector to the avg
+      addToAverage();
+
+      // actual update
+      for(int i = 0; i < datum.length; i++){
+        if(datum[i] > weights.length) expand();
+        weights[datum[i]] += weight * datumValues[i];
+      }
+
+      // this is a new vector, so let's reset its survival counter
+      survivalIterations = 0;
+    }
+
     private void expand() {
       throw new RuntimeException("ERROR: LabelWeights.expand() not supported yet!");
     }
@@ -275,20 +289,6 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     // yPredicted - Y labels predicted using the current Zs (full inference)
     Counter<Integer> yPredicted = estimateY(zPredicted);
 
-    int y = yPredicted.keySet().iterator().next();
-    // always update epochLabels (NB: assume only one label in set)
-    epochLabels.incrementCount(y);
-
-    // counter to find proportions of instance labels
-    Counter<Integer> insts = new ClassicCounter<>();
-    for(int pred: zPredicted){
-      insts.incrementCount(pred);
-    }
-    for(int lbl: insts.keySet()){
-      double prop = insts.getCount(lbl) / (double) zPredicted.length;
-      instLabels.get(y).get(lbl).add(prop);
-    }
-
     if(updateCondition(yPredicted.keySet(), goldPos)){
       // conditional inference
       Set<Integer> [] zUpdate = generateZUpdate(goldPos, zs);
@@ -338,7 +338,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       // conditional inference
       Set<Integer> [] zUpdate = generateZUpdate(goldPos, zs);
       // update weights
-      updateZModel(zUpdate, zPredicted, crtGroup, posUpdateStats, negUpdateStats);
+      updateZModel(zUpdate, zPredicted, crtGroup, crtGroupValues, posUpdateStats, negUpdateStats);
     }
   }
 
@@ -369,6 +369,42 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       for(int l: gold) {
         if(l != pred) {
           zWeights[l].update(datum, +1.0);
+          posUpdateStats.incrementCount(l);
+          posUpdateStats.incrementCount(LABEL_ALL);
+        }
+      }
+    }
+  }
+
+  private void updateZModel(
+      Set<Integer> [] goldZ,
+      int [] predictedZ,
+      int [][] group,
+      double [][] rvs,
+      Counter<Integer> posUpdateStats,
+      Counter<Integer> negUpdateStats) {
+    assert(goldZ.length == group.length);
+    assert(predictedZ.length == group.length);
+
+    for(int i = 0; i < group.length; i ++) {
+      // list of all possible gold labels for this mention (z)
+      // for theoretical reasons this is a set, but in practice it will have a single value
+      // for NIL labels, this set is *not* empty, it has _NR (RelationMention.UNRELATED)
+      Set<Integer> gold = goldZ[i];
+      int pred = predictedZ[i];
+      int [] datum = group[i];
+      double [] datumValues = rvs[i];
+
+      // negative update
+      if(! gold.contains(pred)) {
+        zWeights[pred].update(datum, datumValues, -1.0);
+        negUpdateStats.incrementCount(pred);
+        negUpdateStats.incrementCount(LABEL_ALL);
+      }
+      // positive update
+      for(int l: gold) {
+        if(l != pred) {
+          zWeights[l].update(datum, datumValues, +1.0);
           posUpdateStats.incrementCount(l);
           posUpdateStats.incrementCount(LABEL_ALL);
         }
