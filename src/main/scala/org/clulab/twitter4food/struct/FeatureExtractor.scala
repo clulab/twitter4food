@@ -36,7 +36,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useMaxEmbeddings maximum (by dimension) embeddings of all account words
   * @param useCosineSim similarity to a corpus of overweight-related tweets
   * @param useTimeDate time- and day-based features
-  * @param useFollowers domain transfer from follower acccounts
+  * @param useFollowers domain transfer from follower accounts
   * @param useFollowees account followee handles
   * @param useGender domain transfer based on classification of account gender
   * @param useRace domain transfer based on classification of account race
