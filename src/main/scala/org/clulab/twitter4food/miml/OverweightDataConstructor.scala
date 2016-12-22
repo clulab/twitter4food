@@ -70,15 +70,30 @@ object OverweightDataConstructor {
         progressBar = false
       )
 
-      // Add by feature NAME, not feature INDEX
-      val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
-      // MIML solvers need java.lang.Doubles
-      val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
-      // a singleton set containing the gold label
-      val label = new java.util.HashSet[String](1)
-      label.add(lbl)
-      // add this account (datum) with all its instances
-      ds.add(label, listify(featureStrings), listify(valuesJava))
+      var sz = 0
+
+      if (instances.length >= 10) {
+        val dataset = ci.constructDataset(instances,
+          List.fill(instances.length)("Overweight"),
+          followers = None,
+          followees = None,
+          progressBar = false
+        )
+
+        // Add by feature NAME, not feature INDEX
+        val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
+        // MIML solvers need java.lang.Doubles
+        val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
+        val tweetsJava = account.tweets.map(_.text).toArray
+        // a singleton set containing the gold label
+        val label = new java.util.HashSet[String](1)
+        label.add(lbl)
+        // add this account (datum) with all its instances
+        ds.add(label, listify(featureStrings), listify(valuesJava), listify(tweetsJava))
+
+        sz = dataset.size
+      }
+
       pb.step()
     }
 
@@ -113,6 +128,13 @@ object OverweightDataConstructor {
       list.add(el)
     }
     list.asInstanceOf[java.util.List[java.util.List[T]]]
+  }
+
+  // Scala Array* to java List
+  def listify[T](array: Array[T]): java.util.List[T] = {
+    val list = new java.util.ArrayList[T](array.length)
+    array.foreach(inner => list.add(inner))
+    list.asInstanceOf[java.util.List[T]]
   }
 
 }

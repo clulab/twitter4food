@@ -773,7 +773,25 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     for(int i = 0; i < dataset.size(); i++) {
       int[][] rowFeatures = dataset.getDataArray()[i];
       double[][] rowValues = dataset.getValueArray()[i];
+      String [] rowTweets = dataset.getTweets()[i];
       List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
+
+      if (i < 10) {
+        for (int j = 0; j < 5; j++) {
+          String y = labelIndex.get(pickBestLabel(zs.get(j)));
+          System.out.println(y + "\t" + rowTweets[j]);
+          String feats = "";
+          for (int k = 0; k < rowFeatures[j].length; k ++){
+            feats += zFeatureIndex.get(rowFeatures[j][k]);
+            feats += ": ";
+            feats += String.format("%1$.3f", rowValues[j][k]);
+            if (k + 1 < rowFeatures[j].length)
+              feats += ", ";
+          }
+          System.out.println(feats);
+        }
+      }
+
       Counter<Integer> sm = noisyOr(zs, dataset.labelIndex.size());
 
       Counter<Integer> iLabel = new ClassicCounter<>();
