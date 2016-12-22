@@ -73,7 +73,7 @@ object OverweightDataConstructor {
       var sz = 0
 
       if (instances.length >= 10) {
-        val dataset = ci.constructDataset(instances,
+        val (dataset, tweetsInOrder) = ci.constructDatasetWithTweets(instances,
           List.fill(instances.length)("Overweight"),
           followers = None,
           followees = None,
@@ -84,7 +84,7 @@ object OverweightDataConstructor {
         val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
         // MIML solvers need java.lang.Doubles
         val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
-        val tweetsJava = account.tweets.map(_.text).toArray
+        val tweetsJava = tweetsInOrder.map(_.text).toArray
         // a singleton set containing the gold label
         val label = new java.util.HashSet[String](1)
         label.add(lbl)

@@ -23,7 +23,7 @@ object OwMimlClassifier {
     val params = Utils.parseArgs(args)
     val config = ConfigFactory.load
 
-    val unrelated = RelationMention.UNRELATED
+//    val unrelated = RelationMention.UNRELATED
 
     // load all accounts labeled either "Overweight" or "Not overweight"
     logger.info("Loading Twitter accounts")

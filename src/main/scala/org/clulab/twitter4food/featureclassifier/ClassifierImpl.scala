@@ -139,6 +139,48 @@ class ClassifierImpl(
     dataset
   }
 
+  def constructDatasetWithTweets(
+    accounts: Seq[TwitterAccount],
+    labels: Seq[String],
+    followers: Option[Map[String, Seq[TwitterAccount]]],
+    followees: Option[Map[String, Seq[String]]],
+    progressBar: Boolean = true): (RVFDataset[String, String], Seq[Tweet]) = {
+
+    // Load lexicons before calling train
+    if(useDictionaries) {
+      // For each label, populate list of lexicon filepaths from config
+      val lexMap = populateLexiconList(labels.toSet, this.variable)
+      this.featureExtractor.setLexicons(lexMap)
+    }
+
+    if (useFollowers && followers.nonEmpty) this.featureExtractor.setFollowers(followers.get)
+    if (useFollowees && followees.nonEmpty) this.featureExtractor.setFollowees(followees.get)
+
+    val dataset = new RVFDataset[String, String]()
+
+    val pb = new me.tongfei.progressbar.ProgressBar("train()", 100)
+    if (progressBar) {
+      pb.start()
+      pb.maxHint(accounts.size)
+      pb.setExtraMessage("Populating...")
+    }
+
+    // make datums
+    val (tweets, datums) = ((accounts.toArray zip labels).par map {
+      case (account, label) => {
+        if (progressBar) pb.step()
+        // keep handle to sort with
+        (account.tweets.head, featureExtractor.mkDatum(account, label))
+      }
+    }).seq.unzip
+
+    if (progressBar) pb.stop()
+
+    datums.foreach(datum => this.synchronized { dataset += datum } )
+
+    (dataset, tweets)
+  }
+
   /**
     * Sequentially adds a [[RVFDatum]] of (label, mkDatum(account)), first loading followers/followees if necessary
     *
