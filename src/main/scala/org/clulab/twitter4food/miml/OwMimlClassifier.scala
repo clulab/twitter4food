@@ -134,7 +134,10 @@ object OwMimlClassifier {
       )
     }
 
+    val featureIndex = train.featureIndex
+
     val test = new RvfMLDataset[L, F](fold.test.length)
+    test.featureIndex = featureIndex
     fold.test.foreach{ i =>
       val labelSet = new java.util.HashSet[L](1)
       labelSet.add(labels(i))
