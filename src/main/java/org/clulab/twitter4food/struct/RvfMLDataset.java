@@ -53,6 +53,38 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     return tweets;
   }
 
+  public List<List<F>> getFeaturesAt(int ix) {
+    List<List<F>> feats = new ArrayList<>();
+    for(int i = 0; i < data[ix].length; i++) {
+      List<F> instFeats = new ArrayList<>();
+      for(int j = 0; j < data[ix][i].length; j ++) {
+        instFeats.add(featureIndex.get(data[ix][i][j]));
+      }
+      feats.add(instFeats);
+    }
+    return feats;
+  }
+
+  public List<List<Double>> getValuesAt(int ix) {
+    List<List<Double>> vals = new ArrayList<List<Double>>();
+    for(int i = 0; i < values[ix].length; i++) {
+      List<Double> instVals = new ArrayList<Double>();
+      for(int j = 0; j < values[ix][i].length; j ++) {
+        instVals.add(values[ix][i][j]);
+      }
+      vals.add(instVals);
+    }
+    return vals;
+  }
+
+  public List<String> getTweetsAt(int ix) {
+    List<String> twts = new ArrayList<String>();
+    for(int i = 0; i < tweets[ix].length; i++) {
+      twts.add(tweets[ix][i]);
+    }
+    return twts;
+  }
+
   protected double[][][] trimToSize(double[][][] i) {
     if(i.length == size) return i;
     double[][][] newI = new double[size][][];

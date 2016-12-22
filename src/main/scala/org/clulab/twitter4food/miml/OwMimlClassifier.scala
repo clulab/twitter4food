@@ -120,43 +120,6 @@ object OwMimlClassifier {
   // Very inefficient creation of new datasets.
   // TODO: pass indices to HoffmanExtractor.train instead of whole datasets
   def cutDataset[L, F](dataset:RvfMLDataset[L, F], fold:TrainTestFold): (RvfMLDataset[L,F], RvfMLDataset[L,F]) = {
-    val featureIndex = dataset.featureIndex
-
-    val dataJava = new java.util.ArrayList[java.util.ArrayList[java.util.ArrayList[F]]]()
-    dataset.getDataArray.foreach { row =>
-      val rowJava = new java.util.ArrayList[java.util.ArrayList[F]]()
-      row.foreach { inst =>
-        val instJava = new java.util.ArrayList[F]()
-        inst.foreach { ix =>
-          instJava.add(featureIndex.get(ix))
-        }
-        rowJava.add(instJava)
-      }
-      dataJava.add(rowJava)
-    }
-
-    val valueJava = new java.util.ArrayList[java.util.ArrayList[java.util.ArrayList[Double]]]()
-    dataset.getValueArray.foreach { row =>
-      val rowJava = new java.util.ArrayList[java.util.ArrayList[Double]]()
-      row.foreach { inst =>
-        val instJava = new java.util.ArrayList[Double]()
-        inst.foreach { v =>
-          instJava.add(v)
-        }
-        rowJava.add(instJava)
-      }
-      valueJava.add(rowJava)
-    }
-
-    val tweetsJava = new java.util.ArrayList[java.util.ArrayList[String]]()
-    dataset.getTweets.foreach { tweets =>
-      val rowJava = new java.util.ArrayList[String]()
-      tweets.foreach { inst =>
-        rowJava.add(inst)
-      }
-      tweetsJava.add(rowJava)
-    }
-
     val labelIndex = dataset.labelIndex
     val labels = dataset.getLabelsArray.map(lbls => labelIndex.get(lbls.iterator().next())) // assume one label
 
@@ -165,9 +128,9 @@ object OwMimlClassifier {
       val labelSet = new java.util.HashSet[L](1)
       labelSet.add(labels(i))
       train.add(labelSet,
-        dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
-        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]],
-        tweetsJava.get(i).asInstanceOf[java.util.List[String]]
+        dataset.getFeaturesAt(i),
+        dataset.getValuesAt(i),
+        dataset.getTweetsAt(i)
       )
     }
 
@@ -176,9 +139,10 @@ object OwMimlClassifier {
       val labelSet = new java.util.HashSet[L](1)
       labelSet.add(labels(i))
       test.add(labelSet,
-        dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
-        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]],
-        tweetsJava.get(i).asInstanceOf[java.util.List[String]])
+        dataset.getFeaturesAt(i),
+        dataset.getValuesAt(i),
+        dataset.getTweetsAt(i)
+      )
     }
     (train,test)
   }
