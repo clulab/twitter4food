@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.miml
 
+import java.util
+
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.util.{FileUtils, Utils}
 import org.slf4j.LoggerFactory
@@ -9,7 +11,6 @@ import org.clulab.twitter4food.struct.RvfMLDataset
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-
 import scalaj.collection.Imports._
 
 object OwMimlClassifier {
@@ -147,6 +148,15 @@ object OwMimlClassifier {
       valueJava.add(rowJava)
     }
 
+    val tweetsJava = new java.util.ArrayList[java.util.ArrayList[String]]()
+    dataset.getTweets.foreach { tweets =>
+      val rowJava = new java.util.ArrayList[String]()
+      tweets.foreach { inst =>
+        rowJava.add(inst)
+      }
+      tweetsJava.add(rowJava)
+    }
+
     val labelIndex = dataset.labelIndex
     val labels = dataset.getLabelsArray.map(lbls => labelIndex.get(lbls.iterator().next())) // assume one label
 
@@ -156,7 +166,9 @@ object OwMimlClassifier {
       labelSet.add(labels(i))
       train.add(labelSet,
         dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
-        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
+        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]],
+        tweetsJava.get(i).asInstanceOf[java.util.List[String]]
+      )
     }
 
     val test = new RvfMLDataset[L, F](fold.test.length)
@@ -165,7 +177,8 @@ object OwMimlClassifier {
       labelSet.add(labels(i))
       test.add(labelSet,
         dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
-        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
+        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]],
+        tweetsJava.get(i).asInstanceOf[java.util.List[String]])
     }
     (train,test)
   }
