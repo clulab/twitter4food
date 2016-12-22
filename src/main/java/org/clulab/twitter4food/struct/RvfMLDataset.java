@@ -39,6 +39,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     labels = new Set[numDatums];
     data = new int[numDatums][][];
     values = new double[numDatums][][];
+    tweets = new String[numDatums][];
     size = 0;
   }
 
