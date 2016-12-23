@@ -480,7 +480,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       List<Edge> es = edgesByY.get(y);
       assert(es != null);
       //System.out.print(String.valueOf(es.size()) + "\n");
-      int flipThreshold = howManyToFlip(es, y);
+      int flipThreshold = (int) Math.round((double) es.size() / (double) (labelIndex.size() - 1));
       int flipped = 0;
       for(Edge e: es) {
         if(flipped >= flipThreshold) {
