@@ -782,7 +782,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
         int j = 0;
         while (j < 5) {
           String y = labelIndex.get(pickBestLabel(zs.get(j)));
-          if (!y.equals("_NF")) {
+          if (!y.equals("_NR")) {
             System.out.println(y + "\t" + rowTweets[j]);
             String feats = "";
             for (int k = 0; k < rowFeatures[j].length; k++) {
