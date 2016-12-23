@@ -60,6 +60,15 @@ object OwMimlClassifier {
       val (train, test) = cutDataset(dataset, partition)
       logger.info("Training...")
       extractor.train(train)
+
+      val wts = extractor.zWeights
+
+      wts.foreach { lblWeights =>
+        val topWeights = lblWeights.weights.zipWithIndex.sortBy{ case (value, ix) => value }.take(10)
+        val printWeights = topWeights.map{ case (value, ix) => s"${train.featureIndex.get(ix)}: $value"}
+        println(printWeights.mkString(", "))
+      }
+
       val pred = extractor.classifyAccounts(test)
       logger.debug(s"${pred.size()} predictions...")
 

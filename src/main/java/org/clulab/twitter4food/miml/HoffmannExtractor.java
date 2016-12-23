@@ -10,6 +10,8 @@ import org.clulab.twitter4food.struct.RvfMLDataset;
 import java.io.*;
 import java.util.*;
 
+import static java.lang.Double.compare;
+
 /**
  * Implements as closely as possible the MultiR algorithm from (Hoffmann et al., 2011),
  * edited to apply to Twitter accounts rather than entity relations in text.
@@ -777,18 +779,22 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
 
       if (i < 10) {
-        for (int j = 0; j < 5; j++) {
+        int j = 0;
+        while (j < 5) {
           String y = labelIndex.get(pickBestLabel(zs.get(j)));
-          System.out.println(y + "\t" + rowTweets[j]);
-          String feats = "";
-          for (int k = 0; k < rowFeatures[j].length; k ++){
-            feats += zFeatureIndex.get(rowFeatures[j][k]);
-            feats += ": ";
-            feats += String.format("%1$.3f", rowValues[j][k]);
-            if (k + 1 < rowFeatures[j].length)
-              feats += ", ";
+          if (!y.equals("_NF")) {
+            System.out.println(y + "\t" + rowTweets[j]);
+            String feats = "";
+            for (int k = 0; k < rowFeatures[j].length; k++) {
+              feats += zFeatureIndex.get(rowFeatures[j][k]);
+              feats += ": ";
+              feats += String.format("%1$.3f", rowValues[j][k]);
+              if (k + 1 < rowFeatures[j].length)
+                feats += ", ";
+            }
+            System.out.println(feats);
+            j ++;
           }
-          System.out.println(feats);
         }
       }
 
