@@ -64,7 +64,7 @@ object OwMimlClassifier {
       val wts = extractor.zWeights
 
       wts.zipWithIndex.foreach { case(lblWeights, ix) =>
-        val topWeights = lblWeights.weights.zipWithIndex.sortBy{ case (value, i) => value }.takeRight(10).reverse
+        val topWeights = lblWeights.avgWeights.zipWithIndex.sortBy{ case (value, i) => value }.takeRight(10).reverse
         val printWeights = topWeights.map{ case (value, i) => s"${train.featureIndex.get(ix)}: $value"}
         logger.debug(s"${train.labelIndex.get(ix)}: ${printWeights.mkString(", ")}")
       }
@@ -72,7 +72,8 @@ object OwMimlClassifier {
       val pred = extractor.classifyAccounts(test)
       logger.debug(s"${pred.size()} predictions...")
 
-      val score = HoffmannExtractor.score(test.getLabelsArray, pred, test.labelIndex.indexOf("Overweight"))
+      // val score = HoffmannExtractor.score(test.getLabelsArray, pred, test.labelIndex.indexOf("Overweight"))
+      val score = HoffmannExtractor.score(test.getLabelsArray, pred)
       val p = score.first.toDouble
       val r = score.second.toDouble
       val f = score.third.toDouble
