@@ -811,7 +811,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
           bestLabel = entry;
       }
 
-      iLabel.incrementCount(bestLabel.getKey());
+      iLabel.setCount(bestLabel.getKey(), bestLabel.getValue());
       predictedLabels.add(iLabel);
     }
     logger.info(predictedLabels.size() + " labels predicted\n");
