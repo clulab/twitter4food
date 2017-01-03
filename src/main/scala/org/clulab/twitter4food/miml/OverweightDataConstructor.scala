@@ -112,7 +112,7 @@ object OverweightDataConstructor {
         account.lang,
         account.url,
         account.location,
-        account.description,
+        "",
         Seq(tweet),
         Nil
       )
