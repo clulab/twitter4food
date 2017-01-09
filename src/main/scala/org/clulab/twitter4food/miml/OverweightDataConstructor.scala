@@ -85,7 +85,8 @@ object OverweightDataConstructor {
       // "Overweight" label shouldn't be passed forward
       val instances = splitAccount(account)
 
-      var sz = 0
+      var numInstances = 0
+      var numTerms = 0.0
 
       if (instances.length >= 10) {
         val (dataset, tweetsInOrder) = ci.constructDatasetWithTweets(instances,
@@ -106,20 +107,21 @@ object OverweightDataConstructor {
         // add this account (datum) with all its instances
         ds.add(label, listify(featureStrings), listify(valuesJava), listify(tweetsJava))
 
-        sz = dataset.size
+        numInstances = dataset.size
+        numTerms = dataset.values.map(_.sum).sum
       }
 
       pb.step()
 
-      (account.handle, account.tweets.length, sz)
+      (account.handle, account.tweets.length, numInstances, numTerms)
     }
 
     pb.stop()
 
     val writer = new BufferedWriter(new FileWriter("/work/dane/tweetStatistics.tsv"))
-    writer.write("handle\tbefore\tafter\n")
-    numTweets.foreach { case (handle, before, after) =>
-      writer.write(s"$handle\t$before\t$after\n")
+    writer.write("handle\tbefore\tafter\tnumTerms\n")
+    numTweets.foreach { case (handle, before, after, numTerms) =>
+      writer.write(s"$handle\t$before\t$after\t$numTerms\n")
     }
     writer.close()
 

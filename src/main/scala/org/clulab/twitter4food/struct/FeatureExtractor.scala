@@ -339,13 +339,26 @@ class FeatureExtractor (
     */
   def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
+    val foodWords = lexicons.get("Overweight")("activity_words")
+    val activityWords = lexicons.get("Overweight")("food_words")
+    val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
+    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
 
-    // special prefix for description tokens since they summarize an account more than tweets
-    setCounts(tokenNGrams(n, description, "desc"), counter)
+    // Extract ngrams
+    def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
+      text
+        .filter(w => foodWords.contains(w) ||
+          activityWords.contains(w) ||
+          restaurantWords.contains(w) ||
+          owHashtags.contains(w))
+        .sliding(n)
+        .toList
+        .map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
+    }
 
-    // n-gram for tweets
+    setCounts(populateNGrams(n, description), counter)
     tweets.foreach{ tweet =>
-      setCounts(tokenNGrams(n, tweet), counter)
+      setCounts(populateNGrams(n, tweet), counter)
     }
 
     counter

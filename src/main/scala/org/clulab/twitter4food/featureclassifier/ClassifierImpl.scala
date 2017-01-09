@@ -147,11 +147,11 @@ class ClassifierImpl(
     progressBar: Boolean = true): (RVFDataset[String, String], Seq[Tweet]) = {
 
     // Load lexicons before calling train
-    if(useDictionaries) {
+//    if(useDictionaries) {
       // For each label, populate list of lexicon filepaths from config
       val lexMap = populateLexiconList(labels.toSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)
-    }
+//    }
 
     if (useFollowers && followers.nonEmpty) this.featureExtractor.setFollowers(followers.get)
     if (useFollowees && followees.nonEmpty) this.featureExtractor.setFollowees(followees.get)
