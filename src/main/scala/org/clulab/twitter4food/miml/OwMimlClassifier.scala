@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.miml
 
+import java.util
+
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.util.{FileUtils, Utils}
 import org.slf4j.LoggerFactory
@@ -9,7 +11,6 @@ import org.clulab.twitter4food.struct.RvfMLDataset
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-
 import scalaj.collection.Imports._
 
 object OwMimlClassifier {
@@ -22,7 +23,7 @@ object OwMimlClassifier {
     val params = Utils.parseArgs(args)
     val config = ConfigFactory.load
 
-    val unrelated = RelationMention.UNRELATED
+//    val unrelated = RelationMention.UNRELATED
 
     // load all accounts labeled either "Overweight" or "Not overweight"
     logger.info("Loading Twitter accounts")
@@ -59,10 +60,20 @@ object OwMimlClassifier {
       val (train, test) = cutDataset(dataset, partition)
       logger.info("Training...")
       extractor.train(train)
+
+      val wts = extractor.zWeights
+
+      wts.zipWithIndex.foreach { case(lblWeights, ix) =>
+        val topWeights = lblWeights.avgWeights.zipWithIndex.sortBy{ case (value, i) => value }.takeRight(10).reverse
+        val printWeights = topWeights.map{ case (value, i) => s"${train.featureIndex.get(ix)}: $value"}
+        logger.debug(s"${train.labelIndex.get(ix)}: ${printWeights.mkString(", ")}")
+      }
+
       val pred = extractor.classifyAccounts(test)
       logger.debug(s"${pred.size()} predictions...")
 
-      val score = HoffmannExtractor.score(test.getLabelsArray, pred, test.labelIndex.indexOf("Overweight"))
+      // val score = HoffmannExtractor.score(test.getLabelsArray, pred, test.labelIndex.indexOf("Overweight"))
+      val score = HoffmannExtractor.score(test.getLabelsArray, pred)
       val p = score.first.toDouble
       val r = score.second.toDouble
       val f = score.third.toDouble
@@ -119,34 +130,6 @@ object OwMimlClassifier {
   // Very inefficient creation of new datasets.
   // TODO: pass indices to HoffmanExtractor.train instead of whole datasets
   def cutDataset[L, F](dataset:RvfMLDataset[L, F], fold:TrainTestFold): (RvfMLDataset[L,F], RvfMLDataset[L,F]) = {
-    val featureIndex = dataset.featureIndex
-
-    val dataJava = new java.util.ArrayList[java.util.ArrayList[java.util.ArrayList[F]]]()
-    dataset.getDataArray.foreach { row =>
-      val rowJava = new java.util.ArrayList[java.util.ArrayList[F]]()
-      row.foreach { inst =>
-        val instJava = new java.util.ArrayList[F]()
-        inst.foreach { ix =>
-          instJava.add(featureIndex.get(ix))
-        }
-        rowJava.add(instJava)
-      }
-      dataJava.add(rowJava)
-    }
-
-    val valueJava = new java.util.ArrayList[java.util.ArrayList[java.util.ArrayList[Double]]]()
-    dataset.getValueArray.foreach { row =>
-      val rowJava = new java.util.ArrayList[java.util.ArrayList[Double]]()
-      row.foreach { inst =>
-        val instJava = new java.util.ArrayList[Double]()
-        inst.foreach { v =>
-          instJava.add(v)
-        }
-        rowJava.add(instJava)
-      }
-      valueJava.add(rowJava)
-    }
-
     val labelIndex = dataset.labelIndex
     val labels = dataset.getLabelsArray.map(lbls => labelIndex.get(lbls.iterator().next())) // assume one label
 
@@ -155,17 +138,24 @@ object OwMimlClassifier {
       val labelSet = new java.util.HashSet[L](1)
       labelSet.add(labels(i))
       train.add(labelSet,
-        dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
-        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
+        dataset.getFeaturesAt(i),
+        dataset.getValuesAt(i),
+        dataset.getTweetsAt(i)
+      )
     }
 
+    val featureIndex = train.featureIndex
+
     val test = new RvfMLDataset[L, F](fold.test.length)
+    test.featureIndex = featureIndex
     fold.test.foreach{ i =>
       val labelSet = new java.util.HashSet[L](1)
       labelSet.add(labels(i))
       test.add(labelSet,
-        dataJava.get(i).asInstanceOf[java.util.List[java.util.List[F]]],
-        valueJava.get(i).asInstanceOf[java.util.List[java.util.List[java.lang.Double]]])
+        dataset.getFeaturesAt(i),
+        dataset.getValuesAt(i),
+        dataset.getTweetsAt(i)
+      )
     }
     (train,test)
   }

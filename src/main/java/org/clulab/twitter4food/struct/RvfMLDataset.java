@@ -8,6 +8,7 @@ import java.util.*;
 
 public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
   protected double[][][] values;
+  protected String [][] tweets;
 
   public RvfMLDataset() {
     this(10);
@@ -19,11 +20,13 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
 
   public RvfMLDataset(int[][][] data,
                       double[][][] values,
+                      String [][] tweets,
                       Index<F> featureIndex,
                       Index<L> labelIndex,
                       Set<Integer>[] labels) {
     this.data = data;
     this.values = values;
+    this.tweets = tweets;
     this.featureIndex = featureIndex;
     this.labelIndex = labelIndex;
     this.labels = labels;
@@ -36,6 +39,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     labels = new Set[numDatums];
     data = new int[numDatums][][];
     values = new double[numDatums][][];
+    tweets = new String[numDatums][];
     size = 0;
   }
 
@@ -44,9 +48,53 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     return values;
   }
 
+  public String [][] getTweets() {
+    tweets = trimToSize(tweets);
+    return tweets;
+  }
+
+  public List<List<F>> getFeaturesAt(int ix) {
+    List<List<F>> feats = new ArrayList<>();
+    for(int i = 0; i < data[ix].length; i++) {
+      List<F> instFeats = new ArrayList<>();
+      for(int j = 0; j < data[ix][i].length; j ++) {
+        instFeats.add(featureIndex.get(data[ix][i][j]));
+      }
+      feats.add(instFeats);
+    }
+    return feats;
+  }
+
+  public List<List<Double>> getValuesAt(int ix) {
+    List<List<Double>> vals = new ArrayList<List<Double>>();
+    for(int i = 0; i < values[ix].length; i++) {
+      List<Double> instVals = new ArrayList<Double>();
+      for(int j = 0; j < values[ix][i].length; j ++) {
+        instVals.add(values[ix][i][j]);
+      }
+      vals.add(instVals);
+    }
+    return vals;
+  }
+
+  public List<String> getTweetsAt(int ix) {
+    List<String> twts = new ArrayList<String>();
+    for(int i = 0; i < tweets[ix].length; i++) {
+      twts.add(tweets[ix][i]);
+    }
+    return twts;
+  }
+
   protected double[][][] trimToSize(double[][][] i) {
     if(i.length == size) return i;
     double[][][] newI = new double[size][][];
+    System.arraycopy(i, 0, newI, 0, size);
+    return newI;
+  }
+
+  protected String [][] trimToSize(String [][] i) {
+    if(i.length == size) return i;
+    String [][] newI = new String [size][];
     System.arraycopy(i, 0, newI, 0, size);
     return newI;
   }
@@ -71,6 +119,10 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
       Set<Integer> tmpl = labels[randIndex];
       labels[randIndex] = labels[j];
       labels[j] = tmpl;
+
+      String [] tmpt = tweets[randIndex];
+      tweets[randIndex] = tweets[j];
+      tweets[j] = tmpt;
     }
   }
 
@@ -90,6 +142,10 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
       Set<Integer> tmpl = labels[randIndex];
       labels[randIndex] = labels[j];
       labels[j] = tmpl;
+
+      String [] tmpt = tweets[randIndex];
+      tweets[randIndex] = tweets[j];
+      tweets[j] = tmpt;
 
       int [] tmpz = zLabels[randIndex];
       zLabels[randIndex] = zLabels[j];
@@ -160,18 +216,18 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
     Log.info("# features after thresholding: " + featureIndex.size());
   }
 
-  public void add(Set<L> y, List<List<F>> newFeatures, List<List<Double>> newValues) {
+  public void add(Set<L> y, List<List<F>> newFeatures, List<List<Double>> newValues, List<String> newTweets) {
     ensureSize();
 
     addLabels(y);
-    addFeatures(newFeatures, newValues);
-
+    addFeatures(newFeatures, newValues, newTweets);
     size ++;
   }
 
-  protected void addFeatures(List<List<F>> newFeatures, List<List<Double>> newValues) {
+  protected void addFeatures(List<List<F>> newFeatures, List<List<Double>> newValues, List<String> newTweets) {
     int [][] datumFeatures = new int[newFeatures.size()][];
     double [][] datumValues = new double[newValues.size()][];
+    String [] datumTweets = new String[newTweets.size()];
     int i = 0;
     int totalDatums = newFeatures.size();
     while(i < totalDatums){
@@ -200,11 +256,14 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
       System.arraycopy(iValues, 0, trimmedValues, 0, j);
       datumValues[i] = trimmedValues;
 
+      datumTweets[i] = newTweets.get(i);
+
       i ++;
     }
     assert(i == newFeatures.size());
     data[size] = datumFeatures;
     values[size] = datumValues;
+    tweets[size] = datumTweets;
     // System.out.print("size " + String.valueOf(size) + " of " + String.valueOf(Array.getLength(values)) + "\n");
     ensureSize();
   }
@@ -229,6 +288,7 @@ public class RvfMLDataset<L, F> extends MultiLabelDataset<L, F> {
   public RvfMLDataset<L, F> copy() {
     return new RvfMLDataset<L, F>(this.getDataArray().clone(),
         this.getValueArray().clone(),
+        this.getTweets().clone(),
         cloneFIndex(featureIndex),
         cloneLIndex(labelIndex),
         labels.clone());
