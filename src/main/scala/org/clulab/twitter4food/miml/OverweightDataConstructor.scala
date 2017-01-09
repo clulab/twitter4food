@@ -116,7 +116,7 @@ object OverweightDataConstructor {
         account.lang,
         account.url,
         account.location,
-        account.description,
+        "",
         account.tweets.slice(i * stride, Math.min(totalTweets, i * stride + tweetsPerInstance)),
         Nil
       )
