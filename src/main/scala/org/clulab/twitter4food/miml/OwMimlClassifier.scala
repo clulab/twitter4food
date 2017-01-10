@@ -30,7 +30,6 @@ object OwMimlClassifier {
     val owAccts = FileUtils.load(config.getString("classifiers.miml.pos"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
-      .take(100)
 
     // load human/organization dataset, discard humans, and mark organizations as nil ("_NF")
 //    val orgAccts = FileUtils.load(config.getString("classifiers.miml.neg"))

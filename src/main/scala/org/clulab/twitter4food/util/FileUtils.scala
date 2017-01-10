@@ -60,7 +60,7 @@ object FileUtils {
       pb.setExtraMessage("Loading...")
     }
 
-    while (lines.hasNext) {
+    while (lines.hasNext && accounts.size < 100) {
       val line = lines.next
       //println(s"$count, $line")
       val splits = line.split("\t")
