@@ -350,7 +350,8 @@ class FeatureExtractor (
         .filter(w => foodWords.contains(w) ||
           activityWords.contains(w) ||
           restaurantWords.contains(w) ||
-          owHashtags.contains(w))
+          owHashtags.contains(w) ||
+          foodWords.contains("#" + w))
         .sliding(n)
         .toList
         .map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
