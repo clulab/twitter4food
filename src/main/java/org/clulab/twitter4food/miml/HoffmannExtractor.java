@@ -255,6 +255,9 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       Log.info("Label distribution: " + epochLabels.toString());
 
       int nLabels = dataset.labelIndex.size();
+      for(int i = 0; i < nLabels; i++) {
+        Log.info(dataset.labelIndex.get(i) + ": " + posUpdateStats.getCount(i) + "++ and " + negUpdateStats.getCount(i) + "-- updates");
+      }
       for(int i = 0; i < nLabels; i++){ // i: predicted class label
         Counter<String> lblInstDist = new ClassicCounter<>();
         Map<Integer, List<Double>> lblInstLbls = instLabels.get(i);

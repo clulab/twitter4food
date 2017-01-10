@@ -69,11 +69,11 @@ object OwMimlClassifier {
         logger.debug(s"${train.labelIndex.get(ix)}: ${printWeights.mkString(", ")}")
       }
 
-      val pred = extractor.classifyAccounts(test)
+      val pred = extractor.classifyAccounts(train)
       logger.debug(s"${pred.size()} predictions...")
 
       // val score = HoffmannExtractor.score(test.getLabelsArray, pred, test.labelIndex.indexOf("Overweight"))
-      val score = HoffmannExtractor.score(test.getLabelsArray, pred)
+      val score = HoffmannExtractor.score(train.getLabelsArray, pred)
       val p = score.first.toDouble
       val r = score.second.toDouble
       val f = score.third.toDouble
