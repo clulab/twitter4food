@@ -63,36 +63,24 @@ object OverweightDataConstructor {
       // The datasets labels are meaningless for now, hence "Overweight" to allow dictionary loading
       // "Overweight" label shouldn't be passed forward
       val instances = splitAccount(account)
-      val dataset = ci.constructDataset(instances,
+
+      val (dataset, tweetsInOrder) = ci.constructDatasetWithTweets(instances,
         List.fill(instances.length)("Overweight"),
         followers = None,
         followees = None,
         progressBar = false
       )
 
-      var sz = 0
-
-      if (instances.length >= 10) {
-        val (dataset, tweetsInOrder) = ci.constructDatasetWithTweets(instances,
-          List.fill(instances.length)("Overweight"),
-          followers = None,
-          followees = None,
-          progressBar = false
-        )
-
-        // Add by feature NAME, not feature INDEX
-        val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
-        // MIML solvers need java.lang.Doubles
-        val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
-        val tweetsJava = tweetsInOrder.map(_.text).toArray
-        // a singleton set containing the gold label
-        val label = new java.util.HashSet[String](1)
-        label.add(lbl)
-        // add this account (datum) with all its instances
-        ds.add(label, listify(featureStrings), listify(valuesJava), listify(tweetsJava))
-
-        sz = dataset.size
-      }
+      // Add by feature NAME, not feature INDEX
+      val featureStrings = dataset.features.map(row => row.map(dataset.featureLexicon.get))
+      // MIML solvers need java.lang.Doubles
+      val valuesJava = dataset.values.map(row => row.map(_.asInstanceOf[java.lang.Double]))
+      val tweetsJava = tweetsInOrder.map(_.text).toArray
+      // a singleton set containing the gold label
+      val label = new java.util.HashSet[String](1)
+      label.add(lbl)
+      // add this account (datum) with all its instances
+      ds.add(label, listify(featureStrings), listify(valuesJava), listify(tweetsJava))
 
       pb.step()
     }
@@ -104,23 +92,7 @@ object OverweightDataConstructor {
 
   // Spoof a separate twitter account for each group of tweets just to piggyback on feature generation
   def splitAccount(account: TwitterAccount): Seq[TwitterAccount] = {
-    val totalTweets = account.tweets.length
-    val tweetsPerInstance = totalTweets
-    val stride = totalTweets
-    val lastIndex = Math.ceil(totalTweets.toDouble / stride - 1).toInt
-    for (i <- 0 until lastIndex) yield {
-      new TwitterAccount(
-        account.handle,
-        account.id,
-        account.name,
-        account.lang,
-        account.url,
-        account.location,
-        "",
-        account.tweets.slice(i * stride, Math.min(totalTweets, i * stride + tweetsPerInstance)),
-        Nil
-      )
-    }
+    Seq(account)
   }
 
   // Scala Array* to java List
