@@ -65,7 +65,7 @@ object OwMimlClassifier {
 
       wts.zipWithIndex.foreach { case(lblWeights, ix) =>
         val topWeights = lblWeights.avgWeights.zipWithIndex.sortBy{ case (value, i) => value }.takeRight(10).reverse
-        val printWeights = topWeights.map{ case (value, i) => s"${train.featureIndex.get(ix)}: $value"}
+        val printWeights = topWeights.map{ case (value, i) => s"${train.featureIndex.get(i)}: $value"}
         logger.debug(s"${train.labelIndex.get(ix)}: ${printWeights.mkString(", ")}")
       }
 
