@@ -806,8 +806,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
                 feats += ", ";
             }
             System.out.println(feats);
-            j ++;
           }
+          j ++;
         }
       }
 
