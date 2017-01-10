@@ -102,9 +102,13 @@ object OverweightDataConstructor {
     ds
   }
 
-  // Spoof a separate twitter account for each tweet just to piggyback on feature generation
+  // Spoof a separate twitter account for each group of tweets just to piggyback on feature generation
   def splitAccount(account: TwitterAccount): Seq[TwitterAccount] = {
-    for (tweet <- account.tweets) yield {
+    val tweetsPerInstance = 10
+    val stride = 5
+    val totalTweets = account.tweets.length
+    val lastIndex = Math.ceil(totalTweets.toDouble / stride - 1).toInt
+    for (i <- 0 until lastIndex) yield {
       new TwitterAccount(
         account.handle,
         account.id,
@@ -113,7 +117,7 @@ object OverweightDataConstructor {
         account.url,
         account.location,
         "",
-        Seq(tweet),
+        account.tweets.slice(i * stride, Math.min(totalTweets, i * stride + tweetsPerInstance)),
         Nil
       )
     }
