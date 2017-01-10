@@ -785,15 +785,11 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       int[][] rowFeatures = dataset.getDataArray()[i];
       double[][] rowValues = dataset.getValueArray()[i];
       String [] rowTweets = dataset.getTweets()[i];
-      logger.info("Initialized row-specific dataset vars for " + i);
       List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
-      logger.info("Estimated zs for iteration " + i);
 
       if (i < 10) {
-        logger.info("Entered printout for iteration " + i);
         int j = 0;
         while (j < 5) {
-          logger.info("Entered printout for instance " + j);
           String y = labelIndex.get(pickBestLabel(zs.get(j)));
           if (!y.equals("_NR")) {
             System.out.println(y + "\t" + rowTweets[j]);
@@ -807,7 +803,7 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
             }
             System.out.println(feats);
           }
-          j ++;
+          j++;
         }
       }
 
