@@ -307,7 +307,8 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
     List<Counter<Integer>> zs = estimateZ(crtGroup, crtGroupValues);
 
     // best predictions for each mention
-    int [] zPredicted = generateZPredicted(zs);
+    // int [] zPredicted = generateZPredicted(zs);
+    int [] zPredicted = softmaxPredict(zs);
 
     Counter<Integer> sm = noisyOr(zs, labelIndex.size());
 
@@ -734,6 +735,26 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       exp.setCount(kv.getKey(), kv.getValue() / allE);
     }
     return exp;
+  }
+
+  private int [] softmaxPredict(List<Counter<Integer>> zs) {
+    ArrayList<Counter<Integer>> exp = new ArrayList<>(zs.size());
+    for(int i = 0; i < zs.size(); i++){
+      exp.add(softmaxInstance(zs.get(i)));
+    }
+    int [] pred = new int[zs.size()];
+    for (int i = 0; i < zs.size(); i ++) {
+      Counter<Integer> instScores = exp.get(i);
+      Map.Entry<Integer, Double> bestLabel = null;
+      for (Map.Entry<Integer, Double> entry : instScores.entrySet()) {
+        if (bestLabel == null)
+          bestLabel = entry;
+        else if (entry.getValue() > bestLabel.getValue() && entry.getKey() != nilIndex)
+          bestLabel = entry;
+      }
+      pred[i] = bestLabel.getKey();
+    }
+    return pred;
   }
 
   private Counter<Integer> noisyOr(List<Counter<Integer>> inst, int nLabels) {
