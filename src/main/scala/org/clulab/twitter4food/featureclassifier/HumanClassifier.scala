@@ -11,22 +11,25 @@ import org.clulab.twitter4food.util.Utils._
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.slf4j.LoggerFactory
 
-/** Classifier to predict if a given twitter account represents an organization
+/**
+  * Classifier to predict if a given twitter account represents an organization
   * or an individual. Implements a customFeatures method to parse the account
   * description and count #(words) that fall in person/organization Synset
   * @author adikou 
-  * @date 01-22-16.
+  * @date 01-22-16
   */
 
 class HumanClassifier(
   useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
+  useName: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
   useAvgEmbeddings: Boolean = false,
   useMinEmbeddings: Boolean = false,
   useMaxEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
+  useTimeDate: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
   datumScaling: Boolean = false,
@@ -35,12 +38,14 @@ class HumanClassifier(
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,
     useMinEmbeddings=useMinEmbeddings,
     useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
+    useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=false,
@@ -227,12 +232,14 @@ object HumanClassifier {
       val hc = new HumanClassifier(
         useUnigrams = params.useUnigrams,
         useBigrams = params.useBigrams,
+        useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
         useAvgEmbeddings = params.useAvgEmbeddings,
         useMinEmbeddings = params.useMinEmbeddings,
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
+        useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         datumScaling = params.datumScaling,

@@ -44,12 +44,14 @@ case class TrainDevTestFold(test: Seq[Int], dev: Seq[Int], train: Seq[Int]) {
 class ClassifierImpl(
   val useUnigrams: Boolean,
   val useBigrams: Boolean,
+  val useName: Boolean,
   val useTopics: Boolean,
   val useDictionaries: Boolean,
   val useAvgEmbeddings: Boolean,
   val useMinEmbeddings: Boolean,
   val useMaxEmbeddings: Boolean,
   val useCosineSim: Boolean,
+  val useTimeDate: Boolean,
   val useFollowers: Boolean,
   val useFollowees: Boolean,
   val useGender: Boolean,
@@ -67,12 +69,14 @@ class ClassifierImpl(
   val featureExtractor = new FeatureExtractor(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
+    useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
     useAvgEmbeddings=useAvgEmbeddings,
     useMinEmbeddings=useMinEmbeddings,
     useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
+    useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=useGender,
@@ -92,19 +96,6 @@ class ClassifierImpl(
   var scaleRange: Option[ScaleRange[String]] = None
   val lowerBound = 0.0
   val upperBound = 1.0
-
-  /** Populates list of lexicons from config file. Separate function
-    * for easy testing.
-    *
-    * @param labelSet Set of labels
-    * @param ctype Type of classifier
-    * @return map of label -> Seq of lexicon file names
-    */
-  def populateLexiconList(labelSet: Set[String], ctype: String) = {
-    labelSet.foldLeft(Map[String, Seq[String]]())(
-      (m, l) => m + (l ->
-        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
-  }
 
   def constructDataset(
     accounts: Seq[TwitterAccount],
@@ -723,9 +714,6 @@ class ClassifierImpl(
     seed:Int = 73
   ): Seq[(String, String)] = {
 
-    val numFeatures = 30
-    val numAccts = 20
-
     val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed).toSeq
 
     val results = for {
@@ -756,6 +744,19 @@ object ClassifierImpl {
   val config = ConfigFactory.load()
 
   val logger = LoggerFactory.getLogger(this.getClass)
+
+  /** Populates list of lexicons from config file. Separate function
+    * for easy testing.
+    *
+    * @param labelSet Set of labels
+    * @param ctype Type of classifier
+    * @return map of label -> Seq of lexicon file names
+    */
+  def populateLexiconList(labelSet: Set[String], ctype: String) = {
+    labelSet.foldLeft(Map[String, Seq[String]]())(
+      (m, l) => m + (l ->
+        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
+  }
 
   def loadFollowees(accounts: Seq[TwitterAccount], variable: String): Map[String, Seq[String]] = {
     val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followeeRelations"))

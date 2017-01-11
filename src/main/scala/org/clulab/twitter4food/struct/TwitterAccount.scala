@@ -7,8 +7,6 @@ package org.clulab.twitter4food.struct
   */
 class TwitterAccount (
   // TODO: add network information
-  // TODO: Currently only stores top 100 tweets
-  // TODO: Filter RTs and replies
 
   val handle: String,
   val id: Long,
@@ -22,6 +20,9 @@ class TwitterAccount (
 
   override def toString = s"$handle: ($name, $description)"
 
+  /**
+    * Returns a copy of this [[TwitterAccount]], optionally specifying new input values
+    */
   def copy(
     handle: String = this.handle,
     id:Long = this.id,
@@ -35,8 +36,16 @@ class TwitterAccount (
     new TwitterAccount(handle, id, name, lang, url, location, description, tweets, activeFollowers)
   }
 
+  /**
+    * Returns a merged [[TwitterAccount]] with all the tweets of both input accounts.
+    */
   def merge(that: TwitterAccount): TwitterAccount = {
     assert(this.id == that.id, "They must be instantiations of the same account!")
     this.copy(tweets = (this.tweets.toSet ++ that.tweets.toSet).toSeq.sortBy(_.createdAt))
   }
+
+  /**
+    * Returns only those tweets that are "normal", i.e. neither retweets nor addressed to other accounts
+    */
+  def normalTweets: Seq[Tweet] = this.tweets.filter(_.isNormal)
 }

@@ -26,12 +26,14 @@ object GenderSuite {
     val gc = new GenderClassifier(
       useUnigrams = true,
       //useBigrams = true, // bigrams are costly and hurt performance
+      useName = true,
       useTopics = true,
       useDictionaries = true,
       useAvgEmbeddings = true,
       useMinEmbeddings = true,
       useMaxEmbeddings = true,
       useCosineSim = true,
+      useTimeDate = true,
       //useFollowers = true, // we don't currently have their followers
       useFollowees = true,
       datumScaling = true
