@@ -8,8 +8,6 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
-import scala.util.Random
-
 /**
   * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
   *
@@ -107,21 +105,24 @@ object OverweightClassifier {
     val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
     val subsampled = Utils.subsample(labeledAccts, desiredProps)
 
+    // Remove tweets that are spammy
+    val denoised = subsampled.map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
+
     val followers = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(subsampled.map(_._1)))
+      Option(ClassifierImpl.loadFollowers(denoised.map(_._1)))
     } else None
 
     val followees = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(subsampled.map(_._1), "overweight"))
+      Option(ClassifierImpl.loadFollowees(denoised.map(_._1), "overweight"))
     } else None
 
     val evals = for {
       portion <- portions
-      maxIndex = (portion * subsampled.length).toInt
+      maxIndex = (portion * denoised.length).toInt
     } yield {
-      val (accts, lbls) = subsampled.slice(0, maxIndex).unzip
+      val (accts, lbls) = denoised.slice(0, maxIndex).unzip
 
       val oc = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
