@@ -814,25 +814,25 @@ public class HoffmannExtractor extends JointlyTrainedRelationExtractor {
       String [] rowTweets = dataset.getTweets()[i];
       List<Counter<Integer>> zs = estimateZ(rowFeatures, rowValues);
 
-      if (i < 10) {
-        int j = 0;
-        while (j < 5) {
-          String y = labelIndex.get(pickBestLabel(zs.get(j)));
-          if (!y.equals("_NR")) {
-            System.out.println(y + "\t" + rowTweets[j]);
-            String feats = "";
-            for (int k = 0; k < rowFeatures[j].length; k++) {
-              feats += zFeatureIndex.get(rowFeatures[j][k]);
-              feats += ": ";
-              feats += String.format("%1$.3f", rowValues[j][k]);
-              if (k + 1 < rowFeatures[j].length)
-                feats += ", ";
-            }
-            System.out.println(feats);
-            j ++;
-          }
-        }
-      }
+//      if (i < 10) {
+//        int j = 0;
+//        while (j < 5 && j < zs.size()) {
+//          String y = labelIndex.get(pickBestLabel(zs.get(j)));
+//          if (!y.equals("_NR")) {
+//            System.out.println(y + "\t" + rowTweets[j]);
+//            String feats = "";
+//            for (int k = 0; k < rowFeatures[j].length; k++) {
+//              feats += zFeatureIndex.get(rowFeatures[j][k]);
+//              feats += ": ";
+//              feats += String.format("%1$.3f", rowValues[j][k]);
+//              if (k + 1 < rowFeatures[j].length)
+//                feats += ", ";
+//            }
+//            System.out.println(feats);
+//          }
+//          j ++;
+//        }
+//      }
 
       Counter<Integer> sm = noisyOr(zs, dataset.labelIndex.size());
 
