@@ -257,7 +257,7 @@ class FeatureExtractor (
     var unigrams: Option[Counter[String]] = None
 
     if (useUnigrams | useDictionaries | useCosineSim)
-      unigrams = Some(scale(ngrams(1, tweets.map(filterStopWords), description)))
+      unigrams = Some(scale(ngrams(1, tweets, description)))
     if (useUnigrams) {
       counter += unigrams.get
     }
@@ -339,22 +339,20 @@ class FeatureExtractor (
     */
   def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
-    val foodWords = lexicons.get("Overweight")("activity_words")
-    val activityWords = lexicons.get("Overweight")("food_words")
-    val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
-    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
+//    val foodWords = lexicons.get("Overweight")("activity_words")
+//    val activityWords = lexicons.get("Overweight")("food_words")
+//    val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
+//    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
+    val stateFeatures = lexicons.get("Overweight")("best_state_features")
 
     // Extract ngrams
     def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
       text
-        .filter(w => foodWords.contains(w) ||
-          activityWords.contains(w) ||
-          restaurantWords.contains(w) ||
-          owHashtags.contains(w))
-        //.filter(w => foodWords.contains(w) || activityWords.contains(w))
-        //.filter(activityWords.contains)
-        //.filter(foodWords.contains)
-        //.filter(owHashtags.contains)
+//        .filter(w => foodWords.contains(w) ||
+//          activityWords.contains(w) ||
+//          restaurantWords.contains(w) ||
+//          owHashtags.contains(w))
+        .filter(w => stateFeatures.contains(w))
         .sliding(n)
         .toList
         .map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
