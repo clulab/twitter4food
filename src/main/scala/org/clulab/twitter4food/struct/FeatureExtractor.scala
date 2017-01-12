@@ -343,7 +343,7 @@ class FeatureExtractor (
 //    val activityWords = lexicons.get("Overweight")("food_words")
 //    val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
 //    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
-    val stateFeatures = lexicons.get("Overweight")("best_state_features")
+    val stateFeatures = lexicons.get("Overweight")("topStateFeatures")
 
     // Extract ngrams
     def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
