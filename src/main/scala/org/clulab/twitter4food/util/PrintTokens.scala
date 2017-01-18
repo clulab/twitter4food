@@ -21,7 +21,7 @@ object PrintTokens {
     val locFile = new File(loc)
     if (!locFile.exists) locFile.mkdir()
     accounts.zipWithIndex.foreach{ case (tweets, i) =>
-      val fileName = s"$loc$i.txt"
+      val fileName = s"$loc$sep$i.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
       writer.write(tweets.mkString("\n"))
       writer.close()
