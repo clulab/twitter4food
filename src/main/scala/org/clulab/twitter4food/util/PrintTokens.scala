@@ -10,7 +10,7 @@ object PrintTokens {
 
   val logger = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.load
-  val base = config.getString("classifiers.overweight.rawtokens")
+  val base = config.getString("classifiers.overweight.rawTokens")
   val sep = FileSystems.getDefault.getSeparator
 
   /**
