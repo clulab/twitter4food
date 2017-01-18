@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.util
 
 import java.io.File
-import java.nio.file.{Files, Paths}
+import java.nio.file.{FileSystem, FileSystems, Files, Paths}
 
 import com.typesafe.config.ConfigFactory
 import org.clulab.learning.{RVFDataset, RVFDatum}
@@ -53,7 +53,7 @@ object PrintFeatures {
     // This model and results are specified by all input args that represent featuresets
     val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
 
-    val outputDir = config.getString("classifier") + "/overweight/raw/"
+    val outputDir = config.getString("classifier.overweight.rawfeatures")
     if (!Files.exists(Paths.get(outputDir))) {
       if (new File(outputDir).mkdir()) logger.info(s"Created output directory $outputDir")
       else logger.info(s"ERROR: failed to create output directory $outputDir")
@@ -100,8 +100,9 @@ object PrintFeatures {
 
     val (accounts, labels) = subsampled.unzip
     val dataset = oc.constructDataset(accounts, labels, followers, followees)
+    val fileSystem = FileSystems.getDefault()
 
     val datums = for (row <- dataset.indices) yield mkDatum(dataset, row)
-    RVFDataset.saveToSvmLightFormat(datums, dataset.featureLexicon, outputDir + fileExt + ".dat")
+    RVFDataset.saveToSvmLightFormat(datums, dataset.featureLexicon, outputDir + fileSystem.getSeparator + fileExt + ".dat")
   }
 }
