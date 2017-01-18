@@ -1,12 +1,12 @@
 package org.clulab.twitter4food.util
 
-import java.io.{BufferedWriter, FileWriter}
-import java.nio.file.{FileSystems, Files, Paths}
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.FileSystems
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
-object PrintFeatures {
+object PrintTokens {
 
   val logger = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.load
@@ -18,6 +18,8 @@ object PrintFeatures {
     * Tweets are pre-tokenized (so no newlines w/i text).
     */
   def writeTokens(accounts: Seq[Seq[String]], loc: String): Unit = {
+    val locFile = new File(loc)
+    if (!locFile.exists) locFile.mkdir()
     accounts.zipWithIndex.foreach{ case (tweets, i) =>
       val fileName = s"$loc$i.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
@@ -52,6 +54,12 @@ object PrintFeatures {
     val numInTest = (texts.head._2.length * 0.8).toInt + 1
 
     logger.info("Writing tokens in LSTM-readable format")
+
+    val trainFile = new File(s"$base${sep}train")
+    if (! trainFile.exists) trainFile.mkdir()
+    val testFile = new File(s"$base${sep}test")
+    if (! testFile.exists) testFile.mkdir()
+
     texts.foreach{ case (lbl, text) =>
       // folderNames should not contain whitespace
       val folderName = lbl.replaceAll("[^a-zA-Z0-9]+", "")
