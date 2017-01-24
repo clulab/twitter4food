@@ -134,7 +134,7 @@ object ExamineUser extends App {
     sb.append(s"Name: ${ta.name}\n")
     sb.append(s"Description: ${ta.description}\n")
     // normal tweets (not replies or addressed tweets) w/o repeats
-    val normals = ta.normalTweets.groupBy(_.text.substring(0,40)).map(_._2.head).toSeq
+    val normals = ta.normalTweets.groupBy(_.text.take(40)).map(_._2.head).toSeq
     sb.append(s"# tweets: ${normals.length}")
 
     if (ta.tweets.nonEmpty) {
