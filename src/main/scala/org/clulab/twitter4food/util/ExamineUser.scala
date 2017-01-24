@@ -135,7 +135,7 @@ object ExamineUser extends App {
     sb.append(s"Description: ${ta.description}\n")
     // normal tweets (not replies or addressed tweets) w/o repeats
     val normals = ta.normalTweets.groupBy(_.text.take(40)).map(_._2.head).toSeq
-    sb.append(s"# tweets: ${normals.length}")
+    sb.append(s"# tweets: ${normals.length}\n")
 
     if (ta.tweets.nonEmpty) {
       val relevance = normals.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
