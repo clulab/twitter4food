@@ -52,8 +52,9 @@ object AnalyzeTweets extends App {
             val data = handleMapSubset(twAcHandle)
             val ta = data._1
             val lbl = data._2
+            val regex = search.r
             
-            val tweets = ta.tweets.filter ( x => x.text.contains(search)  )
+            val tweets = ta.tweets.filter( x => regex.findAllIn(x.text).nonEmpty)
             if (tweets.isEmpty) None else Some(twAcHandle, tweets, lbl)
         }.toSeq
         val resOWTweets = resTweets.filter(_._3 == "Overweight")
