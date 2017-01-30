@@ -88,8 +88,8 @@ object AnalyzeTweets extends App {
         // println(divider)
         println(f"Probability of ow given '$search': $pos%1.3f")
         println(f"Probability of non-ow given '$search': $pns%1.3f")
-        println(f"Relative likelihood of ow given '$search': ${pos/(pos+pns)}%1.3f")
-        println(f"Relative likelihood of non-ow given '$search': ${pns/(pos+pns)}%1.3f")
+        println(f"Relative likelihood of ow given '$search': ${pos/po}%1.3f")
+        println(f"Relative likelihood of non-ow given '$search': ${pns/pn}%1.3f")
         println(divider)
         println()
 
