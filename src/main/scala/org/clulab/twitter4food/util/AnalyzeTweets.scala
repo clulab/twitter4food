@@ -21,7 +21,7 @@ object AnalyzeTweets extends App {
     history.flush() // we must flush the file before exiting
   }
 
-  val divider = "-" * 50
+  val divider = "-" * 75
   var verbose = false
 
   var users = Map[TwitterAccount,String]()
@@ -78,17 +78,17 @@ object AnalyzeTweets extends App {
         val pns = psn * pn / ps
 
         println(divider)
-        println(s"# accounts that contain '$search': ${resTweets.size}")
-        println(s"# overweight accounts that contain '$search': ${resOWTweets.length}")
-        println(s"# non-overweight accounts that contain '$search': ${resNOTweets.length}")
+        println(s"# accounts containing '$search': ${resTweets.size} / $numHandles")
+        println(s"# ow accounts containing '$search': ${resOWTweets.length} / $numOW")
+        println(s"# non-ow accounts containing '$search': ${resNOTweets.length} / $numNO")
         println(divider)
-        println(s"# tweets in all accounts that contain '$search': ${numOWTweets+numNOTweets}")
-        println(s"# tweets in overweight accounts that contain '$search': $numOWTweets")
-        println(s"# tweets in non-overweight accounts that contain '$search': $numNOTweets")
-        println(divider)
-        println(s"Probability of overweight given '$search': $pos")
-        println(s"Probability of non-overweight given '$search': $pso")
-        println(s"Relative likelihood of overweight given '$search': ${pos/(pos+pso)}")
+//        println(s"# tweets, all accounts containing '$search': ${numOWTweets+numNOTweets}")
+//        println(s"# tweets, ow accounts that containing '$search': $numOWTweets")
+//        println(s"# tweets, non-ow accounts containing '$search': $numNOTweets")
+//        println(divider)
+        println(f"Probability of ow given '$search': $pos%1.3f")
+        println(f"Probability of non-ow given '$search': $pso%1.3f")
+        println(f"Relative likelihood of ow given '$search': ${pos/(pos+pso)}%1.3f")
         println(divider)
         println()
 
@@ -99,8 +99,8 @@ object AnalyzeTweets extends App {
           println(s"${" " * (hWidth - "handle".length)}handle" + "\t" +
             s"${" " * (lWidth - "label".length)}label" + "\t" +
             "number tweets")
-          println("-" * hWidth + lWidth + tWidth)
-          resTweets.sortBy(_._3).foreach { resIdx =>
+          println("-" * (hWidth + lWidth + tWidth))
+          resTweets.sortBy(acct => (acct._3, - acct._2.length)).foreach { resIdx =>
             val (twAcHandle, tweets, lbl) = resIdx
             println(("%"+hWidth+"s").format(twAcHandle) + "\t" +
               ("%"+lWidth+"s").format(lbl) + "\t" +
@@ -129,10 +129,11 @@ object AnalyzeTweets extends App {
       ":verbose" -> "Toggle printing all relevant tweets (default false)",
       ":exit" -> "Exit"
     )
+    val len = commandMap.keys.map(_.length).max
     val line = "-" * 60
     println(line)
-    println("Enter regular expression search terms. Commands:")
-    commandMap.foreach(cmd => println(s"${cmd._1}\t${cmd._2}"))
+    println("Enter regex search terms. Commands:")
+    commandMap.foreach(cmd => println(("%"+len+"s").format(cmd._1) + s"\t${cmd._2}"))
     println(line)
     println()
   }
