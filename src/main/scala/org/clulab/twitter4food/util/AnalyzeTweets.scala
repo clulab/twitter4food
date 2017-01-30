@@ -73,15 +73,21 @@ object AnalyzeTweets extends App {
         println()
 
         if (resTweets.nonEmpty) {
+          val hWidth = resTweets.map(_._1.length).max
+          val lWidth = resTweets.map(_._2.length).max
+          val tWidth = resTweets.map(_._3.length.toString.length).max
           println("handle\tlabel\tnumber tweets")
           println(divider)
           resTweets.foreach { resIdx =>
             val (twAcHandle, tweets, lbl) = resIdx
-            println(s"${stripAt(twAcHandle)}\t$lbl\t${tweets.length}")
+            println(("%"+hWidth+"s").format(stripAt(twAcHandle)) + "\t" +
+              ("%"+lWidth+"s").format(lbl) + "\t" +
+              ("%"+tWidth+"s").format(tweets.length)
+            )
           }
           println(divider)
           println()
-          resTweets.foreach(t => println(t))
+          resTweets.map(_._2).foreach(t => println(t))
         }
     }
   }
