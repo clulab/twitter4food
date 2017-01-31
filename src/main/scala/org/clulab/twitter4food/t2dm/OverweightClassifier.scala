@@ -53,7 +53,6 @@ class OverweightClassifier(
     useRace=useRace,
     useHuman=useHuman,
     dictOnly=dictOnly,
-    denoise=denoise,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "overweight") {

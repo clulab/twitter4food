@@ -226,7 +226,7 @@ class FeatureExtractor (
     handleToFollowerAccount = Option(followers)
   }
 
-  val allDicts = if (dictOnly) Option(lexicons.get("Overweight").values.toSeq) else None
+  val allDicts = if (dictOnly && lexicons.nonEmpty) Option(lexicons.get("Overweight").values.toSeq) else None
 
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
