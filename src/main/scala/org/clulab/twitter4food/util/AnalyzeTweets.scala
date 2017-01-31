@@ -56,7 +56,7 @@ object AnalyzeTweets extends App {
       case ":exit" => 
         running = false
       case search => 
-        val resTweets = handleMapSubset.keys.flatMap{ twAcHandle =>
+        val resTweets = handleMapSubset.keys.par.flatMap{ twAcHandle =>
             val data = handleMapSubset(twAcHandle)
             val ta = data._1
             val lbl = data._2
@@ -102,7 +102,7 @@ object AnalyzeTweets extends App {
         println(divider)
         println()
 
-        if (resTweets.nonEmpty) {
+        if (resTweets.nonEmpty && verbose) {
           val hWidth = resTweets.map(_._1.length).max
           val lWidth = "Not overweight".length + 1
           val tWidth = resTweets.map(_._3.length.toString.length).max
