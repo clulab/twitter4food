@@ -98,7 +98,7 @@ object AnalyzeTweets extends App {
         println(divider)
         println(f"Rel. freq. of '$search' in ow accts: ${to/tn}%1.3f")
         println(f"Rel. freq. of '$search' in non-ow accts: ${tn/to}%1.3f")
-        println(f"Bits of info in '$search': ${log2(Seq(to/tn, tn/to).max)}")
+        println(f"Bits of info in '$search': ${log2(Seq(to/tn, tn/to).max)}%1.3f")
         println(divider)
         println()
 
