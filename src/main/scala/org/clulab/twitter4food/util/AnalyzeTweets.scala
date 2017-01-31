@@ -64,7 +64,7 @@ object AnalyzeTweets extends App {
             
             val tweets = ta.tweets.filter( x => regex.findAllIn(x.text).nonEmpty)
             if (tweets.isEmpty) None else Some(twAcHandle, tweets, lbl)
-        }.toSeq
+        }.toSeq.seq
         val resOWTweets = resTweets.filter(_._3 == "Overweight")
         val resNOTweets = resTweets.filter(_._3 == "Not overweight")
         val numOWTweets = (for(x <- resOWTweets) yield x._2.length).sum
