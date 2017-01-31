@@ -51,6 +51,8 @@ class HumanClassifier(
     useGender=false,
     useRace=false,
     useHuman=false,
+    dictOnly=false,
+    denoise=false,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "human",

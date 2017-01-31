@@ -60,6 +60,8 @@ class FeatureExtractor (
   val useGender: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
+  val dictOnly: Boolean = false,
+  val denoise: Boolean = false,
   val datumScaling: Boolean = false,
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
@@ -224,6 +226,8 @@ class FeatureExtractor (
     handleToFollowerAccount = Option(followers)
   }
 
+  val allDicts = if (dictOnly) Option(lexicons.get("Overweight").values.toSeq) else None
+
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
     *
@@ -345,7 +349,7 @@ class FeatureExtractor (
 
     // n-gram for tweets
     tweets.foreach{ tweet =>
-      setCounts(tokenNGrams(n, tweet), counter)
+      setCounts(tokenNGrams(n, dictFilter(tweet)), counter)
     }
 
     counter
@@ -353,6 +357,7 @@ class FeatureExtractor (
 
   /**
     * Returns a [[Counter]] of character/word n-grams based on user's name and handle
+    *
     * @param account the [[TwitterAccount]] under analysis
     */
   def name(account: TwitterAccount): Counter[String] = {
@@ -674,7 +679,7 @@ class FeatureExtractor (
 
   /**
     * A set of features describing the time and day the account tweets.
-
+    *
     * @param tweets [[Tweet]]s of the account for time/date info
     * @return a [[Counter]] with time and day features
     */
@@ -708,6 +713,12 @@ class FeatureExtractor (
     dayHist.foreach{ case (day, prop) => counter.setCount(s"timeDate:$day", prop) }
 
     counter
+  }
+
+  def dictFilter(text: Array[String]): Array[String] = {
+    if(allDicts.nonEmpty) {
+      text.filter(w => allDicts.get.exists(lex => lex.contains(w)))
+    } else text
   }
 }
 

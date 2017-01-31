@@ -234,6 +234,15 @@ object Utils {
     selected.toSeq
   }
 
+  def denoise(account: TwitterAccount): TwitterAccount = {
+    val good = account.tweets.filter { tweet =>
+      val txt = tweet.text.split(" +")
+      val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "RT", "#latergram", "#regram", "…")
+      !txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
+    }
+    account.copy(tweets=good)
+  }
+
   def keepRows[L, F](dataset: Dataset[L, F], rowsToKeep: Array[Int]): RVFDataset[L, F] = {
     val ds = dataset.asInstanceOf[RVFDataset[L, F]]
     new RVFDataset(
