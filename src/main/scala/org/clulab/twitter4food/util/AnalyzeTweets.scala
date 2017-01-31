@@ -40,6 +40,8 @@ object AnalyzeTweets extends App {
   val numHandles = handleMapSubset.size
   val numOW = handleMapSubset.values.filter(_._2 == "Overweight").toSeq.length
   val numNO = handleMapSubset.values.filter(_._2 == "Not overweight").toSeq.length
+  val allOWTweets = handleMapSubset.values.filter(_._2 == "Overweight").map(_._1.tweets.length).sum
+  val allNOTweets = handleMapSubset.values.filter(_._2 == "Not overweight").map(_._1.tweets.length).sum
 
   var running = true
   val reader = new ConsoleReader
@@ -65,8 +67,8 @@ object AnalyzeTweets extends App {
         }.toSeq
         val resOWTweets = resTweets.filter(_._3 == "Overweight")
         val resNOTweets = resTweets.filter(_._3 == "Not overweight")
-        // val numOWTweets = (for(x <- resOWTweets) yield x._2.length).sum
-        // val numNOTweets = (for(x <- resNOTweets) yield x._2.length).sum
+        val numOWTweets = (for(x <- resOWTweets) yield x._2.length).sum
+        val numNOTweets = (for(x <- resNOTweets) yield x._2.length).sum
 
         // probabilities for Bayesian calculation. read as P(search term|overweight label), P(not overweight), etc.
         val pso = resOWTweets.length.toDouble / numOW.toDouble
@@ -76,6 +78,9 @@ object AnalyzeTweets extends App {
         val psn = resNOTweets.length / numNO.toDouble
         val pn = numNO / numHandles.toDouble
         val pns = psn * pn / ps
+
+        val to = numOWTweets.toDouble / allOWTweets
+        val tn = numNOTweets.toDouble / allNOTweets
 
         println(divider)
         println(s"# accounts containing '$search': ${resTweets.size} / $numHandles")
@@ -88,8 +93,11 @@ object AnalyzeTweets extends App {
         // println(divider)
         println(f"Probability of ow given '$search': $pos%1.3f")
         println(f"Probability of non-ow given '$search': $pns%1.3f")
-        println(f"Relative likelihood of ow given '$search': ${pos/po}%1.3f")
-        println(f"Relative likelihood of non-ow given '$search': ${pns/pn}%1.3f")
+        println(f"Relative odds of ow given '$search': ${pos/po}%1.3f")
+        println(f"Relative odds of non-ow given '$search': ${pns/pn}%1.3f")
+        println(divider)
+        println(f"Rel. freq. of $search in ow accts: ${to/tn}%1.3f")
+        println(f"Rel. freq. of $search in non-ow accts: ${tn/to}%1.3f")
         println(divider)
         println()
 
