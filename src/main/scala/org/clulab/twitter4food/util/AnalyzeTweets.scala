@@ -96,8 +96,9 @@ object AnalyzeTweets extends App {
         println(f"Relative odds of ow given '$search': ${pos/po}%1.3f")
         println(f"Relative odds of non-ow given '$search': ${pns/pn}%1.3f")
         println(divider)
-        println(f"Rel. freq. of $search in ow accts: ${to/tn}%1.3f")
-        println(f"Rel. freq. of $search in non-ow accts: ${tn/to}%1.3f")
+        println(f"Rel. freq. of '$search' in ow accts: ${to/tn}%1.3f")
+        println(f"Rel. freq. of '$search' in non-ow accts: ${tn/to}%1.3f")
+        println(f"Bits of info in '$search': ${log2(Seq(to/tn, tn/to).max)}")
         println(divider)
         println()
 
@@ -150,4 +151,6 @@ object AnalyzeTweets extends App {
     println(line)
     println()
   }
+
+  def log2(x: Double): Double = scala.math.log(x) / scala.math.log(2)
 }
