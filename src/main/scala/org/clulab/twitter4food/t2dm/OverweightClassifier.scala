@@ -124,7 +124,7 @@ object OverweightClassifier {
     } else None
 
     val evals = for {
-      days <- Seq(7, 14, 30, 60, 90, 182, 365, 730)
+      days <- Seq(7, 14, 30, 60, 90, 182, 365, 730, 10000)
     } yield {
       val (accts, lbls) = denoised.unzip
 
@@ -140,7 +140,8 @@ object OverweightClassifier {
 
       val numAllTweets = accts.map(_.tweets.length).sum.toDouble
       val numNewTweets = timeLim.map(_.tweets.length).sum.toDouble
-      logger.info(f"${numNewTweets / numAllTweets}%1.3f%% of tweets are less than $days days old.")
+      val portion = numNewTweets / numAllTweets * 100.0
+      logger.info(f"$portion%1.3f%% of tweets are less than $days days old.")
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -197,12 +198,12 @@ object OverweightClassifier {
       val precision = evalMetric.P
       val recall = evalMetric.R
 
-      (days, predictions.length, precision, recall, macroAvg, microAvg)
+      (days, portion, predictions.length, precision, recall, macroAvg, microAvg)
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+    println(s"\n$fileExt\n#days\t%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
+    evals.foreach { case (days, portion, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$days\t$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
     }
   }
