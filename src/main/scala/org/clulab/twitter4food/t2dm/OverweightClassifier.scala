@@ -124,10 +124,23 @@ object OverweightClassifier {
     } else None
 
     val evals = for {
-      portion <- portions
-      maxIndex = (portion * denoised.length).toInt
+      days <- Seq(7, 14, 30, 60, 90, 182, 365, 730)
     } yield {
-      val (accts, lbls) = denoised.slice(0, maxIndex).unzip
+      val (accts, lbls) = denoised.unzip
+
+      // Convert java.util.Date into java.time.LocalDateTime
+      val zid = java.time.ZoneId.of("GMT")
+
+      val timeLim = for (acct <- accts) yield {
+        val dateTimes = acct.tweets.map(t => t -> java.time.LocalDateTime.ofInstant(t.createdAt.toInstant, zid))
+        val oldest = dateTimes.unzip._2.sortWith(_.compareTo(_) > 0).head minusDays days
+        val newer = dateTimes.filter{ case (t, dt) => dt isAfter oldest }.unzip._1
+        acct.copy(tweets = newer)
+      }
+
+      val numAllTweets = accts.map(_.tweets.length).sum.toDouble
+      val numNewTweets = timeLim.map(_.tweets.length).sum.toDouble
+      logger.info(f"${numNewTweets / numAllTweets}%1.3f%% of tweets are less than $days days old.")
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -170,7 +183,7 @@ object OverweightClassifier {
       val ocs = new Ensemble(Seq(oc1, oc2))
 
       logger.info("Training classifiers...")
-      val predictions = ocs.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
+      val predictions = ocs.overweightCV(timeLim, lbls, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
@@ -184,7 +197,7 @@ object OverweightClassifier {
       val precision = evalMetric.P
       val recall = evalMetric.R
 
-      (portion, predictions.length, precision, recall, macroAvg, microAvg)
+      (days, predictions.length, precision, recall, macroAvg, microAvg)
     }
 
     println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
