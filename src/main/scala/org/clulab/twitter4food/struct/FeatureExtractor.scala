@@ -251,18 +251,17 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
-    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
     val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
 
     if (useUnigrams | useDictionaries | useCosineSim)
-      unigrams = Some(scale(ngrams(1, tweets.map(filterStopWords), description)))
+      unigrams = Some(scale(ngrams(1, account.tweets, description)))
     if (useUnigrams) {
       counter += unigrams.get
     }
     if (useBigrams)
-      counter += scale(ngrams(2, tweets, description))
+      counter += scale(ngrams(2, account.tweets, description))
     if (useName)
       counter += name(account)
     if (useTopics)
@@ -330,24 +329,39 @@ class FeatureExtractor (
     val padded = Seq.fill(n-1)("<s>") ++ text ++ Seq.fill(n-1)("</s>")
     text.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix$n-gram:", " ", ""))
   }
-
   /**
     * Returns a [[Counter]] of ngrams from account's description and tweets with raw frequencies as weights.
     *
     * @param n Degree of n-gram (e.g. 1 refers to unigrams)
     * @param description Text description of [[TwitterAccount]]
     */
-  def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
+  def ngrams(n: Int, tweets: Seq[Tweet], description: Array[String]): Counter[String] = {
+    
+    var tweetsText = for (t <- tweets) yield t.text.trim.split(" +")
+    
+    if(n == 1 ) // if unigram features
+      tweetsText = tweetsText.map(filterStopWords)
+      
     val counter = new Counter[String]
-
     // special prefix for description tokens since they summarize an account more than tweets
     setCounts(tokenNGrams(n, description, "desc"), counter)
 
     // n-gram for tweets
-    tweets.foreach{ tweet =>
-      setCounts(tokenNGrams(n, tweet), counter)
+    tweetsText.zipWithIndex.foreach { t_i =>
+      val tweetText = t_i._1
+      val idx = t_i._2
+      val tweet = tweets(idx)
+      
+      val isRT = tweet.isRetweet
+      
+      setCounts(tokenNGrams(n, tweetText, ""), counter)
+      if(isRT)
+        setCounts(tokenNGrams(n, tweetText, "RT_"), counter)
+      else
+        setCounts(tokenNGrams(n, tweetText, "NRT_"), counter)  
+      
     }
-
+    
     counter
   }
 

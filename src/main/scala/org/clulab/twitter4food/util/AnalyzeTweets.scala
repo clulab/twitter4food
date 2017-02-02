@@ -38,6 +38,18 @@ object AnalyzeTweets extends App {
   val handlesToAnalyze = Array("angiewhoohoo", "MaeghanLucinda", "JulianaYaz", "Kathneko", "YOB_JayDaisy", "queenachan", "checkoutfashion", "Graziella_a", "Banditgangnate", "YunJae8686", "alfritz04", "YungPauline", "yakdon", "ceejaydeleon", "Hannah_Barnett0", "steveendranata", "DrDamodhar", "Emily11949309", "LeumasHon", "sarlynclements", "Jo_RDPT16", "JonathanOneLife", "kat0417", "JessCording", "Lottie_Lamour", "siShingalinG", "sachadetti", "ScouseMattSmith", "jonathanlegate", "kanahina", "ellwoodz", "bl3berry", "jackiehagland", "oh_mandy93", "nohyunji", "Myatzee", "GarnerStyle", "mchefajaychopra", "MissMelanieD", "Beksville", "edibleASH", "Parsnip_Pete", "Gloriahillching", "JenniferBible1", "Spezzie", "GluttonEire")
   val handleMapSubset = handleMap.filterKeys (handlesToAnalyze.toSet)
 
+  val numHandles = handleMapSubset.size
+  val numOW = handleMapSubset.values.filter(_._2 == "Overweight").toSeq.length
+  val numNO = handleMapSubset.values.filter(_._2 == "Not overweight").toSeq.length
+  val allOWTweets = handleMapSubset.values.filter(_._2 == "Overweight").map(_._1.tweets.length).sum
+  val allNOTweets = handleMapSubset.values.filter(_._2 == "Not overweight").map(_._1.tweets.length).sum
+
+  val highInfoWords = getAllHighInfoTweetWords(handleMap) // getAllHighInfoTweetWords(handleMapSubset)
+  for((w,info,freq) <- highInfoWords){
+    println(s"$w\t$info\t$freq")
+  }
+  println(divider)
+  
   var running = true
   val reader = new ConsoleReader
   printHelp()
@@ -56,6 +68,84 @@ object AnalyzeTweets extends App {
     }
   }
 
+  def getAllHighInfoTweetWords(handleMap: Map[String, (TwitterAccount, String)]) : Seq[(String, Double, Int)] = {
+    var vocab = Set[String]()
+    for(i <- handleMap.toSeq){
+      val (handle, ta_lbl) = (i._1, i._2)
+      val ta = ta_lbl._1
+      for (t <- ta.tweets){
+        vocab ++= t.text.split(" ")
+      }
+      
+    }
+    
+    val tokenizedTweets = (for(twAcHandle <- handleMap.keys) yield { 
+      val data = handleMap(twAcHandle)
+      val ta = data._1.tweets
+      val tweetsTokenized = for (t <- data._1.tweets) yield {
+        t.text.split(" ")
+      }
+      (twAcHandle, tweetsTokenized)
+    }).toMap
+    
+    val wordsAndBitsofInfo = for (w <- vocab.toSeq) yield {
+      val resTweets = handleMap.keys.par.flatMap{ twAcHandle =>
+            val data = handleMap(twAcHandle)
+            val ta = data._1
+            val lbl = data._2
+//            val regex = w.r
+            
+            val tweets = tokenizedTweets(twAcHandle).filter ( x =>  x.contains(w) ).map { x => x.mkString(" ") }
+//tweets = Seq[Tweet]
+            //Seq[Array[String]]
+//            val tweets = ta.tweets.filter( x =>  x.text.contains(w) )
+            if (tweets.isEmpty) None else Some(twAcHandle, tweets, lbl)
+        }.toSeq.seq
+        val resOWTweets = resTweets.filter(_._3 == "Overweight")
+        val resNOTweets = resTweets.filter(_._3 == "Not overweight")
+        val numOWTweets = (for(x <- resOWTweets) yield x._2.length).sum
+        val numNOTweets = (for(x <- resNOTweets) yield x._2.length).sum
+
+        // probabilities for Bayesian calculation. read as P(search term|overweight label), P(not overweight), etc.
+        val pso = resOWTweets.length.toDouble / numOW.toDouble
+        val po = numOW.toDouble / numHandles.toDouble
+        val ps = resTweets.length.toDouble / numHandles.toDouble
+        val pos = pso * po / ps
+        val psn = resNOTweets.length / numNO.toDouble
+        val pn = numNO / numHandles.toDouble
+        val pns = psn * pn / ps
+
+        val to = numOWTweets.toDouble / allOWTweets
+        val tn = numNOTweets.toDouble / allNOTweets
+
+//        println(divider)
+//        println(s"# accounts containing '$search': ${resTweets.size} / $numHandles")
+//        println(s"# ow accounts containing '$search': ${resOWTweets.length} / $numOW")
+//        println(s"# non-ow accounts containing '$search': ${resNOTweets.length} / $numNO")
+//        println(divider)
+        // println(s"# tweets, all accounts containing '$search': ${numOWTweets+numNOTweets}")
+        // println(s"# tweets, ow accounts that containing '$search': $numOWTweets")
+        // println(s"# tweets, non-ow accounts containing '$search': $numNOTweets")
+        // println(divider)
+//        println(f"Probability of ow given '$search': $pos%1.3f")
+//        println(f"Probability of non-ow given '$search': $pns%1.3f")
+//        println(f"Relative odds of ow given '$search': ${pos/po}%1.3f")
+//        println(f"Relative odds of non-ow given '$search': ${pns/pn}%1.3f")
+//        println(divider)
+//        println(f"Rel. freq. of '$search' in ow accts: ${to/tn}%1.3f")
+//        println(f"Rel. freq. of '$search' in non-ow accts: ${tn/to}%1.3f")
+//        println(f"Bits of info in '$search': ${log2(Seq(to/tn, tn/to).max)}%1.3f")
+        val bitsOfInfo = log2(Seq(to/tn, tn/to).max)
+        val scaledBitsOfInfo = bitsOfInfo *  (resOWTweets.size + resNOTweets.size)
+        (w,scaledBitsOfInfo, (resOWTweets.size + resNOTweets.size))
+//        println(divider)
+//        println()
+    }
+   
+    val wordsAndBitsFinite = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._2)
+    val sz = wordsAndBitsofInfo.size
+    wordsAndBitsFinite.filter(_._3 > 25).take((sz * 0.2).toInt)
+  }
   /**
     * Returns a user handle minus the initial '@', if one exists
     */
