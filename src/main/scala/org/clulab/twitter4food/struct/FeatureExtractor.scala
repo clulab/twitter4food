@@ -251,6 +251,7 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
+    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
     val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
@@ -272,7 +273,7 @@ class FeatureExtractor (
       counter += embeddings(tweets)
     }
     if (useCosineSim)
-      counter += cosineSim(unigrams, tweets, description)
+      counter += cosineSim(unigrams, account.tweets, description)
     if (useTimeDate)
       counter += timeDate(account.tweets)
     if (useFollowees)
@@ -506,7 +507,7 @@ class FeatureExtractor (
       val healthCount = new ArrayBuffer[Int]()
 
       // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
-      val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
+      val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, account.tweets, description)
       ng.keySet.foreach{ k =>
         val wd = dehashtag(k)
         if(foodWords contains wd) {
@@ -670,7 +671,7 @@ class FeatureExtractor (
     * @param description the account description
     * @return a [[Counter]] with a single cosine similarity feature
     */
-  def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Array[String]],
+  def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Tweet],
     description: Array[String]): Counter[String] = {
 
     val accountVec = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
