@@ -123,8 +123,10 @@ object OverweightClassifier {
       Option(ClassifierImpl.loadFollowees(denoised.map(_._1), "overweight"))
     } else None
 
+    val window = 90
+    val stride = 30
     val evals = for {
-      portion <- 0 until 19
+      days <- 0 until 600 by stride
     } yield {
       val (accts, lbls) = denoised.unzip
 
@@ -132,15 +134,17 @@ object OverweightClassifier {
       val zid = java.time.ZoneId.of("GMT")
 
       val timeLim = for (acct <- accts) yield {
-        val start = (acct.tweets.length.toDouble * (portion / 20.0)).floor.toInt
-        val end = (acct.tweets.length.toDouble * ((portion + 2) / 20.0)).floor.toInt
-        acct.copy(tweets = acct.tweets.slice(start, end))
+        val dateTimes = acct.tweets.map(t => t -> java.time.LocalDateTime.ofInstant(t.createdAt.toInstant, zid))
+        val newest = dateTimes.unzip._2.sortWith(_.compareTo(_) > 0).head minusDays days
+        val oldest = newest minusDays window
+        val babyBear = dateTimes.filter{ case (t, dt) => dt.isAfter(oldest) && dt.isBefore(newest) }.unzip._1
+        acct.copy(tweets = babyBear)
       }
 
-//      val numAllTweets = accts.map(_.tweets.length).sum.toDouble
-//      val numNewTweets = timeLim.map(_.tweets.length).sum.toDouble
-//      val portion = numNewTweets / numAllTweets * 100.0
-//      logger.info(f"$portion%1.3f%% of tweets are less than $days days old.")
+      val numAllTweets = accts.map(_.tweets.length).sum.toDouble
+      val numNewTweets = timeLim.map(_.tweets.length).sum.toDouble
+      val portion = numNewTweets / numAllTweets * 100.0
+      logger.info(f"$portion%1.3f%% of tweets are between $days and ${days + window} days old.")
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -197,12 +201,12 @@ object OverweightClassifier {
       val precision = evalMetric.P
       val recall = evalMetric.R
 
-      (portion, predictions.length, precision, recall, macroAvg, microAvg)
+      (days, portion, predictions.length, precision, recall, macroAvg, microAvg)
     }
 
-    println(s"\n$fileExt\nportion\t%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+    println(s"\n$fileExt\n#days\t%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
+    evals.foreach { case (days, portion, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$days\t$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
     }
   }
