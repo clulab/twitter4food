@@ -28,6 +28,7 @@ object Utils {
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
     useGender: Boolean = false,
+    useAge: Boolean = false,
     useRace: Boolean = false,
     useHuman: Boolean = false,
     datumScaling: Boolean = false,
@@ -104,6 +105,8 @@ object Utils {
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
+      opt[Unit]('o', "age") action { (x, c) =>
+        c.copy(useAge = true)} text "use age classifier"
       opt[Unit]('r', "race") action { (x, c) =>
         c.copy(useRace = true)} text "use race classifier (not implemented)"
       opt[Unit]('h', "human") action { (x, c) =>

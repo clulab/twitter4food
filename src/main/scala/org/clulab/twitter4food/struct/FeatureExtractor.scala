@@ -39,6 +39,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useFollowers domain transfer from follower acccounts
   * @param useFollowees account followee handles
   * @param useGender domain transfer based on classification of account gender
+  * @param useAge domain transfer based on classification of account age
   * @param useRace domain transfer based on classification of account race
   * @param useHuman limit follower domain transfer to those judged as human
   * @param datumScaling scale by account
@@ -58,6 +59,7 @@ class FeatureExtractor (
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useGender: Boolean = false,
+  val useAge: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
   val datumScaling: Boolean = false,
@@ -80,6 +82,7 @@ class FeatureExtractor (
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useGender=$useGender, " +
+    s"useAge=$useAge, " +
     s"useRace=$useRace, " +
     s"useHuman=$useHuman, " +
     s"datumScaling=$datumScaling"
@@ -187,6 +190,19 @@ class FeatureExtractor (
     Option(model)
   } else None
 
+  val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
+    val annoFile = config.getString("classifiers.ageGenderAnnotations")
+    val bufferedSource = io.Source.fromFile(annoFile)
+    val rows = for (line <- bufferedSource.getLines) yield {
+      val cols = line.split(",").map(_.trim)
+      assert(cols.length < 3)
+      (cols(0), cols(1), cols(2))
+    }
+    val age = rows.map{ case (id, a, g) => id -> a }.toMap
+    val gender = rows.map{ case (id, a, g) => id -> g }.toMap
+    (Option(age), Option(gender))
+  } else (None, None)
+
   // Followers (to be set by setFollowers())
   var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
 
@@ -284,6 +300,15 @@ class FeatureExtractor (
       counter += prepend(s"gender:${genderClassifier.get.predict(account)}_", counter)
     }
 
+    if (useAge & ageAnnotation.nonEmpty) {
+      val ageExact = ageAnnotation.get.get(account.id.toString)
+      val ageApprox = if (ageExact.nonEmpty) {
+        (ageExact.get.toDouble.round.toInt / 10 * 10).toString
+      } else "UNK"
+
+      counter += prepend(s"age:${ageApprox}_", counter)
+    }
+
     if (useRace) {
       // TODO: predict account owner's race for domain adaptation
       // counter += prepend(s"race-${raceClassifier.get.predict(account)}_", counter)
@@ -353,6 +378,7 @@ class FeatureExtractor (
 
   /**
     * Returns a [[Counter]] of character/word n-grams based on user's name and handle
+    *
     * @param account the [[TwitterAccount]] under analysis
     */
   def name(account: TwitterAccount): Counter[String] = {
@@ -674,7 +700,7 @@ class FeatureExtractor (
 
   /**
     * A set of features describing the time and day the account tweets.
-
+    *
     * @param tweets [[Tweet]]s of the account for time/date info
     * @return a [[Counter]] with time and day features
     */

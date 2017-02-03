@@ -8,8 +8,6 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
-import scala.util.Random
-
 /**
   * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
   *
@@ -30,6 +28,7 @@ class OverweightClassifier(
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
   useGender: Boolean = false,
+  useAge: Boolean = false,
   useRace: Boolean = false,
   useHuman: Boolean = false,
   datumScaling: Boolean = false,
@@ -48,6 +47,7 @@ class OverweightClassifier(
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=useGender,
+    useAge=useAge,
     useRace=useRace,
     useHuman=useHuman,
     datumScaling=datumScaling,
