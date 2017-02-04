@@ -193,11 +193,12 @@ class FeatureExtractor (
   val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
     val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
     val bufferedSource = io.Source.fromFile(annoFile)
-    val rows = for (line <- bufferedSource.getLines) yield {
-      val cols = line.split(",").map(_.trim)
+    val rows = for {
+      line <- bufferedSource.getLines
+      cols = line.split(",").map(_.trim)
       assert(cols.length == 3)
-      (cols(0), cols(1), cols(2))
-    }
+      if cols(1) != "NA" || cols(2) != "NA"
+    } yield (cols(0), cols(1), cols(2))
     val age = rows.map{ case (id, a, g) => id -> a }.toMap
     val gender = rows.map{ case (id, a, g) => id -> g }.toMap
     (Option(age), Option(gender))
