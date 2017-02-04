@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
+import org.clulab.struct.Counter
+import org.clulab.struct.Counter
 
 /** Implementation of the FeatureClassifier trait that contains the
   * nitty-gritty of creating FeatureExtractors, adding datums,
@@ -626,7 +628,8 @@ class ClassifierImpl(
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
     numFolds:Int = 10,
-    seed:Int = 73
+    seed:Int = 73,
+    percentTopToConsider:Double = 0.25
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
@@ -655,11 +658,15 @@ class ClassifierImpl(
         val datum = dataset.mkDatum(i)
         val pred = classifier.classOf(datum)
         val score = classifier.scoresOf(datum)
-        (handle, gold, pred, datum, score)
+         // NOTE: for the high confidence classifier, sort this tuple in decreasing order of classifier confidence ('score(pred)') 
+        //    and take the top x percent (x is a parameter) 
+        (handle, gold, pred, datum, score, score.getCount(pred))           
       }
-      (W, predictions)
+      val totalSzOfPredictions = predictions.size
+      val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * totalSzOfPredictions).toInt )
+      (W, highConfPredictions)
     }).toSeq
-
+    
     val allFeats = dataset.featureLexicon.keySet
     val (allWeights, predictions) = results.unzip
     val g = predictions.flatten.map(_._2)
