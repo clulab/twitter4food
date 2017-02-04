@@ -156,39 +156,39 @@ class FeatureExtractor (
     Option(model)
   } else None
 
-  // gender classifier for domain adaptation
-  val genderClassifier = if(useGender) {
-    val modelFile = config.getString("classifiers.overweight.genderClassifier")
-    val model = if (Files.exists(Paths.get(modelFile))) {
-      logger.info(s"$modelFile found; loading...")
-      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
-      g.subClassifier = Option(sub)
-      g
-    } else {
-      // train a fresh classifier
-      logger.info(s"$modelFile not found; attempting to train...")
-
-      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
-        FileUtils.load(config.getString("classifiers.gender.devData")) ++
-        FileUtils.load(config.getString("classifiers.gender.testData"))
-      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
-
-      // bad to have to load followers possibly multiple times, but this should happen only rarely
-      // TODO: different follower files by classifier
-      val followers = if (tmp.useFollowers) {
-        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
-      } else None
-      val followees = if (tmp.useFollowees) {
-        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
-      } else None
-      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
-      tmp.subClassifier.get.saveTo(modelFile)
-      tmp
-    }
-    Option(model)
-  } else None
+//  // gender classifier for domain adaptation
+//  val genderClassifier = if(useGender) {
+//    val modelFile = config.getString("classifiers.overweight.genderClassifier")
+//    val model = if (Files.exists(Paths.get(modelFile))) {
+//      logger.info(s"$modelFile found; loading...")
+//      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
+//      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
+//      g.subClassifier = Option(sub)
+//      g
+//    } else {
+//      // train a fresh classifier
+//      logger.info(s"$modelFile not found; attempting to train...")
+//
+//      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
+//        FileUtils.load(config.getString("classifiers.gender.devData")) ++
+//        FileUtils.load(config.getString("classifiers.gender.testData"))
+//      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+//
+//      // bad to have to load followers possibly multiple times, but this should happen only rarely
+//      // TODO: different follower files by classifier
+//      val followers = if (tmp.useFollowers) {
+//        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+//      } else None
+//      val followees = if (tmp.useFollowees) {
+//        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
+//      } else None
+//      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
+//      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
+//      tmp.subClassifier.get.saveTo(modelFile)
+//      tmp
+//    }
+//    Option(model)
+//  } else None
 
   val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
     val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
@@ -296,8 +296,9 @@ class FeatureExtractor (
       counter += scale(followees(account))
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
-    if (useGender & genderClassifier.nonEmpty) {
-      counter += prepend(s"gender:${genderClassifier.get.predict(account)}_", counter)
+    if (useGender & genderAnnotation.nonEmpty) {
+      val acctGender = genderAnnotation.get.getOrElse(account.id.toString, "UNK")
+      counter += prepend(s"gender:${acctGender}_", counter)
     }
 
     if (useAge & ageAnnotation.nonEmpty) {
