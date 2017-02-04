@@ -191,7 +191,7 @@ class FeatureExtractor (
   } else None
 
   val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
-    val annoFile = config.getString("classifiers.ageGenderAnnotations")
+    val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
     val bufferedSource = io.Source.fromFile(annoFile)
     val rows = for (line <- bufferedSource.getLines) yield {
       val cols = line.split(",").map(_.trim)
