@@ -144,7 +144,7 @@ object OverweightClassifier {
       logger.info("Training classifier...")
 
       val highConfPercent = 0.25 //params.highConfPercent
-      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(accts, lbls, followers, followees, Utils.svmFactory, highConfPercent)
+      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
