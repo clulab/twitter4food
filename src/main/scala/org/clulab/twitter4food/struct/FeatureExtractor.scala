@@ -195,7 +195,7 @@ class FeatureExtractor (
     val bufferedSource = io.Source.fromFile(annoFile)
     val rows = for (line <- bufferedSource.getLines) yield {
       val cols = line.split(",").map(_.trim)
-      assert(cols.length < 3)
+      assert(cols.length == 3)
       (cols(0), cols(1), cols(2))
     }
     val age = rows.map{ case (id, a, g) => id -> a }.toMap
