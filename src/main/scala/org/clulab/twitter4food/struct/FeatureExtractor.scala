@@ -84,6 +84,7 @@ class FeatureExtractor (
     s"useTimeDate=$useTimeDate, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
+    s"useRT=$useRT, " +
     s"useGender=$useGender, " +
     s"useAge=$useAge, " +
     s"useRace=$useRace, " +
