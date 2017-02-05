@@ -339,22 +339,22 @@ class FeatureExtractor (
     */
   def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
-//    val foodWords = lexicons.get("Overweight")("activity_words")
-//    val activityWords = lexicons.get("Overweight")("food_words")
-//    val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
-//    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
-//    val stateFeatures = lexicons.get("Overweight")("topStateFeatures")
-    val minimum = lexicons.get("Overweight")("intersection")
+    val foodWords = lexicons.get("Overweight")("activity_words")
+    val activityWords = lexicons.get("Overweight")("food_words")
+    val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
+    val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
+    val stateFeatures = lexicons.get("Overweight")("topStateFeatures")
+    //val minimum = lexicons.get("Overweight")("intersection")
 
     // Extract ngrams
     def populateNGrams(n: Int, text: Array[String]): Seq[String] = {
       text
-//        .filter(w => foodWords.contains(w) ||
-//          activityWords.contains(w) ||
-//          restaurantWords.contains(w) ||
-//          owHashtags.contains(w) ||
-//          stateFeatures.contains(w))
-        .filter(w => minimum.contains(w))
+        .filter(w => foodWords.contains(w) ||
+          activityWords.contains(w) ||
+          restaurantWords.contains(w) ||
+          owHashtags.contains(w) ||
+          stateFeatures.contains(w))
+//        .filter(w => minimum.contains(w))
         .sliding(n)
         .toList
         .map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
