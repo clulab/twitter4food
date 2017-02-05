@@ -39,6 +39,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useFollowers domain transfer from follower acccounts
   * @param useFollowees account followee handles
   * @param useGender domain transfer based on classification of account gender
+  * @param useAge domain transfer based on classification of account age
   * @param useRace domain transfer based on classification of account race
   * @param useHuman limit follower domain transfer to those judged as human
   * @param datumScaling scale by account
@@ -58,6 +59,7 @@ class FeatureExtractor (
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useGender: Boolean = false,
+  val useAge: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
   val dictOnly: Boolean = false,
@@ -82,6 +84,7 @@ class FeatureExtractor (
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useGender=$useGender, " +
+    s"useAge=$useAge, " +
     s"useRace=$useRace, " +
     s"useHuman=$useHuman, " +
     s"datumScaling=$datumScaling"
@@ -155,39 +158,57 @@ class FeatureExtractor (
     Option(model)
   } else None
 
-  // gender classifier for domain adaptation
-  val genderClassifier = if(useGender) {
-    val modelFile = config.getString("classifiers.overweight.genderClassifier")
-    val model = if (Files.exists(Paths.get(modelFile))) {
-      logger.info(s"$modelFile found; loading...")
-      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
-      g.subClassifier = Option(sub)
-      g
-    } else {
-      // train a fresh classifier
-      logger.info(s"$modelFile not found; attempting to train...")
+//  // gender classifier for domain adaptation
+//  val genderClassifier = if(useGender) {
+//    val modelFile = config.getString("classifiers.overweight.genderClassifier")
+//    val model = if (Files.exists(Paths.get(modelFile))) {
+//      logger.info(s"$modelFile found; loading...")
+//      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
+//      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
+//      g.subClassifier = Option(sub)
+//      g
+//    } else {
+//      // train a fresh classifier
+//      logger.info(s"$modelFile not found; attempting to train...")
+//
+//      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
+//        FileUtils.load(config.getString("classifiers.gender.devData")) ++
+//        FileUtils.load(config.getString("classifiers.gender.testData"))
+//      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+//
+//      // bad to have to load followers possibly multiple times, but this should happen only rarely
+//      // TODO: different follower files by classifier
+//      val followers = if (tmp.useFollowers) {
+//        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+//      } else None
+//      val followees = if (tmp.useFollowees) {
+//        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
+//      } else None
+//      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
+//      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
+//      tmp.subClassifier.get.saveTo(modelFile)
+//      tmp
+//    }
+//    Option(model)
+//  } else None
 
-      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
-        FileUtils.load(config.getString("classifiers.gender.devData")) ++
-        FileUtils.load(config.getString("classifiers.gender.testData"))
-      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+  def trimQuotes(s: String): String = s.replaceAll("\"", "")
 
-      // bad to have to load followers possibly multiple times, but this should happen only rarely
-      // TODO: different follower files by classifier
-      val followers = if (tmp.useFollowers) {
-        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
-      } else None
-      val followees = if (tmp.useFollowees) {
-        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
-      } else None
-      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
-      tmp.subClassifier.get.saveTo(modelFile)
-      tmp
+  val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
+    val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
+    val bufferedSource = io.Source.fromFile(annoFile)
+    val rows = for (line <- bufferedSource.getLines) yield {
+      val cols = line.split(",").map(_.trim).map(trimQuotes(_))
+      assert(cols.length == 3)
+      if ((cols(1) != "NA" || cols(2) != "NA") && cols(0) != "id")
+        Option((cols(0), cols(1), cols(2)))
+      else
+        None
     }
-    Option(model)
-  } else None
+    val age = rows.flatten.map{ case (id, a, g) => id -> a }.toMap
+    val gender = rows.flatten.map{ case (id, a, g) => id -> g }.toMap
+    (Option(age), Option(gender))
+  } else (None, None)
 
   // Followers (to be set by setFollowers())
   var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
@@ -284,8 +305,18 @@ class FeatureExtractor (
       counter += scale(followees(account))
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
-    if (useGender & genderClassifier.nonEmpty) {
-      counter += prepend(s"gender:${genderClassifier.get.predict(account)}_", counter)
+    if (useGender & genderAnnotation.nonEmpty) {
+      val acctGender = genderAnnotation.get.getOrElse(account.id.toString, "UNK")
+      counter += prepend(s"gender:${acctGender}_", counter)
+    }
+
+    if (useAge & ageAnnotation.nonEmpty) {
+      val ageExact = ageAnnotation.get.get(account.id.toString)
+      val ageApprox = if (ageExact.nonEmpty) {
+        (ageExact.get.toDouble.round.toInt / 10 * 10).toString
+      } else "UNK"
+
+      counter += prepend(s"age:${ageApprox}_", counter)
     }
 
     if (useRace) {
@@ -321,9 +352,9 @@ class FeatureExtractor (
     * Returns the text cut into strings of <i>n</i> characters (with padding)
     */
   def charNGrams(n: Int, text: String, prefix: String = ""): Seq[String] = {
-    assert(n > 0, "Cannot populate charactern-grams of length < 1")
+    assert(n > 0, "Cannot populate character n-grams of length < 1")
     val padded = ("^" * (n-1)) + text + ("^" * (n - 1))
-    padded.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix:", "", ""))
+    padded.sliding(n).toList.map(ngram => ngram.mkString(s"${prefix}char$n-gram:", "", ""))
   }
 
   /**
@@ -332,7 +363,7 @@ class FeatureExtractor (
   def tokenNGrams(n: Int, text: Array[String], prefix: String = ""): Seq[String] = {
     assert(n > 0, "Cannot populate token n-grams of length < 1")
     val padded = Seq.fill(n-1)("<s>") ++ text ++ Seq.fill(n-1)("</s>")
-    text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
+    text.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix$n-gram:", " ", ""))
   }
 
   /**

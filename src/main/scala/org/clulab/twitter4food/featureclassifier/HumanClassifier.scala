@@ -49,6 +49,7 @@ class HumanClassifier(
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=false,
+    useAge=false,
     useRace=false,
     useHuman=false,
     dictOnly=false,
