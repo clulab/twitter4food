@@ -246,4 +246,6 @@ object Utils {
   }
 
   def dehashtag(wd: String): String = wd.replaceFirst("#", "")
+
+  def sanitizeHandle(h: String) = h.replaceFirst("@", "")
 }
