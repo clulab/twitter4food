@@ -54,11 +54,11 @@ object TimeDist {
       val mean = diffs.sum / diffs.length.toDouble
       val mn = diffs.min
       val mx = diffs.max
-      f"$portion%1.2f\t${Utils.sanitizeHandle(acct.handle)}\t$mean%1.2f\t$mn%1.2f\t$mx%1.2f\n"
+      f"$portion%1.2f,${Utils.sanitizeHandle(acct.handle)},$mean%1.2f,$mn%1.2f,$mx%1.2f\n"
     }
 
     val bw = new BufferedWriter(new FileWriter(file.get))
-    bw.write("portion\thandle\tdaysMean\tdaysMin\tdaysMax")
+    bw.write("portion,handle,daysMean,daysMin,daysMax\n")
     rows.foreach(row => bw.write(row))
     bw.close()
   }
