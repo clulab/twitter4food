@@ -726,17 +726,16 @@ object FeatureExtractor {
     val emptyString = "^[\\s\b]*$"
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
-        case (site, "U") => {
+        case (site, "U") =>
           val host = Try{ new URL(site).getHost }.toOption
-          Some(s"<URL:${host.getOrElse("UNK")}>")
-        }
-        case (handle, "@") => Some("<@MENTION>")
-        case (number, "$") => Some("<NUMBER>")
+          Option(s"<URL:${host.getOrElse("UNK")}>")
+        case (handle, "@") => Option("<@MENTION>")
+        case (number, "$") => Option("<NUMBER>")
         case (garbage, "G") => None
         case (":", "~") => None
-        case (rt, "~") => rt
+        case (rt, "~") => Option(rt)
         case (token, tag) if token.matches(emptyString) => None
-        case (token, tag) => Some(token)
+        case (token, tag) => Option(token)
       }
     }
     lumped.flatten
