@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 
 import scala.util.Try
 
-class TimeDist {
+object TimeDist {
   def main(args: Array[String]): Unit = {
     if(args.length != 1) {
       println("Usage: enter a file name to output a csv of time distibution figures")
