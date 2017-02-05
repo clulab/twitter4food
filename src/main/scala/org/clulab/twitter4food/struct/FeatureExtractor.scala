@@ -343,7 +343,7 @@ class FeatureExtractor (
     val activityWords = lexicons.get("Overweight")("food_words")
     val restaurantWords = lexicons.get("Overweight")("restaurant_hashtags")
     val owHashtags = lexicons.get("Overweight")("overweight_hashtags")
-    val stateFeatures = lexicons.get("Overweight")("topStateFeatures")
+    //val stateFeatures = lexicons.get("Overweight")("topStateFeatures")
     //val minimum = lexicons.get("Overweight")("intersection")
 
     // Extract ngrams
@@ -352,8 +352,8 @@ class FeatureExtractor (
         .filter(w => foodWords.contains(w) ||
           activityWords.contains(w) ||
           restaurantWords.contains(w) ||
-          owHashtags.contains(w) ||
-          stateFeatures.contains(w))
+          owHashtags.contains(w)
+//          stateFeatures.contains(w))
 //        .filter(w => minimum.contains(w))
         .sliding(n)
         .toList
