@@ -37,8 +37,8 @@ object PrintTokens {
 
     logger.info("Loading Twitter accounts")
     val train = FileUtils.load(config.getString(s"classifiers.$dataset.trainingData")).toSeq
-    val dev = FileUtils.load(config.getString(s"classifiers.$dataset.trainingData")).toSeq
-    val test = FileUtils.load(config.getString(s"classifiers.$dataset.trainingData")).toSeq
+    val dev = FileUtils.load(config.getString(s"classifiers.$dataset.devData")).toSeq
+    val test = FileUtils.load(config.getString(s"classifiers.$dataset.testData")).toSeq
 
     logger.info("Writing tokens in LSTM-readable format")
 
