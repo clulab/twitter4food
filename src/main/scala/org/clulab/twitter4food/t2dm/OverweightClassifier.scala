@@ -143,6 +143,7 @@ object OverweightClassifier {
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useGender = params.useGender,
+        useAge = params.useAge,
         useRace = params.useRace,
         dictOnly = true,
         datumScaling = params.datumScaling,
