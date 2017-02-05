@@ -1,9 +1,6 @@
 package org.clulab.twitter4food.util
 
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.struct.TwitterAccount
-
-import scala.collection.mutable.Map
 
 /**
   * Created by Terron on 3/28/16.
@@ -20,8 +17,15 @@ object SplitData {
 
     println(s"Reading in data from ${inputFile}")
     val labeledAccounts = FileUtils.load(inputFile)
+      .toSeq
+      .filter(_._1.tweets.nonEmpty)
+
+    // Scale number of accounts so that weights aren't too biased against Overweight
+    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
+    val subsampled = Utils.subsample(labeledAccounts, desiredProps)
+
     val acceptableLabels = Set("Overweight", "Not overweight")
-    val (overweight, notOverweight) = labeledAccounts
+    val (overweight, notOverweight) = subsampled
       .filter{ case (acct, lbl) => acceptableLabels.contains(lbl) }
       .partition{ case (acct, lbl) => lbl == "Overweight" }
 
@@ -50,9 +54,9 @@ object SplitData {
     val testNotOverweight = notOverweight.slice(notOverweightLim2, notOverweight.size)
 
     // Combine
-    val trainingSet = trainingOverweight ++ trainingNotOverweight
-    val devSet = devOverweight ++ devNotOverweight
-    val testSet = testOverweight ++ testNotOverweight
+    val trainingSet = (trainingOverweight ++ trainingNotOverweight).toMap
+    val devSet = (devOverweight ++ devNotOverweight).toMap
+    val testSet = (testOverweight ++ testNotOverweight).toMap
 
     println(s"trainingSet.size=${trainingSet.size}")
     println(s"devSet.size=${devSet.size}")
