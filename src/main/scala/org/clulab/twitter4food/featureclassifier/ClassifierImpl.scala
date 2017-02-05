@@ -631,7 +631,7 @@ class ClassifierImpl(
     classifierFactory: () => LiblinearClassifier[String, String],
     numFolds:Int = 10,
     seed:Int = 73,
-    percentTopToConsider:Double = 0.25
+    percentTopToConsider:Double = 1.0
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
