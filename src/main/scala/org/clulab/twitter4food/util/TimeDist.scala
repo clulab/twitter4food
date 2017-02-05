@@ -42,13 +42,14 @@ object TimeDist {
       portion <- 0.0 until 0.9 by 0.05
       acct <- accts
       allDates = acct.tweets.map(t => LocalDateTime.ofInstant(t.createdAt.toInstant, zid))
-      if allDates.length > 0
+      if allDates.nonEmpty
       newest = allDates.sortWith(_.compareTo(_) > 0).head
 
       start = (portion * acct.tweets.length).toInt
       end = ((portion + window) * acct.tweets.length).toInt
       tweets = allDates.slice(start, end)
       diffs = tweets.map(t => minus(newest, t))
+      if diffs.nonEmpty
     } yield {
       val mean = diffs.sum / diffs.length.toDouble
       val mn = diffs.min
