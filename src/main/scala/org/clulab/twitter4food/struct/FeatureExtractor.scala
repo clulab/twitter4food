@@ -39,6 +39,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useFollowers domain transfer from follower acccounts
   * @param useFollowees account followee handles
   * @param useGender domain transfer based on classification of account gender
+  * @param useAge domain transfer based on classification of account age
   * @param useRace domain transfer based on classification of account race
   * @param useHuman limit follower domain transfer to those judged as human
   * @param datumScaling scale by account
@@ -59,8 +60,11 @@ class FeatureExtractor (
   val useFollowees: Boolean = false,
   val useRT: Boolean = false,
   val useGender: Boolean = false,
+  val useAge: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
+  val dictOnly: Boolean = false,
+  val denoise: Boolean = false,
   val datumScaling: Boolean = false,
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
@@ -81,6 +85,7 @@ class FeatureExtractor (
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useGender=$useGender, " +
+    s"useAge=$useAge, " +
     s"useRace=$useRace, " +
     s"useHuman=$useHuman, " +
     s"datumScaling=$datumScaling"
@@ -154,39 +159,57 @@ class FeatureExtractor (
     Option(model)
   } else None
 
-  // gender classifier for domain adaptation
-  val genderClassifier = if(useGender) {
-    val modelFile = config.getString("classifiers.overweight.genderClassifier")
-    val model = if (Files.exists(Paths.get(modelFile))) {
-      logger.info(s"$modelFile found; loading...")
-      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
-      g.subClassifier = Option(sub)
-      g
-    } else {
-      // train a fresh classifier
-      logger.info(s"$modelFile not found; attempting to train...")
+//  // gender classifier for domain adaptation
+//  val genderClassifier = if(useGender) {
+//    val modelFile = config.getString("classifiers.overweight.genderClassifier")
+//    val model = if (Files.exists(Paths.get(modelFile))) {
+//      logger.info(s"$modelFile found; loading...")
+//      val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
+//      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
+//      g.subClassifier = Option(sub)
+//      g
+//    } else {
+//      // train a fresh classifier
+//      logger.info(s"$modelFile not found; attempting to train...")
+//
+//      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
+//        FileUtils.load(config.getString("classifiers.gender.devData")) ++
+//        FileUtils.load(config.getString("classifiers.gender.testData"))
+//      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+//
+//      // bad to have to load followers possibly multiple times, but this should happen only rarely
+//      // TODO: different follower files by classifier
+//      val followers = if (tmp.useFollowers) {
+//        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
+//      } else None
+//      val followees = if (tmp.useFollowees) {
+//        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
+//      } else None
+//      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
+//      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
+//      tmp.subClassifier.get.saveTo(modelFile)
+//      tmp
+//    }
+//    Option(model)
+//  } else None
 
-      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
-        FileUtils.load(config.getString("classifiers.gender.devData")) ++
-        FileUtils.load(config.getString("classifiers.gender.testData"))
-      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+  def trimQuotes(s: String): String = s.replaceAll("\"", "")
 
-      // bad to have to load followers possibly multiple times, but this should happen only rarely
-      // TODO: different follower files by classifier
-      val followers = if (tmp.useFollowers) {
-        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
-      } else None
-      val followees = if (tmp.useFollowees) {
-        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
-      } else None
-      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
-      tmp.subClassifier.get.saveTo(modelFile)
-      tmp
+  val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
+    val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
+    val bufferedSource = io.Source.fromFile(annoFile)
+    val rows = for (line <- bufferedSource.getLines) yield {
+      val cols = line.split(",").map(_.trim).map(trimQuotes(_))
+      assert(cols.length == 3)
+      if ((cols(1) != "NA" || cols(2) != "NA") && cols(0) != "id")
+        Option((cols(0), cols(1), cols(2)))
+      else
+        None
     }
-    Option(model)
-  } else None
+    val age = rows.flatten.map{ case (id, a, g) => id -> a }.toMap
+    val gender = rows.flatten.map{ case (id, a, g) => id -> g }.toMap
+    (Option(age), Option(gender))
+  } else (None, None)
 
   // Followers (to be set by setFollowers())
   var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
@@ -224,6 +247,8 @@ class FeatureExtractor (
   def setFollowers(followers: Map[String, Seq[TwitterAccount]]) = {
     handleToFollowerAccount = Option(followers)
   }
+
+  val allDicts = if (dictOnly && lexicons.nonEmpty) Option(lexicons.get("Overweight").values.toSeq) else None
 
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
@@ -281,8 +306,18 @@ class FeatureExtractor (
       counter += scale(followees(account))
 
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
-    if (useGender & genderClassifier.nonEmpty) {
-      counter += prepend(s"gender:${genderClassifier.get.predict(account)}_", counter)
+    if (useGender & genderAnnotation.nonEmpty) {
+      val acctGender = genderAnnotation.get.getOrElse(account.id.toString, "UNK")
+      counter += prepend(s"gender:${acctGender}_", counter)
+    }
+
+    if (useAge & ageAnnotation.nonEmpty) {
+      val ageExact = ageAnnotation.get.get(account.id.toString)
+      val ageApprox = if (ageExact.nonEmpty) {
+        (ageExact.get.toDouble.round.toInt / 10 * 10).toString
+      } else "UNK"
+
+      counter += prepend(s"age:${ageApprox}_", counter)
     }
 
     if (useRace) {
@@ -366,37 +401,6 @@ class FeatureExtractor (
       }
     }
     
-    counter
-  }
-
-  /**
-    * Returns a [[Counter]] of ngrams from account's description and tweets with raw frequencies as weights.
-    *
-    * @param n Degree of n-gram (e.g. 1 refers to unigrams)
-    * @param description Text description of [[TwitterAccount]]
-    */
-  def rtngrams(n: Int, tweets: Seq[Tweet], description: Array[String]): Counter[String] = {
-
-    var tweetsText = for (t <- tweets) yield t.text.trim.split(" +")
-
-    if(n == 1) // if unigram features
-      tweetsText = tweetsText.map(filterStopWords)
-
-    val counter = new Counter[String]
-
-    // n-gram for tweets
-    tweetsText.zipWithIndex.foreach { t_i =>
-      val tweetText = t_i._1
-      val idx = t_i._2
-      val tweet = tweets(idx)
-
-        val isRT = tweet.isRetweet
-        if (isRT)
-          setCounts(tokenNGrams(n, tweetText, "RT_"), counter)
-        else
-          setCounts(tokenNGrams(n, tweetText, "NRT_"), counter)
-    }
-
     counter
   }
 
@@ -758,6 +762,12 @@ class FeatureExtractor (
     dayHist.foreach{ case (day, prop) => counter.setCount(s"timeDate:$day", prop) }
 
     counter
+  }
+
+  def dictFilter(text: Array[String]): Array[String] = {
+    if(allDicts.nonEmpty) {
+      text.filter(w => allDicts.get.exists(lex => lex.contains(w)))
+    } else text
   }
 }
 

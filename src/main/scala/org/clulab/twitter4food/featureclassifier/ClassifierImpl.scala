@@ -58,8 +58,10 @@ class ClassifierImpl(
   val useFollowees: Boolean,
   val useRT: Boolean,
   val useGender: Boolean,
+  val useAge: Boolean,
   val useRace: Boolean,
   val useHuman: Boolean,
+  val dictOnly: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean,
   val variable: String,
@@ -84,8 +86,10 @@ class ClassifierImpl(
     useFollowees=useFollowees,
     useRT=useRT,
     useGender=useGender,
+    useAge=useAge,
     useRace=useRace,
     useHuman=useHuman,
+    dictOnly=dictOnly,
     datumScaling=datumScaling,
     customFeatures=customFeatures)
 
@@ -108,7 +112,8 @@ class ClassifierImpl(
     followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
 
     // Load lexicons before calling train
-    if(useDictionaries) {
+    if(useDictionaries || dictOnly) {
+      logger.info("Loading dictionaries...")
       // For each label, populate list of lexicon filepaths from config
       val lexMap = populateLexiconList(labels.toSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)

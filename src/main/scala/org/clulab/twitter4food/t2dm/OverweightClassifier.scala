@@ -5,10 +5,8 @@ import java.nio.file.{Files, Paths}
 
 import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.featureclassifier.ClassifierImpl
+import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, Ensemble}
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
-
-import scala.util.Random
 
 /**
   * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
@@ -31,8 +29,11 @@ class OverweightClassifier(
   useFollowees: Boolean = false,
   useRT: Boolean = false,
   useGender: Boolean = false,
+  useAge: Boolean = false,
   useRace: Boolean = false,
   useHuman: Boolean = false,
+  dictOnly: Boolean = false,
+  denoise: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
@@ -50,8 +51,10 @@ class OverweightClassifier(
     useFollowees=useFollowees,
     useRT=useRT,
     useGender=useGender,
+    useAge=useAge,
     useRace=useRace,
     useHuman=useHuman,
+    dictOnly=dictOnly,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "overweight") {
@@ -101,7 +104,7 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data_raw"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 
@@ -109,23 +112,26 @@ object OverweightClassifier {
     val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
     val subsampled = Utils.subsample(labeledAccts, desiredProps)
 
+    // Remove tweets that are spammy
+    val denoised = subsampled.map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
+
     val followers = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(subsampled.map(_._1)))
+      Option(ClassifierImpl.loadFollowers(denoised.map(_._1)))
     } else None
 
     val followees = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(subsampled.map(_._1), "overweight"))
+      Option(ClassifierImpl.loadFollowees(denoised.map(_._1), "overweight"))
     } else None
 
     val evals = for {
       portion <- portions
-      maxIndex = (portion * subsampled.length).toInt
+      maxIndex = (portion * denoised.length).toInt
     } yield {
-      val (accts, lbls) = subsampled.slice(0, maxIndex).unzip
+      val (accts, lbls) = denoised.slice(0, maxIndex).unzip
 
-      val oc = new OverweightClassifier(
+      val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
         useBigrams = params.useBigrams,
         useName = params.useName,
@@ -140,19 +146,38 @@ object OverweightClassifier {
         useFollowees = params.useFollowees,
         useRT = params.useRT,
         useGender = params.useGender,
+        useAge = params.useAge,
         useRace = params.useRace,
+        dictOnly = true,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 
-      logger.info("Training classifier...")
+      val oc2 = new OverweightClassifier(
+        useUnigrams = default || params.useUnigrams,
+        useBigrams = params.useBigrams,
+        useName = params.useName,
+        useTopics = params.useTopics,
+        useDictionaries = params.useDictionaries,
+        useAvgEmbeddings = params.useAvgEmbeddings,
+        useMinEmbeddings = params.useMinEmbeddings,
+        useMaxEmbeddings = params.useMaxEmbeddings,
+        useCosineSim = params.useCosineSim,
+        useTimeDate = params.useTimeDate,
+        useFollowers = params.useFollowers,
+        useFollowees = params.useFollowees,
+        useRT = params.useRT,
+        useGender = params.useGender,
+        useAge = params.useAge,
+        useRace = params.useRace,
+        dictOnly = true,
+        datumScaling = params.datumScaling,
+        featureScaling = params.featureScaling)
 
-      val highConfPercent = config.getDouble("classifiers.overweight.highConfPercent") //params.highConfPercent
-      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(accts,
-          lbls,
-          followers,
-          followees,
-          Utils.svmFactory,
-          percentTopToConsider=highConfPercent)
+      val ocs = new Ensemble(Seq(oc1, oc2))
+
+      logger.info("Training classifiers...")
+      val highConfPercent = config.getDouble("classifiers.overweight.highConfPercent")
+      val predictions = ocs.overweightCV(accts, lbls, followers, followees, Utils.svmFactory, percentTopToConsider=highConfPercent)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
@@ -165,30 +190,6 @@ object OverweightClassifier {
       }
       val precision = evalMetric.P
       val recall = evalMetric.R
-
-      // Write analysis only on full portion
-      if (portion == 1.0) {
-        if (params.fpnAnalysis) {
-          // Perform analysis on false negatives and false positives
-          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
-        }
-
-        // Save results
-        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-        writer.write(s"Precision: $precision\n")
-        writer.write(s"Recall: $recall\n")
-        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
-        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-        writer.write(s"Macro average: $macroAvg\n")
-        writer.write(s"Micro average: $microAvg\n")
-        writer.close()
-
-        // Save individual predictions for bootstrap significance
-        val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-        predWriter.write(s"gold\tpred\n")
-        predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
-        predWriter.close()
-      }
 
       (portion, predictions.length, precision, recall, macroAvg, microAvg)
     }
