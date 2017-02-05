@@ -29,6 +29,7 @@ class GenderClassifier(
   useTimeDate: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
+  useRT: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
@@ -44,6 +45,7 @@ class GenderClassifier(
     useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
+    useRT=useRT,
     useGender=false,
     useRace=false,
     useHuman=false,
@@ -115,6 +117,7 @@ object GenderClassifier {
         useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
+        useRT = params.useRT,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling
       )
