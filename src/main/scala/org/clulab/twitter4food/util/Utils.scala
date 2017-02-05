@@ -238,12 +238,18 @@ object Utils {
   }
 
   def denoise(account: TwitterAccount): TwitterAccount = {
-    val good = account.tweets.filter { tweet =>
+    val good = account.tweets.filterNot { tweet =>
       val txt = tweet.text.split(" +")
-      val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "RT", "#latergram", "#regram", "…")
-      !txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
+      val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "#latergram", "#regram", "…")
+      tweet.isRetweet || txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
     }
     account.copy(tweets=good)
+  }
+
+  def isNoise(tweet: Tweet): Boolean = {
+    val txt = tweet.text.split(" +")
+    val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "#latergram", "#regram", "…")
+    tweet.isRetweet || txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
   }
 
   def keepRows[L, F](dataset: Dataset[L, F], rowsToKeep: Array[Int]): RVFDataset[L, F] = {

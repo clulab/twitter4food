@@ -1,6 +1,6 @@
 package org.clulab.twitter4food.t2dm
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io.File
 import java.nio.file.{Files, Paths}
 
 import org.slf4j.LoggerFactory
@@ -53,6 +53,7 @@ class OverweightClassifier(
     useRace=useRace,
     useHuman=useHuman,
     dictOnly=dictOnly,
+    denoise=denoise,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "overweight") {
@@ -146,6 +147,7 @@ object OverweightClassifier {
         useAge = params.useAge,
         useRace = params.useRace,
         dictOnly = true,
+        denoise = false,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 
@@ -165,7 +167,8 @@ object OverweightClassifier {
         useGender = params.useGender,
         useAge = params.useAge,
         useRace = params.useRace,
-        dictOnly = true,
+        dictOnly = false,
+        denoise = true,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 

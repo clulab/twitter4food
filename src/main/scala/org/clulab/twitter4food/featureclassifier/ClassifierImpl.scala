@@ -59,6 +59,7 @@ class ClassifierImpl(
   val useRace: Boolean,
   val useHuman: Boolean,
   val dictOnly: Boolean,
+  val denoise: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean,
   val variable: String,
@@ -86,6 +87,7 @@ class ClassifierImpl(
     useRace=useRace,
     useHuman=useHuman,
     dictOnly=dictOnly,
+    denoise=denoise,
     datumScaling=datumScaling,
     customFeatures=customFeatures)
 
