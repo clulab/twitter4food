@@ -352,7 +352,7 @@ class FeatureExtractor (
         .filter(w => foodWords.contains(w) ||
           activityWords.contains(w) ||
           restaurantWords.contains(w) ||
-          owHashtags.contains(w)
+          owHashtags.contains(w))
 //          stateFeatures.contains(w))
 //        .filter(w => minimum.contains(w))
         .sliding(n)
