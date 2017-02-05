@@ -2,6 +2,7 @@ package org.clulab.twitter4food.struct
 
 import java.io.{BufferedReader, FileReader}
 import java.nio.file.{Files, Paths}
+import java.net.URL
 
 import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
@@ -15,6 +16,7 @@ import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
+import util.Try
 
 /**
   * Designed to be used in tandem with a classifier, with the features
@@ -724,11 +726,15 @@ object FeatureExtractor {
     val emptyString = "^[\\s\b]*$"
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
-        case (site, "U") => Some("<URL>")
+        case (site, "U") => {
+          val host = Try{ new URL(site).getHost }.toOption
+          Some(s"<URL:${host.getOrElse("UNK")}>")
+        }
         case (handle, "@") => Some("<@MENTION>")
         case (number, "$") => Some("<NUMBER>")
         case (garbage, "G") => None
-        case (rt, "~") => None
+        case (":", "~") => None
+        case (rt, "~") => rt
         case (token, tag) if token.matches(emptyString) => None
         case (token, tag) => Some(token)
       }
