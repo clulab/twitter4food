@@ -57,6 +57,7 @@ class FeatureExtractor (
   val useTimeDate: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
+  val useRT: Boolean = false,
   val useGender: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
@@ -330,6 +331,7 @@ class FeatureExtractor (
     val padded = Seq.fill(n-1)("<s>") ++ text ++ Seq.fill(n-1)("</s>")
     text.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix$n-gram:", " ", ""))
   }
+
   /**
     * Returns a [[Counter]] of ngrams from account's description and tweets with raw frequencies as weights.
     *
@@ -353,21 +355,54 @@ class FeatureExtractor (
       val idx = t_i._2
       val tweet = tweets(idx)
       
-      val isRT = tweet.isRetweet
-      
       setCounts(tokenNGrams(n, tweetText, ""), counter)
-      if(isRT)
-        setCounts(tokenNGrams(n, tweetText, "RT_"), counter)
-      else
-        setCounts(tokenNGrams(n, tweetText, "NRT_"), counter)  
-      
+
+      if (useRT) {
+        val isRT = tweet.isRetweet
+        if (isRT)
+          setCounts(tokenNGrams(n, tweetText, "RT_"), counter)
+        else
+          setCounts(tokenNGrams(n, tweetText, "NRT_"), counter)
+      }
     }
     
     counter
   }
 
   /**
+    * Returns a [[Counter]] of ngrams from account's description and tweets with raw frequencies as weights.
+    *
+    * @param n Degree of n-gram (e.g. 1 refers to unigrams)
+    * @param description Text description of [[TwitterAccount]]
+    */
+  def rtngrams(n: Int, tweets: Seq[Tweet], description: Array[String]): Counter[String] = {
+
+    var tweetsText = for (t <- tweets) yield t.text.trim.split(" +")
+
+    if(n == 1) // if unigram features
+      tweetsText = tweetsText.map(filterStopWords)
+
+    val counter = new Counter[String]
+
+    // n-gram for tweets
+    tweetsText.zipWithIndex.foreach { t_i =>
+      val tweetText = t_i._1
+      val idx = t_i._2
+      val tweet = tweets(idx)
+
+        val isRT = tweet.isRetweet
+        if (isRT)
+          setCounts(tokenNGrams(n, tweetText, "RT_"), counter)
+        else
+          setCounts(tokenNGrams(n, tweetText, "NRT_"), counter)
+    }
+
+    counter
+  }
+
+  /**
     * Returns a [[Counter]] of character/word n-grams based on user's name and handle
+    *
     * @param account the [[TwitterAccount]] under analysis
     */
   def name(account: TwitterAccount): Counter[String] = {
@@ -689,7 +724,7 @@ class FeatureExtractor (
 
   /**
     * A set of features describing the time and day the account tweets.
-
+    *
     * @param tweets [[Tweet]]s of the account for time/date info
     * @return a [[Counter]] with time and day features
     */

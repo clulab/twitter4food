@@ -32,6 +32,7 @@ class HumanClassifier(
   useTimeDate: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
+  useRT: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false,
   customFeatures: TwitterAccount => Counter[String])
@@ -48,6 +49,7 @@ class HumanClassifier(
     useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
+    useRT=useRT,
     useGender=false,
     useRace=false,
     useHuman=false,
@@ -242,6 +244,7 @@ object HumanClassifier {
         useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
+        useRT = params.useRT,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling,
         customAction

@@ -28,6 +28,7 @@ object Utils {
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
     useGender: Boolean = false,
+    useRT: Boolean = false,
     useRace: Boolean = false,
     useHuman: Boolean = false,
     datumScaling: Boolean = false,
@@ -102,6 +103,8 @@ object Utils {
         c.copy(useTimeDate = true)} text "use tweet time and date"
       opt[Unit]('s', "customAction") action { (x, c) =>
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
+      opt[Unit]('r', "retweet") action { (x, c) =>
+        c.copy(useRT = true)} text "treat retweet n-grams differently"
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
       opt[Unit]('r', "race") action { (x, c) =>
