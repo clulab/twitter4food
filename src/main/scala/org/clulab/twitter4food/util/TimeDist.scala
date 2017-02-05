@@ -39,7 +39,7 @@ object TimeDist {
     }
 
     val rows = for {
-      portion <- 0.0 until 0.9 by 0.05
+      portion <- 0.0 to 0.9 by 0.05
       acct <- accts
       allDates = acct.tweets.map(t => LocalDateTime.ofInstant(t.createdAt.toInstant, zid))
       if allDates.nonEmpty
