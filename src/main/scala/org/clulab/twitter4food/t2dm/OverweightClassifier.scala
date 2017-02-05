@@ -99,7 +99,12 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val train = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+    val train = if (params.runOnTest) {
+      val tr = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+      val dv = FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+      tr ++ dv
+    } else FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+
     val test = if (params.runOnTest)
       FileUtils.load(config.getString("classifiers.overweight.testData")).toSeq
     else
