@@ -8,12 +8,15 @@ object DataStats {
 
     val config = ConfigFactory.load
 
-    val train = FileUtils.load(config.getString(s"classifiers.$dataset.trainingData")).toSeq
-    val dev = FileUtils.load(config.getString(s"classifiers.$dataset.devData")).toSeq
-    val test = FileUtils.load(config.getString(s"classifiers.$dataset.testData")).toSeq
-    val total = train ++ dev ++ test
+    val total = FileUtils.load(config.getString(s"classifiers.$dataset.data")).toSeq.filter(_._1.tweets.nonEmpty)
+//    val train = FileUtils.load(config.getString(s"classifiers.$dataset.trainingData")).toSeq
+//    val dev = FileUtils.load(config.getString(s"classifiers.$dataset.devData")).toSeq
+//    val test = FileUtils.load(config.getString(s"classifiers.$dataset.testData")).toSeq
+//    val total = train ++ dev ++ test
 
-    val dsMap = Map("train" -> train, "dev" -> dev, "test" -> test, "total" -> total)
+//    val dsMap = Map("train" -> train, "dev" -> dev, "test" -> test, "total" -> total)
+
+    val dsMap = Map("total" -> total)
 
     println("partition,label,numAccounts,totalTweets,tweetsPerAccount,totalTokens,tokensPerTweet")
     dsMap.foreach { case (partition, ds) =>
