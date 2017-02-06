@@ -321,9 +321,9 @@ class FeatureExtractor (
     * Returns the text cut into strings of <i>n</i> characters (with padding)
     */
   def charNGrams(n: Int, text: String, prefix: String = ""): Seq[String] = {
-    assert(n > 0, "Cannot populate charactern-grams of length < 1")
+    assert(n > 0, "Cannot populate character n-grams of length < 1")
     val padded = ("^" * (n-1)) + text + ("^" * (n - 1))
-    padded.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix:", "", ""))
+    padded.sliding(n).toList.map(ngram => ngram.mkString(s"${prefix}char$n-gram:", "", ""))
   }
 
   /**
@@ -332,7 +332,7 @@ class FeatureExtractor (
   def tokenNGrams(n: Int, text: Array[String], prefix: String = ""): Seq[String] = {
     assert(n > 0, "Cannot populate token n-grams of length < 1")
     val padded = Seq.fill(n-1)("<s>") ++ text ++ Seq.fill(n-1)("</s>")
-    text.sliding(n).toList.map(ngram => ngram.mkString(s"$n-gram:", " ", ""))
+    text.sliding(n).toList.map(ngram => ngram.mkString(s"$prefix$n-gram:", " ", ""))
   }
 
   /**

@@ -102,51 +102,53 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data_raw"))
-      .toSeq
-      .filter(_._1.tweets.nonEmpty)
 
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
+    val train = if (params.runOnTest) {
+      val tr = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+      val dv = FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+      tr ++ dv
+    } else FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
 
-    // Remove tweets that are spammy
-    val denoised = subsampled.map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
+    val test = if (params.runOnTest)
+      FileUtils.load(config.getString("classifiers.overweight.testData")).toSeq
+    else
+      FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
 
-    val followers = if(params.useFollowers) {
+    val (trainFollowers, testFollowers) = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(denoised.map(_._1)))
-    } else None
+      (Option(ClassifierImpl.loadFollowers(train.map(_._1))),
+        Option(ClassifierImpl.loadFollowers(test.map(_._1))))
+    } else (None, None)
 
-    val followees = if(params.useFollowees) {
+    val (trainFollowees, testFollowees) = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(denoised.map(_._1), "overweight"))
-    } else None
+      (Option(ClassifierImpl.loadFollowees(train.map(_._1), "overweight")),
+        Option(ClassifierImpl.loadFollowees(test.map(_._1), "overweight")))
+    } else (None, None)
 
-    val window = 90
-    val stride = 30
-    val evals = for {
-      days <- 0 until 600 by stride
+    val (accts, lbls) = train.unzip
+    // Convert java.util.Date into java.time.LocalDateTime
+    val zid = java.time.ZoneId.of("GMT")
+
+    val window = 0.10
+    val stride = 0.5
+    val classifiers = for {
+      start <- 0.0 to 0.9 by stride
     } yield {
-      val (accts, lbls) = denoised.unzip
-
-      // Convert java.util.Date into java.time.LocalDateTime
-      val zid = java.time.ZoneId.of("GMT")
 
       val timeLim = for (acct <- accts) yield {
-        val dateTimes = acct.tweets.map(t => t -> java.time.LocalDateTime.ofInstant(t.createdAt.toInstant, zid))
-        val newest = dateTimes.unzip._2.sortWith(_.compareTo(_) > 0).head minusDays days
-        val oldest = newest minusDays window
-        val babyBear = dateTimes.filter{ case (t, dt) => dt.isAfter(oldest) && dt.isBefore(newest) }.unzip._1
-        acct.copy(tweets = babyBear)
+        val numTweets = acct.tweets.length.toDouble
+        val first = (start * numTweets).toInt
+        val last = ((start + window) * numTweets).toInt
+        acct.copy(tweets = acct.tweets.slice(first, last))
       }
 
       val numAllTweets = accts.map(_.tweets.length).sum.toDouble
       val numNewTweets = timeLim.map(_.tweets.length).sum.toDouble
       val portion = numNewTweets / numAllTweets * 100.0
-      logger.info(f"$portion%1.3f%% of tweets are between $days and ${days + window} days old.")
+      logger.info(f"$portion%1.3f%% of tweets in $start%1.2f window.")
 
-      val oc1 = new OverweightClassifier(
+      val oc = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
         useBigrams = params.useBigrams,
         useName = params.useName,
@@ -161,52 +163,46 @@ object OverweightClassifier {
         useFollowees = params.useFollowees,
         useGender = params.useGender,
         useRace = params.useRace,
-        dictOnly = true,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
-
-      val oc2 = new OverweightClassifier(
-        useUnigrams = default || params.useUnigrams,
-        useBigrams = params.useBigrams,
-        useName = params.useName,
-        useTopics = params.useTopics,
-        useDictionaries = params.useDictionaries,
-        useAvgEmbeddings = params.useAvgEmbeddings,
-        useMinEmbeddings = params.useMinEmbeddings,
-        useMaxEmbeddings = params.useMaxEmbeddings,
-        useCosineSim = params.useCosineSim,
-        useTimeDate = params.useTimeDate,
-        useFollowers = params.useFollowers,
-        useFollowees = params.useFollowees,
-        useGender = params.useGender,
-        useRace = params.useRace,
-        dictOnly = true,
-        datumScaling = params.datumScaling,
-        featureScaling = params.featureScaling)
-
-      val ocs = new Ensemble(Seq(oc1, oc2))
 
       logger.info("Training classifiers...")
-      val predictions = ocs.overweightCV(timeLim, lbls, followers, followees, Utils.svmFactory)
+      oc.train(accts, lbls, trainFollowers, trainFollowees)
+
+      (start, accts.length, oc)
+    }
+
+    val evals = for {
+      (portion, numAccounts, oc) <- classifiers
+    } yield {
+      // Set progress bar
+      val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+      pb.start()
+      pb.maxHint(test.size)
+      pb.setExtraMessage(s"Evaluating on ${if(params.runOnTest) "test" else "dev"}...")
+
+      // Classify accounts
+      val testLabels = test.map(_._2)
+      val predictedLabels = test.map(_._1).map { u =>
+        pb.step()
+        oc.classify(u)
+      }
+
+      pb.stop()
 
       // Print results
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testLabels, predictedLabels, test.map(_._1))
 
-      val evalMetric = if (evalMeasures.keySet contains "Overweight") {
-        evalMeasures("Overweight")
-      } else {
-        logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
-        evalMeasures.head._2
-      }
+      val evalMetric = evalMeasures(oc.labels.toSeq.sorted.head)
       val precision = evalMetric.P
       val recall = evalMetric.R
 
-      (days, portion, predictions.length, precision, recall, macroAvg, microAvg)
+      (portion, predictedLabels.length, precision, recall, macroAvg, microAvg)
     }
 
     println(s"\n$fileExt\n#days\t%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (days, portion, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$days\t$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
     }
   }
