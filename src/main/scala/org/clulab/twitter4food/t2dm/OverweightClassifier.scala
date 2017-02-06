@@ -97,32 +97,20 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
-      .toSeq
-      .filter(_._1.tweets.nonEmpty)
-
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
-
-    // Remove tweets that are spammy
-    val denoised = subsampled.map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
-
-    val followers = if(params.useFollowers) {
-      logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(denoised.map(_._1)))
-    } else None
-    
     val train = if (params.runOnTest) {
       val tr = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+        .map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
       val dv = FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+        .map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
       tr ++ dv
     } else FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
 
     val test = if (params.runOnTest)
       FileUtils.load(config.getString("classifiers.overweight.testData")).toSeq
+        .map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
     else
       FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+        .map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
 
     val (trainFollowers, testFollowers) = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
