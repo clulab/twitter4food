@@ -795,7 +795,9 @@ object FeatureExtractor {
         case (handle, "@") => Some("<@MENTION>")
         case (number, "$") => Some("<NUMBER>")
         case (garbage, "G") => None
-        case (rt, "~") => Some(rt)
+        case ("RT", "~") => Some("RT")
+        case ("rt", "~") => Some("RT")
+        case (otherRT, "~") => None
         case (token, tag) if token.matches(emptyString) => None
         case (token, tag) => Some(token)
       }
