@@ -46,7 +46,7 @@ object AnalyzeTweets extends App {
   val allOWTweets = handleMapSubset.values.filter(_._2 == "Overweight").map(_._1.tweets.length).sum
   val allNOTweets = handleMapSubset.values.filter(_._2 == "Not overweight").map(_._1.tweets.length).sum
 
-  var numOfTweets = 0
+/*  var numOfTweets = 0
   var numOfRetweets = 0
   var numOfNotRetweets = 0
   val resTweets = handleMap.keys.flatMap{ twAcHandle =>
@@ -75,15 +75,29 @@ object AnalyzeTweets extends App {
   retweetsFile.close()
   logger.info(s"Total no of Tweets : ${numOfTweets}\nNo. of Retweets : ${numOfRetweets}\nNo. of Regular Tweets : ${numOfNotRetweets}")
   logger.info("Retweets file written")
+*/
   
-//  val highInfoWords = getAllHighInfoTweetWords(handleMap) // getAllHighInfoTweetWords(handleMapSubset)
-//  val highInfoWordsFile = new PrintWriter(new File("HighInfoWords.txt"))
-//  for((w,info,freq) <- highInfoWords){
-//    highInfoWordsFile.write(s"$w\t$info\t$freq\n")
-//  }
-//  highInfoWordsFile.write(divider)
-//  highInfoWordsFile.close()
-//  logger.info("HighFreq words written to HighInfoWords.txt")
+  val highInfoWords = getAllHighInfoTweetWords(handleMap) // getAllHighInfoTweetWords(handleMapSubset)
+  val highInfoWordsOW = highInfoWords._1
+  val highInfoWordsNO = highInfoWords._2
+  val highInfoWordsFile = new PrintWriter(new File("HighInfoWords.txt"))
+  
+  highInfoWordsFile.write(s"Top OW indicating words")
+  highInfoWordsFile.write(divider)
+  for((w,info,freq,ow_bits,no_bits) <- highInfoWordsOW){
+    highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
+  }
+  highInfoWordsFile.write(divider)
+  
+  highInfoWordsFile.write(s"Top NO indicating words")
+  highInfoWordsFile.write(divider)
+  for((w,info,freq,ow_bits,no_bits) <- highInfoWordsNO){
+    highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
+  }
+  highInfoWordsFile.write(divider)
+  
+  highInfoWordsFile.close()
+  logger.info("HighFreq words written to HighInfoWords.txt")
   
   /*var running = true
   val reader = new ConsoleReader
@@ -103,7 +117,7 @@ object AnalyzeTweets extends App {
     }
   }*/
 
-  def getAllHighInfoTweetWords(handleMap: Map[String, (TwitterAccount, String)]) : Seq[(String, Double, Int)] = {
+  def getAllHighInfoTweetWords(handleMap: Map[String, (TwitterAccount, String)]) : (Seq[(String, Double, Int, Double, Double)],Seq[(String, Double, Int, Double, Double)]) = {
     
     logger.info("Vocab construction begin")
     
@@ -126,7 +140,7 @@ object AnalyzeTweets extends App {
     var cumulativeCount = 0.0
     var vocabSubset = Set[String]()
     for((word,count) <- vocabCounter.toSeq.sortBy(- _._2)){
-      if(cumulativeCount / totalCount <= 0.9){
+      if(cumulativeCount / totalCount <= 0.6){
         cumulativeCount += count
         vocabSubset += word
       }
@@ -178,14 +192,16 @@ object AnalyzeTweets extends App {
 
         val bitsOfInfo = log2(Seq(to/tn, tn/to).max)
         val scaledBitsOfInfo = bitsOfInfo *  (resOWTweets.size + resNOTweets.size)
-        (w,scaledBitsOfInfo, (resOWTweets.size + resNOTweets.size))
+        (w,scaledBitsOfInfo, (resOWTweets.size + resNOTweets.size), log2(to/tn), log2(tn/to))
     }
    
     pb.stop()
     
-    val wordsAndBitsFinite = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._2)
+//    val wordsAndBitsFinite = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._2)
+    val wordsAndBitsFiniteOW = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._4)
+    val wordsAndBitsFiniteNO = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._5)
     val sz = wordsAndBitsofInfo.size
-    wordsAndBitsFinite.filter(_._3 > 25).take((sz * 0.2).toInt)
+    ( wordsAndBitsFiniteOW.filter(_._3 > 25).take((sz * 0.2).toInt), wordsAndBitsFiniteNO.filter(_._3 > 25).take((sz * 0.2).toInt) )
   }
   /**
     * Returns a user handle minus the initial '@', if one exists
