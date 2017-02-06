@@ -1,10 +1,11 @@
 package org.clulab.twitter4food.t2dm
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io.File
 import java.nio.file.{Files, Paths}
 
 import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
+import org.clulab.struct.Counter
 import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, Ensemble}
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
@@ -55,6 +56,7 @@ class OverweightClassifier(
     useRace=useRace,
     useHuman=useHuman,
     dictOnly=dictOnly,
+    denoise=denoise,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "overweight") {
@@ -104,32 +106,34 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data_raw"))
-      .toSeq
-      .filter(_._1.tweets.nonEmpty)
+    val train = if (params.runOnTest) {
+      val tr = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+      val dv = FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+      tr ++ dv
+    } else FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
 
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
+    val test = if (params.runOnTest)
+      FileUtils.load(config.getString("classifiers.overweight.testData")).toSeq
+    else
+      FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
 
-    // Remove tweets that are spammy
-    val denoised = subsampled.map{ case (acct, lbl) => Utils.denoise(acct) -> lbl }.filter(_._1.tweets.nonEmpty)
-
-    val followers = if(params.useFollowers) {
+    val (trainFollowers, testFollowers) = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(denoised.map(_._1)))
-    } else None
+      (Option(ClassifierImpl.loadFollowers(train.map(_._1))),
+        Option(ClassifierImpl.loadFollowers(test.map(_._1))))
+    } else (None, None)
 
-    val followees = if(params.useFollowees) {
+    val (trainFollowees, testFollowees) = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(denoised.map(_._1), "overweight"))
-    } else None
+      (Option(ClassifierImpl.loadFollowees(train.map(_._1), "overweight")),
+        Option(ClassifierImpl.loadFollowees(test.map(_._1), "overweight")))
+    } else (None, None)
 
-    val evals = for {
+    val classifiers = for {
       portion <- portions
-      maxIndex = (portion * denoised.length).toInt
+      maxIndex = (portion * train.length).toInt
     } yield {
-      val (accts, lbls) = denoised.slice(0, maxIndex).unzip
+      val (accts, lbls) = train.slice(0, maxIndex).unzip
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -149,6 +153,7 @@ object OverweightClassifier {
         useAge = params.useAge,
         useRace = params.useRace,
         dictOnly = true,
+        denoise = false,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 
@@ -169,29 +174,68 @@ object OverweightClassifier {
         useGender = params.useGender,
         useAge = params.useAge,
         useRace = params.useRace,
-        dictOnly = true,
+        dictOnly = false,
+        denoise = true,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 
       val ocs = new Ensemble(Seq(oc1, oc2))
 
-      logger.info("Training classifiers...")
-      val highConfPercent = config.getDouble("classifiers.overweight.highConfPercent")
-      val predictions = ocs.overweightCV(accts, lbls, followers, followees, Utils.svmFactory, percentTopToConsider=highConfPercent)
+      oc1.train(accts, lbls, trainFollowers, trainFollowees)
+      oc2.train(accts, lbls, trainFollowers, trainFollowees)
+
+      (portion, maxIndex, Seq(oc1, oc2))
+    }
+
+    val evals = for {
+      (portion, numAccounts, ocs) <- classifiers
+    } yield {
+      // Set progress bar
+      val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+      pb.start()
+      pb.maxHint(test.size)
+      pb.setExtraMessage(s"Evaluating on ${if(params.runOnTest) "test" else "dev"}...")
+
+      // Classify accounts
+      val testLabels = test.map(_._2)
+
+      val testAccounts = test.unzip._1
+
+      val preVote = for {
+        oc <- ocs
+      } yield {
+        testAccounts.map { case u =>
+          pb.step()
+          val datum = oc.featureExtractor.mkDatum(u, "unknown")
+          oc.subClassifier.get.scoresOf(datum)
+        }
+      }
+
+      val voted = for (i <- testAccounts.indices) yield {
+        val sums = new Counter[String]()
+        preVote.foreach { oc =>
+          val score = oc(i)
+          score.keySet.foreach{ lbl =>
+            sums.incrementCount(lbl, score.getCount(lbl))
+          }
+        }
+        val avg = sums.mapValues( _ / preVote.length.toDouble )
+
+        // highest-scored
+        avg.argMax._1
+      }
+
+
+      pb.stop()
 
       // Print results
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testLabels, voted, test.map(_._1))
 
-      val evalMetric = if (evalMeasures.keySet contains "Overweight") {
-        evalMeasures("Overweight")
-      } else {
-        logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
-        evalMeasures.head._2
-      }
+      val evalMetric = evalMeasures(ocs.head.labels.toSeq.sorted.head)
       val precision = evalMetric.P
       val recall = evalMetric.R
 
-      (portion, predictions.length, precision, recall, macroAvg, microAvg)
+      (portion, voted.length, precision, recall, macroAvg, microAvg)
     }
 
     println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")

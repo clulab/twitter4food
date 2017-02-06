@@ -278,7 +278,13 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
-    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
+    val tweets = if(denoise) {
+      for (
+        t <- account.tweets
+        if !isNoise(t)
+      ) yield t.text.trim.split(" +")
+    } else for (t <- account.tweets) yield t.text.trim.split(" +")
+
     val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
