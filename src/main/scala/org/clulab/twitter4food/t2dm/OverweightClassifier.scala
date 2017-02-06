@@ -103,6 +103,7 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
+<<<<<<< ours
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data_raw"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
@@ -118,17 +119,47 @@ object OverweightClassifier {
       logger.info("Loading follower accounts...")
       Option(ClassifierImpl.loadFollowers(denoised.map(_._1)))
     } else None
+=======
+    val train = if (params.runOnTest) {
+      val tr = FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
+      val dv = FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+      tr ++ dv
+    } else FileUtils.load(config.getString("classifiers.overweight.trainingData")).toSeq
 
-    val followees = if(params.useFollowees) {
+    val test = if (params.runOnTest)
+      FileUtils.load(config.getString("classifiers.overweight.testData")).toSeq
+    else
+      FileUtils.load(config.getString("classifiers.overweight.devData")).toSeq
+
+    val (trainFollowers, testFollowers) = if(params.useFollowers) {
+      logger.info("Loading follower accounts...")
+      (Option(ClassifierImpl.loadFollowers(train.map(_._1))),
+        Option(ClassifierImpl.loadFollowers(test.map(_._1))))
+    } else (None, None)
+>>>>>>> theirs
+
+    val (trainFollowees, testFollowees) = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
+<<<<<<< ours
       Option(ClassifierImpl.loadFollowees(denoised.map(_._1), "overweight"))
     } else None
+=======
+      (Option(ClassifierImpl.loadFollowees(train.map(_._1), "overweight")),
+        Option(ClassifierImpl.loadFollowees(test.map(_._1), "overweight")))
+    } else (None, None)
+>>>>>>> theirs
 
-    val evals = for {
+    val classifiers = for {
       portion <- portions
+<<<<<<< ours
       maxIndex = (portion * denoised.length).toInt
     } yield {
       val (accts, lbls) = denoised.slice(0, maxIndex).unzip
+=======
+      maxIndex = (portion * train.length).toInt
+    } yield {
+      val (accts, lbls) = train.slice(0, maxIndex).unzip
+>>>>>>> theirs
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -174,22 +205,78 @@ object OverweightClassifier {
 
       val ocs = new Ensemble(Seq(oc1, oc2))
 
+<<<<<<< ours
       logger.info("Training classifiers...")
       val predictions = ocs.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
+=======
+      oc.train(accts, lbls, trainFollowers, trainFollowees)
+>>>>>>> theirs
+
+      (portion, maxIndex, oc)
+    }
+
+    val evals = for {
+      (portion, numAccounts, oc) <- classifiers
+    } yield {
+      // Set progress bar
+      val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
+      pb.start()
+      pb.maxHint(test.size)
+      pb.setExtraMessage(s"Evaluating on ${if(params.runOnTest) "test" else "dev"}...")
+
+      // Classify accounts
+      val testLabels = test.map(_._2)
+      val predictedLabels = test.map(_._1).map { u =>
+        pb.step()
+        oc.classify(u)
+      }
+
+      pb.stop()
 
       // Print results
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testLabels, predictedLabels, test.map(_._1))
 
-      val evalMetric = if (evalMeasures.keySet contains "Overweight") {
-        evalMeasures("Overweight")
-      } else {
-        logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
-        evalMeasures.head._2
-      }
+      val evalMetric = evalMeasures(oc.labels.toSeq.sorted.head)
       val precision = evalMetric.P
       val recall = evalMetric.R
 
+<<<<<<< ours
       (portion, predictions.length, precision, recall, macroAvg, microAvg)
+=======
+      if (portion == 1.0) {
+        if (params.fpnAnalysis & oc.subClassifier.nonEmpty &
+          (evalMetric.FNAccounts.nonEmpty || evalMetric.FPAccounts.nonEmpty)) {
+          // Perform analysis on false negatives and false positives
+          println("False negatives:")
+          evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
+          println("\n====")
+          outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, oc, oc.labels)
+
+          println("False positives:")
+          evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
+          println("\n====")
+          outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, oc, oc.labels)
+        }
+
+        // Save results
+        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
+        writer.write(s"Precision: $precision\n")
+        writer.write(s"Recall: $recall\n")
+        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
+        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
+        writer.write(s"Macro average: $macroAvg\n")
+        writer.write(s"Micro average: $microAvg\n")
+        writer.close()
+
+        // Save individual predictions for bootstrap significance
+        val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+        predicted.write(s"gold\tpred\n")
+        testLabels.zip(predictedLabels).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
+        predicted.close()
+      }
+
+      (portion, numAccounts, precision, recall, macroAvg, microAvg)
+>>>>>>> theirs
     }
 
     println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
