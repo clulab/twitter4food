@@ -33,8 +33,8 @@ object SplitData {
     println(s"notOverweight.size=${notOverweight.size}")
     println(s"other=${labeledAccounts.size - (overweight.size + notOverweight.size)}")
 
-    val percentTraining = 0.6
-    val percentDev = 0.2
+    val percentTraining = 0.8
+    val percentDev = 0.1
     // percentTest falls from the previous two
 
     // Find limits
