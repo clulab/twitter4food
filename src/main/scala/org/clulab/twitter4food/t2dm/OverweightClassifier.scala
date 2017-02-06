@@ -131,7 +131,7 @@ object OverweightClassifier {
     val zid = java.time.ZoneId.of("GMT")
 
     val window = 0.10
-    val stride = 0.5
+    val stride = 0.05
     val classifiers = for {
       start <- 0.0 to 0.9 by stride
     } yield {
