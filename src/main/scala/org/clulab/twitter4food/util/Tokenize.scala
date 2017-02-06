@@ -36,6 +36,8 @@ object Tokenize {
     pb.maxHint(accounts.size)
     pb.setExtraMessage("Tokenizing...")
 
+    val letters = "[a-zA-Z]".r
+
     val tokenizedTweetsWithLabels: Seq[(TwitterAccount, String)] = (for {
       (account, lbl) <- accounts.toSeq
     } yield {
@@ -43,7 +45,8 @@ object Tokenize {
       // Only English tweets with words
       val englishTweets = account.tweets.filter(t =>
         t.lang != null & t.lang == "en" &
-          t.text != null & t.text != ""
+          t.text != null & t.text != "" &
+          letters.findFirstMatchIn(t.text).nonEmpty
       )
 
       // Filter out stopwords
