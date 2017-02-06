@@ -134,8 +134,8 @@ object ExamineUser extends App {
     sb.append(s"Name: ${ta.name}\n")
     sb.append(s"Description: ${ta.description}\n")
     // normal tweets (not replies or addressed tweets) w/o repeats
-    val normals = ta.normalTweets.groupBy(_.text.substring(0,40)).map(_._2.head).toSeq
-    sb.append(s"# tweets: ${normals.length}")
+    val normals = ta.normalTweets.groupBy(_.text.take(40)).map(_._2.head).toSeq
+    sb.append(s"# tweets: ${normals.length}\n")
 
     if (ta.tweets.nonEmpty) {
       val relevance = normals.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
@@ -143,6 +143,7 @@ object ExamineUser extends App {
       val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
       val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
       sb.append(f"Relevant terms per tweet: $relevantPerTweet%1.3f\n")
+      sb.append(f"tweets with > 0 relevant terms: $percentRelevant%1.1f\n")
       sb.append(f"tweets with > 0 relevant terms: $percentRelevant%1.1f%%\n")
 
       val mostRelevant = relevance.toSeq.sortBy(_._2).reverse.take(tweetsToDisplay).sortBy(_._1.createdAt)
