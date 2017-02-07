@@ -201,7 +201,7 @@ object AnalyzeTweets extends App {
     val wordsAndBitsFiniteOW = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._4)
     val wordsAndBitsFiniteNO = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._5)
     val sz = wordsAndBitsofInfo.size
-    ( wordsAndBitsFiniteOW.filter(_._3 > 25).take((sz * 0.2).toInt), wordsAndBitsFiniteNO.filter(_._3 > 25).take((sz * 0.2).toInt) )
+    ( wordsAndBitsFiniteOW.filter(_._3 > 25).take((sz * 0.5).toInt), wordsAndBitsFiniteNO.filter(_._3 > 25).take((sz * 0.5).toInt) )
   }
   /**
     * Returns a user handle minus the initial '@', if one exists
