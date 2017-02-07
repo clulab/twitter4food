@@ -140,7 +140,7 @@ object AnalyzeTweets extends App {
     var cumulativeCount = 0.0
     var vocabSubset = Set[String]()
     for((word,count) <- vocabCounter.toSeq.sortBy(- _._2)){
-      if(cumulativeCount / totalCount <= 0.6){
+      if(cumulativeCount / totalCount <= 0.8){
         cumulativeCount += count
         vocabSubset += word
       }
@@ -191,8 +191,8 @@ object AnalyzeTweets extends App {
         val tn = numNOTweets.toDouble / allNOTweets
 
         val bitsOfInfo = log2(Seq(to/tn, tn/to).max)
-        val scaledBitsOfInfo = bitsOfInfo *  (resOWTweets.size + resNOTweets.size)
-        (w,scaledBitsOfInfo, (resOWTweets.size + resNOTweets.size), log2(to/tn), log2(tn/to))
+        val scaledBitsOfInfo = bitsOfInfo * log2(resOWTweets.size + resNOTweets.size)
+        (w,scaledBitsOfInfo, resOWTweets.size + resNOTweets.size, log2(to/tn), log2(tn/to))
     }
    
     pb.stop()
