@@ -310,10 +310,12 @@ class FeatureExtractor (
     if (useFollowees)
       counter += scale(followees(account))
 
+    val dacounter = new Counter[String]
+
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
     if (useGender & genderAnnotation.nonEmpty) {
       val acctGender = genderAnnotation.get.getOrElse(account.id.toString, "UNK")
-      counter += prepend(s"gender:${acctGender}_", counter)
+      dacounter += prepend(s"gender:${acctGender}_", counter)
     }
 
     if (useAge & ageAnnotation.nonEmpty) {
@@ -322,7 +324,7 @@ class FeatureExtractor (
         (ageExact.get.toDouble.round.toInt / 10 * 10).toString
       } else "UNK"
 
-      counter += prepend(s"age:${ageApprox}_", counter)
+      dacounter += prepend(s"age:${ageApprox}_", counter)
     }
 
     if (useRace) {
@@ -340,8 +342,10 @@ class FeatureExtractor (
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      counter += prepend("follower:", fc.mapValues(v => v * followerProp))
+      dacounter += prepend("follower:", fc.mapValues(v => v * followerProp))
     }
+
+    counter += dacounter
 
     // remove zero values for sparse rep
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
