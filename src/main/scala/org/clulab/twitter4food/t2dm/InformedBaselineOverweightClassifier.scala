@@ -70,7 +70,7 @@ object InformedBaselineOverweightClassifier {
     val OWcounter = new Counter[String]
     
     OWcounter.setCount("Overweight", 0.0)
-    OWcounter.setCount("NotOverweight", 0.0)
+    OWcounter.setCount("Not overweight", 0.0)
     OWcounter.setCount("token", 0.0)
     
     for(tweet <- ac.tweets) {
@@ -80,14 +80,14 @@ object InformedBaselineOverweightClassifier {
         if(OWindicatingWords.contains(tok))
           OWcounter.incrementCount("Overweight", 1)
         else if(NOindicatingWords.contains(tok))
-          OWcounter.incrementCount("NotOverweight", 1)
+          OWcounter.incrementCount("Not overweight", 1)
       }
     }
     
-    val label = if(OWcounter.getCount("Overweight") > OWcounter.getCount("NotOverweight"))
+    val label = if(OWcounter.getCount("Overweight") > OWcounter.getCount("Not overweight"))
                     "Overweight"
                 else
-                    "NotOverweight"    
+                    "Not overweight"    
     
     label
   }
@@ -175,8 +175,8 @@ object InformedBaselineOverweightClassifier {
 
       logger.info("Running the informed baseline classifier...")
       
-      val OWindicatingWords = Array[String]("abc", "def")
-      val NOindicatingWords = Array[String]("xyz", "fgh")
+      val OWindicatingWords = Array[String]("beef", "cake", "chocolate", "dessert")
+      val NOindicatingWords = Array[String]("salad", "exercise", "fit", "vegan")
       
       val x = accts.zip(lbls)
       val predictions = for((ac,lbl) <- accts.zip(lbls)) yield {
