@@ -45,8 +45,11 @@ class GenderClassifier(
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=false,
+    useAge=false,
     useRace=false,
     useHuman=false,
+    dictOnly=false,
+    denoise=false,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
     variable = "gender"
