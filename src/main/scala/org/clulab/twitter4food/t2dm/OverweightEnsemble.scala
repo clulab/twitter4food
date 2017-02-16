@@ -1,69 +1,18 @@
 package org.clulab.twitter4food.t2dm
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io.File
 import java.nio.file.{Files, Paths}
 
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.featureclassifier.ClassifierImpl
+import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, Ensemble}
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
-/**
-  * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
-  *
-  * @author terron
-  * @author Dane Bell
-  */
-class OverweightClassifier(
-  useUnigrams: Boolean = false,
-  useBigrams: Boolean = false,
-  useName: Boolean = false,
-  useTopics: Boolean = false,
-  useDictionaries: Boolean = false,
-  useAvgEmbeddings: Boolean = false,
-  useMinEmbeddings: Boolean = false,
-  useMaxEmbeddings: Boolean = false,
-  useCosineSim: Boolean = false,
-  useTimeDate: Boolean = false,
-  useFollowers: Boolean = false,
-  useFollowees: Boolean = false,
-  useGender: Boolean = false,
-  useAge: Boolean = false,
-  useRace: Boolean = false,
-  useHuman: Boolean = false,
-  dictOnly: Boolean = false,
-  denoise: Boolean = false,
-  datumScaling: Boolean = false,
-  featureScaling: Boolean = false)
-  extends ClassifierImpl(
-    useUnigrams=useUnigrams,
-    useBigrams=useBigrams,
-    useName=useName,
-    useTopics=useTopics,
-    useDictionaries=useDictionaries,
-    useAvgEmbeddings=useAvgEmbeddings,
-    useMinEmbeddings=useMinEmbeddings,
-    useMaxEmbeddings=useMaxEmbeddings,
-    useCosineSim=useCosineSim,
-    useTimeDate=useTimeDate,
-    useFollowers=useFollowers,
-    useFollowees=useFollowees,
-    useGender=useGender,
-    useAge=useAge,
-    useRace=useRace,
-    useHuman=useHuman,
-    dictOnly=dictOnly,
-    denoise=denoise,
-    datumScaling=datumScaling,
-    featureScaling=featureScaling,
-    variable = "overweight") {
-  val labels = Set("Overweight", "Not overweight")
-}
 
-object OverweightClassifier {
+object OverweightEnsemble {
   import ClassifierImpl._
 
-  val logger = LoggerFactory.getLogger(this.getClass)
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   def main(args: Array[String]) {
     // Parse args using standard Config
@@ -103,7 +52,7 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data_raw"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 
@@ -127,7 +76,7 @@ object OverweightClassifier {
     } yield {
       val (accts, lbls) = subsampled.slice(0, maxIndex).unzip
 
-      val oc = new OverweightClassifier(
+      val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
         useBigrams = params.useBigrams,
         useName = params.useName,
@@ -141,13 +90,38 @@ object OverweightClassifier {
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useGender = params.useGender,
+        useAge = params.useAge,
         useRace = params.useRace,
+        dictOnly = true,
+        denoise = false,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 
-      logger.info("Training classifier...")
+      val oc2 = new OverweightClassifier(
+        useUnigrams = default || params.useUnigrams,
+        useBigrams = params.useBigrams,
+        useName = params.useName,
+        useTopics = params.useTopics,
+        useDictionaries = params.useDictionaries,
+        useAvgEmbeddings = params.useAvgEmbeddings,
+        useMinEmbeddings = params.useMinEmbeddings,
+        useMaxEmbeddings = params.useMaxEmbeddings,
+        useCosineSim = params.useCosineSim,
+        useTimeDate = params.useTimeDate,
+        useFollowers = params.useFollowers,
+        useFollowees = params.useFollowees,
+        useGender = params.useGender,
+        useAge = params.useAge,
+        useRace = params.useRace,
+        dictOnly = false,
+        denoise = true,
+        datumScaling = params.datumScaling,
+        featureScaling = params.featureScaling)
 
-      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
+      val ocs = new Ensemble(Seq(oc1, oc2))
+
+      logger.info("Training classifiers...")
+      val predictions = ocs.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
@@ -160,30 +134,6 @@ object OverweightClassifier {
       }
       val precision = evalMetric.P
       val recall = evalMetric.R
-
-      // Write analysis only on full portion
-      if (portion == 1.0) {
-        if (params.fpnAnalysis) {
-          // Perform analysis on false negatives and false positives
-          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
-        }
-
-        // Save results
-        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-        writer.write(s"Precision: $precision\n")
-        writer.write(s"Recall: $recall\n")
-        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
-        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-        writer.write(s"Macro average: $macroAvg\n")
-        writer.write(s"Micro average: $microAvg\n")
-        writer.close()
-
-        // Save individual predictions for bootstrap significance
-        val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-        predWriter.write(s"gold\tpred\n")
-        predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
-        predWriter.close()
-      }
 
       (portion, predictions.length, precision, recall, macroAvg, microAvg)
     }

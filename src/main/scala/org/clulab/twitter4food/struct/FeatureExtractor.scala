@@ -39,6 +39,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useFollowers domain transfer from follower acccounts
   * @param useFollowees account followee handles
   * @param useGender domain transfer based on classification of account gender
+  * @param useAge domain transfer based on classification of account age
   * @param useRace domain transfer based on classification of account race
   * @param useHuman limit follower domain transfer to those judged as human
   * @param datumScaling scale by account
@@ -58,8 +59,11 @@ class FeatureExtractor (
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useGender: Boolean = false,
+  val useAge: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
+  val dictOnly: Boolean = false,
+  val denoise: Boolean = false,
   val datumScaling: Boolean = false,
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
@@ -80,6 +84,7 @@ class FeatureExtractor (
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useGender=$useGender, " +
+    s"useAge=$useAge, " +
     s"useRace=$useRace, " +
     s"useHuman=$useHuman, " +
     s"datumScaling=$datumScaling"
@@ -187,6 +192,24 @@ class FeatureExtractor (
     Option(model)
   } else None
 
+  def trimQuotes(s: String): String = s.replaceAll("\"", "")
+
+  val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
+    val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
+    val bufferedSource = io.Source.fromFile(annoFile)
+    val rows = for (line <- bufferedSource.getLines) yield {
+      val cols = line.split(",").map(_.trim).map(trimQuotes)
+      assert(cols.length == 3)
+      if ((cols(1) != "NA" || cols(2) != "NA") && cols(0) != "id")
+        Option((cols(0), cols(1), cols(2)))
+      else
+        None
+    }
+    val age = rows.flatten.map{ case (id, a, g) => id -> a }.toMap
+    val gender = rows.flatten.map{ case (id, a, g) => id -> g }.toMap
+    (Option(age), Option(gender))
+  } else (None, None)
+
   // Followers (to be set by setFollowers())
   var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
 
@@ -224,6 +247,8 @@ class FeatureExtractor (
     handleToFollowerAccount = Option(followers)
   }
 
+  val allDicts = if (dictOnly && lexicons.nonEmpty) Option(lexicons.get("Overweight").values.toSeq) else None
+
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
     *
@@ -251,7 +276,13 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
-    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
+    val tweets = if(denoise) {
+      for (
+        t <- account.tweets
+        if !isNoise(t)
+      ) yield t.text.trim.split(" +")
+    } else for (t <- account.tweets) yield t.text.trim.split(" +")
+
     val description = account.description.trim.split(" +")
 
     var unigrams: Option[Counter[String]] = None
@@ -279,9 +310,26 @@ class FeatureExtractor (
     if (useFollowees)
       counter += scale(followees(account))
 
+    // Domain adaptation from here on -- no DA of DA
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
-    if (useGender & genderClassifier.nonEmpty) {
-      counter += prepend(s"gender:${genderClassifier.get.predict(account)}_", counter)
+    val daCounter = new Counter[String]
+
+    // use annotations if possible, then fall back to classifier
+    if (useGender) {
+      val acctGenderFirst = if (genderAnnotation.nonEmpty) genderAnnotation.get.get(account.id.toString) else None
+      val acctGenderSecond = if (acctGenderFirst.isEmpty && genderClassifier.nonEmpty)
+        genderClassifier.get.predict(account)
+      else "UNK"
+      daCounter += prepend(s"gender:${acctGenderFirst.getOrElse(acctGenderSecond)}_", counter)
+    }
+
+    if (useAge & ageAnnotation.nonEmpty) {
+      val ageExact = ageAnnotation.get.get(account.id.toString)
+      val ageApprox = if (ageExact.nonEmpty) {
+        (ageExact.get.toDouble.round.toInt / 10 * 10).toString
+      } else "UNK"
+
+      daCounter += prepend(s"age:${ageApprox}_", counter)
     }
 
     if (useRace) {
@@ -299,8 +347,10 @@ class FeatureExtractor (
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      counter += prepend("follower:", fc.mapValues(v => v * followerProp))
+      daCounter += prepend("follower:", fc.mapValues(v => v * followerProp))
     }
+
+    counter += daCounter
 
     // remove zero values for sparse rep
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
@@ -345,7 +395,7 @@ class FeatureExtractor (
 
     // n-gram for tweets
     tweets.foreach{ tweet =>
-      setCounts(tokenNGrams(n, tweet), counter)
+      setCounts(tokenNGrams(n, dictFilter(tweet)), counter)
     }
 
     counter
@@ -708,6 +758,12 @@ class FeatureExtractor (
     dayHist.foreach{ case (day, prop) => counter.setCount(s"timeDate:$day", prop) }
 
     counter
+  }
+
+  def dictFilter(text: Array[String]): Array[String] = {
+    if(allDicts.nonEmpty) {
+      text.filter(w => allDicts.get.exists(lex => lex.contains(w)))
+    } else text
   }
 }
 

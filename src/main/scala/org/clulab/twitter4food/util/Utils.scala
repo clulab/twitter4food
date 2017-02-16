@@ -28,6 +28,7 @@ object Utils {
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
     useGender: Boolean = false,
+    useAge: Boolean = false,
     useRace: Boolean = false,
     useHuman: Boolean = false,
     datumScaling: Boolean = false,
@@ -104,6 +105,8 @@ object Utils {
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
+      opt[Unit]('o', "age") action { (x, c) =>
+        c.copy(useAge = true)} text "use age classifier"
       opt[Unit]('r', "race") action { (x, c) =>
         c.copy(useRace = true)} text "use race classifier (not implemented)"
       opt[Unit]('h', "human") action { (x, c) =>
@@ -232,6 +235,21 @@ object Utils {
     val selected = r.shuffle(byClass.flatMap{ case (lbl, accts) => r.shuffle(accts).take(desiredDims(lbl)) })
 
     selected.toSeq
+  }
+
+  def denoise(account: TwitterAccount): TwitterAccount = {
+    val good = account.tweets.filterNot { tweet =>
+      val txt = tweet.text.split(" +")
+      val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "#latergram", "#regram", "…")
+      tweet.isRetweet || txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
+    }
+    account.copy(tweets=good)
+  }
+
+  def isNoise(tweet: Tweet): Boolean = {
+    val txt = tweet.text.split(" +")
+    val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "#latergram", "#regram", "…")
+    tweet.isRetweet || txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
   }
 
   def keepRows[L, F](dataset: Dataset[L, F], rowsToKeep: Array[Int]): RVFDataset[L, F] = {

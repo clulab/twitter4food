@@ -6,8 +6,8 @@ import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
 import java.io.{BufferedWriter, FileWriter}
 
-import com.typesafe.config.ConfigFactory
-import org.slf4j.LoggerFactory
+import com.typesafe.config.{Config, ConfigFactory}
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -55,8 +55,11 @@ class ClassifierImpl(
   val useFollowers: Boolean,
   val useFollowees: Boolean,
   val useGender: Boolean,
+  val useAge: Boolean,
   val useRace: Boolean,
   val useHuman: Boolean,
+  val dictOnly: Boolean,
+  val denoise: Boolean,
   val datumScaling: Boolean,
   val featureScaling: Boolean,
   val variable: String,
@@ -80,8 +83,11 @@ class ClassifierImpl(
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useGender=useGender,
+    useAge=useAge,
     useRace=useRace,
     useHuman=useHuman,
+    dictOnly=dictOnly,
+    denoise=denoise,
     datumScaling=datumScaling,
     customFeatures=customFeatures)
 
@@ -89,9 +95,8 @@ class ClassifierImpl(
   var subClassifier: Option[LiblinearClassifier[String, String]] = None
 
   /** config file that fetches filepaths */
-  val config = ConfigFactory.load()
-
-  val logger = LoggerFactory.getLogger(this.getClass)
+  val config: Config = ConfigFactory.load()
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   var scaleRange: Option[ScaleRange[String]] = None
   val lowerBound = 0.0
@@ -104,7 +109,8 @@ class ClassifierImpl(
     followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
 
     // Load lexicons before calling train
-    if(useDictionaries) {
+    if(useDictionaries || dictOnly) {
+      logger.info("Loading dictionaries...")
       // For each label, populate list of lexicon filepaths from config
       val lexMap = populateLexiconList(labels.toSet, this.variable)
       this.featureExtractor.setLexicons(lexMap)
