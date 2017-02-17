@@ -54,6 +54,7 @@ class ClassifierImpl(
   val useTimeDate: Boolean,
   val useFollowers: Boolean,
   val useFollowees: Boolean,
+  val useRT: Boolean,
   val useGender: Boolean,
   val useAge: Boolean,
   val useRace: Boolean,
@@ -82,6 +83,7 @@ class ClassifierImpl(
     useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
+    useRT=useRT,
     useGender=useGender,
     useAge=useAge,
     useRace=useRace,
@@ -626,13 +628,14 @@ class ClassifierImpl(
     * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
     */
   def overweightCV(
-    accounts:Seq[TwitterAccount],
-    labels:Seq[String],
+    accounts: Seq[TwitterAccount],
+    labels: Seq[String],
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
-    numFolds:Int = 10,
-    seed:Int = 73
+    numFolds: Int = 10,
+    percentTopToConsider: Double = 1.0,
+    seed: Int = 73
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
@@ -661,9 +664,13 @@ class ClassifierImpl(
         val datum = dataset.mkDatum(i)
         val pred = classifier.classOf(datum)
         val score = classifier.scoresOf(datum)
-        (handle, gold, pred, datum, score)
+        // NOTE: for the high confidence classifier, sort this tuple in decreasing order of classifier confidence ('score(pred)')
+        //    and take the top x percent (x is a parameter)
+        (handle, gold, pred, datum, score, score.getCount(pred))
       }
-      (W, predictions)
+      val totalSzOfPredictions = predictions.size
+      val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * totalSzOfPredictions).toInt )
+      (W, highConfPredictions)
     }).toSeq
 
     val allFeats = dataset.featureLexicon.keySet

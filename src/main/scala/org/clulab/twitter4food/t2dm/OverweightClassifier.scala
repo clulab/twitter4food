@@ -27,6 +27,7 @@ class OverweightClassifier(
   useTimeDate: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
+  useRT: Boolean = false,
   useGender: Boolean = false,
   useAge: Boolean = false,
   useRace: Boolean = false,
@@ -48,6 +49,7 @@ class OverweightClassifier(
     useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
+    useRT=useRT,
     useGender=useGender,
     useAge=useAge,
     useRace=useRace,
@@ -140,6 +142,7 @@ object OverweightClassifier {
         useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
+        useRT = params.useRT,
         useGender = params.useGender,
         useRace = params.useRace,
         datumScaling = params.datumScaling,
@@ -147,7 +150,17 @@ object OverweightClassifier {
 
       logger.info("Training classifier...")
 
-      val (predictions, avgWeights, falsePos, falseNeg) = oc.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
+      val highConfPercent = config.getDouble("classifiers.overweight.highConfPercent")
+
+      val (predictions, avgWeights, falsePos, falseNeg) =
+        oc.overweightCV(
+          accts,
+          lbls,
+          followers,
+          followees,
+          Utils.svmFactory,
+          percentTopToConsider=highConfPercent
+        )
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)

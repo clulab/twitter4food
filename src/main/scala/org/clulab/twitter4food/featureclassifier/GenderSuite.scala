@@ -36,6 +36,7 @@ object GenderSuite {
       useTimeDate = true,
       //useFollowers = true, // we don't currently have their followers
       useFollowees = true,
+      useRT = true,
       datumScaling = true
     )
 

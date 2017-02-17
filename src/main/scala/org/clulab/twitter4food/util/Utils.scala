@@ -27,6 +27,7 @@ object Utils {
     useCustomAction: Boolean = false,
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
+    useRT: Boolean = false,
     useGender: Boolean = false,
     useAge: Boolean = false,
     useRace: Boolean = false,
@@ -107,14 +108,16 @@ object Utils {
         c.copy(useGender = true)} text "use gender classifier"
       opt[Unit]('o', "age") action { (x, c) =>
         c.copy(useAge = true)} text "use age classifier"
-      opt[Unit]('r', "race") action { (x, c) =>
-        c.copy(useRace = true)} text "use race classifier (not implemented)"
+      //opt[Unit]('r', "race") action { (x, c) =>
+      //  c.copy(useRace = true)} text "use race classifier (not implemented)"
       opt[Unit]('h', "human") action { (x, c) =>
         c.copy(useHuman = true)} text "use human classifier"
       opt[Unit]('f', "followers") action { (x, c) =>
         c.copy(useFollowers = true)} text "use followers' features (same as this user)"
       opt[Unit]('F', "followees") action { (x, c) =>
         c.copy(useFollowees = true)} text "use followee handles"
+      opt[Unit]('r', "retweet") action { (x, c) =>
+        c.copy(useRT = true)} text "treat retweet n-grams differently"
       opt[Unit]('D', "datumScaling") action { (x, c) =>
         c.copy(datumScaling = true)} text "use datum scaling"
       opt[Unit]('S', "featureScaling") action { (x, c) =>

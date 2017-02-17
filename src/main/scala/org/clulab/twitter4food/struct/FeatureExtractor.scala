@@ -36,8 +36,9 @@ import scala.collection.mutable.ArrayBuffer
   * @param useMaxEmbeddings maximum (by dimension) embeddings of all account words
   * @param useCosineSim similarity to a corpus of overweight-related tweets
   * @param useTimeDate time- and day-based features
-  * @param useFollowers domain transfer from follower acccounts
+  * @param useFollowers domain transfer from follower accounts
   * @param useFollowees account followee handles
+  * @param useRT treat retweet and non-RT n-grams differently, Daume-style
   * @param useGender domain transfer based on classification of account gender
   * @param useAge domain transfer based on classification of account age
   * @param useRace domain transfer based on classification of account race
@@ -58,6 +59,7 @@ class FeatureExtractor (
   val useTimeDate: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
+  val useRT: Boolean = false,
   val useGender: Boolean = false,
   val useAge: Boolean = false,
   val useRace: Boolean = false,
@@ -83,6 +85,7 @@ class FeatureExtractor (
     s"useTimeDate=$useTimeDate, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
+    s"useRT=$useRT, " +
     s"useGender=$useGender, " +
     s"useAge=$useAge, " +
     s"useRace=$useRace, " +
@@ -267,6 +270,8 @@ class FeatureExtractor (
     counter
   }
 
+  def retokenize(t: Tweet): Array[String] = t.text.trim.split(" +")
+
   /**
     * Returns a [[Counter]] containing all the features signified by constructor flags
     *
@@ -276,37 +281,32 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
-    val tweets = if(denoise) {
-      for (
-        t <- account.tweets
-        if !isNoise(t)
-      ) yield t.text.trim.split(" +")
-    } else for (t <- account.tweets) yield t.text.trim.split(" +")
-
     val description = account.description.trim.split(" +")
+    val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
+    val tweets = denoised.map(retokenize)
 
     var unigrams: Option[Counter[String]] = None
 
     if (useUnigrams | useDictionaries | useCosineSim)
-      unigrams = Some(scale(ngrams(1, tweets.map(filterStopWords), description)))
+      unigrams = Some(scale(ngrams(1, denoised, description)))
     if (useUnigrams) {
       counter += unigrams.get
     }
     if (useBigrams)
-      counter += scale(ngrams(2, tweets, description))
+      counter += scale(ngrams(2, denoised, description))
     if (useName)
       counter += name(account)
     if (useTopics)
       counter += scale(topics(tweets))
     if (useDictionaries)
-      counter += dictionaries(tweets, description, account, unigrams)
+      counter += dictionaries(denoised, description, account, unigrams)
     if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
       counter += embeddings(tweets)
     }
     if (useCosineSim)
-      counter += cosineSim(unigrams, tweets, description)
+      counter += cosineSim(unigrams, denoised, description)
     if (useTimeDate)
-      counter += timeDate(account.tweets)
+      counter += timeDate(denoised)
     if (useFollowees)
       counter += scale(followees(account))
 
@@ -387,15 +387,21 @@ class FeatureExtractor (
     * @param n Degree of n-gram (e.g. 1 refers to unigrams)
     * @param description Text description of [[TwitterAccount]]
     */
-  def ngrams(n: Int, tweets: Seq[Array[String]], description: Array[String]): Counter[String] = {
+  def ngrams(n: Int, tweets: Seq[Tweet], description: Array[String]): Counter[String] = {
     val counter = new Counter[String]
+
+    val denoised = if (denoise) tweets.filterNot(isNoise) else tweets
 
     // special prefix for description tokens since they summarize an account more than tweets
     setCounts(tokenNGrams(n, description, "desc"), counter)
 
     // n-gram for tweets
-    tweets.foreach{ tweet =>
-      setCounts(tokenNGrams(n, dictFilter(tweet)), counter)
+    denoised.foreach{ tweet =>
+      val split = retokenize(tweet) // split on whitespace
+      val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
+      val filtered = if (n == 1) filterStopWords(relevant) else relevant // remove stopwords
+      setCounts(tokenNGrams(n, filtered), counter) // always set n-gram counts
+      if (useRT) setCounts(tokenNGrams(n, filtered, if (useRT) "RT_" else "NRT_"), counter) // prepend if marking RT
     }
 
     counter
@@ -487,7 +493,7 @@ class FeatureExtractor (
     * @param description pre-tokenized account description text
     * @param account the whole [[TwitterAccount]] under analysis
     */
-  def dictionaries(tweets: Seq[Array[String]],
+  def dictionaries(tweets: Seq[Tweet],
     description: Array[String],
     account: TwitterAccount,
     ngramCounter: Option[Counter[String]]): Counter[String] = {
@@ -706,7 +712,7 @@ class FeatureExtractor (
     * @param description the account description
     * @return a [[Counter]] with a single cosine similarity feature
     */
-  def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Array[String]],
+  def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Tweet],
     description: Array[String]): Counter[String] = {
 
     val accountVec = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
