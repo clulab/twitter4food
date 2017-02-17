@@ -259,7 +259,7 @@ class FeatureExtractor (
     * @param label classification label associated with this account
     */
   def mkDatum(account: TwitterAccount, label: String): Datum[String, String] = {
-    new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + this.customFeatures(account))
+    new RVFDatum[String, String](label, mkFeatures(account, isProband = true) + this.customFeatures(account))
   }
 
   /**
@@ -276,9 +276,9 @@ class FeatureExtractor (
     * Returns a [[Counter]] containing all the features signified by constructor flags
     *
     * @param account the [[TwitterAccount]] under analysis
-    * @param withFollowers include {@link account}'s followers if true
+    * @param isProband allow domain adaptation if yes (none for followers)
     */
-  def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
+  def mkFeatures(account: TwitterAccount, isProband: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
     val description = account.description.trim.split(" +")
@@ -315,7 +315,7 @@ class FeatureExtractor (
     val daCounter = new Counter[String]
 
     // use annotations if possible, then fall back to classifier
-    if (useGender) {
+    if (useGender && isProband) {
       val acctGenderFirst = if (genderAnnotation.nonEmpty) genderAnnotation.get.get(account.id.toString) else None
       val acctGenderSecond = if (acctGenderFirst.isEmpty && genderClassifier.nonEmpty)
         genderClassifier.get.predict(account)
@@ -323,7 +323,7 @@ class FeatureExtractor (
       daCounter += prepend(s"gender:${acctGenderFirst.getOrElse(acctGenderSecond)}_", counter)
     }
 
-    if (useAge & ageAnnotation.nonEmpty) {
+    if (useAge && isProband && ageAnnotation.nonEmpty) {
       val ageExact = ageAnnotation.get.get(account.id.toString)
       val ageApprox = if (ageExact.nonEmpty) {
         (ageExact.get.toDouble.round.toInt / 10 * 10).toString
@@ -332,12 +332,12 @@ class FeatureExtractor (
       daCounter += prepend(s"age:${ageApprox}_", counter)
     }
 
-    if (useRace) {
+    if (useRace && isProband) {
       // TODO: predict account owner's race for domain adaptation
       // counter += prepend(s"race-${raceClassifier.get.predict(account)}_", counter)
     }
 
-    if (withFollowers) {
+    if (useFollowers && isProband) {
       val fc = followers(account)
 
       // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
@@ -460,7 +460,7 @@ class FeatureExtractor (
 
     // Aggregate the counter for the followers using the other features being used
     // withFollowers must be false to prevent infinite regress
-    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, withFollowers = false)
+    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, isProband = false)
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)
