@@ -401,7 +401,7 @@ class FeatureExtractor (
       val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
       val filtered = if (n == 1) filterStopWords(relevant) else relevant // remove stopwords
       setCounts(tokenNGrams(n, filtered), counter) // always set n-gram counts
-      if (useRT) setCounts(tokenNGrams(n, filtered, if (useRT) "RT_" else "NRT_"), counter) // prepend if marking RT
+      if (useRT) setCounts(tokenNGrams(n, filtered, if (tweet.isRetweet) "RT_" else "NRT_"), counter) // prepend if marking RT
     }
 
     counter
