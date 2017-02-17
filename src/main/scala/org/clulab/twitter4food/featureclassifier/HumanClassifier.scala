@@ -15,8 +15,7 @@ import org.slf4j.LoggerFactory
   * Classifier to predict if a given twitter account represents an organization
   * or an individual. Implements a customFeatures method to parse the account
   * description and count #(words) that fall in person/organization Synset
-  * @author adikou 
-  * @date 01-22-16
+  * @author adikou
   */
 
 class HumanClassifier(
@@ -32,6 +31,7 @@ class HumanClassifier(
   useTimeDate: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
+  useRT: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false,
   customFeatures: TwitterAccount => Counter[String])
@@ -48,6 +48,7 @@ class HumanClassifier(
     useTimeDate=useTimeDate,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
+    useRT=useRT,
     useGender=false,
     useAge=false,
     useRace=false,
@@ -245,6 +246,7 @@ object HumanClassifier {
         useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
+        useRT = params.useRT,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling,
         customAction

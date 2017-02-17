@@ -36,6 +36,7 @@ object OverweightSuite {
       useTimeDate = true,
       useFollowers = true,
       useFollowees = true,
+      useRT = true,
       useGender = true,
       useAge = true,
       useRace = true,
