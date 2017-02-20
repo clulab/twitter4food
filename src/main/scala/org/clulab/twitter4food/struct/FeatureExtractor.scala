@@ -807,9 +807,9 @@ object FeatureExtractor {
         case (otherRT, "~") => Nil
         case (site, tag) if url.findFirstIn(site).nonEmpty => Seq("<URL>")
         case (slashed, tag) if hasPunct.findFirstIn(slashed).nonEmpty =>
-          mergeRegex(slashed.split(punctSplit), punct)
+          mergeRegex(slashed.split(punctSplit), s"[$punct]")
         case (emojis, tag) if hasEmoji.findFirstIn(emojis).nonEmpty =>
-          mergeRegex(emojis.split(emojiSplit), emoji)
+          mergeRegex(emojis.split(emojiSplit), s"[$emoji]")
         case (token, tag) => Seq(token)
       }
     }
