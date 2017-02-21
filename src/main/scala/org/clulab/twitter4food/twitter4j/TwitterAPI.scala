@@ -285,4 +285,37 @@ class TwitterAPI(keyset: Int) {
       if (user.get.isDefaultProfileImage) Option("default") else Option(user.get.getOriginalProfileImageURL)
     } else None
   }
+
+  def fetchImages(id: Long): (Seq[String], Seq[String]) = {
+    val mediaBuffer = ArrayBuffer[String]()
+    val urlBuffer = ArrayBuffer[String]()
+
+    try {
+      val page = new Paging(1, MaxTweetCount)
+      var tweets = appOnlyTwitter.getUserTimeline(id, page).asScala.toList
+      sleep("getUserTimeline")
+
+      while(tweets.nonEmpty) {
+        mediaBuffer ++= tweets.flatMap{t =>
+          val mes = t.getMediaEntities.map(me => me.getMediaURLHttps)
+          val emes = t.getExtendedMediaEntities.filter(eme => eme.getType == "photo").map(_.getMediaURLHttps)
+          mes ++ emes
+        }
+
+        urlBuffer ++= tweets.flatMap(t => t.getURLEntities.map(_.getExpandedURL))
+
+        page.setMaxId(minId(tweets) - 1)
+
+        tweets = appOnlyTwitter.getUserTimeline(id, page).asScala.toList
+        sleep("getUserTimeline")
+      }
+
+    } catch {
+      case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+        println(s"ErrorMsg = ${te.getErrorMessage}")
+    }
+
+    (mediaBuffer, urlBuffer)
+  }
+
 }

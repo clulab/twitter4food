@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 
 import scala.util.Random
 
-object UserImages {
+object ProfileImages {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
