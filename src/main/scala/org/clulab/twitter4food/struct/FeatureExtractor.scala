@@ -270,7 +270,15 @@ class FeatureExtractor (
     counter
   }
 
-  def retokenize(t: Tweet): Array[String] = t.text.trim.split(" +")
+  def retokenize(t: Tweet): Array[String] = {
+    val separated = t.text.trim.split(" +")
+    separated.map{
+      case "<@MENTION>" => "<@MENTION>"
+      case "<URL>" => "<URL>"
+      case "<NUMBER>" => "<NUMBER>"
+      case other => other.toLowerCase
+    }
+  }
 
   /**
     * Returns a [[Counter]] containing all the features signified by constructor flags
@@ -283,7 +291,7 @@ class FeatureExtractor (
 
     val description = account.description.trim.split(" +")
     val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
-    val tweets = denoised.map(retokenize)
+    val regularizedTweets = denoised.map(retokenize)
 
     var unigrams: Option[Counter[String]] = None
 
@@ -297,11 +305,11 @@ class FeatureExtractor (
     if (useName)
       counter += name(account)
     if (useTopics)
-      counter += scale(topics(tweets))
+      counter += scale(topics(regularizedTweets))
     if (useDictionaries)
       counter += dictionaries(denoised, description, account, unigrams)
     if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
-      counter += embeddings(tweets)
+      counter += embeddings(regularizedTweets)
     }
     if (useCosineSim)
       counter += cosineSim(unigrams, denoised, description)
@@ -787,7 +795,7 @@ object FeatureExtractor {
 
     val url = "^(http|:/)".r
 
-    val punct = """,\\.'"/\\\\"""
+    val punct = """,\\."/\\\\"""
     val hasPunct = s"[^$punct][$punct]|[$punct][^$punct]".r
     val punctSplit = s"(?=[$punct])|(?<=[$punct])"
 
