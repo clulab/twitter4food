@@ -138,7 +138,7 @@ object ExamineUser extends App {
     sb.append(s"# tweets: ${normals.length}\n")
 
     if (ta.tweets.nonEmpty) {
-      val relevance = normals.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
+      val relevance = normals.map(t => t -> t.text.split("\\s+").count(lexicon.contains)).toMap
       val relevantTerms = relevance.values.toSeq
       val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
       val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
