@@ -270,7 +270,15 @@ class FeatureExtractor (
     counter
   }
 
-  def retokenize(t: Tweet): Array[String] = t.text.trim.split(" +")
+  def retokenize(t: Tweet): Array[String] = {
+    val separated = t.text.trim.split(" +")
+    separated.map{
+      case "<@MENTION>" => "<@MENTION>"
+      case "<URL>" => "<URL>"
+      case "<NUMBER>" => "<NUMBER>"
+      case other => other.toLowerCase
+    }
+  }
 
   /**
     * Returns a [[Counter]] containing all the features signified by constructor flags
@@ -283,7 +291,7 @@ class FeatureExtractor (
 
     val description = account.description.trim.split(" +")
     val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
-    val tweets = denoised.map(retokenize)
+    val regularizedTweets = denoised.map(retokenize)
 
     var unigrams: Option[Counter[String]] = None
 
@@ -297,11 +305,11 @@ class FeatureExtractor (
     if (useName)
       counter += name(account)
     if (useTopics)
-      counter += scale(topics(tweets))
+      counter += scale(topics(regularizedTweets))
     if (useDictionaries)
       counter += dictionaries(denoised, description, account, unigrams)
     if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
-      counter += embeddings(tweets)
+      counter += embeddings(regularizedTweets)
     }
     if (useCosineSim)
       counter += cosineSim(unigrams, denoised, description)
@@ -784,17 +792,33 @@ object FeatureExtractor {
   // If the feature calculator uses tokenized tweets, this should already be done, but stopwords aren't filtered
   def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
     val emptyString = "^[\\s\b]*$"
+
+    val url = "^(http|:/)".r
+
+    val punct = """,\\."/\\\\"""
+    val hasPunct = s"[^$punct][$punct]|[$punct][^$punct]".r
+    val punctSplit = s"(?=[$punct])|(?<=[$punct])"
+
+    val emoji = "\\ud83c\\udc00-\\ud83c\\udfff\\ud83d\\udc00-\\ud83d\\udfff\\u2600-\\u27ff"
+    val hasEmoji = s"[^$emoji][$emoji]|[$emoji][^$emoji]".r
+    val emojiSplit = s"(?=[$emoji])|(?<=[$emoji])"
+
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
-        case (site, "U") => Some("<URL>")
-        case (handle, "@") => Some("<@MENTION>")
-        case (number, "$") => Some("<NUMBER>")
-        case (garbage, "G") => None
-        case ("RT", "~") => Some("RT")
-        case ("rt", "~") => Some("RT")
-        case (otherRT, "~") => None
-        case (token, tag) if token.matches(emptyString) => None
-        case (token, tag) => Some(token)
+        case (empty, tag) if empty.matches(emptyString) => Nil
+        case (site, "U") => Seq("<URL>")
+        case (handle, "@") => Seq("<@MENTION>")
+        case (number, "$") => Seq("<NUMBER>")
+        case (garbage, "G") => Nil
+        case ("RT", "~") => Seq("RT")
+        case ("rt", "~") => Seq("RT")
+        case (otherRT, "~") => Nil
+        case (site, tag) if url.findFirstIn(site).nonEmpty => Seq("<URL>")
+        case (slashed, tag) if hasPunct.findFirstIn(slashed).nonEmpty =>
+          mergeRegex(slashed.split(punctSplit), s"[$punct]")
+        case (emojis, tag) if hasEmoji.findFirstIn(emojis).nonEmpty =>
+          mergeRegex(emojis.split(emojiSplit), s"[$emoji]")
+        case (token, tag) => Seq(token)
       }
     }
     lumped.flatten
@@ -806,5 +830,32 @@ object FeatureExtractor {
     val copy = new Counter[T]
     original.toSeq.foreach{ case (k, v) => copy.setCount(k, v)}
     copy
+  }
+
+  // Given a string with multiple adjacent identical emoji, merge them into a single string
+  def mergeRegex(tokens: Array[String], regex: String): Seq[String] = {
+    val merged = new ArrayBuffer[String]
+    val curr = new StringBuilder
+    var prev = ""
+    tokens.foreach {
+      case "" => ()
+      case p if p == prev => curr append p
+      case e if e matches regex =>
+        if (curr.nonEmpty) {
+          merged append curr.toString
+          curr.clear
+        }
+        curr append e
+        prev = e
+      case other =>
+        if (curr.nonEmpty) {
+          merged append curr.toString
+          curr.clear
+          prev = ""
+        }
+        merged append other
+    }
+    if (curr.nonEmpty) merged append curr.toString
+    merged
   }
 }
