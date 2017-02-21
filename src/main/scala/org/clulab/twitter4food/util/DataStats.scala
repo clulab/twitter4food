@@ -26,7 +26,7 @@ object DataStats {
         val numAccts = accts.length
         val totalTweets = accts.map(_.tweets.length).sum
         val tPerAccount = totalTweets.toDouble / numAccts
-        val totalTokens = accts.flatMap(_.tweets.map(_.text.split(" +").length)).sum
+        val totalTokens = accts.flatMap(_.tweets.map(_.text.split("\\s+").length)).sum
         val tPerTweet = totalTokens.toDouble / totalTweets
         println(f"$partition,$lbl,$numAccts,$totalTweets,$tPerAccount%1.0f,$totalTokens,$tPerTweet%1.1f")
       }

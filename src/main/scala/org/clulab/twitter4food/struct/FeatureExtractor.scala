@@ -271,7 +271,7 @@ class FeatureExtractor (
   }
 
   def retokenize(t: Tweet): Array[String] = {
-    val separated = t.text.trim.split(" +")
+    val separated = t.text.trim.split("\\s+")
     separated.map{
       case "<@MENTION>" => "<@MENTION>"
       case "<URL>" => "<URL>"
@@ -289,7 +289,7 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount, isProband: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
-    val description = account.description.trim.split(" +")
+    val description = account.description.trim.split("\\s+")
     val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
     val regularizedTweets = denoised.map(retokenize)
 
@@ -428,7 +428,7 @@ class FeatureExtractor (
     setCounts(charNGrams(2, cleanHandle, "handle"), counter)
     setCounts(charNGrams(3, cleanHandle, "handle"), counter)
 
-    if (account.name.length > 3) setCounts(tokenNGrams(1, account.name.split(" +"), "name"), counter)
+    if (account.name.length > 3) setCounts(tokenNGrams(1, account.name.split("\\s+"), "name"), counter)
 
     // 1-, 2-, and 3-grams for the user's name
     setCounts(charNGrams(1, account.name, "name"), counter)
@@ -661,7 +661,7 @@ class FeatureExtractor (
       // Actual tweet text is every third line
       if (i % 3 == 2) {
         // tweets are already tokenized and filtered, but stopwords are still there
-        filterStopWords(line.split(" +")).foreach(token => randomCounter.incrementCount(token))
+        filterStopWords(line.split("\\s+")).foreach(token => randomCounter.incrementCount(token))
         N += 1
         pb.step()
       }
@@ -693,7 +693,7 @@ class FeatureExtractor (
     while ( { line = overweightFile.readLine ; line != null } ) {
       if (i % 3 == 2) {
         // tweets are already tokenized and filtered, but stopwords are still there
-        filterStopWords(line.split(" +")).foreach(token => overweightCounter.incrementCount(token))
+        filterStopWords(line.split("\\s+")).foreach(token => overweightCounter.incrementCount(token))
         pb2.step()
       }
       i += 1
