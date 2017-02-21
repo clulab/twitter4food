@@ -8,9 +8,9 @@ import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
 /**
-  * Retrieve both Twitter-internal media URLs and *all* external URLs for each account in existing corpus
+  * Retrieve both Twitter-internal media URLs and Instagram-domain external URLs for each account in existing corpus
   */
-object TwitterImages {
+object TwitterImageURLs {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   //
