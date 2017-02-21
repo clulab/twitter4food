@@ -53,13 +53,13 @@ object Tokenize {
       val filteredTweets = for {
         t <- englishTweets
       } yield {
-        val tt = Tokenizer.annotate(t.text.toLowerCase)
+        val tt = Tokenizer.annotate(t.text)
         val ft = filterTags(tt).mkString(" ")
         t.copy(text = ft)
       }
 
       val tokenizedDescription = {
-        val tt = Tokenizer.annotate(account.description.toLowerCase)
+        val tt = Tokenizer.annotate(account.description)
         filterTags(tt).mkString(" ")
       }
 
@@ -130,7 +130,7 @@ object Tokenize {
     val tokenizedTweets: Seq[String] = (for {
       text <- texts.par
     } yield {
-      val tt = Tokenizer.annotate(text.toLowerCase)
+      val tt = Tokenizer.annotate(text)
       val ft = filterTags(tt).mkString(" ")
       pb2.step
       ft
