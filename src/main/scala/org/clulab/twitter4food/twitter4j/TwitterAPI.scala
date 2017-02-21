@@ -302,7 +302,14 @@ class TwitterAPI(keyset: Int) {
           mes ++ emes
         }
 
-        urlBuffer ++= tweets.flatMap(t => t.getURLEntities.map(_.getExpandedURL))
+        urlBuffer ++= tweets.flatMap(t =>
+          t.getURLEntities
+            .map(ent => ent.getExpandedURL)
+            .filter(
+              link => link.contains("://instagram.com/p/") ||
+              link.contains("://instagr.am/p/")
+            )
+        )
 
         page.setMaxId(minId(tweets) - 1)
 
