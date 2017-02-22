@@ -47,16 +47,13 @@ object TwitterImages {
     }
 
     var numToTake: Option[Int] = None
-    printNumber()
+    printNumber(users.length)
     while (numToTake.isEmpty || numToTake.getOrElse(0) < 1) {
       reader.readLine match {
         case valid if Try{valid.toInt}.isSuccess => numToTake = Option(valid.toInt)
-        case other => printNumber()
+        case other => printNumber(users.length)
       }
     }
-
-    val totalTime = users.length * numToTake.get * delay / 1000.0 / 60.0 / 60.0
-    logger.info(f"Downloading will take > $totalTime%1.2f hours")
 
     site match {
       case Some("twitterImageURLs") => downloadFromTwitter(users, numToTake.get, inDir.getPath, outDir)
@@ -69,19 +66,24 @@ object TwitterImages {
     println("[i] Instagram")
   }
 
-  def printNumber(): Unit = {
+  def printNumber(numAccounts: Int): Unit = {
     println("Enter number of photos to download per account")
+    println(s"(Each photo will add ${numAccounts * delay / 1000.0 / 60.0 / 60.0} hours)")
   }
 
   def downloadFromTwitter(users: Array[String], numToTake: Int, inDir: String, outDir: String): Unit = {
+    val pb = new me.tongfei.progressbar.ProgressBar("downloading", 100)
+    pb.start()
+    pb.maxHint(users.length)
+
     // Go through each user's files and try to download numToTake
     // This is intentionally not parallel to avoid spamming the server and getting blacklisted
     users.foreach{ userFilename =>
       val id = FilenameUtils.getBaseName(userFilename)
-      logger.info(s"retrieving $id")
       val userDirName = s"$outDir/$id"
       val userDir = new File(userDirName)
       if (! userDir.exists()) userDir.mkdir
+
       val previouslyScraped = userDir.list.map(FilenameUtils.getName)
 
       val photoURLs = scala.io.Source.fromFile(s"$inDir/$userFilename")
@@ -107,6 +109,8 @@ object TwitterImages {
           Thread.sleep(delay)
         }
       }
+      pb.step()
     }
+    pb.stop()
   }
 }
