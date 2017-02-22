@@ -79,7 +79,7 @@ object TwitterImages {
     users.foreach{ userFilename =>
       val id = FilenameUtils.getBaseName(userFilename)
       logger.info(s"retrieving $id")
-      val userDirName = s"$outDir/$id}"
+      val userDirName = s"$outDir/$id"
       val userDir = new File(userDirName)
       if (! userDir.exists()) userDir.mkdir
       val previouslyScraped = userDir.list.map(FilenameUtils.getName)
