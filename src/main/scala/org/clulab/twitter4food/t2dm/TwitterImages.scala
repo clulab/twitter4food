@@ -71,7 +71,6 @@ object TwitterImages {
 
   def printNumber(): Unit = {
     println("Enter number of photos to download per account")
-    println(s"${}")
   }
 
   def downloadFromTwitter(users: Array[String], numToTake: Int, outDir: String): Unit = {
@@ -80,8 +79,10 @@ object TwitterImages {
     users.foreach{ userFilename =>
       val id = FilenameUtils.getBaseName(userFilename)
       logger.info(s"retrieving $id")
-      val userDir = s"$outDir/$id}"
-      val previouslyScraped = new File(userDir).list.map(FilenameUtils.getName)
+      val userDirName = s"$outDir/$id}"
+      val userDir = new File(userDirName)
+      if (! userDir.exists()) userDir.mkdir
+      val previouslyScraped = userDir.list.map(FilenameUtils.getName)
 
       val photoURLs = scala.io.Source.fromFile(userFilename)
         .getLines
