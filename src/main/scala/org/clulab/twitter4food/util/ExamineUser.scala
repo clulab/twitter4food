@@ -48,7 +48,7 @@ object ExamineUser extends App {
         logger.info("Loading users")
         users = FileUtils.load(config.getString("classifiers.gender.data"))
         lexicon = loadLexicons(Set("F", "M"), "gender")
-      case "" => printCorpora
+      case _ => printCorpora
     }
   }
 
