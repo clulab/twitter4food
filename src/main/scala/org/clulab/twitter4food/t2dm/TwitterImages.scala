@@ -39,8 +39,8 @@ object TwitterImages {
       case other => config.getString(s"classifiers.overweight.twitterImages") // should never happen
     }
 
-    val dir = new File(config.getString(s"classifiers.overweight.${site.get}"))
-    val users = dir.list
+    val inDir = new File(config.getString(s"classifiers.overweight.${site.get}"))
+    val users = inDir.list
     if (users.isEmpty) {
       println("No users found. Run TwitterImageURLs to scrape URLs to download.")
       return
@@ -59,7 +59,7 @@ object TwitterImages {
     logger.info(f"Downloading will take > $totalTime%1.2f hours")
 
     site match {
-      case Some("twitterImageURLs") => downloadFromTwitter(users, numToTake.get, outDir)
+      case Some("twitterImageURLs") => downloadFromTwitter(users, numToTake.get, inDir.getPath, outDir)
       case other => println("Not supported yet!")
     }
   }
@@ -73,7 +73,7 @@ object TwitterImages {
     println("Enter number of photos to download per account")
   }
 
-  def downloadFromTwitter(users: Array[String], numToTake: Int, outDir: String): Unit = {
+  def downloadFromTwitter(users: Array[String], numToTake: Int, inDir: String, outDir: String): Unit = {
     // Go through each user's files and try to download numToTake
     // This is intentionally not parallel to avoid spamming the server and getting blacklisted
     users.foreach{ userFilename =>
@@ -84,7 +84,7 @@ object TwitterImages {
       if (! userDir.exists()) userDir.mkdir
       val previouslyScraped = userDir.list.map(FilenameUtils.getName)
 
-      val photoURLs = scala.io.Source.fromFile(userFilename)
+      val photoURLs = scala.io.Source.fromFile(s"$inDir/$userFilename")
         .getLines
         .toSeq
         .filter(_.contains("/media/")) // Don't take video thumbs
