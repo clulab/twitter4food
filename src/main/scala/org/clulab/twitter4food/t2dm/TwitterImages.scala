@@ -36,7 +36,7 @@ object TwitterImages {
 
     val outDir = site match {
       case Some("twitterImageURLs") => config.getString(s"classifiers.overweight.twitterImages")
-      case Some("externalImageURLs") => config.getString(s"classifiers.overweight.instagramImages")
+      case Some("externalImageURLs") => config.getString(s"classifiers.overweight.externalImages")
       case other => config.getString(s"classifiers.overweight.twitterImages") // should never happen
     }
 
