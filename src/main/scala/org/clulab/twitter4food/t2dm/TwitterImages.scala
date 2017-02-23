@@ -17,8 +17,8 @@ object TwitterImages {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   // Twitter's robots.txt asks for 1 s between requests
   val twitterDelay = 1010
-  // Instagram doesn't list anything, but let's arbitrarily halve Twitter's because we have to make two calls
-  val instDelay = 505
+  // Instagram doesn't list anything, so let's choose arbitrarily
+  val instDelay = 100
 
   def main(args: Array[String]): Unit = {
     val reader = new ConsoleReader
