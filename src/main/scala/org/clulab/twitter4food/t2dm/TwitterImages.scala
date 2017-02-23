@@ -139,13 +139,15 @@ object TwitterImages {
         .getLines
         .toSeq
         .flatMap(u => urlSegment.findFirstIn(u))
+        .distinct
 
       var numSoFar = 0
       var i = 0
       while (i < pageURLs.length && numSoFar <= numToTake) {
         val photoURL = convertToImage(pageURLs(i))
         i += 1
-        if (photoURL.nonEmpty) {
+        val alreadySeen = previouslyScraped.contains(photoURL.getOrElse(""))
+        if (photoURL.nonEmpty && !alreadySeen) {
           val url = new URL(photoURL.get)
           val photoFilename = FilenameUtils.getName(url.getPath)
           val photoLoc = s"$userDir/$photoFilename"
