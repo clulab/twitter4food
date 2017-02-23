@@ -172,14 +172,15 @@ object TwitterImages {
   // Rather than using Instagram API, load the webpage and find the main photo
   def convertToImage(u: String): Option[String] = {
     val fullUrl = s"https://instagram.com/p/$u/"
-    val pageUrl = Try{ new URL(fullUrl) }
+    val pageUrl = Try(new URL(fullUrl))
     if (pageUrl.isFailure) return None
 
-    val page = new BufferedReader(new InputStreamReader(pageUrl.get.openStream())).lines.toArray.mkString("\n")
+    val page = Try(new BufferedReader(new InputStreamReader(pageUrl.get.openStream())).lines.toArray.mkString("\n"))
+    if (page.isFailure) return None
     Thread.sleep(instDelay)
 
     // This might change in the future
     val pattern = "(?<=<meta property=\"og:image\" content=\")([^\"]+)(?=\" />)".r
-    pattern.findFirstIn(page)
+    pattern.findFirstIn(page.get)
   }
 }
