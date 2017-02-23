@@ -163,12 +163,16 @@ object TwitterImages {
           } else numSoFar += 1
         }
       }
+
+      pb.step()
     }
+    pb.stop()
   }
 
   // Rather than using Instagram API, load the webpage and find the main photo
   def convertToImage(u: String): Option[String] = {
-    val pageUrl = Try{ new URL(u) }
+    val fullUrl = s"https://instagram.com/p/$u/"
+    val pageUrl = Try{ new URL(fullUrl) }
     if (pageUrl.isFailure) return None
 
     val page = new BufferedReader(new InputStreamReader(pageUrl.get.openStream())).lines.toArray.mkString("\n")
