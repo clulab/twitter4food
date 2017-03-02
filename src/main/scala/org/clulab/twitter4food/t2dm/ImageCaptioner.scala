@@ -43,9 +43,10 @@ object ImageCaptioner {
       pb.start
       
       val userResults = users.par.foreach { user =>
-        val userImages = user.listFiles.filter( _.getAbsolutePath.endsWith(".jpg") ).map ( _.getAbsolutePath )
+        val userImages = user.listFiles.filter( x => x.getAbsolutePath.endsWith(".jpg") || x.getAbsolutePath.endsWith(".png") )
+                              .map ( x => (x.getAbsolutePath,x.getName) )
         val results = for(img <- userImages) yield {
-          val cmd = s"${pythonPath} ${pythonCmd} ${pythonParams} ${img}"
+          val cmd = s"${pythonPath} ${pythonCmd} ${pythonParams} ${img._1}"
           val cmdOut = cmd!!
           
           val res = cmdOut.split("<sos>").filterNot(_ == "").map(_.trim.filter(_ >= ' ')
@@ -54,12 +55,12 @@ object ImageCaptioner {
                 (y(0), y(1).toDouble)
               }
 //          logger.info(s"$img\t${res.mkString(":")}")
-          (img, res)
+          (img._2, res)
         }
         
-        outputFileWriter.write("User:" + user.getName + "\n")
+        outputFileWriter.write(s"User: ${user.getName}\n")
         results.foreach{ res =>
-          outputFileWriter.write(s"${res._1}\t${res._2.mkString(":")}")
+          outputFileWriter.write(s"${res._1}\t${res._2.mkString(":")}\n")
         }
         pb.step
       }
