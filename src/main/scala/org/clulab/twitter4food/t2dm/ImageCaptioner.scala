@@ -42,7 +42,7 @@ object ImageCaptioner {
       val pb = new me.tongfei.progressbar.ProgressBar("CaptionGenerator", users.size)
       pb.start
       
-      val userResults = for(user <- users)  {
+      val userResults = users.par.foreach { user =>
         val userImages = user.listFiles.filter( _.getAbsolutePath.endsWith(".jpg") ).map ( _.getAbsolutePath )
         val results = for(img <- userImages) yield {
           val cmd = s"${pythonPath} ${pythonCmd} ${pythonParams} ${img}"
