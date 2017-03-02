@@ -42,7 +42,7 @@ object ImageCaptioner {
       val pb = new me.tongfei.progressbar.ProgressBar("CaptionGenerator", users.size)
       pb.start
       
-      val userResults = users.par.foreach { user =>
+      val userResults = for ( user <- users.par) yield {
         val userImages = user.listFiles.filter( x => x.getAbsolutePath.endsWith(".jpg") || x.getAbsolutePath.endsWith(".png") )
                               .map ( x => (x.getAbsolutePath,x.getName) )
         val results = for(img <- userImages) yield {
@@ -58,13 +58,21 @@ object ImageCaptioner {
           (img._2, res)
         }
         
-        outputFileWriter.write(s"User: ${user.getName}\n")
-        results.foreach{ res =>
-          outputFileWriter.write(s"${res._1}\t${res._2.mkString(":")}\n")
-        }
         pb.step
+        (user.getName,results)
       }
       
+      logger.info(s"Writing the output to file ${outputFile}")
+      userResults.seq.foreach {userRes =>
+        val userName = userRes._1
+        val results = userRes._2
+        outputFileWriter.write(s"User: ${userName}\n")
+        results.foreach{ res =>
+          outputFileWriter.write(s"${res._1}\t${res._2.mkString(":")}\n")
+        }  
+      }
+      
+      logger.info(s"Done")
       pb.stop
       outputFileWriter.close
     }
