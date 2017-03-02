@@ -1,14 +1,14 @@
-package org.clulab.twitter4food.t2dm
+package org.clulab.twitter4food.data
 
 import java.io.File
 import java.net.URL
 
-import org.apache.commons.io.FilenameUtils
 import com.typesafe.config.{Config, ConfigFactory}
 import jline.console.ConsoleReader
+import org.apache.commons.io.FilenameUtils
 import org.slf4j.{Logger, LoggerFactory}
 
-import sys.process._
+import scala.sys.process._
 import scala.util.Try
 
 /**
