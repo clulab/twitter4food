@@ -76,7 +76,7 @@ object BigOvenRecipes {
         val jWriter = new BufferedWriter(new FileWriter(jFile, false))
 
         // add ID to JSON itself as well (no longer follows schema.org's recipe definition)
-        val writeable = s"""{\n  "id": $i,\n${json.get}\n}\n"""
+        val writeable = s"""{\n  "id": $i,\n${json.get}}\n"""
         jWriter.write(writeable)
         jWriter.close()
 
