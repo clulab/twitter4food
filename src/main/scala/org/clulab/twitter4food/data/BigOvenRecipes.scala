@@ -1,4 +1,4 @@
-package org.clulab.twitter4food.t2dm
+package org.clulab.twitter4food.data
 
 import java.io._
 import java.net.URL
