@@ -51,10 +51,10 @@ object BigOvenImages {
       reader.readLine match {
         case num if Try(num.toInt).isSuccess =>
           val candidate = num.toInt
-          if (candidate < 1) endIdx = Option(maxIdx)
-          else if (candidate > maxIdx) startIdx = Option(maxIdx)
-          else startIdx = Option(candidate)
-        case other => startIdx = Option(maxIdx)
+          if (candidate < startIdx.get) endIdx = Option(maxIdx)
+          else if (candidate > maxIdx) endIdx = Option(maxIdx)
+          else endIdx = Option(candidate)
+        case other => endIdx = Option(maxIdx)
       }
     }
 
