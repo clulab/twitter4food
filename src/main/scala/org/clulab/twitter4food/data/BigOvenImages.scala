@@ -90,7 +90,8 @@ object BigOvenImages {
       if ! alreadyHave.contains(recipeID)
 
       // can we get a URL?
-      recipe = scala.io.Source.fromFile(s"${inDir.getAbsoluteFile}/$recipeFile").mkString
+      recipeSource = scala.io.Source.fromFile(s"${inDir.getAbsoluteFile}/$recipeFile")
+      recipe = try{ recipeSource.mkString } finally { recipeSource.close }
       urlLoc = pattern.findFirstIn(recipe)
       if urlLoc.nonEmpty
 
