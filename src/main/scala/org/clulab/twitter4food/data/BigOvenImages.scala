@@ -58,6 +58,8 @@ object BigOvenImages {
       }
     }
 
+    logger.info(s"Fetching ${startIdx.get} to ${endIdx.get}")
+
     // where to put pictures (and what pictures we already have)
     val outDir = config.getString("bigOven.img")
     val od = new File(outDir)
@@ -88,7 +90,7 @@ object BigOvenImages {
       if ! alreadyHave.contains(recipeID)
 
       // can we get a URL?
-      recipe = scala.io.Source.fromFile(recipeFile).mkString
+      recipe = scala.io.Source.fromFile(s"${inDir.getAbsoluteFile}/$recipeFile").mkString
       urlLoc = pattern.findFirstIn(recipe)
       if urlLoc.nonEmpty
 
