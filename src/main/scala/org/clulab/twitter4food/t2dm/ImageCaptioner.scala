@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigFactory
 import sys.process._
 import java.io.File
 import java.io.FileWriter 
+import scala.util.Try
 
 object ImageCaptioner {
     val logger = LoggerFactory.getLogger(this.getClass)
@@ -49,15 +50,17 @@ object ImageCaptioner {
           val cmd = s"${pythonPath} ${pythonCmd} ${pythonParams} ${img._1}"
           val cmdOut = cmd!!
           
+          logger.info(s"Res : $cmdOut")
           val res = cmdOut.split("<sos>").filterNot(_ == "").map(_.trim.filter(_ >= ' ')
               .replace(" <eos>", "\t")).map {x => 
-                val y = x.split("\t")
+                val y = Try(x.split("\t")).getOrElse(Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000"))
                 (y(0), y(1).toDouble)
               }
 //          logger.info(s"$img\t${res.mkString(":")}")
           (img._2, res)
         }
         
+        logger.info(s"Processing user : ${user.getName}")
         pb.step
         (user.getName,results)
       }
