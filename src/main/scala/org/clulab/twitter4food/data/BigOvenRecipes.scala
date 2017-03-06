@@ -1,4 +1,4 @@
-package org.clulab.twitter4food.t2dm
+package org.clulab.twitter4food.data
 
 import java.io._
 import java.net.URL
@@ -23,7 +23,7 @@ object BigOvenRecipes {
   val perturbAmount = 100
   val r = scala.util.Random
   // highest recipe ID (including private)
-  val maxI = 1896760
+  val maxIdx: Int = config.getInt("bigOven.maxIdx")
 
   def main(args: Array[String]): Unit = {
     val reader = new ConsoleReader
@@ -48,7 +48,7 @@ object BigOvenRecipes {
         case num if Try(num.toInt).isSuccess =>
           val candidate = num.toInt
           if (candidate < 1) startIdx = Option(1)
-          else if (candidate > maxI) startIdx = Option(maxI)
+          else if (candidate > maxIdx) startIdx = Option(maxIdx)
           else startIdx = Option(candidate)
         case other => startIdx = Option(1)
       }
@@ -59,13 +59,13 @@ object BigOvenRecipes {
     pb.start()
     pb.maxHint(goal.get)
 
-    val outDir = config.getString("bigOvenJson")
+    val outDir = config.getString("bigOven.json")
     val outFile = new File(outDir)
     if (!outFile.exists()) outFile.mkdir
 
     var i = startIdx.get
     var retrieved = 0
-    while (i <= maxI && retrieved < goal.get) {
+    while (i <= maxIdx && retrieved < goal.get) {
       // try to get JSON for this ID
       val urlText = s"https://www.bigoven.com/recipe/$i"
       val json = getJsonFromUrl(urlText)
