@@ -53,7 +53,12 @@ object ImageCaptioner {
           logger.info(s"Res : $cmdOut")
           val res = cmdOut.split("<sos>").filterNot(_ == "").map(_.trim.filter(_ >= ' ')
               .replace(" <eos>", "\t")).map {x => 
-                val y = Try(x.split("\t")).getOrElse(Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000"))
+                val y = try {
+                  x.split("\t") 
+                } catch {
+                  case arrayException: ArrayIndexOutOfBoundsException => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000")
+                }
+                
                 (y(0), y(1).toDouble)
               }
 //          logger.info(s"$img\t${res.mkString(":")}")
