@@ -7,6 +7,7 @@ import sys.process._
 import java.io.File
 import java.io.FileWriter 
 import scala.util.Try
+import scala.collection.parallel.mutable.ParArray
 
 object ImageCaptioner {
     val logger = LoggerFactory.getLogger(this.getClass)
@@ -38,12 +39,12 @@ object ImageCaptioner {
             
       val userImageDir = new File(twitterImagePath)
       val users = userImageDir.listFiles()
-      val outputFileWriter = new FileWriter(new File(outputFile))
       
       val pb = new me.tongfei.progressbar.ProgressBar("CaptionGenerator", users.size)
       pb.start
       
-      val userResults = for ( user <- users.par) yield {
+      var userResults = new ParArray[(String, Array[(String, Array[(String, Double)])])](users.size)
+      userResults = for ( user <- users.par) yield {
         val userImages = user.listFiles.filter( x => x.getAbsolutePath.endsWith(".jpg") || x.getAbsolutePath.endsWith(".png") )
                               .map ( x => (x.getAbsolutePath,x.getName) )
         val results = for(img <- userImages) yield {
@@ -56,7 +57,12 @@ object ImageCaptioner {
                 val y = try {
                   x.split("\t") 
                 } catch {
-                  case arrayException: ArrayIndexOutOfBoundsException => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000")
+                  case arrayException: Exception => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000")    
+                  case _:Throwable => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000") 
+                }
+                finally {
+                  logger.info("Closing prematurely")
+                  writeToFile(outputFile, userResults)
                 }
                 
                 (y(0), y(1).toDouble)
@@ -65,12 +71,19 @@ object ImageCaptioner {
           (img._2, res)
         }
         
-        logger.info(s"Processing user : ${user.getName}")
+        //logger.info(s"Processing user : ${user.getName}")
         pb.step
         (user.getName,results)
       }
+
+      pb.stop
+      writeToFile(outputFile, userResults)
       
+    }
+    
+    def writeToFile(outputFile: String, userResults:  ParArray[(String, Array[(String, Array[(String, Double)])])]) = {
       logger.info(s"Writing the output to file ${outputFile}")
+      val outputFileWriter = new FileWriter(new File(outputFile))
       userResults.seq.foreach {userRes =>
         val userName = userRes._1
         val results = userRes._2
@@ -81,8 +94,8 @@ object ImageCaptioner {
       }
       
       logger.info(s"Done")
-      pb.stop
       outputFileWriter.close
+
     }
 }
 
