@@ -60,10 +60,10 @@ object ImageCaptioner {
                   case arrayException: Exception => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000")    
                   case _:Throwable => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000") 
                 }
-                finally {
-                  logger.info("Closing prematurely")
-                  writeToFile(outputFile, userResults)
-                }
+//                finally {
+//                  logger.info("Closing prematurely")
+//                  writeToFile(outputFile, userResults)
+//                }
                 
                 (y(0), y(1).toDouble)
               }
