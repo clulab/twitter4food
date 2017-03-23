@@ -57,8 +57,11 @@ object ImageCaptioner {
                 val y = try {
                   x.split("\t") 
                 } catch {
-                  case arrayException: Exception => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000")    
-                  case _:Throwable => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000") 
+//                  case arrayException: Exception => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000")    
+//                  case _:Throwable => Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000") 
+                  case _ : Exception => logger.info("Exception occurered")
+                                        writeToFile(outputFile, userResults)
+                                        Array("%%%%%%%%%%DUMMY%%%%%%%%%%%%%%%%", "0.00000000000") 
                 }
 //                finally {
 //                  logger.info("Closing prematurely")
