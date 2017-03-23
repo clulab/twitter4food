@@ -51,7 +51,12 @@ object ImageCaptioner {
           val cmd = s"${pythonPath} ${pythonCmd} ${pythonParams} ${img._1}"
           val cmdOut = cmd!!
           
-          logger.info(s"Res : $cmdOut")
+          println(s"%%%%%%%%%%%%%%%%%%%%%%%%")
+          println(s"${user.getName}\t${img._2}")
+          println(s"%%%%%%%%%%%%%%%%%%%%%%%%")
+          println(s"$cmdOut")
+          println(s"%%%%%%%%%%%%%%%%%%%%%%%%")
+         
           val res = cmdOut.split("<sos>").filterNot(_ == "").map(_.trim.filter(_ >= ' ')
               .replace(" <eos>", "\t")).map {x => 
                 val y = try {
