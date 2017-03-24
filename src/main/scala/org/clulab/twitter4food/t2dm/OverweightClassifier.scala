@@ -25,6 +25,7 @@ class OverweightClassifier(
   useMaxEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
   useTimeDate: Boolean = false,
+  useFoodPerc: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
   useRT: Boolean = false,
@@ -47,6 +48,7 @@ class OverweightClassifier(
     useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
     useTimeDate=useTimeDate,
+    useFoodPerc=useFoodPerc,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useRT=useRT,
@@ -85,6 +87,7 @@ object OverweightClassifier {
       params.useMaxEmbeddings,
       params.useCosineSim,
       params.useTimeDate,
+      params.useFoodPerc,
       params.useFollowees
     )
     val default = allFeatures.forall(!_) // true if all features are off
@@ -140,6 +143,7 @@ object OverweightClassifier {
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useTimeDate = params.useTimeDate,
+        useFoodPerc = params.useFoodPerc,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,

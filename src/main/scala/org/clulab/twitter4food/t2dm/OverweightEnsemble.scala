@@ -32,6 +32,7 @@ object OverweightEnsemble {
       params.useMaxEmbeddings,
       params.useCosineSim,
       params.useTimeDate,
+      params.useFoodPerc,
       params.useFollowees
     )
     val default = allFeatures.forall(!_) // true if all features are off
@@ -87,6 +88,7 @@ object OverweightEnsemble {
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useTimeDate = params.useTimeDate,
+        useFoodPerc = params.useFoodPerc,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,
@@ -109,6 +111,7 @@ object OverweightEnsemble {
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useTimeDate = params.useTimeDate,
+        useFoodPerc = params.useFoodPerc,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,

@@ -36,6 +36,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useMaxEmbeddings maximum (by dimension) embeddings of all account words
   * @param useCosineSim similarity to a corpus of overweight-related tweets
   * @param useTimeDate time- and day-based features
+  * @param useFoodPerc use the percentage of user images containing food
   * @param useFollowers domain transfer from follower accounts
   * @param useFollowees account followee handles
   * @param useRT treat retweet and non-RT n-grams differently, Daume-style
@@ -57,6 +58,7 @@ class FeatureExtractor (
   val useMaxEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useTimeDate: Boolean = false,
+  val useFoodPerc: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useRT: Boolean = false,
@@ -83,6 +85,7 @@ class FeatureExtractor (
     s"useMaxEmbeddings=$useMaxEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
     s"useTimeDate=$useTimeDate, " +
+    s"useFoodPerc=$useFoodPerc, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useRT=$useRT, " +
@@ -116,6 +119,7 @@ class FeatureExtractor (
       if (splits(1) != "NULL") cMap(splits(0)) = splits(1).toDouble
       if (splits(2) != "NULL") cMap(splits(0)) = splits(2).toInt
     }
+    foodAnnotations.close()
     (Some(cMap.toMap), Some(hMap.toMap))
   } else (None, None)
 
@@ -123,6 +127,25 @@ class FeatureExtractor (
   val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
   // tdidf vector for overweight corpus
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
+
+  // % food images annotations
+  val (twFoodPerc, igFoodPerc): (Option[Map[Long,Double]], Option[Map[Long,Double]]) = if (useFoodPerc) {
+    val twFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.twFoodPerc"))
+    val twAnnos = twFile.getLines.toSeq.map{ line =>
+      val elements = line.trim.split('\t').take(2)
+      elements.head.toLong -> elements.last.toDouble
+    }
+    twFile.close()
+
+    val igFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.igFoodPerc"))
+    val igAnnos = igFile.getLines.toSeq.map{ line =>
+      val elements = line.trim.split('\t').take(2)
+      elements.head.toLong -> elements.last.toDouble
+    }
+    igFile.close()
+
+    (Option(twAnnos.toMap), Option(igAnnos.toMap))
+  } else (None, None)
 
   // Followees (to be set by setFollowees)
   var handleToFollowees: Option[Map[String, Seq[String]]] = None
@@ -315,6 +338,8 @@ class FeatureExtractor (
       counter += cosineSim(unigrams, denoised, description)
     if (useTimeDate)
       counter += timeDate(denoised)
+    if (useFoodPerc)
+      counter += foodPerc(account.id)
     if (useFollowees)
       counter += scale(followees(account))
 
@@ -738,7 +763,7 @@ class FeatureExtractor (
 
   /**
     * A set of features describing the time and day the account tweets.
-
+    *
     * @param tweets [[Tweet]]s of the account for time/date info
     * @return a [[Counter]] with time and day features
     */
@@ -770,6 +795,22 @@ class FeatureExtractor (
 
     val dayHist = dayOfWeek.groupBy(identity).mapValues(_.length / numTweets)
     dayHist.foreach{ case (day, prop) => counter.setCount(s"timeDate:$day", prop) }
+
+    counter
+  }
+
+  /**
+    * Returns a [[Counter]] with percentages of Twitter and Instagram image files containing food (if any exist)
+    */
+  def foodPerc(id: Long): Counter[String] = {
+    val counter = new Counter[String]
+
+    if (twFoodPerc.nonEmpty && twFoodPerc.get.contains(id)) {
+      counter.setCount("foodPerc:twitter", twFoodPerc.get(id))
+    }
+    if (igFoodPerc.nonEmpty && igFoodPerc.get.contains(id)) {
+      counter.setCount("foodPerc:instagram", igFoodPerc.get(id))
+    }
 
     counter
   }
