@@ -44,6 +44,7 @@ class GenderClassifier(
     useCosineSim=useCosineSim,
     useTimeDate=useTimeDate,
     useFoodPerc=false,
+    useCaptions=false,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useRT=useRT,
