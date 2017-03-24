@@ -7,6 +7,7 @@ import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, R
 import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.struct.Normalization._
 import org.clulab.twitter4food.util.Utils._
+import org.clulab.twitter4food.util.FileUtils._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, GenderClassifier, HumanClassifier}
@@ -57,6 +58,7 @@ class FeatureExtractor (
   val useMaxEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useTimeDate: Boolean = false,
+  val useCaptions: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useRT: Boolean = false,
@@ -83,6 +85,7 @@ class FeatureExtractor (
     s"useMaxEmbeddings=$useMaxEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
     s"useTimeDate=$useTimeDate, " +
+    s"useCaptions=$useCaptions, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useRT=$useRT, " +
@@ -123,6 +126,9 @@ class FeatureExtractor (
   val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
   // tdidf vector for overweight corpus
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
+
+  // image captions (generic)
+  val captions = if (useCaptions) Option(loadCaptions(config.getString("classifiers.overweight.captions"))) else None
 
   // Followees (to be set by setFollowees)
   var handleToFollowees: Option[Map[String, Seq[String]]] = None
@@ -270,8 +276,8 @@ class FeatureExtractor (
     counter
   }
 
-  def retokenize(t: Tweet): Array[String] = {
-    val separated = t.text.trim.split("\\s+")
+  def retokenize(t: String): Array[String] = {
+    val separated = t.trim.split("\\s+")
     separated.map{
       case "<@MENTION>" => "<@MENTION>"
       case "<URL>" => "<URL>"
@@ -291,7 +297,7 @@ class FeatureExtractor (
 
     val description = account.description.trim.split("\\s+")
     val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
-    val regularizedTweets = denoised.map(retokenize)
+    val regularizedTweets = denoised.map(t => retokenize(t.text))
 
     var unigrams: Option[Counter[String]] = None
 
@@ -315,6 +321,8 @@ class FeatureExtractor (
       counter += cosineSim(unigrams, denoised, description)
     if (useTimeDate)
       counter += timeDate(denoised)
+    if (useCaptions)
+      counter += captionNgrams(account.id)
     if (useFollowees)
       counter += scale(followees(account))
 
@@ -405,7 +413,7 @@ class FeatureExtractor (
 
     // n-gram for tweets
     denoised.foreach{ tweet =>
-      val split = retokenize(tweet) // split on whitespace
+      val split = retokenize(tweet.text) // split on whitespace
       val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
       val filtered = if (n == 1) filterStopWords(relevant) else relevant // remove stopwords
       setCounts(tokenNGrams(n, filtered), counter) // always set n-gram counts
@@ -770,6 +778,21 @@ class FeatureExtractor (
 
     val dayHist = dayOfWeek.groupBy(identity).mapValues(_.length / numTweets)
     dayHist.foreach{ case (day, prop) => counter.setCount(s"timeDate:$day", prop) }
+
+    counter
+  }
+
+  def captionNgrams(id: Long, n: Int = 1): Counter[String] = {
+    val counter = new Counter[String]
+
+    if (captions.nonEmpty && captions.get.contains(id)) {
+      val userCaptions = captions.get(id)
+      userCaptions.foreach{ caption =>
+        val split = retokenize(caption) // split on whitespace
+        val filtered = if (n == 1) filterStopWords(split) else split // remove stopwords
+        setCounts(tokenNGrams(n, filtered), counter)
+      }
+    }
 
     counter
   }
