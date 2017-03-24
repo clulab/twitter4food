@@ -25,6 +25,7 @@ object Utils {
     useCosineSim: Boolean = false,
     useTimeDate: Boolean = false,
     useFoodPerc: Boolean = false,
+    useCaptions: Boolean = false,
     useCustomAction: Boolean = false,
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
@@ -105,6 +106,8 @@ object Utils {
         c.copy(useTimeDate = true)} text "use tweet time and date"
       opt[Unit]('p', "foodPerc") action { (x, c) =>
         c.copy(useFoodPerc = true)} text "use percentage of images containing food"
+      opt[Unit]('m', "captions") action { (x, c) =>
+        c.copy(useCaptions = true)} text "use unigrams of image captions"
       opt[Unit]('s', "customAction") action { (x, c) =>
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
       opt[Unit]('g', "gender") action { (x, c) =>

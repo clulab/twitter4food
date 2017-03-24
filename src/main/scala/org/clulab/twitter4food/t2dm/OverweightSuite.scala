@@ -35,6 +35,7 @@ object OverweightSuite {
       useCosineSim = true,
       useTimeDate = true,
       useFoodPerc = true,
+      useCaptions = true,
       useFollowers = true,
       useFollowees = true,
       useRT = true,
