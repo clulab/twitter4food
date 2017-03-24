@@ -831,7 +831,7 @@ class FeatureExtractor (
       userCaptions.foreach{ caption =>
         val split = retokenize(caption) // split on whitespace
         val filtered = if (n == 1) filterStopWords(split) else split // remove stopwords
-        setCounts(tokenNGrams(n, filtered), counter)
+        setCounts(tokenNGrams(n, filtered, prefix = "cap_"), counter)
       }
     }
 
