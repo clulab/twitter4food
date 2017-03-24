@@ -229,6 +229,8 @@ object FileUtils {
       }
     }
 
+    file.close()
+
     captions.toMap
   }
 }
