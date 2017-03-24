@@ -24,6 +24,7 @@ object Utils {
     useMaxEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
     useTimeDate: Boolean = false,
+    useCaptions: Boolean = false,
     useCustomAction: Boolean = false,
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
@@ -102,6 +103,8 @@ object Utils {
         c.copy(useCosineSim = true)} text "use cosine similarity"
       opt[Unit]('w', "timeDate") action { (x, c) =>
         c.copy(useTimeDate = true)} text "use tweet time and date"
+      opt[Unit]('m', "captions") action { (x, c) =>
+        c.copy(useCaptions = true)} text "use unigrams of image captions"
       opt[Unit]('s', "customAction") action { (x, c) =>
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
       opt[Unit]('g', "gender") action { (x, c) =>
