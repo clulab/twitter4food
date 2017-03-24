@@ -43,6 +43,7 @@ class GenderClassifier(
     useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
     useTimeDate=useTimeDate,
+    useFoodPerc=false,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useRT=useRT,
