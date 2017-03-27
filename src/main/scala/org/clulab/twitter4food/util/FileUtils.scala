@@ -208,29 +208,4 @@ object FileUtils {
 
     texts
   }
-
-  /**
-    * Returns a map from TwitterAccount id to the captions for their images
-    */
-  def loadCaptions(fileName: String): scala.collection.immutable.Map[Long, Seq[String]] = {
-    val file = scala.io.Source.fromFile(fileName)
-
-    val captions = new mutable.HashMap[Long, Seq[String]]
-
-    file.getLines.foreach{ line =>
-      val chunks = line.trim.split("\t")
-      if (chunks.length > 2) {
-        // get user ID for image
-        val id = chunks.head.toLong
-        // get most likely caption only, getting rid of extra parenthesis
-        val caption = chunks(2).drop(1)
-        // join this caption to previous captions for this user
-        captions(id) = captions.getOrElse(id, Nil) :+ caption
-      }
-    }
-
-    file.close()
-
-    captions.toMap
-  }
 }

@@ -15,6 +15,7 @@ import org.clulab.twitter4food.lda.LDA
 import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -837,6 +838,42 @@ class FeatureExtractor (
 
     counter
   }
+
+  /**
+    * Returns a map from TwitterAccount id to the captions for their images
+    */
+  private def loadCaptions(fileName: String): scala.collection.immutable.Map[Long, Seq[String]] = {
+    val file = scala.io.Source.fromFile(fileName)
+
+    val captions = new mutable.HashMap[Long, Seq[String]]
+
+    val lines = file.getLines.toSeq
+
+    // Start progress bar
+    val pb = new me.tongfei.progressbar.ProgressBar("captions", 100)
+    pb.start()
+    pb.maxHint(lines.length)
+
+    lines.foreach{ line =>
+      val chunks = line.trim.split("\t")
+      if (chunks.length > 2) {
+        // get user ID for image
+        val id = chunks.head.toLong
+        // get most likely caption only, getting rid of extra parenthesis
+        val caption = chunks(2).drop(1)
+        // join this caption to previous captions for this user
+        captions(id) = captions.getOrElse(id, Nil) :+ caption
+      }
+      pb.step()
+    }
+
+    pb.stop()
+
+    file.close()
+
+    captions.toMap
+  }
+
 
   def dictFilter(text: Array[String]): Array[String] = {
     if(allDicts.nonEmpty) {
