@@ -138,17 +138,17 @@ class FeatureExtractor (
     val twAnnos = twFile.getLines.toSeq.map{ line =>
       val elements = line.trim.split('\t').take(2)
       elements.head.toLong -> elements.last.toDouble
-    }
+    }.toMap
     twFile.close()
 
     val igFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.igFoodPerc"))
     val igAnnos = igFile.getLines.toSeq.map{ line =>
       val elements = line.trim.split('\t').take(2)
       elements.head.toLong -> elements.last.toDouble
-    }
+    }.toMap
     igFile.close()
 
-    (Option(twAnnos.toMap), Option(igAnnos.toMap))
+    (Option(twAnnos), Option(igAnnos))
   } else (None, None)
 
   // image captions (generic)
