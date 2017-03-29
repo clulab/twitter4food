@@ -30,7 +30,7 @@ object SplitData {
     writeToCsv(foldsLoc, wholeSplits)
 
     // Scale number of accounts so that sample corresponds to US proportion of overweight
-    val usProps = Map( "Overweight" -> 0.707, "Not overweight" -> 0.293 ) // real stats on overweight in US from CDC
+    val usProps = Map( "Overweight" -> 0.6976, "Not overweight" -> 0.3024 ) // real stats on overweight in US from CDC
     val usSample = Utils.subsample(labeledAccounts, usProps)
 
     val usSplits = split(usSample)
