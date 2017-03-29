@@ -24,7 +24,6 @@ import scala.util.Random
   * @author adikou
   * @author tishihara
   * @author Dane Bell
-  * @date 04-02-2016
   */
 
 /** Used by Stratified K-fold CV */
@@ -533,6 +532,18 @@ class ClassifierImpl(
     dataset.keepOnly(chosenFeatures)
   }
 
+  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainTestFold] = {
+    val numPartitions = partitions.values.max
+    val allIndices = (for (i <- ids.indices) yield i).toSet
+    val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
+      idx -> partitions.getOrElse(id, -1)
+    }
+    val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+    for (p <- 0 until numPartitions) yield {
+      TrainTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p)).toSeq)
+    }
+  }
+
   /** Creates dataset folds to be used for cross validation */
   def mkStratifiedTrainTestFolds[L, F](
     numFolds:Int,
@@ -634,10 +645,11 @@ class ClassifierImpl(
   def overweightCV(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
+    partitions: Map[Long, Int],
+    portion: Double = 1.0, // This doesn't do anything yet
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
-    numFolds: Int = 10,
     percentTopToConsider: Double = 1.0,
     seed: Int = 73
   ): (Seq[(String, String)],
@@ -648,13 +660,12 @@ class ClassifierImpl(
     val numFeatures = 30
     val numAccts = 20
 
-    // Important: this dataset is sorted by account handle
+    // Important: this dataset is sorted by id
     val dataset = constructDataset(accounts, labels, followers, followees)
-    val handles = accounts.map(_.handle).sorted
+    val ids = accounts.sortBy(_.handle).map(_.id)
+    val folds = foldsFromIds(ids, partitions)
 
-    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed)
-
-    val results = (for (fold <- folds) yield {
+    val results = for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
@@ -663,19 +674,19 @@ class ClassifierImpl(
       classifier.train(dataset, fold.train.toArray)
       val W = classifier.getWeights()
       val predictions = for(i <- fold.test) yield {
-        val handle = handles(i)
+        val id = ids(i).toString
         val gold = dataset.labelLexicon.get(dataset.labels(i))
         val datum = dataset.mkDatum(i)
         val pred = classifier.classOf(datum)
         val score = classifier.scoresOf(datum)
         // NOTE: for the high confidence classifier, sort this tuple in decreasing order of classifier confidence ('score(pred)')
         //    and take the top x percent (x is a parameter)
-        (handle, gold, pred, datum, score, score.getCount(pred))
+        (id, gold, pred, datum, score, score.getCount(pred))
       }
       val totalSzOfPredictions = predictions.size
       val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * totalSzOfPredictions).toInt )
       (W, highConfPredictions)
-    }).toSeq
+    }
 
     val allFeats = dataset.featureLexicon.keySet
     val (allWeights, predictions) = results.unzip
