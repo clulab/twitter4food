@@ -115,25 +115,29 @@ object OverweightClassifier {
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
+    val partitionFile = if (params.usProps)
+      config.getString("classifiers.overweight.usFolds")
+    else
+      config.getString("classifiers.overweight.folds")
+
+    val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
+      user(1).toLong -> user(0).toInt // id -> partition
+    }.toMap
 
     val followers = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(subsampled.map(_._1)))
+      Option(ClassifierImpl.loadFollowers(labeledAccts.map(_._1)))
     } else None
 
     val followees = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(subsampled.map(_._1), "overweight"))
+      Option(ClassifierImpl.loadFollowees(labeledAccts.map(_._1), "overweight"))
     } else None
 
     val evals = for {
       portion <- portions
-      maxIndex = (portion * subsampled.length).toInt
     } yield {
-      val (accts, lbls) = subsampled.slice(0, maxIndex).unzip
+      val (accts, lbls) = labeledAccts.unzip
 
       val oc = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -164,6 +168,8 @@ object OverweightClassifier {
         oc.overweightCV(
           accts,
           lbls,
+          partitions,
+          portion,
           followers,
           followees,
           Utils.svmFactory,
