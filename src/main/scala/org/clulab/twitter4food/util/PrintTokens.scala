@@ -17,15 +17,15 @@ object PrintTokens {
     * Prints each account's tweets (one per line) to its own file.
     * Tweets are pre-tokenized (so no newlines w/i text).
     */
-  def writeTokens(accounts: Seq[Seq[String]], loc: String): Unit = {
+  def writeTokens(accounts: Map[Long, Seq[String]], loc: String): Unit = {
     val pb = new me.tongfei.progressbar.ProgressBar("printing", 100)
     pb.start()
-    pb.maxHint(accounts.length)
+    pb.maxHint(accounts.size)
 
     val locFile = new File(loc)
     if (!locFile.exists) locFile.mkdir()
-    accounts.zipWithIndex.foreach{ case (tweets, i) =>
-      val fileName = s"$loc$sep$i.txt"
+    accounts.foreach{ case (id, tweets) =>
+      val fileName = s"$loc$sep$id.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
       writer.write(tweets.mkString("\n"))
       writer.close()
@@ -47,14 +47,10 @@ object PrintTokens {
 
     logger.info("Writing tokens in LSTM-readable format")
 
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
-
-    subsampled.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
+    labeledAccts.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
       // folderNames should not contain whitespace
       val folderName = lbl.replaceAll("[^a-zA-Z0-9]+", "")
-      val texts = acctsWithLabels.map(_._1.tweets.map(_.text))
+      val texts = acctsWithLabels.map(al => al._1.id -> al._1.tweets.map(_.text)).toMap
       writeTokens(texts, s"$base$sep$folderName")
     }
   }
