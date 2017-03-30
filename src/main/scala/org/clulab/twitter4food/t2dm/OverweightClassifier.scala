@@ -110,11 +110,6 @@ object OverweightClassifier {
     val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
 
-    logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
-      .toSeq
-      .filter(_._1.tweets.nonEmpty)
-
     val partitionFile = if (params.usProps)
       config.getString("classifiers.overweight.usFolds")
     else
@@ -123,6 +118,12 @@ object OverweightClassifier {
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
     }.toMap
+
+    logger.info("Loading Twitter accounts")
+    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+      .toSeq
+      .filter(_._1.tweets.nonEmpty)
+      .filter{ case (acct, lbl) => partitions.contains(acct.id)}
 
     val followers = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
@@ -166,7 +167,7 @@ object OverweightClassifier {
 
       val (predictions, avgWeights, falsePos, falseNeg) =
         oc.overweightCV(
-          accts,
+          accts.filter(a => partitions contains a.id),
           lbls,
           partitions,
           portion,
