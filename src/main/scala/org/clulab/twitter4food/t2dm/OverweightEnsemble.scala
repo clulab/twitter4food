@@ -79,7 +79,7 @@ object OverweightEnsemble {
     val evals = for {
       portion <- portions
     } yield {
-      val (accts, lbls) = labeledAccts
+      val (accts, lbls) = labeledAccts.unzip
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
