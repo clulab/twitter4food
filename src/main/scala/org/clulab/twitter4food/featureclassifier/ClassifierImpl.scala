@@ -24,7 +24,6 @@ import scala.util.Random
   * @author adikou
   * @author tishihara
   * @author Dane Bell
-  * @date 04-02-2016
   */
 
 /** Used by Stratified K-fold CV */
@@ -369,12 +368,6 @@ class ClassifierImpl(
     /** For a given classifier, load its associated train, dev, and test
       * accounts, and write results to file.
       *
-      * @param trainingSet
-      * @param trainingLabels
-      * @param testingSet
-      * @param testingLabels
-      * @param _C hyperparameter for subClassifier
-      * @param K threshold for top-K tweets for each user
       * @return microAvg micro-average aggregated over each label
       */
     val unitTest = (trainingSet: Seq[TwitterAccount],
@@ -518,7 +511,7 @@ class ClassifierImpl(
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
     logger.debug(s"Found ${featureGroups.size} feature groups:")
     for(f <- featureGroups.keySet) {
-      logger.debug(s"Group $f containing ${featureGroups.get(f).get.size} features.")
+      logger.debug(s"Group $f containing ${featureGroups(f).size} features.")
     }
     val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
       dataset, Utils.svmFactory, evalMetric, featureGroups)
@@ -528,9 +521,59 @@ class ClassifierImpl(
     dataset.keepOnly(chosenGroups.flatMap(g => featureGroups(g)))
   }
 
+  def featureSelectionIncrementalCV(
+    dataset:Dataset[String, String],
+    evalMetric: Iterable[(String, String)] => Double): (Dataset[String, String], Set[String]) = {
+    val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
+    logger.debug(s"Found ${featureGroups.size} feature groups:")
+    for(f <- featureGroups.keySet) {
+      logger.debug(s"Group $f containing ${featureGroups(f).size} features.")
+    }
+    val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
+      dataset, Utils.svmFactory, evalMetric, featureGroups)
+
+    logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
+
+    val reducedDataset = dataset.keepOnly(chosenGroups.flatMap(g => featureGroups(g)))
+
+    (reducedDataset, chosenGroups)
+  }
+
   def featureSelectionByFrequency(dataset:Dataset[String, String], evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
     val chosenFeatures = Datasets.featureSelectionByFrequency(dataset, Utils.svmFactory, evalMetric)
     dataset.keepOnly(chosenFeatures)
+  }
+
+  /**
+    * Returns a [[Seq]] of [[TrainTestFold]]s given unique ids and a map of what partition they belong in.
+    */
+  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainTestFold] = {
+    val numPartitions = partitions.values.max
+    val allIndices = (for (i <- ids.indices) yield i).toSet
+    val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
+      idx -> partitions.getOrElse(id, -1)
+    }
+    val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+    for (p <- 0 until numPartitions) yield {
+      TrainTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p)).toSeq)
+    }
+  }
+
+  /**
+    * Returns a [[Seq]] of [[TrainDevTestFold]]s given unique ids and a map of what partition they belong in.
+    * The test fold is the same for all [[TrainDevTestFold]]s to maintain independence.
+    */
+  def devFoldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainDevTestFold] = {
+    val numPartitions = partitions.values.max
+    val allIndices = (for (i <- ids.indices) yield i).toSet
+    val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
+      idx -> partitions.getOrElse(id, -1)
+    }
+    val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+    val test = foldToIndices(foldToIndices.keys.max) // the test partition will be the same in all cases
+    for (p <- 0 until numPartitions - 1) yield {
+      TrainDevTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p) -- test).toSeq, test.toSeq)
+    }
   }
 
   /** Creates dataset folds to be used for cross validation */
@@ -634,12 +677,12 @@ class ClassifierImpl(
   def overweightCV(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
+    partitions: Map[Long, Int],
+    portion: Double = 1.0, // This doesn't do anything yet
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
-    numFolds: Int = 10,
-    percentTopToConsider: Double = 1.0,
-    seed: Int = 73
+    percentTopToConsider: Double = 1.0
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
@@ -648,13 +691,12 @@ class ClassifierImpl(
     val numFeatures = 30
     val numAccts = 20
 
-    // Important: this dataset is sorted by account handle
+    // Important: this dataset is sorted by id
     val dataset = constructDataset(accounts, labels, followers, followees)
-    val handles = accounts.map(_.handle).sorted
+    val ids = accounts.sortBy(_.handle).map(_.id)
+    val folds = foldsFromIds(ids, partitions)
 
-    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed)
-
-    val results = (for (fold <- folds) yield {
+    val results = for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
@@ -663,19 +705,19 @@ class ClassifierImpl(
       classifier.train(dataset, fold.train.toArray)
       val W = classifier.getWeights()
       val predictions = for(i <- fold.test) yield {
-        val handle = handles(i)
+        val id = ids(i).toString
         val gold = dataset.labelLexicon.get(dataset.labels(i))
         val datum = dataset.mkDatum(i)
         val pred = classifier.classOf(datum)
         val score = classifier.scoresOf(datum)
         // NOTE: for the high confidence classifier, sort this tuple in decreasing order of classifier confidence ('score(pred)')
         //    and take the top x percent (x is a parameter)
-        (handle, gold, pred, datum, score, score.getCount(pred))
+        (id, gold, pred, datum, score, score.getCount(pred))
       }
-      val totalSzOfPredictions = predictions.size
-      val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * totalSzOfPredictions).toInt )
+
+      val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * predictions.size).toInt )
       (W, highConfPredictions)
-    }).toSeq
+    }
 
     val allFeats = dataset.featureLexicon.keySet
     val (allWeights, predictions) = results.unzip
@@ -720,18 +762,23 @@ class ClassifierImpl(
 
 
   /**
-    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
-    * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
+    * Feature selection using stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L. Returns selected features with predictions to help estimate F1.
     */
   def fscv(
-    dataset:Dataset[String, String],
+    accounts: Seq[TwitterAccount],
+    labels: Seq[String],
+    partitions: Map[Long, Int],
+    followers: Option[Map[String, Seq[TwitterAccount]]],
+    followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
-    evalMetric: Iterable[(String, String)] => Double,
-    numFolds:Int = 10,
-    seed:Int = 73
+    evalMetric: Iterable[(String, String)] => Double
   ): Seq[(String, String)] = {
 
-    val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed).toSeq
+    // Important: this dataset is sorted by id
+    val dataset = constructDataset(accounts, labels, followers, followees)
+    val ids = accounts.sortBy(_.handle).map(_.id)
+    val folds = devFoldsFromIds(ids, partitions)
 
     val results = for {
       fold <- folds
@@ -740,19 +787,55 @@ class ClassifierImpl(
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
       }
-      val tunedDataset = featureSelectionIncremental(Utils.keepRows(dataset, fold.train.toArray), evalMetric)
+      val (tunedDataset, selectedFeatures) = featureSelectionIncrementalCV(Utils.keepRows(dataset, fold.train.toArray), evalMetric)
       val classifier = classifierFactory()
       classifier.train(tunedDataset)
-      val predictions = for(i <- fold.test) yield {
+      val predictions = for(i <- fold.dev) yield {
         val gold = dataset.labelLexicon.get(dataset.labels(i))
         val datum = dataset.mkDatum(i)
         val pred = classifier.classOf(datum)
         (gold, pred)
       }
-      predictions
+      selectedFeatures -> predictions
     }
 
-    results.flatten
+    // We'll select the same number of features as the most selected by any one fold's fs process
+    // This will tend to make bigger feature sets with more folds, but there's no principled way to do this AFAIK
+    val maxFeats = results.unzip._1.map(_.size).max
+
+    // Every time a feature set is selected for a fold, it gets a vote equal to that fold's best F1
+    val scoreBoard = scala.collection.mutable.Map[String, Double]()
+    results.foreach{ case (features, preds) =>
+      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(preds)
+      val f1 = evalMeasures("Overweight").F
+      features.foreach(f => scoreBoard(f) = scoreBoard.getOrElse(f,0.0) + f1)
+    }
+    scoreBoard.toMap.foreach{ case (feature, f1) => logger.info(f"$feature: $f1%1.3f") }
+
+    // We select featureSets based on those votes
+    val selected = scoreBoard.toSeq.sortBy(_._2).takeRight(maxFeats).map(_._1).toSet
+
+    logger.info(s"Selected ${selected.mkString(", ")}")
+
+    // We trim our dataset to contain only the selected features
+    val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
+    val reducedDS = dataset.keepOnly(selected.flatMap(g => featureGroups(g)))
+
+    // We pick the head arbitrarily because all these folds have the same 'test' fold
+    val trainIndices = (folds.head.train ++ folds.head.dev).toArray
+    val finalClassifier = classifierFactory()
+
+    // Then we train a final classifier on all but the test fold,
+    // and make predictions on the previously unseen test fold
+    finalClassifier.train(Utils.keepRows(reducedDS, trainIndices))
+    val predictions = for(i <- folds.head.test) yield {
+      val gold = reducedDS.labelLexicon.get(reducedDS.labels(i))
+      val datum = reducedDS.mkDatum(i)
+      val pred = finalClassifier.classOf(datum)
+      (gold, pred)
+    }
+
+    predictions
   }
 }
 

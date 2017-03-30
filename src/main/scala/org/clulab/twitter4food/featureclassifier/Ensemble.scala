@@ -20,21 +20,18 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
   def overweightCV(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
+    partitions: Map[Long, Int],
+    portion: Double = 1.0, // This doesn't do anything yet
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
-    classifierFactory: () => LiblinearClassifier[String, String],
-    numFolds: Int = 10,
-    seed: Int = 73
+    classifierFactory: () => LiblinearClassifier[String, String]
   ): Seq[(String, String)] = {
 
-    val numFeatures = 30
-    val numAccts = 20
-
-    val handles = accounts.map(_.handle).sorted
+    val ids = accounts.sortBy(_.handle).map(_.id)
 
     // Important: this dataset is sorted by account handle
     val datasets = for (c <- classifiers) yield c.constructDataset(accounts, labels, followers, followees)
-    val folds = classifiers.head.mkStratifiedTrainTestFolds(numFolds, datasets.head, seed)
+    val folds = classifiers.head.foldsFromIds(ids, partitions)
 
     val preVote = for (dataset <- datasets) yield {
       val dsPreds = for (fold <- folds) yield {
@@ -52,10 +49,10 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
         }
         predictions
       }
-      dsPreds.flatten.toSeq
+      dsPreds.flatten
     }
 
-    val voted = for (i <- handles.indices) yield {
+    val voted = for (i <- ids.indices) yield {
       val sums = new Counter[String]()
       preVote.foreach { ds =>
         val score = ds(i)._2
