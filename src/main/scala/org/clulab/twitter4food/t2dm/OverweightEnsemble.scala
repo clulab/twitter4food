@@ -78,9 +78,8 @@ object OverweightEnsemble {
 
     val evals = for {
       portion <- portions
-      maxIndex = (portion * labeledAccts.length).toInt
     } yield {
-      val (accts, lbls) = labeledAccts.slice(0, maxIndex).unzip
+      val (accts, lbls) = labeledAccts
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -133,7 +132,7 @@ object OverweightEnsemble {
       val ocs = new Ensemble(Seq(oc1, oc2))
 
       logger.info("Training classifiers...")
-      val predictions = ocs.overweightCV(accts, lbls, partitions, followers, followees, Utils.svmFactory)
+      val predictions = ocs.overweightCV(accts, lbls, partitions, portion, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)

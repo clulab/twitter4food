@@ -21,6 +21,7 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     partitions: Map[Long, Int],
+    portion: Double = 1.0, // This doesn't do anything yet
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String]
