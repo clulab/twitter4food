@@ -41,7 +41,7 @@ object OverweightEnsemble {
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
-    val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
+    val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "") + "Ensemble"
 
     val outputDir = config.getString("classifier") + "/overweight/results/" + fileExt
     if (!Files.exists(Paths.get(outputDir))) {
@@ -50,32 +50,36 @@ object OverweightEnsemble {
     }
 
     val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
-    // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
+
+    val partitionFile = if (params.usProps)
+      config.getString("classifiers.overweight.usFolds")
+    else
+      config.getString("classifiers.overweight.folds")
+
+    val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
+      user(1).toLong -> user(0).toInt // id -> partition
+    }.toMap
 
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data_raw"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
-
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
+      .filter{ case (acct, lbl) => partitions.contains(acct.id)}
 
     val followers = if(params.useFollowers) {
       logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(subsampled.map(_._1)))
+      Option(ClassifierImpl.loadFollowers(labeledAccts.map(_._1)))
     } else None
 
     val followees = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(subsampled.map(_._1), "overweight"))
+      Option(ClassifierImpl.loadFollowees(labeledAccts.map(_._1), "overweight"))
     } else None
 
     val evals = for {
       portion <- portions
-      maxIndex = (portion * subsampled.length).toInt
     } yield {
-      val (accts, lbls) = subsampled.slice(0, maxIndex).unzip
+      val (accts, lbls) = labeledAccts.unzip
 
       val oc1 = new OverweightClassifier(
         useUnigrams = default || params.useUnigrams,
@@ -128,7 +132,7 @@ object OverweightEnsemble {
       val ocs = new Ensemble(Seq(oc1, oc2))
 
       logger.info("Training classifiers...")
-      val predictions = ocs.overweightCV(accts, lbls, followers, followees, Utils.svmFactory)
+      val predictions = ocs.overweightCV(accts, lbls, partitions, portion, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)

@@ -37,6 +37,7 @@ object Utils {
     datumScaling: Boolean = false,
     featureScaling: Boolean = false,
     fpnAnalysis: Boolean = false,
+    usProps: Boolean = false,
     runOnTest: Boolean = false,
     learningCurve: Boolean = false
   )
@@ -130,6 +131,8 @@ object Utils {
         c.copy(featureScaling = true)} text "use feature scaling"
       opt[Unit]("analysis") action { (x, c) =>
         c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"
+      opt[Unit]("usProps") action { (x, c) =>
+        c.copy(usProps = true)} text "Use US proportions on overweight classifier"
       opt[Unit]("test") action { (x, c) =>
         c.copy(runOnTest = true)} text "run on test dataset (default: dev dataset)"
       opt[Unit]("learningCurve") action { (x, c) =>
