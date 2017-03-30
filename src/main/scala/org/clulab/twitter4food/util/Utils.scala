@@ -34,6 +34,8 @@ object Utils {
     useAge: Boolean = false,
     useRace: Boolean = false,
     useHuman: Boolean = false,
+    dictOnly: Boolean = false,
+    denoise: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false,
     fpnAnalysis: Boolean = false,
@@ -129,6 +131,10 @@ object Utils {
         c.copy(datumScaling = true)} text "use datum scaling"
       opt[Unit]('S', "featureScaling") action { (x, c) =>
         c.copy(featureScaling = true)} text "use feature scaling"
+      opt[Unit]("dictOnly") action { (x, c) =>
+        c.copy(dictOnly = true)} text "only unigrams from manual dictionary are features"
+      opt[Unit]("denoise") action { (x, c) =>
+        c.copy(denoise = true)} text "try to filter out automated tweets"
       opt[Unit]("analysis") action { (x, c) =>
         c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"
       opt[Unit]("usProps") action { (x, c) =>
