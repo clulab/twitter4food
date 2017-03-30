@@ -157,7 +157,9 @@ object OverweightClassifier {
         useFollowees = params.useFollowees,
         useRT = params.useRT,
         useGender = params.useGender,
-        useRace = params.useRace,
+        // useRace = params.useRace,
+        dictOnly = params.dictOnly,
+        denoise = params.denoise,
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 
