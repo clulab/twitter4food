@@ -94,6 +94,7 @@ class ClassifierImpl(
     dictOnly=dictOnly,
     denoise=denoise,
     datumScaling=datumScaling,
+    variable=variable,
     customFeatures=customFeatures)
 
   /** subClassifier that does the actual training over {@link dataset} */
@@ -112,14 +113,6 @@ class ClassifierImpl(
     labels: Seq[String],
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
-
-    // Load lexicons before calling train
-    if(useDictionaries || dictOnly) {
-      logger.info("Loading dictionaries...")
-      // For each label, populate list of lexicon filepaths from config
-      val lexMap = populateLexiconList(labels.toSet, this.variable)
-      this.featureExtractor.setLexicons(lexMap)
-    }
 
     if (useFollowers && followers.nonEmpty) this.featureExtractor.setFollowers(followers.get)
     if (useFollowees && followees.nonEmpty) this.featureExtractor.setFollowees(followees.get)
@@ -845,18 +838,6 @@ object ClassifierImpl {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  /** Populates list of lexicons from config file. Separate function
-    * for easy testing.
-    *
-    * @param labelSet Set of labels
-    * @param ctype Type of classifier
-    * @return map of label -> Seq of lexicon file names
-    */
-  def populateLexiconList(labelSet: Set[String], ctype: String) = {
-    labelSet.foldLeft(Map[String, Seq[String]]())(
-      (m, l) => m + (l ->
-        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
-  }
 
   def loadFollowees(accounts: Seq[TwitterAccount], variable: String): Map[String, Seq[String]] = {
     val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followeeRelations"))

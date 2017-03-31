@@ -8,7 +8,7 @@ import jline.console.ConsoleReader
 import jline.console.history.FileHistory
 import org.clulab.struct.Lexicon
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
-import org.clulab.twitter4food.struct.TwitterAccount
+import org.clulab.twitter4food.struct.{FeatureExtractor, TwitterAccount}
 import org.slf4j.LoggerFactory
 
 /**
@@ -112,7 +112,7 @@ object ExamineUser extends App {
     */
   def loadLexicons(labelSet: Set[String], ctype: String): Set[String] = {
     logger.info(s"Loading $ctype lexicons")
-    val lexiconMap = ClassifierImpl.populateLexiconList(labelSet, ctype)
+    val lexiconMap = FeatureExtractor.populateLexiconList(labelSet, ctype)
     val l = lexiconMap map {
       case (k, v) => (k, v.map(fileName => {
         val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
