@@ -108,6 +108,8 @@ class ClassifierImpl(
   val lowerBound = 0.0
   val upperBound = 1.0
 
+  val freqThreshold = 1
+
   def constructDataset(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
@@ -136,6 +138,8 @@ class ClassifierImpl(
     pb.stop()
 
     datums.foreach(datum => this.synchronized { dataset += datum })
+
+    dataset.removeFeaturesByFrequency(freqThreshold)
 
     dataset
   }
@@ -771,7 +775,7 @@ class ClassifierImpl(
 
     // Important: this dataset is sorted by id
     val dataset = constructDataset(accounts, labels, followers, followees)
-    val ids = accounts.sortBy(_.handle).map(_.id)
+    val ids = accounts.map(_.id).sorted
     val folds = devFoldsFromIds(ids, partitions)
 
     val results = for {
