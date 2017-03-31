@@ -54,7 +54,12 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
       dsPreds.flatten
     }
 
-    val voted = for (i <- ids.indices) yield {
+    assert(preVote.forall(_.length == preVote.head.length), "must have the same elements for comparison")
+    assert(preVote.forall(_.unzip._1 == preVote.head.unzip._1), "must have the same elements for comparison")
+
+    val greatestPossible = (preVote.map(_.length) :+ ids.length).min
+
+    val voted = for (i <- 0 until greatestPossible) yield {
       val sums = new Counter[String]()
       preVote.foreach { ds =>
         val score = ds(i)._2
