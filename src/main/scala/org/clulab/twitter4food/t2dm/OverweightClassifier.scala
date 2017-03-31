@@ -169,7 +169,7 @@ object OverweightClassifier {
 
       val (predictions, avgWeights, falsePos, falseNeg) =
         oc.overweightCV(
-          accts.filter(a => partitions contains a.id),
+          accts,
           lbls,
           partitions,
           portion,

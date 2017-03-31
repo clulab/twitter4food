@@ -136,7 +136,7 @@ class ClassifierImpl(
       case (account, label) => {
         pb.step()
         // keep handle to sort with
-        (account.handle, featureExtractor.mkDatum(account, label))
+        (account.id, featureExtractor.mkDatum(account, label))
       }
     }).seq.sortBy(_._1).unzip._2
 
@@ -693,7 +693,7 @@ class ClassifierImpl(
 
     // Important: this dataset is sorted by id
     val dataset = constructDataset(accounts, labels, followers, followees)
-    val ids = accounts.sortBy(_.handle).map(_.id)
+    val ids = accounts.map(_.id).sorted
     val folds = foldsFromIds(ids, partitions)
 
     val results = for (fold <- folds) yield {
