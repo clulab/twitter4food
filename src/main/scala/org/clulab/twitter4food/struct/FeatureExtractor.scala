@@ -876,6 +876,7 @@ class FeatureExtractor (
 
 
   def dictFilter(text: Array[String]): Array[String] = {
+    assert(! (dictOnly && allDicts.isEmpty))
     if(allDicts.nonEmpty) {
       text.filter(w => allDicts.get.exists(lex => lex.contains(w)))
     } else text

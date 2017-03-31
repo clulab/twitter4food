@@ -27,10 +27,11 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
     classifierFactory: () => LiblinearClassifier[String, String]
   ): Seq[(String, String)] = {
 
-    val ids = accounts.sortBy(_.handle).map(_.id)
-
-    // Important: this dataset is sorted by account handle
+    // Important: this dataset is sorted by account id
     val datasets = for (c <- classifiers) yield c.constructDataset(accounts, labels, followers, followees)
+    assert(datasets.forall(ds => ds.size == accounts.length), "Must have complete datasets")
+
+    val ids = accounts.map(_.id).sorted
     val folds = classifiers.head.foldsFromIds(ids, partitions)
 
     val preVote = for (dataset <- datasets) yield {
@@ -42,8 +43,9 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
         val classifier = classifierFactory()
         classifier.train(dataset, fold.train.toArray)
         val predictions = for (i <- fold.test) yield {
-          val datum = dataset.mkDatum(i)
+          val id = ids(i).toString
           val gold = dataset.labelLexicon.get(dataset.labels(i))
+          val datum = dataset.mkDatum(i)
           val score = classifier.scoresOf(datum)
           (gold, score)
         }
