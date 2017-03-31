@@ -542,9 +542,9 @@ class ClassifierImpl(
     */
   def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainTestFold] = {
     val numPartitions = partitions.values.max
-    val allIndices = (for (i <- ids.indices) yield i).toSet
+    val allIndices = ids.indices.toSet
     val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
-      idx -> partitions.getOrElse(id, -1)
+      idx -> partitions(id)
     }
     val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
     for (p <- 0 until numPartitions) yield {
@@ -554,17 +554,18 @@ class ClassifierImpl(
 
   /**
     * Returns a [[Seq]] of [[TrainDevTestFold]]s given unique ids and a map of what partition they belong in.
-    * The test fold is the same for all [[TrainDevTestFold]]s to maintain independence.
+    * The test fold is the same for all [[TrainDevTestFold]]s to maintain the independence of test throughout feature
+    * selection.
     */
   def devFoldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainDevTestFold] = {
-    val numPartitions = partitions.values.max
-    val allIndices = (for (i <- ids.indices) yield i).toSet
+    val lastPartition = partitions.values.max
+    val allIndices = ids.indices.toSet
     val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
-      idx -> partitions.getOrElse(id, -1)
+      idx -> partitions(id)
     }
     val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
-    val test = foldToIndices(foldToIndices.keys.max) // the test partition will be the same in all cases
-    for (p <- 0 until numPartitions - 1) yield {
+    val test = foldToIndices(lastPartition) // the test partition will be the same in all cases
+    for (p <- 0 until lastPartition) yield {
       TrainDevTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p) -- test).toSeq, test.toSeq)
     }
   }

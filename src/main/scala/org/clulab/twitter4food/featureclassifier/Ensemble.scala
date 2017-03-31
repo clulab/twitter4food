@@ -43,7 +43,6 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
         val classifier = classifierFactory()
         classifier.train(dataset, fold.train.toArray)
         val predictions = for (i <- fold.test) yield {
-          val id = ids(i).toString
           val gold = dataset.labelLexicon.get(dataset.labels(i))
           val datum = dataset.mkDatum(i)
           val score = classifier.scoresOf(datum)
