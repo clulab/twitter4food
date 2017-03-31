@@ -771,7 +771,7 @@ class ClassifierImpl(
 
     // Important: this dataset is sorted by id
     val dataset = constructDataset(accounts, labels, followers, followees)
-    val ids = accounts.sortBy(_.handle).map(_.id)
+    val ids = accounts.map(_.id).sorted
     val folds = devFoldsFromIds(ids, partitions)
 
     val results = for {
@@ -809,7 +809,7 @@ class ClassifierImpl(
     // We select featureSets based on those votes
     val selected = scoreBoard.toSeq.sortBy(_._2).takeRight(maxFeats).map(_._1).toSet
 
-    logger.info(s"Selected ${selected.mkString(", ")}")
+    logger.info(s"Final selection: ${selected.mkString(", ")}")
 
     // We trim our dataset to contain only the selected features
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
