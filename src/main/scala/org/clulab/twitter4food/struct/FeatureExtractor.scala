@@ -7,7 +7,6 @@ import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, R
 import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.struct.Normalization._
 import org.clulab.twitter4food.util.Utils._
-import org.clulab.twitter4food.util.FileUtils._
 import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, GenderClassifier, HumanClassifier}
@@ -15,6 +14,7 @@ import org.clulab.twitter4food.lda.LDA
 import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -72,6 +72,7 @@ class FeatureExtractor (
   val dictOnly: Boolean = false,
   val denoise: Boolean = false,
   val datumScaling: Boolean = false,
+  val variable: String,
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
   import FeatureExtractor._
@@ -108,7 +109,19 @@ class FeatureExtractor (
 
   // Dictionaries : Map[Label -> Map[LexiconName -> Lexicon]]
   // Messy, but useful data structure.
-  var lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = None
+  val lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = if(useDictionaries || dictOnly) {
+    val lbls = config.getStringList(s"classifiers.${this.variable}.possibleLabels").asScala.toSet
+    val lexMap = populateLexiconList(lbls, this.variable)
+    val l = lexMap map {
+      case (k, v) => (k, v.map(fileName => {
+        val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
+          fileName.indexOf("."))
+        (lexName, Lexicon.loadFrom[String](fileName))
+      }).toMap)
+    }
+
+    Option(l)
+  } else None
 
   // Additional annotations for food words: average calories of foods with this ingredient in the name; average health
   // rating of these foods. These are used in the dictionaries() features
@@ -251,21 +264,6 @@ class FeatureExtractor (
     */
   def copyCounter[T](counter: Counter[T]): Counter[T] = counter.map(kv => kv._2)
 
-  /** Reads a sequence of filenames for each label as a sequence of lexicons
-    *
-    * @param lexiconMap A map of (label -> sequence of filenames)
-    */
-  def setLexicons(lexiconMap: Map[String, Seq[String]]) = {
-    val l = lexiconMap map {
-      case (k, v) => (k, v.map(fileName => {
-        val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
-          fileName.indexOf("."))
-        (lexName, Lexicon.loadFrom[String](fileName))
-      }).toMap)
-    }
-    this.lexicons = Some(l)
-  }
-
   /**
     * Set the value of {@link handleToFollowees}
     */
@@ -280,7 +278,7 @@ class FeatureExtractor (
     handleToFollowerAccount = Option(followers)
   }
 
-  val allDicts = if (dictOnly && lexicons.nonEmpty) Option(lexicons.get("Overweight").values.toSeq) else None
+  val allDicts = if (dictOnly) Option(lexicons.get("Overweight").values.toSeq) else None
 
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
@@ -889,6 +887,20 @@ object FeatureExtractor {
   val stopWordsFile = scala.io.Source.fromFile(config.getString("classifiers.features.stopWords"))
   val stopWords = stopWordsFile.getLines.toSet
   stopWordsFile.close
+
+  /** Populates list of lexicons from config file. Separate function
+    * for easy testing.
+    *
+    * @param labelSet Set of labels
+    * @param ctype Type of classifier
+    * @return map of label -> Seq of lexicon file names
+    */
+  def populateLexiconList(labelSet: Set[String], ctype: String) = {
+    labelSet.foldLeft(Map[String, Seq[String]]())(
+      (m, l) => m + (l ->
+        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
+  }
+
 
   // NOTE: all features that run over description and tweets should probably apply this for consistency.
   // If the feature calculator uses tokenized tweets, this should already be done, but stopwords aren't filtered
