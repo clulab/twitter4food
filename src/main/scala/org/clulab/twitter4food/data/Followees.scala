@@ -1,4 +1,4 @@
-package org.clulab.twitter4food.featureclassifier
+package org.clulab.twitter4food.data
 
 import java.io.{BufferedWriter, FileWriter}
 import java.nio.file.{Files, Paths}

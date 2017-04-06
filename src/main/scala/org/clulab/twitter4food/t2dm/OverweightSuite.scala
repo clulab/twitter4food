@@ -11,12 +11,23 @@ object OverweightSuite {
     val logger = LoggerFactory.getLogger(this.getClass)
     val config = ConfigFactory.load
 
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data")).toSeq
+    // just for finding whether we're using US proportions or all accounts
+    val params = Utils.parseArgs(args)
+    val partitionFile = if (params.usProps)
+      config.getString("classifiers.overweight.usFolds")
+    else
+      config.getString("classifiers.overweight.folds")
 
-    // Scale number of accounts so that weights aren't too biased against Overweight
-    val desiredProps = Map( "Overweight" -> 0.5, "Not overweight" -> 0.5 )
-    val subsampled = Utils.subsample(labeledAccts, desiredProps)
-    val (accounts, labels) = subsampled.unzip
+    val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
+      user(1).toLong -> user(0).toInt // id -> partition
+    }.toMap
+
+    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+      .toSeq
+      .filter(_._1.tweets.nonEmpty)
+      .filter{ case (acct, lbl) => partitions.contains(acct.id)}
+
+    val (accounts, labels) = labeledAccts.unzip
 
     logger.info("Loading follower accounts...")
     val followers = ClassifierImpl.loadFollowers(accounts)
@@ -34,18 +45,27 @@ object OverweightSuite {
       useMaxEmbeddings = true,
       useCosineSim = true,
       useTimeDate = true,
+      useFoodPerc = true,
+      useCaptions = true,
       useFollowers = true,
       useFollowees = true,
       useRT = true,
       useGender = true,
+      useAge = true,
       useRace = true,
       useHuman = true,
       datumScaling = true
     )
 
-    val dataset = oc.constructDataset(accounts, labels, Option(followers), Option(followees))
+    val predictions = oc.fscv(accounts,
+      labels,
+      partitions,
+      Option(followers),
+      Option(followees),
+      Utils.svmFactory,
+      Eval.f1ForLabel("Overweight")
+    )
 
-    val predictions = oc.fscv(dataset, Utils.svmFactory, Eval.f1ForLabel("Overweight"))
 
     // Print results
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)

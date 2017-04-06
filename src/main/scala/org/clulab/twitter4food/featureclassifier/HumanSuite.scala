@@ -36,7 +36,7 @@ object HumanSuite {
       useTimeDate = true,
       // useFollowers = true, // we don't currently have their followers
       useFollowees = true,
-      useRT=true,
+      useRT = true,
       datumScaling = true,
       customFeatures = HumanClassifier.customFeatures
     )

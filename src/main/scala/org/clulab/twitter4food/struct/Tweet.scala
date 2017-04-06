@@ -24,7 +24,7 @@ class Tweet (val text: String,
   /**
     * Returns true if the tweet is a retweet. Assumes pre-tokenized text
     */
-  def isRetweet: Boolean = this.text.startsWith("RT ") || this.text.startsWith("rt ")
+  def isRetweet: Boolean = this.text.startsWith("RT ")
 
   /**
     * Returns true if the tweet is addressed using (at least one) @mention. Assumes pre-tokenized text

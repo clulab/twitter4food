@@ -7,8 +7,7 @@ import java.util.Date
 import org.clulab.twitter4food.struct._
 
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.collection.parallel.immutable
+import scala.collection.mutable.ArrayBuffer
 
 object FileUtils {
   def saveToFile(users: Seq[TwitterAccount], labels: Seq[String],
@@ -208,5 +207,16 @@ object FileUtils {
     file.close
 
     texts
+  }
+
+  def writeToCsv(fileName: String, toWrite: Seq[Seq[String]], sep: String = ","): Unit = {
+    val writer = new BufferedWriter(new FileWriter(fileName, false))
+    toWrite.foreach{ row => writer.write(row.mkString(sep) + "\n") }
+    writer.close()
+  }
+
+  def readFromCsv(fileName: String, sep: String = ","): Seq[Seq[String]] = {
+    val file = scala.io.Source.fromFile(fileName)
+    file.getLines.map(_.trim.split(sep).toSeq).toSeq
   }
 }

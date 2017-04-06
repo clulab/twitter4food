@@ -8,7 +8,7 @@ import jline.console.ConsoleReader
 import jline.console.history.FileHistory
 import org.clulab.struct.Lexicon
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
-import org.clulab.twitter4food.struct.TwitterAccount
+import org.clulab.twitter4food.struct.{FeatureExtractor, TwitterAccount}
 import org.slf4j.LoggerFactory
 
 /**
@@ -48,7 +48,7 @@ object ExamineUser extends App {
         logger.info("Loading users")
         users = FileUtils.load(config.getString("classifiers.gender.data"))
         lexicon = loadLexicons(Set("F", "M"), "gender")
-      case "" => printCorpora
+      case _ => printCorpora
     }
   }
 
@@ -112,7 +112,7 @@ object ExamineUser extends App {
     */
   def loadLexicons(labelSet: Set[String], ctype: String): Set[String] = {
     logger.info(s"Loading $ctype lexicons")
-    val lexiconMap = ClassifierImpl.populateLexiconList(labelSet, ctype)
+    val lexiconMap = FeatureExtractor.populateLexiconList(labelSet, ctype)
     val l = lexiconMap map {
       case (k, v) => (k, v.map(fileName => {
         val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
@@ -138,7 +138,7 @@ object ExamineUser extends App {
     sb.append(s"# tweets: ${normals.length}\n")
 
     if (ta.tweets.nonEmpty) {
-      val relevance = normals.map(t => t -> t.text.split(" +").count(lexicon.contains)).toMap
+      val relevance = normals.map(t => t -> t.text.split("\\s+").count(lexicon.contains)).toMap
       val relevantTerms = relevance.values.toSeq
       val relevantPerTweet = relevantTerms.sum.toFloat / relevantTerms.length
       val percentRelevant = relevantTerms.count(_ > 0).toFloat / relevantTerms.length * 100.0
