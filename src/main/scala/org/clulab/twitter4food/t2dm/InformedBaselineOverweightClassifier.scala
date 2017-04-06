@@ -175,10 +175,9 @@ object InformedBaselineOverweightClassifier {
 
       logger.info("Running the informed baseline classifier...")
       
-      val OWindicatingWords = Array[String]("beef", "cake", "chocolate", "dessert")
-      val NOindicatingWords = Array[String]("salad", "exercise", "fit", "vegan")
+      val OWindicatingWords = Array[String]("fuck", "retweet", "chance", "shit", "ass", "fat", "hate", "damn", "rt", "sad", "wow")
+      val NOindicatingWords = Array[String]("#cook", "#healthy", "#food", "#recipe", "#health", "#fitness", "#breakfast", "#vegan", "workout", "#dinner", "#lunch", "#love", "salad")
       
-      val x = accts.zip(lbls)
       val predictions = for((ac,lbl) <- accts.zip(lbls)) yield {
         val pred = computeInformedBaselineLabel(ac, OWindicatingWords, NOindicatingWords)
         (lbl, pred)
