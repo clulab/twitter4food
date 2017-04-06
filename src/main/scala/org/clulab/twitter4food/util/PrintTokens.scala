@@ -17,15 +17,22 @@ object PrintTokens {
     * Prints each account's tweets (one per line) to its own file.
     * Tweets are pre-tokenized (so no newlines w/i text).
     */
-  def writeTokens(accounts: Seq[Seq[String]], loc: String): Unit = {
+  def writeTokens(accounts: Map[Long, Seq[String]], loc: String): Unit = {
+    val pb = new me.tongfei.progressbar.ProgressBar("printing", 100)
+    pb.start()
+    pb.maxHint(accounts.size)
+
     val locFile = new File(loc)
     if (!locFile.exists) locFile.mkdir()
-    accounts.zipWithIndex.foreach{ case (tweets, i) =>
-      val fileName = s"$loc$sep$i.txt"
+    accounts.foreach{ case (id, tweets) =>
+      val fileName = s"$loc$sep$id.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
       writer.write(tweets.mkString("\n"))
       writer.close()
+      pb.step()
     }
+
+    pb.stop()
   }
 
   /**
@@ -36,35 +43,15 @@ object PrintTokens {
     val dataset = if(args.isEmpty) "overweight" else args.head
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString(s"classifiers.$dataset.data"))
-      .toSeq
-      .filter(_._1.tweets.nonEmpty)
-
-    // Scale number of accounts equally so that weights aren't too biased against any one variable value
-    val allLabels = labeledAccts.unzip._2.toSet
-    val desiredProps = for (lbl <- allLabels) yield lbl -> 1.0 / allLabels.size
-    val subsampled = Utils.subsample(labeledAccts, desiredProps.toMap)
-
-    // Make sure equal number of each label in both train and test
-    val lblToAccts = subsampled.groupBy(_._2)
-    val texts = lblToAccts.map{ case (lbl, accountsWithLabels) =>
-      lbl -> accountsWithLabels.map{ case (account, acctLabel) => account.tweets.map(_.text) }
-    }
-    // All variable values should have equal length
-    val numInTest = (texts.head._2.length * 0.8).toInt + 1
+    val labeledAccts = FileUtils.load(config.getString(s"classifiers.$dataset.data")).toSeq
 
     logger.info("Writing tokens in LSTM-readable format")
 
-    val trainFile = new File(s"$base${sep}train")
-    if (! trainFile.exists) trainFile.mkdir()
-    val testFile = new File(s"$base${sep}test")
-    if (! testFile.exists) testFile.mkdir()
-
-    texts.foreach{ case (lbl, text) =>
+    labeledAccts.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
       // folderNames should not contain whitespace
       val folderName = lbl.replaceAll("[^a-zA-Z0-9]+", "")
-      writeTokens(text.slice(0, numInTest), s"$base${sep}train$sep$folderName")
-      writeTokens(text.slice(numInTest, text.length), s"$base${sep}test$sep$folderName")
+      val texts = acctsWithLabels.map(al => al._1.id -> al._1.tweets.map(_.text)).toMap
+      writeTokens(texts, s"$base$sep$folderName")
     }
   }
 }

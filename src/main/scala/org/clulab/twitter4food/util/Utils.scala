@@ -24,16 +24,22 @@ object Utils {
     useMaxEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
     useTimeDate: Boolean = false,
+    useFoodPerc: Boolean = false,
+    useCaptions: Boolean = false,
     useCustomAction: Boolean = false,
     useFollowers: Boolean = false,
     useFollowees: Boolean = false,
-    useGender: Boolean = false,
     useRT: Boolean = false,
+    useGender: Boolean = false,
+    useAge: Boolean = false,
     useRace: Boolean = false,
     useHuman: Boolean = false,
+    dictOnly: Boolean = false,
+    denoise: Boolean = false,
     datumScaling: Boolean = false,
     featureScaling: Boolean = false,
     fpnAnalysis: Boolean = false,
+    usProps: Boolean = false,
     runOnTest: Boolean = false,
     learningCurve: Boolean = false
   )
@@ -101,26 +107,40 @@ object Utils {
         c.copy(useCosineSim = true)} text "use cosine similarity"
       opt[Unit]('w', "timeDate") action { (x, c) =>
         c.copy(useTimeDate = true)} text "use tweet time and date"
+      opt[Unit]('p', "foodPerc") action { (x, c) =>
+        c.copy(useFoodPerc = true)} text "use percentage of images containing food"
+      opt[Unit]('m', "captions") action { (x, c) =>
+        c.copy(useCaptions = true)} text "use unigrams of image captions"
       opt[Unit]('s', "customAction") action { (x, c) =>
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
       opt[Unit]('r', "retweet") action { (x, c) =>
         c.copy(useRT = true)} text "treat retweet n-grams differently"
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
-      opt[Unit]('r', "race") action { (x, c) =>
-        c.copy(useRace = true)} text "use race classifier (not implemented)"
+      opt[Unit]('o', "age") action { (x, c) =>
+        c.copy(useAge = true)} text "use age classifier"
+      //opt[Unit]('r', "race") action { (x, c) =>
+      //  c.copy(useRace = true)} text "use race classifier (not implemented)"
       opt[Unit]('h', "human") action { (x, c) =>
         c.copy(useHuman = true)} text "use human classifier"
       opt[Unit]('f', "followers") action { (x, c) =>
         c.copy(useFollowers = true)} text "use followers' features (same as this user)"
       opt[Unit]('F', "followees") action { (x, c) =>
         c.copy(useFollowees = true)} text "use followee handles"
+      opt[Unit]('r', "retweet") action { (x, c) =>
+        c.copy(useRT = true)} text "treat retweet n-grams differently"
       opt[Unit]('D', "datumScaling") action { (x, c) =>
         c.copy(datumScaling = true)} text "use datum scaling"
       opt[Unit]('S', "featureScaling") action { (x, c) =>
         c.copy(featureScaling = true)} text "use feature scaling"
+      opt[Unit]("dictOnly") action { (x, c) =>
+        c.copy(dictOnly = true)} text "only unigrams from manual dictionary are features"
+      opt[Unit]("denoise") action { (x, c) =>
+        c.copy(denoise = true)} text "try to filter out automated tweets"
       opt[Unit]("analysis") action { (x, c) =>
         c.copy(fpnAnalysis = true)} text "perform false positive/negative analysis"
+      opt[Unit]("usProps") action { (x, c) =>
+        c.copy(usProps = true)} text "Use US proportions on overweight classifier"
       opt[Unit]("test") action { (x, c) =>
         c.copy(runOnTest = true)} text "run on test dataset (default: dev dataset)"
       opt[Unit]("learningCurve") action { (x, c) =>
@@ -237,6 +257,21 @@ object Utils {
     selected.toSeq
   }
 
+  def denoise(account: TwitterAccount): TwitterAccount = {
+    val good = account.tweets.filterNot { tweet =>
+      val txt = tweet.text.split("\\s+")
+      val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "#latergram", "#regram", "…")
+      tweet.isRetweet || txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
+    }
+    account.copy(tweets=good)
+  }
+
+  def isNoise(tweet: Tweet): Boolean = {
+    val txt = tweet.text.split("\\s+")
+    val spammy = Seq("4sq", "instagr.am", "instagram.com", "fb.me", "#latergram", "#regram", "…")
+    tweet.isRetweet || txt.exists(tok => spammy.exists(spamwd => tok.contains(spamwd)))
+  }
+
   def keepRows[L, F](dataset: Dataset[L, F], rowsToKeep: Array[Int]): RVFDataset[L, F] = {
     val ds = dataset.asInstanceOf[RVFDataset[L, F]]
     new RVFDataset(
@@ -249,4 +284,6 @@ object Utils {
   }
 
   def dehashtag(wd: String): String = wd.replaceFirst("#", "")
+
+  def sanitizeHandle(h: String) = h.replaceFirst("@", "")
 }

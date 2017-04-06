@@ -14,6 +14,8 @@ import org.clulab.twitter4food.lda.LDA
 import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
+import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -36,9 +38,12 @@ import scala.collection.mutable.ArrayBuffer
   * @param useMaxEmbeddings maximum (by dimension) embeddings of all account words
   * @param useCosineSim similarity to a corpus of overweight-related tweets
   * @param useTimeDate time- and day-based features
-  * @param useFollowers domain transfer from follower acccounts
+  * @param useFoodPerc use the percentage of user images containing food
+  * @param useFollowers domain transfer from follower accounts
   * @param useFollowees account followee handles
+  * @param useRT treat retweet and non-RT n-grams differently, Daume-style
   * @param useGender domain transfer based on classification of account gender
+  * @param useAge domain transfer based on classification of account age
   * @param useRace domain transfer based on classification of account race
   * @param useHuman limit follower domain transfer to those judged as human
   * @param datumScaling scale by account
@@ -55,13 +60,19 @@ class FeatureExtractor (
   val useMaxEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useTimeDate: Boolean = false,
+  val useFoodPerc: Boolean = false,
+  val useCaptions: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useRT: Boolean = false,
   val useGender: Boolean = false,
+  val useAge: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
+  val dictOnly: Boolean = false,
+  val denoise: Boolean = false,
   val datumScaling: Boolean = false,
+  val variable: String,
   val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
   import FeatureExtractor._
@@ -78,9 +89,13 @@ class FeatureExtractor (
     s"useMaxEmbeddings=$useMaxEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
     s"useTimeDate=$useTimeDate, " +
+    s"useFoodPerc=$useFoodPerc, " +
+    s"useCaptions=$useCaptions, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
+    s"useRT=$useRT, " +
     s"useGender=$useGender, " +
+    s"useAge=$useAge, " +
     s"useRace=$useRace, " +
     s"useHuman=$useHuman, " +
     s"datumScaling=$datumScaling"
@@ -94,7 +109,19 @@ class FeatureExtractor (
 
   // Dictionaries : Map[Label -> Map[LexiconName -> Lexicon]]
   // Messy, but useful data structure.
-  var lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = None
+  val lexicons: Option[Map[String, Map[String, Lexicon[String]]]] = if(useDictionaries || dictOnly) {
+    val lbls = config.getStringList(s"classifiers.${this.variable}.possibleLabels").asScala.toSet
+    val lexMap = populateLexiconList(lbls, this.variable)
+    val l = lexMap map {
+      case (k, v) => (k, v.map(fileName => {
+        val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
+          fileName.indexOf("."))
+        (lexName, Lexicon.loadFrom[String](fileName))
+      }).toMap)
+    }
+
+    Option(l)
+  } else None
 
   // Additional annotations for food words: average calories of foods with this ingredient in the name; average health
   // rating of these foods. These are used in the dictionaries() features
@@ -109,6 +136,7 @@ class FeatureExtractor (
       if (splits(1) != "NULL") cMap(splits(0)) = splits(1).toDouble
       if (splits(2) != "NULL") cMap(splits(0)) = splits(2).toInt
     }
+    foodAnnotations.close()
     (Some(cMap.toMap), Some(hMap.toMap))
   } else (None, None)
 
@@ -116,6 +144,28 @@ class FeatureExtractor (
   val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
   // tdidf vector for overweight corpus
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
+
+  // % food images annotations
+  val (twFoodPerc, igFoodPerc): (Option[Map[Long,Double]], Option[Map[Long,Double]]) = if (useFoodPerc) {
+    val twFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.twFoodPerc"))
+    val twAnnos = twFile.getLines.toSeq.map{ line =>
+      val elements = line.trim.split('\t').take(2)
+      elements.head.toLong -> elements.last.toDouble
+    }.toMap
+    twFile.close()
+
+    val igFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.igFoodPerc"))
+    val igAnnos = igFile.getLines.toSeq.map{ line =>
+      val elements = line.trim.split('\t').take(2)
+      elements.head.toLong -> elements.last.toDouble
+    }.toMap
+    igFile.close()
+
+    (Option(twAnnos), Option(igAnnos))
+  } else (None, None)
+
+  // image captions (generic)
+  val captions = if (useCaptions) Option(loadCaptions(config.getString("classifiers.overweight.captions"))) else None
 
   // Followees (to be set by setFollowees)
   var handleToFollowees: Option[Map[String, Seq[String]]] = None
@@ -188,6 +238,24 @@ class FeatureExtractor (
     Option(model)
   } else None
 
+  def trimQuotes(s: String): String = s.replaceAll("\"", "")
+
+  val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
+    val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
+    val bufferedSource = io.Source.fromFile(annoFile)
+    val rows = for (line <- bufferedSource.getLines) yield {
+      val cols = line.split(",").map(_.trim).map(trimQuotes)
+      assert(cols.length == 3)
+      if ((cols(1) != "NA" || cols(2) != "NA") && cols(0) != "id")
+        Option((cols(0), cols(1), cols(2)))
+      else
+        None
+    }
+    val age = rows.flatten.map{ case (id, a, g) => id -> a }.toMap
+    val gender = rows.flatten.map{ case (id, a, g) => id -> g }.toMap
+    (Option(age), Option(gender))
+  } else (None, None)
+
   // Followers (to be set by setFollowers())
   var handleToFollowerAccount: Option[Map[String, Seq[TwitterAccount]]] = None
 
@@ -195,21 +263,6 @@ class FeatureExtractor (
     * Copy a [[Counter]] so it's not accidentally overwritten
     */
   def copyCounter[T](counter: Counter[T]): Counter[T] = counter.map(kv => kv._2)
-
-  /** Reads a sequence of filenames for each label as a sequence of lexicons
-    *
-    * @param lexiconMap A map of (label -> sequence of filenames)
-    */
-  def setLexicons(lexiconMap: Map[String, Seq[String]]) = {
-    val l = lexiconMap map {
-      case (k, v) => (k, v.map(fileName => {
-        val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
-          fileName.indexOf("."))
-        (lexName, Lexicon.loadFrom[String](fileName))
-      }).toMap)
-    }
-    this.lexicons = Some(l)
-  }
 
   /**
     * Set the value of {@link handleToFollowees}
@@ -225,6 +278,8 @@ class FeatureExtractor (
     handleToFollowerAccount = Option(followers)
   }
 
+  val allDicts = if (dictOnly) Option(lexicons.get("Overweight").values.toSeq) else None
+
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
     *
@@ -232,7 +287,7 @@ class FeatureExtractor (
     * @param label classification label associated with this account
     */
   def mkDatum(account: TwitterAccount, label: String): Datum[String, String] = {
-    new RVFDatum[String, String](label, mkFeatures(account, this.useFollowers) + this.customFeatures(account))
+    new RVFDatum[String, String](label, mkFeatures(account, isProband = true) + this.customFeatures(account))
   }
 
   /**
@@ -243,54 +298,86 @@ class FeatureExtractor (
     counter
   }
 
+  def retokenize(t: String): Array[String] = {
+    val separated = t.trim.split("\\s+")
+    separated.map{
+      case "<@MENTION>" => "<@MENTION>"
+      case "<URL>" => "<URL>"
+      case "<NUMBER>" => "<NUMBER>"
+      case other => other.toLowerCase
+    }
+  }
+
   /**
     * Returns a [[Counter]] containing all the features signified by constructor flags
     *
     * @param account the [[TwitterAccount]] under analysis
-    * @param withFollowers include {@link account}'s followers if true
+    * @param isProband allow domain adaptation if yes (none for followers)
     */
-  def mkFeatures(account: TwitterAccount, withFollowers: Boolean = false): Counter[String] = {
+  def mkFeatures(account: TwitterAccount, isProband: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
-    val tweets = for (t <- account.tweets) yield t.text.trim.split(" +")
-    val description = account.description.trim.split(" +")
+    val description = account.description.trim.split("\\s+")
+    val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
+    val regularizedTweets = denoised.map(t => retokenize(t.text))
 
     var unigrams: Option[Counter[String]] = None
 
     if (useUnigrams | useDictionaries | useCosineSim)
-      unigrams = Some(scale(ngrams(1, account.tweets, description)))
+      unigrams = Some(scale(ngrams(1, denoised, description)))
     if (useUnigrams) {
       counter += unigrams.get
     }
     if (useBigrams)
-      counter += scale(ngrams(2, account.tweets, description))
+      counter += scale(ngrams(2, denoised, description))
     if (useName)
       counter += name(account)
     if (useTopics)
-      counter += scale(topics(tweets))
+      counter += scale(topics(regularizedTweets))
     if (useDictionaries)
-      counter += dictionaries(tweets, description, account, unigrams)
+      counter += dictionaries(denoised, description, account, unigrams)
     if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
-      counter += embeddings(tweets)
+      counter += embeddings(regularizedTweets)
     }
     if (useCosineSim)
-      counter += cosineSim(unigrams, account.tweets, description)
+      counter += cosineSim(unigrams, denoised, description)
     if (useTimeDate)
-      counter += timeDate(account.tweets)
+      counter += timeDate(denoised)
+    if (useFoodPerc)
+      counter += foodPerc(account.id)
+    if (useCaptions)
+      counter += captionNgrams(account.id)
     if (useFollowees)
       counter += scale(followees(account))
 
+    // Domain adaptation from here on -- no DA of DA
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
-    if (useGender & genderClassifier.nonEmpty) {
-      counter += prepend(s"gender:${genderClassifier.get.predict(account)}_", counter)
+    val daCounter = new Counter[String]
+
+    // use annotations if possible, then fall back to classifier
+    if (useGender && isProband) {
+      val acctGenderFirst = if (genderAnnotation.nonEmpty) genderAnnotation.get.get(account.id.toString) else None
+      val acctGenderSecond = if (acctGenderFirst.isEmpty && genderClassifier.nonEmpty)
+        genderClassifier.get.predict(account)
+      else "UNK"
+      daCounter += prepend(s"gender:${acctGenderFirst.getOrElse(acctGenderSecond)}_", counter)
     }
 
-    if (useRace) {
+    if (useAge && isProband && ageAnnotation.nonEmpty) {
+      val ageExact = ageAnnotation.get.get(account.id.toString)
+      val ageApprox = if (ageExact.nonEmpty) {
+        (ageExact.get.toDouble.round.toInt / 10 * 10).toString
+      } else "UNK"
+
+      daCounter += prepend(s"age:${ageApprox}_", counter)
+    }
+
+    if (useRace && isProband) {
       // TODO: predict account owner's race for domain adaptation
       // counter += prepend(s"race-${raceClassifier.get.predict(account)}_", counter)
     }
 
-    if (withFollowers) {
+    if (useFollowers && isProband) {
       val fc = followers(account)
 
       // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
@@ -300,8 +387,10 @@ class FeatureExtractor (
 
       val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
 
-      counter += prepend("follower:", fc.mapValues(v => v * followerProp))
+      daCounter += prepend("follower:", fc.mapValues(v => v * followerProp))
     }
+
+    counter += daCounter
 
     // remove zero values for sparse rep
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
@@ -339,62 +428,20 @@ class FeatureExtractor (
     * @param description Text description of [[TwitterAccount]]
     */
   def ngrams(n: Int, tweets: Seq[Tweet], description: Array[String]): Counter[String] = {
-    
-    var tweetsText = for (t <- tweets) yield t.text.trim.split(" +")
-    
-    if(n == 1 ) // if unigram features
-      tweetsText = tweetsText.map(filterStopWords)
-      
     val counter = new Counter[String]
+
+    val denoised = if (denoise) tweets.filterNot(isNoise) else tweets
+
     // special prefix for description tokens since they summarize an account more than tweets
     setCounts(tokenNGrams(n, description, "desc"), counter)
 
     // n-gram for tweets
-    tweetsText.zipWithIndex.foreach { t_i =>
-      val tweetText = t_i._1
-      val idx = t_i._2
-      val tweet = tweets(idx)
-      
-      setCounts(tokenNGrams(n, tweetText, ""), counter)
-
-      if (useRT) {
-        val isRT = tweet.isRetweet
-        if (isRT)
-          setCounts(tokenNGrams(n, tweetText, "RT_"), counter)
-        else
-          setCounts(tokenNGrams(n, tweetText, "NRT_"), counter)
-      }
-    }
-    
-    counter
-  }
-
-  /**
-    * Returns a [[Counter]] of ngrams from account's description and tweets with raw frequencies as weights.
-    *
-    * @param n Degree of n-gram (e.g. 1 refers to unigrams)
-    * @param description Text description of [[TwitterAccount]]
-    */
-  def rtngrams(n: Int, tweets: Seq[Tweet], description: Array[String]): Counter[String] = {
-
-    var tweetsText = for (t <- tweets) yield t.text.trim.split(" +")
-
-    if(n == 1) // if unigram features
-      tweetsText = tweetsText.map(filterStopWords)
-
-    val counter = new Counter[String]
-
-    // n-gram for tweets
-    tweetsText.zipWithIndex.foreach { t_i =>
-      val tweetText = t_i._1
-      val idx = t_i._2
-      val tweet = tweets(idx)
-
-        val isRT = tweet.isRetweet
-        if (isRT)
-          setCounts(tokenNGrams(n, tweetText, "RT_"), counter)
-        else
-          setCounts(tokenNGrams(n, tweetText, "NRT_"), counter)
+    denoised.foreach{ tweet =>
+      val split = retokenize(tweet.text) // split on whitespace
+    val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
+    val filtered = if (n == 1) filterStopWords(relevant) else relevant // remove stopwords
+      setCounts(tokenNGrams(n, filtered), counter) // always set n-gram counts
+      if (useRT) setCounts(tokenNGrams(n, filtered, if (tweet.isRetweet) "RT_" else "NRT_"), counter) // prepend if marking RT
     }
 
     counter
@@ -402,7 +449,6 @@ class FeatureExtractor (
 
   /**
     * Returns a [[Counter]] of character/word n-grams based on user's name and handle
-    *
     * @param account the [[TwitterAccount]] under analysis
     */
   def name(account: TwitterAccount): Counter[String] = {
@@ -414,7 +460,7 @@ class FeatureExtractor (
     setCounts(charNGrams(2, cleanHandle, "handle"), counter)
     setCounts(charNGrams(3, cleanHandle, "handle"), counter)
 
-    if (account.name.length > 3) setCounts(tokenNGrams(1, account.name.split(" +"), "name"), counter)
+    if (account.name.length > 3) setCounts(tokenNGrams(1, account.name.split("\\s+"), "name"), counter)
 
     // 1-, 2-, and 3-grams for the user's name
     setCounts(charNGrams(1, account.name, "name"), counter)
@@ -454,7 +500,7 @@ class FeatureExtractor (
 
     // Aggregate the counter for the followers using the other features being used
     // withFollowers must be false to prevent infinite regress
-    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, withFollowers = false)
+    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, isProband = false)
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)
@@ -487,7 +533,7 @@ class FeatureExtractor (
     * @param description pre-tokenized account description text
     * @param account the whole [[TwitterAccount]] under analysis
     */
-  def dictionaries(tweets: Seq[Array[String]],
+  def dictionaries(tweets: Seq[Tweet],
     description: Array[String],
     account: TwitterAccount,
     ngramCounter: Option[Counter[String]]): Counter[String] = {
@@ -542,7 +588,7 @@ class FeatureExtractor (
       val healthCount = new ArrayBuffer[Int]()
 
       // Use pre-existing ngrams, which probably exist, but generate them again if necessary.
-      val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, account.tweets, description)
+      val ng = if (ngramCounter.nonEmpty) ngramCounter.get else ngrams(1, tweets, description)
       ng.keySet.foreach{ k =>
         val wd = dehashtag(k)
         if(foodWords contains wd) {
@@ -647,7 +693,7 @@ class FeatureExtractor (
       // Actual tweet text is every third line
       if (i % 3 == 2) {
         // tweets are already tokenized and filtered, but stopwords are still there
-        filterStopWords(line.split(" +")).foreach(token => randomCounter.incrementCount(token))
+        filterStopWords(line.split("\\s+")).foreach(token => randomCounter.incrementCount(token))
         N += 1
         pb.step()
       }
@@ -679,7 +725,7 @@ class FeatureExtractor (
     while ( { line = overweightFile.readLine ; line != null } ) {
       if (i % 3 == 2) {
         // tweets are already tokenized and filtered, but stopwords are still there
-        filterStopWords(line.split(" +")).foreach(token => overweightCounter.incrementCount(token))
+        filterStopWords(line.split("\\s+")).foreach(token => overweightCounter.incrementCount(token))
         pb2.step()
       }
       i += 1
@@ -759,6 +805,80 @@ class FeatureExtractor (
 
     counter
   }
+
+  /**
+    * Returns a [[Counter]] with percentages of Twitter and Instagram image files containing food (if any exist)
+    */
+  def foodPerc(id: Long): Counter[String] = {
+    val counter = new Counter[String]
+
+    if (twFoodPerc.nonEmpty && twFoodPerc.get.contains(id)) {
+      counter.setCount("foodPerc:twitter", twFoodPerc.get(id))
+    }
+    if (igFoodPerc.nonEmpty && igFoodPerc.get.contains(id)) {
+      counter.setCount("foodPerc:instagram", igFoodPerc.get(id))
+    }
+
+    counter
+  }
+
+  def captionNgrams(id: Long, n: Int = 1): Counter[String] = {
+    val counter = new Counter[String]
+
+    if (captions.nonEmpty && captions.get.contains(id)) {
+      val userCaptions = captions.get(id)
+      userCaptions.foreach{ caption =>
+        val split = retokenize(caption) // split on whitespace
+      val filtered = if (n == 1) filterStopWords(split) else split // remove stopwords
+        setCounts(tokenNGrams(n, filtered, prefix = "cap_"), counter)
+      }
+    }
+
+    counter
+  }
+
+  /**
+    * Returns a map from TwitterAccount id to the captions for their images
+    */
+  private def loadCaptions(fileName: String): scala.collection.immutable.Map[Long, Seq[String]] = {
+    val file = scala.io.Source.fromFile(fileName)
+
+    val captions = new mutable.HashMap[Long, Seq[String]]
+
+    val lines = file.getLines.toSeq
+
+    // Start progress bar
+    val pb = new me.tongfei.progressbar.ProgressBar("captions", 100)
+    pb.start()
+    pb.maxHint(lines.length)
+
+    lines.foreach{ line =>
+      val chunks = line.trim.split("\t")
+      if (chunks.length > 2) {
+        // get user ID for image
+        val id = chunks.head.toLong
+        // get most likely caption only, getting rid of extra parenthesis
+        val caption = chunks(2).drop(1)
+        // join this caption to previous captions for this user
+        captions(id) = captions.getOrElse(id, Nil) :+ caption
+      }
+      pb.step()
+    }
+
+    pb.stop()
+
+    file.close()
+
+    captions.toMap
+  }
+
+
+  def dictFilter(text: Array[String]): Array[String] = {
+    assert(! (dictOnly && allDicts.isEmpty))
+    if(allDicts.nonEmpty) {
+      text.filter(w => allDicts.get.exists(lex => lex.contains(w)))
+    } else text
+  }
 }
 
 object FeatureExtractor {
@@ -768,19 +888,51 @@ object FeatureExtractor {
   val stopWords = stopWordsFile.getLines.toSet
   stopWordsFile.close
 
+  /** Populates list of lexicons from config file. Separate function
+    * for easy testing.
+    *
+    * @param labelSet Set of labels
+    * @param ctype Type of classifier
+    * @return map of label -> Seq of lexicon file names
+    */
+  def populateLexiconList(labelSet: Set[String], ctype: String) = {
+    labelSet.foldLeft(Map[String, Seq[String]]())(
+      (m, l) => m + (l ->
+        config.getStringList(s"classifiers.$ctype.$l.lexicons").asScala.toList))
+  }
+
+
   // NOTE: all features that run over description and tweets should probably apply this for consistency.
   // If the feature calculator uses tokenized tweets, this should already be done, but stopwords aren't filtered
   def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
     val emptyString = "^[\\s\b]*$"
+
+    val url = "^(http|:/)".r
+
+    val punct = """,\\."/\\\\"""
+    val hasPunct = s"[^$punct][$punct]|[$punct][^$punct]".r
+    val punctSplit = s"(?=[$punct])|(?<=[$punct])"
+
+    val emoji = "\\ud83c\\udc00-\\ud83c\\udfff\\ud83d\\udc00-\\ud83d\\udfff\\u2600-\\u27ff"
+    val hasEmoji = s"[^$emoji][$emoji]|[$emoji][^$emoji]".r
+    val emojiSplit = s"(?=[$emoji])|(?<=[$emoji])"
+
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
-        case (site, "U") => Some("<URL>")
-        case (handle, "@") => Some("<@MENTION>")
-        case (number, "$") => Some("<NUMBER>")
-        case (garbage, "G") => None
-        case (rt, "~") => Some(rt)
-        case (token, tag) if token.matches(emptyString) => None
-        case (token, tag) => Some(token)
+        case (empty, tag) if empty.matches(emptyString) => Nil
+        case (site, "U") => Seq("<URL>")
+        case (handle, "@") => Seq("<@MENTION>")
+        case (number, "$") => Seq("<NUMBER>")
+        case (garbage, "G") => Nil
+        case ("RT", "~") => Seq("RT")
+        case ("rt", "~") => Seq("RT")
+        case (otherRT, "~") => Nil
+        case (site, tag) if url.findFirstIn(site).nonEmpty => Seq("<URL>")
+        case (slashed, tag) if hasPunct.findFirstIn(slashed).nonEmpty =>
+          mergeRegex(slashed.split(punctSplit), s"[$punct]")
+        case (emojis, tag) if hasEmoji.findFirstIn(emojis).nonEmpty =>
+          mergeRegex(emojis.split(emojiSplit), s"[$emoji]")
+        case (token, tag) => Seq(token)
       }
     }
     lumped.flatten
@@ -792,5 +944,32 @@ object FeatureExtractor {
     val copy = new Counter[T]
     original.toSeq.foreach{ case (k, v) => copy.setCount(k, v)}
     copy
+  }
+
+  // Given a string with multiple adjacent identical emoji, merge them into a single string
+  def mergeRegex(tokens: Array[String], regex: String): Seq[String] = {
+    val merged = new ArrayBuffer[String]
+    val curr = new StringBuilder
+    var prev = ""
+    tokens.foreach {
+      case "" => ()
+      case p if p == prev => curr append p
+      case e if e matches regex =>
+        if (curr.nonEmpty) {
+          merged append curr.toString
+          curr.clear
+        }
+        curr append e
+        prev = e
+      case other =>
+        if (curr.nonEmpty) {
+          merged append curr.toString
+          curr.clear
+          prev = ""
+        }
+        merged append other
+    }
+    if (curr.nonEmpty) merged append curr.toString
+    merged
   }
 }

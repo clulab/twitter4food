@@ -2,74 +2,77 @@ package org.clulab.twitter4food.util
 
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.struct.TwitterAccount
-
-import scala.collection.mutable.Map
+import org.clulab.twitter4food.util.FileUtils._
+import org.slf4j.LoggerFactory
+import scala.util.Random.shuffle
 
 /**
-  * Created by Terron on 3/28/16.
+  * Split the overweight classifier data into even portions and save the portion assignments in CSV format
+  * @author Terron Ishida
+  * @author Dane Bell
   */
 object SplitData {
-    def main(args: Array[String]) {
-        val config = ConfigFactory.load
+  val logger = LoggerFactory.getLogger(this.getClass)
 
-        val inputFile = config.getString("classifiers.overweight.data")
+  def main(args: Array[String]) {
+    val config = ConfigFactory.load
 
-        val trainingFile = config.getString("classifiers.overweight.trainingData")
-        val devFile = config.getString("classifiers.overweight.devData")
-        val testFile = config.getString("classifiers.overweight.testData")
+    val inputFile = config.getString("classifiers.overweight.data")
+    val foldsLoc = config.getString("classifiers.overweight.folds")
+    val usFoldsLoc = config.getString("classifiers.overweight.usFolds")
 
-        println(s"Reading in data from ${inputFile}")
-        val labeledAccounts = FileUtils.load(inputFile)
-        var overweight = Map[TwitterAccount, String]()
-        var notOverweight = Map[TwitterAccount, String]()
-        var other = 0
+    logger.info(s"Reading in data from ${inputFile}")
+    val labeledAccounts = FileUtils.load(inputFile)
+      .toSeq
+      .filter(_._1.tweets.nonEmpty)
 
-        for ( (account, label) <- labeledAccounts) {
-            if (label equals "Overweight") {
-                overweight += (account -> label)
-            } else if (label equals "Not overweight") {
-                notOverweight += (account -> label)
-            } else {
-                other += 1
-            }
-        }
+    val wholeSplits = split(labeledAccounts)
+    writeToCsv(foldsLoc, wholeSplits)
 
-        println(s"overweight.size=${overweight.size}")
-        println(s"notOverweight.size=${notOverweight.size}")
-        println(s"other=${other}")
+    // Scale number of accounts so that sample corresponds to US proportion of overweight
+    val usProps = Map( "Overweight" -> 0.6976, "Not overweight" -> 0.3024 ) // real stats on overweight in US from CDC
+    val usSample = Utils.subsample(labeledAccounts, usProps)
 
-        val percentTraining = 0.6
-        val percentDev = 0.2
-        // percentTest falls from the previous two
+    val usSplits = split(usSample)
+    writeToCsv(usFoldsLoc, usSplits)
+  }
 
-        // Find limits
-        val overweightLim1 = (percentTraining * overweight.size).toInt
-        val overweightLim2 = ((percentTraining + percentDev) * overweight.size).toInt
+  def split(sample: Seq[(TwitterAccount, String)], numFolds: Int = 10): Seq[Seq[String]] = {
+    val acceptableLabels = Set("Overweight", "Not overweight")
 
-        val notOverweightLim1 = (percentTraining * notOverweight.size).toInt
-        val notOverweightLim2 = ((percentTraining + percentDev) * notOverweight.size).toInt
+    val (overweight, notOverweight) = shuffle(sample)
+      .filter{ case (acct, lbl) => acceptableLabels.contains(lbl) }
+      .partition{ case (acct, lbl) => lbl == "Overweight" }
 
-        // Slice data
-        val trainingOverweight = overweight.slice(0, overweightLim1)
-        val devOverweight = overweight.slice(overweightLim1, overweightLim2)
-        val testOverweight = overweight.slice(overweightLim2, overweight.size)
+    println(s"overweight.size=${overweight.size}")
+    println(s"notOverweight.size=${notOverweight.size}")
+    println(s"other=${sample.size - (overweight.size + notOverweight.size)}")
 
-        val trainingNotOverweight = notOverweight.slice(0, notOverweightLim1)
-        val devNotOverweight = notOverweight.slice(notOverweightLim1, notOverweightLim2)
-        val testNotOverweight = notOverweight.slice(notOverweightLim2, notOverweight.size)
+    val oneStep = 1.0 / numFolds
+    val allSamples = for {
+      portion <- 0 until numFolds
+    } yield {
+      val owStart = (overweight.length * portion * oneStep).floor.toInt
+      val owLast = if (portion + 1 == numFolds)
+        overweight.length
+      else
+        (overweight.length * (portion + 1) * oneStep).floor.toInt
+      val owSample = overweight.slice(owStart, owLast).map { case (account, label) =>
+        Seq(portion.toString, account.id.toString, label)
+      }
 
-        // Combine
-        val trainingSet = trainingOverweight ++ trainingNotOverweight
-        val devSet = devOverweight ++ devNotOverweight
-        val testSet = testOverweight ++ testNotOverweight
+      val noStart = (notOverweight.length * portion * oneStep).floor.toInt
+      val noLast = if (portion + 1 == numFolds)
+        notOverweight.length
+      else
+        (notOverweight.length * (portion + 1) * oneStep).floor.toInt
+      val noSample = notOverweight.slice(noStart, noLast).map { case (account, label) =>
+        Seq(portion.toString, account.id.toString, label)
+      }
 
-        println(s"trainingSet.size=${trainingSet.size}")
-        println(s"devSet.size=${devSet.size}")
-        println(s"testSet.size=${testSet.size}")
-
-        // Write to file
-        FileUtils.saveToFile(trainingSet.keys.toList, trainingSet.values.toList, trainingFile)
-        FileUtils.saveToFile(devSet.keys.toList, devSet.values.toList, devFile)
-        FileUtils.saveToFile(testSet.keys.toList, testSet.values.toList, testFile)
+      owSample ++ noSample
     }
+
+    allSamples.flatten
+  }
 }
