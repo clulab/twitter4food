@@ -8,7 +8,6 @@ import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
 import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
 
-import scala.util.Random
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct.TwitterAccount
 
@@ -102,8 +101,8 @@ object InformedBaselineOverweightClassifier {
 
     logger.info("Running the informed baseline classifier...")
 
-    val OWindicatingWords = Array[String]("fuck", "retweet", "chance", "shit", "ass", "fat", "hate", "damn", "rt", "sad", "wow")
-    val NOindicatingWords = Array[String]("#cook", "#healthy", "#food", "#recipe", "#health", "#fitness", "#breakfast", "#vegan", "workout", "#dinner", "#lunch", "#love", "salad")
+    val OWindicatingWords = FileUtils.readFromCsv(config.getString("classifiers.overweight.heuristic_ow")).flatten
+    val NOindicatingWords = FileUtils.readFromCsv(config.getString("classifiers.overweight.heuristic_no")).flatten
 
     val predictions = for((ac,lbl) <- labeledAccts) yield {
       val pred = computeInformedBaselineLabel(ac, OWindicatingWords, NOindicatingWords)
