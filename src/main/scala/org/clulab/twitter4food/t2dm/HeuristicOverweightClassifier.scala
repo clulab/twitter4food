@@ -6,18 +6,18 @@ import java.nio.file.{Files, Paths}
 import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
-import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
+import org.clulab.twitter4food.util.{Eval, FileUtils}
 
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct.TwitterAccount
 
 /**
-  * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
+  * A heuristic classifier based on counts of hand-chosen unigram features.
   *
-  * @author terron
+  * @author Ajay Nagesh
   * @author Dane Bell
   */
-class InformedBaselineOverweightClassifier
+class HeuristicOverweightClassifier
   extends ClassifierImpl(
     useUnigrams=false,
     useBigrams=false,
@@ -46,41 +46,35 @@ class InformedBaselineOverweightClassifier
   val labels = Set("Overweight", "Not overweight")
 }
 
-object InformedBaselineOverweightClassifier {
+object HeuristicOverweightClassifier {
   import ClassifierImpl._
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def computeInformedBaselineLabel(ac: TwitterAccount, OWindicatingWords: Seq[String], NOindicatingWords: Seq[String]) : String = {
+  /**
+    * Count occurrences of + and - assigned unigrams in a [[TwitterAccount]] and assign a label based on the majority
+    */
+  def computeHeuristicLabel(ac: TwitterAccount, OWindicatingWords: Seq[String], NOindicatingWords: Seq[String]) : String = {
 
-    val OWcounter = new Counter[String]
+    val c = new Counter[String]
 
-    OWcounter.setCount("Overweight", 0.0)
-    OWcounter.setCount("Not overweight", 0.0)
-    OWcounter.setCount("token", 0.0)
-
-    for(tweet <- ac.tweets) {
-      val tokens = tweet.text.split(" +")
-      for(tok <- tokens){
-        OWcounter.incrementCount("token", 1)
-        if(OWindicatingWords.contains(tok))
-          OWcounter.incrementCount("Overweight", 1)
-        else if(NOindicatingWords.contains(tok))
-          OWcounter.incrementCount("Not overweight", 1)
-      }
+    for {
+      tweet <- ac.tweets
+      tok <- tweet.text.split(" +")
+    }{
+      if (OWindicatingWords.contains(tok))
+        c.incrementCount("Overweight")
+      else if (NOindicatingWords.contains(tok))
+        c.incrementCount("Not overweight")
     }
 
-    val label = if(OWcounter.getCount("Overweight") > OWcounter.getCount("Not overweight"))
+    if (c.getCount("Overweight") > c.getCount("Not overweight"))
       "Overweight"
     else
       "Not overweight"
-
-    label
   }
 
   def main(args: Array[String]) {
-    // Parse args using standard Config
-    val params = Utils.parseArgs(args)
     val config = ConfigFactory.load
 
     val fileExt = "heuristic"
@@ -105,7 +99,7 @@ object InformedBaselineOverweightClassifier {
     val NOindicatingWords = FileUtils.readFromCsv(config.getString("classifiers.overweight.heuristic_no")).flatten
 
     val predictions = for((ac,lbl) <- labeledAccts) yield {
-      val pred = computeInformedBaselineLabel(ac, OWindicatingWords, NOindicatingWords)
+      val pred = computeHeuristicLabel(ac, OWindicatingWords, NOindicatingWords)
       (lbl, pred)
     }
 
