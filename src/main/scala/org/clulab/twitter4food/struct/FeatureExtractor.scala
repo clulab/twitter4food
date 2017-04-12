@@ -317,80 +317,60 @@ class FeatureExtractor (
   def mkFeatures(account: TwitterAccount, isProband: Boolean = false): Counter[String] = {
     val counter = new Counter[String]
 
-    val description = account.description.trim.split("\\s+")
-    val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
-    val regularizedTweets = denoised.map(t => retokenize(t.text))
-
-    var unigrams: Option[Counter[String]] = None
-
-    if (useUnigrams | useDictionaries | useCosineSim)
-      unigrams = Some(scale(ngrams(1, denoised, description)))
-    if (useUnigrams) {
-      counter += unigrams.get
-    }
-    if (useBigrams)
-      counter += scale(ngrams(2, denoised, description))
-    if (useName)
-      counter += name(account)
-    if (useTopics)
-      counter += scale(topics(regularizedTweets))
-    if (useDictionaries)
-      counter += dictionaries(denoised, description, account, unigrams)
-    if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
-      counter += embeddings(regularizedTweets)
-    }
-    if (useCosineSim)
-      counter += cosineSim(unigrams, denoised, description)
-    if (useTimeDate)
-      counter += timeDate(denoised)
-    if (useFoodPerc)
-      counter += foodPerc(account.id)
-    if (useCaptions)
-      counter += captionNgrams(account.id)
-    if (useFollowees)
-      counter += scale(followees(account))
-
-    // Domain adaptation from here on -- no DA of DA
-    // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
-    val daCounter = new Counter[String]
+//    val description = account.description.trim.split("\\s+")
+//    val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
+//    val regularizedTweets = denoised.map(t => retokenize(t.text))
+//
+//    var unigrams: Option[Counter[String]] = None
+//
+//    if (useUnigrams | useDictionaries | useCosineSim)
+//      unigrams = Some(scale(ngrams(1, denoised, description)))
+//    if (useUnigrams) {
+//      counter += unigrams.get
+//    }
+//    if (useBigrams)
+//      counter += scale(ngrams(2, denoised, description))
+//    if (useName)
+//      counter += name(account)
+//    if (useTopics)
+//      counter += scale(topics(regularizedTweets))
+//    if (useDictionaries)
+//      counter += dictionaries(denoised, description, account, unigrams)
+//    if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
+//      counter += embeddings(regularizedTweets)
+//    }
+//    if (useCosineSim)
+//      counter += cosineSim(unigrams, denoised, description)
+//    if (useTimeDate)
+//      counter += timeDate(denoised)
+//    if (useFoodPerc)
+//      counter += foodPerc(account.id)
+//    if (useCaptions)
+//      counter += captionNgrams(account.id)
+//    if (useFollowees)
+//      counter += scale(followees(account))
+//
+//    // Domain adaptation from here on -- no DA of DA
+//    // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
+//    val daCounter = new Counter[String]
 
     // use annotations if possible, then fall back to classifier
     if (useGender && isProband) {
       val acctGenderFirst = if (genderAnnotation.nonEmpty) genderAnnotation.get.get(account.id.toString) else None
       val acctGenderSecond = if (acctGenderFirst.isEmpty && genderClassifier.nonEmpty)
         genderClassifier.get.predict(account)
-      else "UNK"
-      daCounter += prepend(s"gender:${acctGenderFirst.getOrElse(acctGenderSecond)}_", counter)
+      else "UNKGEN"
+      counter.incrementCount(acctGenderFirst.getOrElse(acctGenderSecond))
     }
 
     if (useAge && isProband && ageAnnotation.nonEmpty) {
       val ageExact = ageAnnotation.get.get(account.id.toString)
       val ageApprox = if (ageExact.nonEmpty) {
         (ageExact.get.toDouble.round.toInt / 10 * 10).toString
-      } else "UNK"
+      } else "UNKAGE"
 
-      daCounter += prepend(s"age:${ageApprox}_", counter)
+      counter.incrementCount(ageExact.getOrElse(ageApprox))
     }
-
-    if (useRace && isProband) {
-      // TODO: predict account owner's race for domain adaptation
-      // counter += prepend(s"race-${raceClassifier.get.predict(account)}_", counter)
-    }
-
-    if (useFollowers && isProband) {
-      val fc = followers(account)
-
-      // if scaling by datum, followers will have range 0-1 like main; otherwise, scale followers to have same total
-      // feature count as the main features
-      if (datumScaling) scaleByDatum(fc, 0.0, 1.0) // followers range 0-1
-      else scaleByCounter(fc, counter)
-
-      val followerProp = config.getNumber("classifiers.overweight.followerProp").floatValue
-
-      daCounter += prepend("follower:", fc.mapValues(v => v * followerProp))
-    }
-
-    counter += daCounter
 
     // remove zero values for sparse rep
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
