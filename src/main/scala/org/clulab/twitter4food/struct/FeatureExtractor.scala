@@ -318,7 +318,7 @@ class FeatureExtractor (
     val counter = new Counter[String]
 
     val description = account.description.trim.split("\\s+")
-    val denoised = if (denoise) account.tweets.filterNot(isNoise) else account.tweets
+    val denoised = account.tweets.filterNot(_.isRetweet)
     val regularizedTweets = denoised.map(t => retokenize(t.text))
 
     var unigrams: Option[Counter[String]] = None
