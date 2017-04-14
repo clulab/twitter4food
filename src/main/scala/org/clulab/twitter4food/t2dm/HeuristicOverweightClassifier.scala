@@ -68,7 +68,7 @@ object HeuristicOverweightClassifier {
         c.incrementCount("Not overweight")
     }
 
-    if (c.getCount("Overweight") > c.getCount("Not overweight"))
+    if (c.getCount("Overweight") > c.getCount("Not overweight") * 7.41)
       "Overweight"
     else
       "Not overweight"
