@@ -1,6 +1,6 @@
 package org.clulab.twitter4food.t2dm
 
-import java.io.File
+import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Paths}
 
 import org.slf4j.{Logger, LoggerFactory}
@@ -145,6 +145,12 @@ object OverweightEnsemble {
       }
       val precision = evalMetric.P
       val recall = evalMetric.R
+      
+      // Save individual predictions for bootstrap significance
+      val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+      predWriter.write(s"gold\tpred\n")
+      predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
+      predWriter.close()
 
       (portion, predictions.length, precision, recall, macroAvg, microAvg)
     }
