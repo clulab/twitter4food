@@ -58,6 +58,9 @@ object HeuristicOverweightClassifier {
 
     val c = new Counter[String]
 
+    c.incrementCount("Overweight")
+    c.incrementCount("Not overweight")
+
     for {
       tweet <- ac.tweets
       tok <- tweet.text.split(" +")
@@ -68,7 +71,7 @@ object HeuristicOverweightClassifier {
         c.incrementCount("Not overweight")
     }
 
-    if (c.getCount("Overweight") > c.getCount("Not overweight"))
+    if (c.getCount("Overweight") * 7.14 > c.getCount("Not overweight"))
       "Overweight"
     else
       "Not overweight"
@@ -98,10 +101,16 @@ object HeuristicOverweightClassifier {
     val OWindicatingWords = FileUtils.readFromCsv(config.getString("classifiers.overweight.heuristic_ow")).flatten
     val NOindicatingWords = FileUtils.readFromCsv(config.getString("classifiers.overweight.heuristic_no")).flatten
 
+    val pb = new me.tongfei.progressbar.ProgressBar("labeling", 100)
+    pb.start()
+    pb.maxHint(labeledAccts.size)
+
     val predictions = for((ac,lbl) <- labeledAccts) yield {
       val pred = computeHeuristicLabel(ac, OWindicatingWords, NOindicatingWords)
+      pb.step()
       (lbl, pred)
     }
+    pb.stop()
 
     // Print results
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
