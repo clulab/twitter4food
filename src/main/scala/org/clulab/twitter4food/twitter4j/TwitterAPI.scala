@@ -325,4 +325,32 @@ class TwitterAPI(keyset: Int) {
     (mediaBuffer, urlBuffer)
   }
 
+  def fetchCoords(id: Long): Seq[(Long, Double, Double)] = {
+    val coords = ArrayBuffer[(Long, Double, Double)]()
+
+    try {
+      val page = new Paging(1, MaxTweetCount)
+      var tweets = appOnlyTwitter.getUserTimeline(id, page).asScala.toList
+      sleep("getUserTimeline")
+
+      while(tweets.nonEmpty) {
+        coords ++= tweets.flatMap{t =>
+          val gl = t.getGeoLocation
+          if (gl != null) Option(t.getId, gl.getLatitude, gl.getLongitude) else None
+        }
+
+        page.setMaxId(minId(tweets) - 1)
+
+        tweets = appOnlyTwitter.getUserTimeline(id, page).asScala.toList
+        sleep("getUserTimeline")
+      }
+
+    } catch {
+      case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
+        println(s"ErrorMsg = ${te.getErrorMessage}")
+    }
+
+    coords
+  }
+
 }
