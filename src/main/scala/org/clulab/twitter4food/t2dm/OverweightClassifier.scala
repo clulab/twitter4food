@@ -108,7 +108,7 @@ object OverweightClassifier {
     }
 
     val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
-    // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
+    // Instantiate classifier after prompts in case followers are being used (file takes a long time to loadTwitterAccounts)
 
     val partitionFile = if (params.usProps)
       config.getString("classifiers.overweight.usFolds")
@@ -120,7 +120,7 @@ object OverweightClassifier {
     }.toMap
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
       .filter{ case (acct, lbl) => partitions.contains(acct.id)}

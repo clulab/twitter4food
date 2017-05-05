@@ -327,13 +327,13 @@ class ClassifierImpl(
   def runTest(args: Array[String], ctype: String, outputFile: String = null, devOnly: Boolean = true) = {
 
     println("Loading training accounts...")
-    val trainingData = FileUtils.load(config
+    val trainingData = FileUtils.loadTwitterAccounts(config
       .getString(s"classifiers.$ctype.trainingData"))
     println("Loading dev accounts...")
-    val devData = FileUtils.load(config
+    val devData = FileUtils.loadTwitterAccounts(config
       .getString(s"classifiers.$ctype.devData"))
     println("Loading test accounts...")
-    val testData = if(!devOnly) Some(FileUtils.load(config.getString(s"classifiers.$ctype.testData"))) else None
+    val testData = if(!devOnly) Some(FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$ctype.testData"))) else None
 
     val fileExt = args.mkString("").replace("-", "").sorted
     val tweetFolds = Array(100, 500, 1000, 5000)
@@ -360,7 +360,7 @@ class ClassifierImpl(
     // Values for accuracies for C * K
     val gridCbyK = Array.ofDim[Double](4,4)
 
-    /** For a given classifier, load its associated train, dev, and test
+    /** For a given classifier, loadTwitterAccounts its associated train, dev, and test
       * accounts, and write results to file.
       *
       * @return microAvg micro-average aggregated over each label
@@ -431,7 +431,7 @@ class ClassifierImpl(
     * @param K threshold for top-K tweets
     */
   def learn(args: Array[String], ctype: String, _C: Double, K: Int) = {
-    val allTrainData = FileUtils.load(config.getString(
+    val allTrainData = FileUtils.loadTwitterAccounts(config.getString(
       s"classifiers.$ctype.allTrainData"))
 
     val allTrainAccounts = allTrainData.keys.toArray
@@ -452,7 +452,7 @@ class ClassifierImpl(
 
   def predict(testFile: String) = {
 
-    val allTestData = FileUtils.load(testFile)
+    val allTestData = FileUtils.loadTwitterAccounts(testFile)
     val testAccounts = allTestData.keys.toArray
 
     val predictedLabels = _test(testAccounts)
@@ -862,7 +862,7 @@ object ClassifierImpl {
     followerFile.close
 
     val accountsFileStr = config.getString("classifiers.features.followerAccounts")
-    val followerAccounts = FileUtils.load(accountsFileStr)
+    val followerAccounts = FileUtils.loadTwitterAccounts(accountsFileStr)
     val handleToFollowerAccts = accounts.map{ account =>
       val followerAccount = handleToFollowers.getOrElse(account.handle, Nil).flatMap { followerHandle =>
         followerAccounts.find{ case(f, label) => f.handle == followerHandle }

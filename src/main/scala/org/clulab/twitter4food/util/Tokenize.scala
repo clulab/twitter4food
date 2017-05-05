@@ -29,7 +29,7 @@ object Tokenize {
       logger.warn(s"$tokenizedFN is newer than $filename!")
     }
 
-    val accounts = FileUtils.load(filename).par
+    val accounts = FileUtils.loadTwitterAccounts(filename).par
 
     val pb = new me.tongfei.progressbar.ProgressBar("Tokenize", 100)
     pb.start()

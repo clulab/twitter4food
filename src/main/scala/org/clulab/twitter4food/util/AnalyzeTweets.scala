@@ -30,12 +30,12 @@ object AnalyzeTweets extends App {
   var users = Map[TwitterAccount,String]()
 
   logger.info("Loading users")
-  users = FileUtils.load(config.getString("classifiers.overweight.data"))
+  users = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
 
   println("Loading dictionaries")
 
   var handleMap = users.map{ case (acct, lbl) => stripAt(acct.handle) -> (acct, lbl) }
-  assert(handleMap.nonEmpty, "Failed to load users!")
+  assert(handleMap.nonEmpty, "Failed to loadTwitterAccounts users!")
 
   val handlesToAnalyze = Array("angiewhoohoo", "MaeghanLucinda", "JulianaYaz", "Kathneko", "YOB_JayDaisy", "queenachan", "checkoutfashion", "Graziella_a", "Banditgangnate", "YunJae8686", "alfritz04", "YungPauline", "yakdon", "ceejaydeleon", "Hannah_Barnett0", "steveendranata", "DrDamodhar", "Emily11949309", "LeumasHon", "sarlynclements", "Jo_RDPT16", "JonathanOneLife", "kat0417", "JessCording", "Lottie_Lamour", "siShingalinG", "sachadetti", "ScouseMattSmith", "jonathanlegate", "kanahina", "ellwoodz", "bl3berry", "jackiehagland", "oh_mandy93", "nohyunji", "Myatzee", "GarnerStyle", "mchefajaychopra", "MissMelanieD", "Beksville", "edibleASH", "Parsnip_Pete", "Gloriahillching", "JenniferBible1", "Spezzie", "GluttonEire")
   val handleMapSubset = handleMap.filterKeys (handlesToAnalyze.toSet)

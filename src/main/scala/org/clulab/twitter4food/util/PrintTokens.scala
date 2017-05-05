@@ -43,7 +43,7 @@ object PrintTokens {
     val dataset = if(args.isEmpty) "overweight" else args.head
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString(s"classifiers.$dataset.data")).toSeq
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$dataset.data")).toSeq
 
     logger.info("Writing tokens in LSTM-readable format")
 

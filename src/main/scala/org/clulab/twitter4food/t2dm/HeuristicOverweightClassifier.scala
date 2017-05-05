@@ -89,10 +89,10 @@ object HeuristicOverweightClassifier {
     }
 
     val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
-    // Instantiate classifier after prompts in case followers are being used (file takes a long time to load)
+    // Instantiate classifier after prompts in case followers are being used (file takes a long time to loadTwitterAccounts)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 
