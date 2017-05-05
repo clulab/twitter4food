@@ -1,14 +1,12 @@
 package org.clulab.twitter4food.twitter4j
 
-import org.clulab.twitter4food.struct.{Tweet, TwitterAccount}
+import org.clulab.twitter4food.struct.{Tweet, TwitterAccount, Location}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.featureclassifier.HumanClassifier
-import org.slf4j.LoggerFactory
 
 /**
   * Wrapper for Twitter4J
@@ -325,8 +323,8 @@ class TwitterAPI(keyset: Int) {
     (mediaBuffer, urlBuffer)
   }
 
-  def fetchCoords(id: Long): Seq[(Long, Double, Double)] = {
-    val coords = ArrayBuffer[(Long, Double, Double)]()
+  def fetchCoords(id: Long): Seq[Location] = {
+    val coords = ArrayBuffer[Location]()
 
     try {
       val page = new Paging(1, MaxTweetCount)
@@ -336,7 +334,9 @@ class TwitterAPI(keyset: Int) {
       while(tweets.nonEmpty) {
         coords ++= tweets.flatMap{t =>
           val gl = t.getGeoLocation
-          if (gl != null) Option(t.getId, gl.getLatitude, gl.getLongitude) else None
+          if (gl != null)
+            Option(new Location(t.getId.toString, gl.getLatitude, gl.getLongitude, id, t.getCreatedAt, "twitter", Nil))
+          else None
         }
 
         page.setMaxId(minId(tweets) - 1)
