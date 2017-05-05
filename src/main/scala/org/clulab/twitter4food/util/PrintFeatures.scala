@@ -60,7 +60,7 @@ object PrintFeatures {
     }
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 

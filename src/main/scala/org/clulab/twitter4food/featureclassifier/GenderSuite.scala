@@ -12,9 +12,9 @@ object GenderSuite {
 
     val toTrainOn = {
       logger.info("Loading training accounts...")
-      val train = FileUtils.load(config.getString("classifiers.gender.trainingData"))
+      val train = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData"))
       logger.info("Loading dev accounts...")
-      val dev = FileUtils.load(config.getString("classifiers.gender.devData"))
+      val dev = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData"))
       train ++ dev
     }
 

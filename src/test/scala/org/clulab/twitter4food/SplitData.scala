@@ -18,7 +18,7 @@ object SplitData extends App {
   val hlMap = Utils.loadHandles(config
       .getString("classifiers.human.annotatedUsersFile")).keys.toSet
 
-  val accounts = FileUtils.load(config.getString("classifiers.human.allTrainData"))
+  val accounts = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.allTrainData"))
   val (human, org) = accounts.foldLeft((List[(TwitterAccount, String)](),
     List[(TwitterAccount, String)]()))(
     (list, account) => {

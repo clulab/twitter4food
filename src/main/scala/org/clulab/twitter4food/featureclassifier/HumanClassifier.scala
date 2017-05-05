@@ -207,13 +207,13 @@ object HumanClassifier {
 
     val toTrainOn = if (params.runOnTest) {
       logger.info("Loading training accounts...")
-      val trainData = FileUtils.load(config.getString("classifiers.human.trainingData")).toSeq
+      val trainData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")).toSeq
       logger.info("Loading dev accounts...")
-      val devData = FileUtils.load(config.getString("classifiers.human.devData")).toSeq
+      val devData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData")).toSeq
       trainData ++ devData
     } else {
       logger.info("Loading training accounts...")
-      FileUtils.load(config.getString("classifiers.human.trainingData")).toSeq
+      FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")).toSeq
     }
 
     val followers = if(params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
@@ -264,10 +264,10 @@ object HumanClassifier {
     }
     val toTestOn = if (params.runOnTest) {
       logger.info("Loading test accounts...")
-      FileUtils.load(config.getString("classifiers.human.testData"))
+      FileUtils.loadTwitterAccounts(config.getString("classifiers.human.testData"))
     } else {
       logger.info("Loading dev accounts...")
-      FileUtils.load(config.getString("classifiers.human.devData"))
+      FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData"))
     }
 
     val evals = for ((portion, numAccounts, hc) <- classifiers) yield {

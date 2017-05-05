@@ -182,13 +182,13 @@ class FeatureExtractor (
       // train a fresh classifier
       logger.debug(s"$modelFile not found; attempting to train...")
 
-      val trainingData = FileUtils.load(config.getString("classifiers.human.trainingData")) ++
-        FileUtils.load(config.getString("classifiers.human.devData")) ++
-        FileUtils.load(config.getString("classifiers.human.testData"))
+      val trainingData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.human.testData"))
       // val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
       val tmp = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true, customFeatures = HumanClassifier.customFeatures)
 
-      // bad to have to load followers possibly multiple times, but this should happen only rarely
+      // bad to have to loadTwitterAccounts followers possibly multiple times, but this should happen only rarely
       // TODO: different follower files by classifier
       val followers = if (tmp.useFollowers) {
         Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
@@ -217,12 +217,12 @@ class FeatureExtractor (
       // train a fresh classifier
       logger.info(s"$modelFile not found; attempting to train...")
 
-      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
-        FileUtils.load(config.getString("classifiers.gender.devData")) ++
-        FileUtils.load(config.getString("classifiers.gender.testData"))
+      val trainingData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.testData"))
       val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
 
-      // bad to have to load followers possibly multiple times, but this should happen only rarely
+      // bad to have to loadTwitterAccounts followers possibly multiple times, but this should happen only rarely
       // TODO: different follower files by classifier
       val followers = if (tmp.useFollowers) {
         Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))

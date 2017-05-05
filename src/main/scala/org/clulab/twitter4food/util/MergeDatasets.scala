@@ -16,7 +16,7 @@ object MergeDatasets {
 
     val logger = LoggerFactory.getLogger(this.getClass)
 
-    val datasets = (for (f <- args.dropRight(1)) yield load(f)).flatten
+    val datasets = (for (f <- args.dropRight(1)) yield loadTwitterAccounts(f)).flatten
 
     // Hopefully, no accounts will overlap between the datasets, but if they do,
     // we want all the tweets we can get from them.

@@ -1,10 +1,9 @@
 package org.clulab.twitter4food.data
 
-import java.io.{BufferedWriter, File, FileWriter}
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.clulab.twitter4food.twitter4j.TwitterAPI
-import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.util.FileUtils._
 import org.clulab.twitter4food.struct.Location
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -34,11 +33,10 @@ object TweetLocs extends App {
   val config: Config = ConfigFactory.load
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  val locFile = new File(config.getString("classifiers.overweight.tweetCoords"))
-  val locWriter = new BufferedWriter(new FileWriter(locFile, true))
+  val locFile = config.getString("classifiers.overweight.tweetCoords")
 
   // read account IDs in (all else is thrown away, not very efficient)
-  val accts = FileUtils.load(config.getString("classifiers.overweight.data"))
+  val accts = loadTwitterAccounts(config.getString("classifiers.overweight.data"))
     .keys
     .filter(_.tweets.nonEmpty)
     .map(_.id)
@@ -47,9 +45,5 @@ object TweetLocs extends App {
   // get the latitude and longitude using the Twitter API (takes a long time b/c API limits)
   val coords = retrieveCoords(accts)
 
-  // write locations to file (without venue names)
-  coords.foreach(loc => locWriter.write(s"${loc.toString}\n"))
-
-  locWriter.close()
-
+  saveLocations(coords, locFile)
 }

@@ -22,7 +22,7 @@ object SplitData {
     val usFoldsLoc = config.getString("classifiers.overweight.usFolds")
 
     logger.info(s"Reading in data from ${inputFile}")
-    val labeledAccounts = FileUtils.load(inputFile)
+    val labeledAccounts = FileUtils.loadTwitterAccounts(inputFile)
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 

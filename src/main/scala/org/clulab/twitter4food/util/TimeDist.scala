@@ -22,7 +22,7 @@ object TimeDist {
 
     val config = ConfigFactory.load
 
-    val accts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val accts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
       .keys
       .toSeq
       .filter(_.tweets.nonEmpty)

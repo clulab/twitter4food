@@ -12,9 +12,9 @@ object HumanSuite {
 
     val toTrainOn = {
       logger.info("Loading training accounts...")
-      val train = FileUtils.load(config.getString("classifiers.human.trainingData"))
+      val train = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData"))
       logger.info("Loading dev accounts...")
-      val dev = FileUtils.load(config.getString("classifiers.human.devData"))
+      val dev = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData"))
       train ++ dev
     }
 

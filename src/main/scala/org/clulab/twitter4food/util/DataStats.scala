@@ -8,10 +8,10 @@ object DataStats {
 
     val config = ConfigFactory.load
 
-    val total = FileUtils.load(config.getString(s"classifiers.$dataset.data")).toSeq.filter(_._1.tweets.nonEmpty)
-//    val train = FileUtils.load(config.getString(s"classifiers.$dataset.trainingData")).toSeq
-//    val dev = FileUtils.load(config.getString(s"classifiers.$dataset.devData")).toSeq
-//    val test = FileUtils.load(config.getString(s"classifiers.$dataset.testData")).toSeq
+    val total = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$dataset.data")).toSeq.filter(_._1.tweets.nonEmpty)
+//    val train = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$dataset.trainingData")).toSeq
+//    val dev = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$dataset.devData")).toSeq
+//    val test = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$dataset.testData")).toSeq
 //    val total = train ++ dev ++ test
 
 //    val dsMap = Map("train" -> train, "dev" -> dev, "test" -> test, "total" -> total)

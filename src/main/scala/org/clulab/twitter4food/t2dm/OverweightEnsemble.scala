@@ -61,7 +61,7 @@ object OverweightEnsemble {
     }.toMap
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data_raw"))
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data_raw"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
       .filter{ case (acct, lbl) => partitions.contains(acct.id)}

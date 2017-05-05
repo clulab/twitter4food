@@ -44,7 +44,7 @@ object TwitterImageURLs {
     if(! exf.exists) exf.mkdir()
 
     // read account IDs in (all else is thrown away, not very efficient)
-    val accts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val accts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
       .keys
       .filter(_.tweets.nonEmpty)
       .map(_.id)
