@@ -5,14 +5,17 @@ import java.io.{BufferedWriter, File, FileWriter}
 import com.typesafe.config.{Config, ConfigFactory}
 import org.clulab.twitter4food.twitter4j.TwitterAPI
 import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.struct.Location
 import org.slf4j.{Logger, LoggerFactory}
 
 /**
   * Searches through existing accounts for geotagged tweets and prints out the user id, tweet id, latitude, and
   * longitude, one line per tweet. Takes a long time per account, but < 1% of tweets are geotagged.
   */
-class TweetLocs extends App {
-  def retrieveCoords(ids: Seq[Long]): Map[Long, Seq[(Long, Double, Double)]] = {
+object TweetLocs extends App {
+  case class PartialLocation(createdAt: java.util.Date)
+
+  def retrieveCoords(ids: Seq[Long]): Seq[Location] = {
     val numProcesses = 18
     val chunkSize = ids.length / numProcesses
 
@@ -22,10 +25,10 @@ class TweetLocs extends App {
       i <- thread * chunkSize until (thread + 1) * chunkSize
     } yield {
       logger.debug(s"fetching ${ids(i)}")
-      ids(i) -> api.fetchCoords(ids(i))
+      api.fetchCoords(ids(i))
     }
 
-    pics.seq.toMap
+    pics.seq.flatten
   }
 
   val config: Config = ConfigFactory.load
@@ -44,13 +47,8 @@ class TweetLocs extends App {
   // get the latitude and longitude using the Twitter API (takes a long time b/c API limits)
   val coords = retrieveCoords(accts)
 
-  // write URLs to file to download later
-  for {
-    (id, records) <- coords
-    (twid, lat, lon) <- records
-  } {
-    locWriter.write(s"$id,$twid,$lat,$lon\n")
-  }
+  // write locations to file (without venue names)
+  coords.foreach(loc => locWriter.write(s"${loc.toString}\n"))
 
   locWriter.close()
 
