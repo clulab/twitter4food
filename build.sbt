@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
   "com.github.scopt" %% "scopt" % "3.4.0",
   "me.tongfei" % "progressbar" % "0.4.0",
-  //"me.atlis" % "foursquare-api" % "1.0.6",
+  "me.atlis" % "foursquare-api" % "1.0.6",
   "com.google.maps" % "google-maps-services" % "0.1.20"
 )
 

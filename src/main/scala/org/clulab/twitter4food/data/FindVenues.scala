@@ -4,7 +4,7 @@ import org.clulab.twitter4food.util.FileUtils._
 import org.clulab.twitter4food.struct.{Location, Venue}
 
 import com.google.maps.{GeoApiContext, PlacesApi}
-import com.google.maps.model.{LatLng,RankBy}
+import com.google.maps.model.LatLng
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.{Logger, LoggerFactory}
 import me.tongfei.progressbar.ProgressBar
@@ -28,7 +28,7 @@ object FindVenues extends App {
   val locFile = config.getString("classifiers.overweight.tweetLocs")
 
   // Google Places API key
-  val apiKey = scala.io.Source.fromString(config.getString("places_key")).getLines().next().stripLineEnd
+  val apiKey = scala.io.Source.fromFile(config.getString("places_key")).getLines().next().stripLineEnd
   val context = new GeoApiContext().setApiKey(apiKey)
 
   val pb = new ProgressBar("populating", 100)
