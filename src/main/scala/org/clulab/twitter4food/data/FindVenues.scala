@@ -42,6 +42,7 @@ object FindVenues extends App {
   val locs = for (
     coord <- coords
   ) yield {
+    pb.step()
     val ll = new LatLng(coord.lat, coord.lng) // LatLng to search near
     val results = PlacesApi.nearbySearchQuery(context, ll)
       .radius(maxDist) // at most maxDist away
@@ -61,7 +62,7 @@ object FindVenues extends App {
     }
   }
 
-
+  pb.stop()
 
   saveLocations(locs, locFile)
 }
