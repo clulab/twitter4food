@@ -3,8 +3,8 @@ package org.clulab.twitter4food.struct
 /**
   * A location a tweet, FourSquare checkin, etc. was made from
   * @param id unique identifier (numeric for tweets, alphanumeric for checkins)
-  * @param lat latitude
-  * @param lng longitude
+  * @param llat latitude
+  * @param llng longitude
   * @param user unique user id (Twitter id)
   * @param createdAt date/time user was at location
   * @param source "twitter", "foursquare", etc.
@@ -36,6 +36,13 @@ class Location(
 }
 
 
+/**
+  * A venue as defined by Google Places and/or FourSquare
+  * @param name Simple name, e.g. "McDonald's"
+  * @param types Types according to Google Places and/or FourSquare, e.g. "Seq("restaurant", "food")
+  * @param vlat latitude
+  * @param vlng longitude
+  */
 class Venue(
     val name: String,
     val types: Seq[String],
@@ -45,7 +52,9 @@ class Venue(
   override def toString: String = s"$name; [${types.mkString(" : ")}]; $lat; $lng"
 }
 
-
+/**
+  * Any global coordinate defined by latitude and longitude
+  */
 class LatLng(val lat: Double, val lng: Double) {
 
   // https://stackoverflow.com/questions/639695/how-to-convert-latitude-or-longitude-to-meters

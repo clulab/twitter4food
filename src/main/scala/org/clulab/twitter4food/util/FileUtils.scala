@@ -246,7 +246,7 @@ object FileUtils {
       val lat = locData(1).toDouble
       val lng = locData(3).toDouble
       val user = locData(4).toLong
-      val createdAt = df.parse(locData(4))
+      val createdAt = df.parse(locData(5))
       val source = locData(5)
       val venueText = if(locData.length > 6) locData(6) else ""
       val venues = venueText
