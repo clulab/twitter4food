@@ -1,0 +1,10 @@
+bakery
+bar
+cafe
+food
+Food
+grocery_or_supermarket
+meal_delivery
+meal_takeaway
+restaurant
+Restaurant
