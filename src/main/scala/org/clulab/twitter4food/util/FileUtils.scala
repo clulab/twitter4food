@@ -255,12 +255,12 @@ object FileUtils {
           .dropRight(1)
           .split("\\), \\(")
           .map { v =>
-            val elements = v.split("; ")
+            val elements = v.split(";")
             val name = elements(0)
             val types = elements(1)
               .drop(1)
               .dropRight(1)
-              .split(" : ")
+              .split(":")
             val lat = elements(2).toDouble
             val lng = elements(3).toDouble
             new Venue(name, types, lat, lng)

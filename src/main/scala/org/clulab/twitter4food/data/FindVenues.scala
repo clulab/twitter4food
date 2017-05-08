@@ -61,5 +61,7 @@ object FindVenues extends App {
     }
   }
 
+
+
   saveLocations(locs, locFile)
 }
