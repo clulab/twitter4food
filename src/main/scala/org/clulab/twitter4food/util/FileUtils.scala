@@ -252,7 +252,7 @@ object FileUtils {
       val venues = venueText
         .drop(1)
         .dropRight(1)
-        .split("), (")
+        .split("\\), \\(")
         .map{ v =>
           val elements = v.split("; ")
           val name = elements(0)
