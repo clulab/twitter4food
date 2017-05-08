@@ -19,7 +19,7 @@ object FindVenues extends App {
   val config: Config = ConfigFactory.load
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   val sleepTime = 600 // 150000 requests / 24 hours => 576 ms per request
-  val maxDist = 500 // meters between venues and tweet location
+  val maxDist = 25 // meters between venues and tweet location
 
   // Locations before Venue annotation
   val coordsFile = config.getString("classifiers.overweight.tweetCoords")
