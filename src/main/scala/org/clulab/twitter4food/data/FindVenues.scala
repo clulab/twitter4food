@@ -19,7 +19,7 @@ object FindVenues extends App {
   val config: Config = ConfigFactory.load
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   val sleepTime = 600 // 150000 requests / 24 hours => 576 ms per request
-  val maxDist = 25 // meters between venues and tweet location
+  val maxDist = 50 // meters between venues and tweet location
 
   // Locations before Venue annotation
   val coordsFile = config.getString("classifiers.overweight.tweetCoords")
@@ -40,14 +40,14 @@ object FindVenues extends App {
   ) yield {
     val ll = new LatLng(coord.lat, coord.lng)
     val results = PlacesApi.nearbySearchQuery(context, ll)
-      .rankby(RankBy.DISTANCE)
+      //.rankby(RankBy.DISTANCE)
+      .radius(maxDist)
       .await()
       .results
     if (results.isEmpty) coord else {
-      val venues = results.flatMap{ result =>
-        val candidate = new Venue(result.name, result.types, result.geometry.location.lat, result.geometry.location.lng)
-        if (candidate.dist(coord) <= maxDist) Option(candidate) else None
-      }
+      val venues = results.map{ result =>
+        new Venue(result.name, result.types, result.geometry.location.lat, result.geometry.location.lng)
+      }.sortBy(_.dist(coord))
       coord.copy(venues = venues)
     }
   }
