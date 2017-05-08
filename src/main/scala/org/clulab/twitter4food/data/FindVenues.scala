@@ -44,6 +44,7 @@ object FindVenues extends App {
       .radius(maxDist)
       .await()
       .results
+    Thread.sleep(sleepTime)
     if (results.isEmpty) coord else {
       val venues = results.map{ result =>
         new Venue(result.name, result.types, result.geometry.location.lat, result.geometry.location.lng)
