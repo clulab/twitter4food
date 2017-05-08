@@ -244,9 +244,9 @@ object FileUtils {
       val locData = line.stripLineEnd.split("\t")
       val id = locData(0)
       val lat = locData(1).toDouble
-      val lng = locData(3).toDouble
-      val user = locData(4).toLong
-      val createdAt = df.parse(locData(5))
+      val lng = locData(2).toDouble
+      val user = locData(3).toLong
+      val createdAt = df.parse(locData(4))
       val source = locData(5)
       val venueText = if(locData.length > 6) locData(6) else ""
       val venues = venueText
