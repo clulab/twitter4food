@@ -51,6 +51,7 @@ object FindVenues extends App {
   val context = new GeoApiContext()
     .setApiKey(apiKey) // must have API key for request
     .setReadTimeout(1, TimeUnit.MINUTES) // long time-out
+    .setQueryRateLimit(10, sleepTime)
 
   val pb = new ProgressBar("populating", 100)
   pb.start()
@@ -59,9 +60,7 @@ object FindVenues extends App {
   var failed = 0  // to track exceptions
   var before = System.currentTimeMillis() // to see if we need to sleep to avoid violating the rate limit
 
-  val locs = for (
-    coord <- coords
-  ) yield {
+  val locs = coords.foreach { coord =>
     pb.step()
     val ll = new LatLng(coord.lat, coord.lng) // LatLng to search near
     try {
