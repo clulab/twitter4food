@@ -226,6 +226,8 @@ object FileUtils {
   def loadLocations(fileName: String): Seq[Location] = {
     val df = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
 
+    if (!new File(fileName).exists) return Nil
+
     val hint = scala.io.Source.fromFile(fileName).getLines.toSeq.length
 
     val file = scala.io.Source.fromFile(fileName)
