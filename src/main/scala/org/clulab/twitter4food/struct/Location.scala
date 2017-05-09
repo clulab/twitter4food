@@ -49,7 +49,10 @@ class Venue(
     val vlat: Double,
     val vlng: Double
 ) extends LatLng(lat = vlat, lng = vlng) {
-  override def toString: String = s"$name;[${types.mkString(":")}];$lat;$lng"
+  override def toString: String = {
+    val safeName = name.replace(';', ',').replaceAll("\\(", "").replaceAll("\\)", "")
+    s"$safeName;[${types.mkString(":")}];$lat;$lng"
+  }
 }
 
 /**
