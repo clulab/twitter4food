@@ -51,13 +51,14 @@ object FindVenues extends App {
   val context = new GeoApiContext()
     .setApiKey(apiKey) // must have API key for request
     .setReadTimeout(1, TimeUnit.MINUTES) // long time-out
-    .setQueryRateLimit(1, sleepTime) // set rate limit (1 query at a time, minimum wait of sleepTime)
 
   val pb = new ProgressBar("populating", 100)
   pb.start()
   pb.maxHint(coords.length)
 
-  var failed = 0
+  var failed = 0  // to track exceptions
+  var before = System.currentTimeMillis() // to see if we need to sleep to avoid violating the rate limit
+
   val locs = for (
     coord <- coords
   ) yield {
@@ -68,6 +69,12 @@ object FindVenues extends App {
         .radius(maxDist) // at most maxDist away
         .await() // submit query
         .results // get results of query, if any
+
+      // rate limiting manually
+      val timePassed = System.currentTimeMillis() - before
+      if (timePassed < sleepTime) Thread.sleep(sleepTime - timePassed)
+      before = System.currentTimeMillis()
+
       // Sort results by relevance and add them to coord's venues
       val venued = if (results.isEmpty) coord else {
         val venues = results.map { result =>
@@ -80,9 +87,6 @@ object FindVenues extends App {
       }
       writer.write(s"${venued.toString}\n") // write as we go, in case of failure
     } catch {
-      case s: SocketTimeoutException =>
-        failed += 1
-        logger.error("Socket timeout")
       case e: Exception =>
         failed += 1
         logger.error(e.getClass.toString)
