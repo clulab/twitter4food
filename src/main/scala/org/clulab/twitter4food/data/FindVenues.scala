@@ -50,13 +50,14 @@ object FindVenues extends App {
   val apiKey = scala.io.Source.fromFile(config.getString("places_key")).getLines().next().stripLineEnd
   val context = new GeoApiContext()
     .setApiKey(apiKey) // must have API key for request
-    .setReadTimeout(5, TimeUnit.MINUTES) // long time-out
-    .setQueryRateLimit(0) // We manually control this to get closer to ideal rate
+    .setReadTimeout(1, TimeUnit.MINUTES) // long time-out
+    .setQueryRateLimit(1, sleepTime) // set rate limit (1 query at a time, minimum wait of sleepTime)
 
   val pb = new ProgressBar("populating", 100)
   pb.start()
   pb.maxHint(coords.length)
 
+  var failed = 0
   val locs = for (
     coord <- coords
   ) yield {
@@ -67,8 +68,6 @@ object FindVenues extends App {
         .radius(maxDist) // at most maxDist away
         .await() // submit query
         .results // get results of query, if any
-      // wait to avoid stepping over API rate limit
-      Thread.sleep(sleepTime)
       // Sort results by relevance and add them to coord's venues
       val venued = if (results.isEmpty) coord else {
         val venues = results.map { result =>
@@ -82,17 +81,15 @@ object FindVenues extends App {
       writer.write(s"${venued.toString}\n") // write as we go, in case of failure
     } catch {
       case s: SocketTimeoutException =>
-        writer.close()
-        pb.stop()
-        println("Socket timeout")
-        System.exit(0)
+        failed += 1
+        logger.error("Socket timeout")
       case e: Exception =>
-        writer.close()
-        pb.stop()
-        println(e.toString)
-        System.exit(0)
+        failed += 1
+        logger.error(e.getClass.toString)
     }
   }
 
   pb.stop()
+
+  logger.info(s"$failed searches failed due to exceptions")
 }
