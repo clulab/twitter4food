@@ -22,11 +22,12 @@ object FindVenues extends App {
   if(args contains "--help") {
     println("Takes in Tweet locations and uses\nthe Google Places to find nearby venues.\n" +
       "Use '--new' to throw out already-found venues\n(default is to append to existing ones).")
+    System.exit(1)
   }
   val append = !(args contains "--new")
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
-  if (append) logger.info("Appending to existing venues.") else logger.info("Throwing out any existing venues.")
+  if (append) logger.info("Appending to existing locations.") else logger.info("Throwing out any existing locations.")
 
   val config: Config = ConfigFactory.load
   val sleepTime = 586 // 150000 requests / 24 hours => 576 ms per request + 10 ms for a buffer
