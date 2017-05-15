@@ -12,8 +12,6 @@ import org.slf4j.{Logger, LoggerFactory}
   * longitude, one line per tweet. Takes a long time per account, but < 1% of tweets are geotagged.
   */
 object TweetLocs extends App {
-  case class PartialLocation(createdAt: java.util.Date)
-
   def retrieveCoords(ids: Seq[Long]): Seq[Location] = {
     val numProcesses = 18
     val chunkSize = ids.length / numProcesses
