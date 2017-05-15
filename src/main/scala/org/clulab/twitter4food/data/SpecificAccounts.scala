@@ -36,12 +36,13 @@ object SpecificAccounts extends App {
   val existingFile = config.getString("handpicked_accounts")
   val existing = if (new File(existingFile).exists) loadTwitterAccounts(config.getString("handpicked_accounts"))
     .keys
-    .filter(_.tweets.nonEmpty)
     .map(_.handle)
     .toSet
   else Set[String]()
 
   val leftToDo = (desiderata.toSet &~ existing).toSeq
+
+  logger.info(s"Retrieving: ${leftToDo.mkString(", ")}")
 
   val accounts = getAccounts(leftToDo)
 
