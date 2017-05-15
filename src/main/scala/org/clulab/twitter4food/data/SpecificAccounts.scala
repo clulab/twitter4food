@@ -12,13 +12,13 @@ import scala.util.Try
 
 object SpecificAccounts extends App {
   def getAccounts(names: Seq[String]): Seq[TwitterAccount] = {
-    val numProcesses = 16
-    val chunkSize = names.length / numProcesses
+    val numProcesses = 15
+    val chunkSize = (names.length.toDouble / numProcesses).ceil.toInt
 
     val accounts = for {
       thread <- (0 until numProcesses).par
       api = new TwitterAPI(thread)
-      i <- thread * chunkSize until (thread + 1) * chunkSize
+      i <- math.min(thread * chunkSize, names.length - 1) until math.min((thread + 1) * chunkSize, names.length)
     } yield {
       logger.debug(s"fetching ${names(i)}")
       val fetched = Try(api.fetchAccount(names(i), fetchTweets = true))
