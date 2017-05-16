@@ -45,6 +45,7 @@ class HumanClassifier(
     useMinEmbeddings=useMinEmbeddings,
     useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
+    useLocation=false,
     useTimeDate=useTimeDate,
     useFoodPerc=false,
     useCaptions=false,

@@ -31,6 +31,7 @@ object OverweightEnsemble {
       params.useMinEmbeddings,
       params.useMaxEmbeddings,
       params.useCosineSim,
+      params.useLocation,
       params.useTimeDate,
       params.useFoodPerc,
       params.useFollowees
@@ -91,6 +92,7 @@ object OverweightEnsemble {
         useMinEmbeddings = params.useMinEmbeddings,
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
+        useLocation = params.useLocation,
         useTimeDate = params.useTimeDate,
         useFoodPerc = params.useFoodPerc,
         useCaptions = params.useCaptions,
@@ -115,6 +117,7 @@ object OverweightEnsemble {
         useMinEmbeddings = params.useMinEmbeddings,
         useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
+        useLocation = params.useLocation,
         useTimeDate = params.useTimeDate,
         useFoodPerc = params.useFoodPerc,
         useCaptions = params.useCaptions,
