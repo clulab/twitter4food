@@ -22,7 +22,7 @@ object FindVenues extends App {
   if(args contains "--help") {
     println("Takes in Tweet locations and uses\nthe Google Places to find nearby venues.\n" +
       "Use '--new' to throw out already-found venues\n(default is to append to existing ones).")
-    System.exit(1)
+    System.exit(0)
   }
   val append = !(args contains "--new")
 

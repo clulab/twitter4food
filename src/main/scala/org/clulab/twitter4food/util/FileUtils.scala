@@ -8,6 +8,7 @@ import org.clulab.twitter4food.struct._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Try
 
 object FileUtils {
   def saveToFile(users: Seq[TwitterAccount], labels: Seq[String],
@@ -251,25 +252,32 @@ object FileUtils {
       val createdAt = df.parse(locData(4))
       val source = locData(5)
       val venueText = if(locData.length > 6) locData(6) else ""
-      val venues: Seq[Venue] = if (venueText.isEmpty) Nil else {
-        venueText
-          .drop(1)
-          .dropRight(1)
-          .split("\\), \\(")
-          .map { v =>
-            val elements = v.split(";")
-            val name = elements(0)
-            val types = elements(1)
-              .drop(1)
-              .dropRight(1)
-              .split(":")
-            val lat = elements(2).toDouble
-            val lng = elements(3).toDouble
-            new Venue(name, types, lat, lng)
-          }
+      val venues: Try[Seq[Venue]] = Try {
+        if (venueText.isEmpty) Nil else {
+          venueText
+            .drop(1)
+            .dropRight(1)
+            .split("\\), \\(")
+            .map { v =>
+              val elements = v.split(";")
+              val name = elements(0)
+              val types = elements(1)
+                .drop(1)
+                .dropRight(1)
+                .split(":")
+              val lat = elements(2).toDouble
+              val lng = elements(3).toDouble
+              new Venue(name, types, lat, lng)
+            }
+        }
+      }
+      if (venues.isFailure) {
+        println(s"Failed to parse venues from:\n$line")
+        System.exit(1)
       }
       pb.step()
-      new Location(id, lat, lng, user, createdAt, source, venues)
+      new Location(id, lat, lng, user, createdAt, source, venues.get)
+
     }
     pb.stop()
 
