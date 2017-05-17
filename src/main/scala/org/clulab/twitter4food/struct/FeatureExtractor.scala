@@ -150,7 +150,7 @@ class FeatureExtractor (
 
   // locations
   val locations: Map[Long, Seq[Location]] = if (useLocation) {
-    val unsorted = FileUtils.loadLocations(config.getString("classifier.overweight.tweetLocs"))
+    val unsorted = FileUtils.loadLocations(config.getString("classifiers.overweight.tweetLocs"))
     unsorted.groupBy(l => l.user)
   } else Map[Long, Seq[Location]]()
 
