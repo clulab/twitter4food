@@ -55,11 +55,12 @@ object PrintTokens {
     pb.start()
     pb.maxHint(accounts.size)
 
-    val locFile = new File(loc)
+    val da = if (fe.nonEmpty) "_da" else ""
+    val locFile = new File(s"$loc$da")
     if (!locFile.exists) locFile.mkdir()
 
     accounts.foreach{ account =>
-      val fileName = s"$loc$sep${account.id}.txt"
+      val fileName = s"$loc$da$sep${account.id}.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
       if (fe.nonEmpty) {
         val gender = getGender(account, fe.get)
