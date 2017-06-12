@@ -67,7 +67,8 @@ object PrintTokens {
         val age = getAge(account, fe.get)
         val lines = account.tweets.map{ tweet =>
           val rt = if (tweet.isRetweet) "rt" else "nrt"
-          s"($gender, $age, $rt)\t${tweet.text}"
+          val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
+          s"($gender, $age, $rt, $noise)\t${tweet.text}"
         }
         writer.write(lines.mkString("\n"))
       }
