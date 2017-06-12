@@ -91,14 +91,15 @@ object PrintTokens {
 
     logger.info("Writing tokens in LSTM-readable format")
 
+    val fe = if (printConfig.domainAdaptation)
+      Option(new FeatureExtractor(useRT = true, useGender = true, useAge = true, variable = printConfig.variable))
+    else
+      None
+
     labeledAccts.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
       // folderNames should not contain whitespace
       val folderName = lbl.replaceAll("[^a-zA-Z0-9]+", "")
       val texts = acctsWithLabels.map(_._1)
-      val fe = if (printConfig.domainAdaptation)
-        Option(new FeatureExtractor(useRT = true, useGender = true, useAge = true, variable = printConfig.variable))
-      else
-        None
 
       writeTokens(texts, s"$base$sep$folderName", fe)
     }

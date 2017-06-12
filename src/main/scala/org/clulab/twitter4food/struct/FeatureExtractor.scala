@@ -102,7 +102,7 @@ class FeatureExtractor (
   )
 
   // LDA topic model
-  var topicModel: Option[LDA] = if (useTopics) {
+  val topicModel: Option[LDA] = if (useTopics) {
     logger.info("Loading LDA topic model...")
     Some(LDA.load(config.getString("lda.topicModel")))
   } else None
