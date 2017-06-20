@@ -28,6 +28,7 @@ class HeuristicOverweightClassifier
     useMinEmbeddings=false,
     useMaxEmbeddings=false,
     useCosineSim=false,
+    useLocation=false,
     useTimeDate=false,
     useFoodPerc=false,
     useCaptions=false,

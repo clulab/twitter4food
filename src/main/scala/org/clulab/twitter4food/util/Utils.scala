@@ -23,6 +23,7 @@ object Utils {
     useMinEmbeddings: Boolean = false,
     useMaxEmbeddings: Boolean = false,
     useCosineSim: Boolean = false,
+    useLocation: Boolean = false,
     useTimeDate: Boolean = false,
     useFoodPerc: Boolean = false,
     useCaptions: Boolean = false,
@@ -105,6 +106,8 @@ object Utils {
         c.copy(useMaxEmbeddings = true)} text "use maximum embeddings"
       opt[Unit]('c', "cosineSim") action { (x, c) =>
         c.copy(useCosineSim = true)} text "use cosine similarity"
+      opt[Unit]('l', "location") action { (x, c) =>
+        c.copy(useLocation = true)} text "use user locations"
       opt[Unit]('w', "timeDate") action { (x, c) =>
         c.copy(useTimeDate = true)} text "use tweet time and date"
       opt[Unit]('p', "foodPerc") action { (x, c) =>
@@ -162,11 +165,11 @@ object Utils {
     val d = fe.mkDatum(test, "unknown")
 
     val topWeights = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
-      (map, l) => map + (l -> W.get(l).get.toSeq.sortWith(_._2 > _._2)))
+      (map, l) => map + (l -> W(l).toSeq.sortWith(_._2 > _._2)))
 
     val dotProduct = labels.foldLeft(Map[String, Seq[(String, Double)]]())(
       (map, l) => {
-        val weightMap = W.get(l).get.toSeq.toMap
+        val weightMap = W(l).toSeq.toMap
         val feats = d.featuresCounter.toSeq
         map + (l -> feats.filter(f => weightMap.contains(f._1))
           .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
@@ -211,12 +214,12 @@ object Utils {
 
       if(! groups.contains(pref))
         groups.put(pref, new mutable.HashSet[Int]())
-      groups.get(pref).get += lexicon.get(f).get
+      groups(pref) += lexicon.get(f).get
     }
 
     val img = new mutable.HashMap[String, Set[Int]]()
     for(k <- groups.keySet) {
-      img.put(k, groups.get(k).get.toSet)
+      img.put(k, groups(k).toSet)
     }
     img.toMap
   }

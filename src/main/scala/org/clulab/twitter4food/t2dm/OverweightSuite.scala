@@ -44,6 +44,7 @@ object OverweightSuite {
       useMinEmbeddings = true,
       useMaxEmbeddings = true,
       useCosineSim = true,
+      useLocation = true,
       useTimeDate = true,
       useFoodPerc = true,
       useCaptions = true,

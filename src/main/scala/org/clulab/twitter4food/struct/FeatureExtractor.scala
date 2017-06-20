@@ -37,6 +37,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useMinEmbeddings minimum (by dimension) embeddings of all account words
   * @param useMaxEmbeddings maximum (by dimension) embeddings of all account words
   * @param useCosineSim similarity to a corpus of overweight-related tweets
+  * @param useLocation names of venues visited by user
   * @param useTimeDate time- and day-based features
   * @param useFoodPerc use the percentage of user images containing food
   * @param useFollowers domain transfer from follower accounts
@@ -59,6 +60,7 @@ class FeatureExtractor (
   val useMinEmbeddings: Boolean = false,
   val useMaxEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
+  val useLocation: Boolean = false,
   val useTimeDate: Boolean = false,
   val useFoodPerc: Boolean = false,
   val useCaptions: Boolean = false,
@@ -88,6 +90,7 @@ class FeatureExtractor (
     s"useMinEmbeddings=$useMinEmbeddings, " +
     s"useMaxEmbeddings=$useMaxEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
+    s"useLocation=$useLocation, " +
     s"useTimeDate=$useTimeDate, " +
     s"useFoodPerc=$useFoodPerc, " +
     s"useCaptions=$useCaptions, " +
@@ -144,6 +147,12 @@ class FeatureExtractor (
   val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
   // tdidf vector for overweight corpus
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
+
+  // locations
+  val locations: Map[Long, Seq[Location]] = if (useLocation) {
+    val unsorted = FileUtils.loadLocations(config.getString("classifiers.overweight.tweetLocs"))
+    unsorted.groupBy(l => l.user)
+  } else Map[Long, Seq[Location]]()
 
   // % food images annotations
   val (twFoodPerc, igFoodPerc): (Option[Map[Long,Double]], Option[Map[Long,Double]]) = if (useFoodPerc) {
@@ -341,6 +350,8 @@ class FeatureExtractor (
     }
     if (useCosineSim)
       counter += cosineSim(unigrams, denoised, description)
+    if (useLocation && isProband)
+      counter += location(account.id)
     if (useTimeDate)
       counter += timeDate(denoised)
     if (useFoodPerc)
@@ -400,7 +411,7 @@ class FeatureExtractor (
     * Populate a [[Counter]] with frequency counts of words in a [[Seq]]
     */
   def setCounts(words: Seq[String], counter: Counter[String]) = {
-    words.foreach(word => counter.incrementCount(word, 1))
+    words.foreach(word => counter.incrementCount(word))
   }
 
   /**
@@ -764,6 +775,28 @@ class FeatureExtractor (
     // Calculate cosine similarity
     val counter = new Counter[String]
     counter.setCount("__cosineSim__", Counters.cosine(accountVec, overweightVec.get))
+
+    counter
+  }
+
+  /**
+    * Returns a [[Counter]] of unigrams based on the locations the user has visited.
+    * @param id the current account's id
+    * @return a [[Counter]] with location-based unigram features
+    */
+  def location(id: Long): Counter[String] = {
+    val counter = new Counter[String]
+
+    if (locations contains id) {
+      val venues = locations(id).flatMap(l => l.venues.headOption)
+      venues.foreach{ venue =>
+        // venue name -> lowercase, then split on whitespace and all punctuation
+        // this is because of things like "Panera Northridge" and "Panera Bread, Union Station"
+        setCounts(tokenNGrams(1, venue.name.toLowerCase.split("[\\s\\p{Punct}]+"), "loc"), counter)
+        // venue TYPE, e.g. restaurant
+        setCounts(venue.types.map("locType:" + _), counter)
+      }
+    }
 
     counter
   }
