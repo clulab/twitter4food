@@ -1,6 +1,6 @@
 name := "twitter4food"
 
-version := "1.0"
+version := "2.1"
 
 scalaVersion := "2.11.8"
 
@@ -28,7 +28,8 @@ libraryDependencies ++= Seq(
   "net.sf.trove4j" % "trove4j" % "2.0.2",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
   "com.github.scopt" %% "scopt" % "3.4.0",
-  "me.tongfei" % "progressbar" % "0.4.0"
+  "me.tongfei" % "progressbar" % "0.4.0",
+  "com.google.maps" % "google-maps-services" % "0.1.20"
 )
 
 dependencyOverrides += "net.sf.trove4j" % "trove4j" % "2.0.2"

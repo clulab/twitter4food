@@ -42,7 +42,7 @@ object FileUtils {
     writer.close()
   }
 
-  def load(fileName: String) = {
+  def loadTwitterAccounts(fileName: String) = {
     val file = scala.io.Source.fromFile(fileName)
     val lines = file.getLines
 
@@ -218,5 +218,72 @@ object FileUtils {
   def readFromCsv(fileName: String, sep: String = ","): Seq[Seq[String]] = {
     val file = scala.io.Source.fromFile(fileName)
     file.getLines.map(_.trim.split(sep).toSeq).toSeq
+  }
+
+  /**
+    * Returns a [[Seq]] of [[Location]]s from a file standoff as produced by [[saveLocations()]]
+    */
+  def loadLocations(fileName: String): Seq[Location] = {
+    val df = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
+
+    if (!new File(fileName).exists) return Nil
+
+    val hint = scala.io.Source.fromFile(fileName).getLines.toSeq.length
+
+    val file = scala.io.Source.fromFile(fileName)
+    val lines = file.getLines
+
+    val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
+    pb.start()
+    if(lines.hasNext) {
+      pb.maxHint(hint)
+      pb.setExtraMessage("Loading...")
+    }
+
+    val locs = for (
+      line <- lines
+    ) yield {
+      val locData = line.stripLineEnd.split("\t")
+      val id = locData(0)
+      val lat = locData(1).toDouble
+      val lng = locData(2).toDouble
+      val user = locData(3).toLong
+      val createdAt = df.parse(locData(4))
+      val source = locData(5)
+      val venueText = if(locData.length > 6) locData(6) else ""
+      val venues: Seq[Venue] = if (venueText.isEmpty) Nil else {
+        venueText
+          .drop(1)
+          .dropRight(1)
+          .split("\\), \\(")
+          .map { v =>
+            val elements = v.split(";")
+            val name = elements(0)
+            val types = elements(1)
+              .drop(1)
+              .dropRight(1)
+              .split(":")
+            val lat = elements(2).toDouble
+            val lng = elements(3).toDouble
+            new Venue(name, types, lat, lng)
+          }
+      }
+      pb.step()
+      new Location(id, lat, lng, user, createdAt, source, venues)
+    }
+    pb.stop()
+
+    locs.toSeq
+  }
+
+  /**
+    * Saves a [[Seq]] of [[Location]]s to a file standoff loadable by [[loadLocations()]]
+    */
+  def saveLocations(locs: Seq[Location], fileName: String, append: Boolean = false) = {
+    val writer = new BufferedWriter(new FileWriter(fileName, append))
+
+    locs.foreach(loc => writer.write(s"${loc.toString}\n"))
+
+    writer.close()
   }
 }

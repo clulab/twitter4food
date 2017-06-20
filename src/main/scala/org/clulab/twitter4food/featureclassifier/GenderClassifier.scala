@@ -84,13 +84,13 @@ object GenderClassifier {
 
     val toTrainOn = if (params.runOnTest) {
       logger.info("Loading training accounts...")
-      val trainData = FileUtils.load(config.getString("classifiers.gender.trainingData")).toSeq
+      val trainData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")).toSeq
       logger.info("Loading dev accounts...")
-      val devData = FileUtils.load(config.getString("classifiers.gender.devData")).toSeq
+      val devData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData")).toSeq
       trainData ++ devData
     } else {
       logger.info("Loading training accounts...")
-      FileUtils.load(config.getString("classifiers.gender.trainingData")).toSeq
+      FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")).toSeq
     }
 
     val followers = if (params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
@@ -137,10 +137,10 @@ object GenderClassifier {
     }
     val toTestOn = if (params.runOnTest) {
       logger.info("Loading test accounts...")
-      FileUtils.load(config.getString("classifiers.gender.testData"))
+      FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.testData"))
     } else {
       logger.info("Loading dev accounts...")
-      FileUtils.load(config.getString("classifiers.gender.devData"))
+      FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData"))
     }
 
     val evals = for ((portion, numAccounts, gc) <- classifiers) yield {

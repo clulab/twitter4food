@@ -38,15 +38,15 @@ object ExamineUser extends App {
     reader.readLine match {
       case "1" => // overweight
         logger.info("Loading users")
-        users = FileUtils.load(config.getString("classifiers.overweight.data"))
+        users = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
         lexicon = loadLexicons(Set("Overweight", "Not overweight"), "overweight")
       case "2" => // human
         logger.info("Loading users")
-        users = FileUtils.load(config.getString("classifiers.human.data"))
+        users = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.data"))
         lexicon = loadLexicons(Set("human", "org"), "human")
       case "3" => // gender
         logger.info("Loading users")
-        users = FileUtils.load(config.getString("classifiers.gender.data"))
+        users = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.data"))
         lexicon = loadLexicons(Set("F", "M"), "gender")
       case _ => printCorpora
     }
@@ -55,7 +55,7 @@ object ExamineUser extends App {
   println("Loading dictionaries")
 
   val handleMap = users.map{ case (acct, lbl) => stripAt(acct.handle) -> (acct, lbl) }
-  assert(handleMap.nonEmpty, "Failed to load users!")
+  assert(handleMap.nonEmpty, "Failed to loadTwitterAccounts users!")
 
   val numHandles = handleMap.size
 

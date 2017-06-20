@@ -7,6 +7,8 @@ import jline.console.ConsoleReader
 import jline.console.history.FileHistory
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.slf4j.LoggerFactory
+import org.clulab.struct.Counter
+import java.io.PrintWriter
 
 /**
   * Gives a summary of a user's tweet relevance.
@@ -28,17 +30,76 @@ object AnalyzeTweets extends App {
   var users = Map[TwitterAccount,String]()
 
   logger.info("Loading users")
-  users = FileUtils.load(config.getString("classifiers.overweight.data"))
+  users = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
 
   println("Loading dictionaries")
 
   var handleMap = users.map{ case (acct, lbl) => stripAt(acct.handle) -> (acct, lbl) }
-  assert(handleMap.nonEmpty, "Failed to load users!")
+  assert(handleMap.nonEmpty, "Failed to loadTwitterAccounts users!")
 
   val handlesToAnalyze = Array("angiewhoohoo", "MaeghanLucinda", "JulianaYaz", "Kathneko", "YOB_JayDaisy", "queenachan", "checkoutfashion", "Graziella_a", "Banditgangnate", "YunJae8686", "alfritz04", "YungPauline", "yakdon", "ceejaydeleon", "Hannah_Barnett0", "steveendranata", "DrDamodhar", "Emily11949309", "LeumasHon", "sarlynclements", "Jo_RDPT16", "JonathanOneLife", "kat0417", "JessCording", "Lottie_Lamour", "siShingalinG", "sachadetti", "ScouseMattSmith", "jonathanlegate", "kanahina", "ellwoodz", "bl3berry", "jackiehagland", "oh_mandy93", "nohyunji", "Myatzee", "GarnerStyle", "mchefajaychopra", "MissMelanieD", "Beksville", "edibleASH", "Parsnip_Pete", "Gloriahillching", "JenniferBible1", "Spezzie", "GluttonEire")
   val handleMapSubset = handleMap.filterKeys (handlesToAnalyze.toSet)
 
-  var running = true
+  val numHandles = handleMapSubset.size
+  val numOW = handleMapSubset.values.filter(_._2 == "Overweight").toSeq.length
+  val numNO = handleMapSubset.values.filter(_._2 == "Not overweight").toSeq.length
+  val allOWTweets = handleMapSubset.values.filter(_._2 == "Overweight").map(_._1.tweets.length).sum
+  val allNOTweets = handleMapSubset.values.filter(_._2 == "Not overweight").map(_._1.tweets.length).sum
+
+/*  var numOfTweets = 0
+  var numOfRetweets = 0
+  var numOfNotRetweets = 0
+  val resTweets = handleMap.keys.flatMap{ twAcHandle =>
+    val data = handleMap(twAcHandle)
+    val ta = data._1
+    val lbl = data._2
+    val retweets = for(t <- ta.tweets) yield {
+      numOfTweets += 1
+      if(t.isRetweet) {
+        numOfRetweets += 1
+        Some(t)
+      }
+      else {
+        numOfNotRetweets += 1
+        None
+      }
+    }
+    
+    retweets
+   }
+  
+  val retweetsFile = new PrintWriter(new File("retweets.txt"))
+  for (t <- resTweets) {
+    if(t.nonEmpty) { retweetsFile.write(s"${t.get.text}\n")  }
+  }
+  retweetsFile.close()
+  logger.info(s"Total no of Tweets : ${numOfTweets}\nNo. of Retweets : ${numOfRetweets}\nNo. of Regular Tweets : ${numOfNotRetweets}")
+  logger.info("Retweets file written")
+*/
+  
+  val highInfoWords = getAllHighInfoTweetWords(handleMap) // getAllHighInfoTweetWords(handleMapSubset)
+  val highInfoWordsOW = highInfoWords._1
+  val highInfoWordsNO = highInfoWords._2
+  val highInfoWordsFile = new PrintWriter(new File("HighInfoWords.txt"))
+  
+  highInfoWordsFile.write(s"Top OW indicating words")
+  highInfoWordsFile.write(divider)
+  for((w,info,freq,ow_bits,no_bits) <- highInfoWordsOW){
+    highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
+  }
+  highInfoWordsFile.write(divider)
+  
+  highInfoWordsFile.write(s"Top NO indicating words")
+  highInfoWordsFile.write(divider)
+  for((w,info,freq,ow_bits,no_bits) <- highInfoWordsNO){
+    highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
+  }
+  highInfoWordsFile.write(divider)
+  
+  highInfoWordsFile.close()
+  logger.info("HighFreq words written to HighInfoWords.txt")
+  
+  /*var running = true
   val reader = new ConsoleReader
   printHelp()
   reader.setPrompt(">>> ")
@@ -54,8 +115,94 @@ object AnalyzeTweets extends App {
       case query =>
         if (full) search(handleMapSubset, query) else search(handleMap, query)
     }
-  }
+  }*/
 
+  def getAllHighInfoTweetWords(handleMap: Map[String, (TwitterAccount, String)]) : (Seq[(String, Double, Int, Double, Double)],Seq[(String, Double, Int, Double, Double)]) = {
+    
+    logger.info("Vocab construction begin")
+    
+//    var vocab = Set[String]()
+    val vocabCounter = new Counter[String]
+    for(i <- handleMap.toSeq){
+      val (handle, ta_lbl) = (i._1, i._2)
+      val ta = ta_lbl._1
+      for (t <- ta.tweets){
+        val words = t.text.trim.split(" +")
+        words.foreach(word => vocabCounter.incrementCount(word, 1))
+      }
+      
+    }
+    logger.info("Vocab construction end")
+    logger.info(s"Size of vocab ${vocabCounter.size}")
+    
+    logger.info("Downsizing the vocab")
+    val totalCount = vocabCounter.toSeq.unzip._2.sum
+    var cumulativeCount = 0.0
+    var vocabSubset = Set[String]()
+    for((word,count) <- vocabCounter.toSeq.sortBy(- _._2)){
+      if(cumulativeCount / totalCount <= 0.8){
+        cumulativeCount += count
+        vocabSubset += word
+      }
+    }
+    logger.info(s"Size of the subset of the vocab based on frequency : ${vocabSubset.size}")
+        
+    logger.info("Begun tweet tokenization")
+    val tokenizedTweets = (for(twAcHandle <- handleMap.keys) yield { 
+      val data = handleMap(twAcHandle)
+      val ta = data._1.tweets
+      val tweetsTokenized = for (t <- data._1.tweets) yield {
+        t.text.trim.split(" +")
+      }
+      (twAcHandle, tweetsTokenized)
+    }).toMap
+    logger.info("End tweet tokenization")
+    
+    val pb = new me.tongfei.progressbar.ProgressBar("wordsProcessed", vocabSubset.size)
+    pb.setExtraMessage("Processing...")
+    pb.start()  
+    
+    val wordsAndBitsofInfo = for ((w,i) <- vocabSubset.toSeq.zipWithIndex) yield {
+      pb.step()  
+      val resTweets = handleMap.keys.par.flatMap{ twAcHandle =>
+            val data = handleMap(twAcHandle)
+            val ta = data._1
+            val lbl = data._2
+//          val regex = w.r
+            val tweets = tokenizedTweets(twAcHandle).filter ( x =>  x.contains(w) ).map { x => x.mkString(" ") }
+
+            if (tweets.isEmpty) None else Some(twAcHandle, tweets, lbl)
+        }.toSeq.seq
+        val resOWTweets = resTweets.filter(_._3 == "Overweight")
+        val resNOTweets = resTweets.filter(_._3 == "Not overweight")
+        val numOWTweets = (for(x <- resOWTweets) yield x._2.length).sum
+        val numNOTweets = (for(x <- resNOTweets) yield x._2.length).sum
+
+        // probabilities for Bayesian calculation. read as P(search term|overweight label), P(not overweight), etc.
+        val pso = resOWTweets.length.toDouble / numOW.toDouble
+        val po = numOW.toDouble / numHandles.toDouble
+        val ps = resTweets.length.toDouble / numHandles.toDouble
+        val pos = pso * po / ps
+        val psn = resNOTweets.length / numNO.toDouble
+        val pn = numNO / numHandles.toDouble
+        val pns = psn * pn / ps
+
+        val to = numOWTweets.toDouble / allOWTweets
+        val tn = numNOTweets.toDouble / allNOTweets
+
+        val bitsOfInfo = log2(Seq(to/tn, tn/to).max)
+        val scaledBitsOfInfo = bitsOfInfo * log2(resOWTweets.size + resNOTweets.size)
+        (w,scaledBitsOfInfo, resOWTweets.size + resNOTweets.size, log2(to/tn), log2(tn/to))
+    }
+   
+    pb.stop()
+    
+//    val wordsAndBitsFinite = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._2)
+    val wordsAndBitsFiniteOW = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._4)
+    val wordsAndBitsFiniteNO = wordsAndBitsofInfo.filterNot( _._2.isInfinity).sortBy(-_._5)
+    val sz = wordsAndBitsofInfo.size
+    ( wordsAndBitsFiniteOW.filter(_._3 > 25).take((sz * 0.5).toInt), wordsAndBitsFiniteNO.filter(_._3 > 25).take((sz * 0.5).toInt) )
+  }
   /**
     * Returns a user handle minus the initial '@', if one exists
     */
@@ -160,5 +307,5 @@ object AnalyzeTweets extends App {
       }
       println()
     }
-  }
+   }
 }

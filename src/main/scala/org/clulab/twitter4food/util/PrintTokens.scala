@@ -4,6 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.FileSystems
 
 import com.typesafe.config.ConfigFactory
+import org.clulab.twitter4food.struct.{FeatureExtractor, TwitterAccount}
 import org.slf4j.LoggerFactory
 
 object PrintTokens {
@@ -13,21 +14,65 @@ object PrintTokens {
   val base = config.getString("classifiers.overweight.rawTokens")
   val sep = FileSystems.getDefault.getSeparator
 
+  case class PrintTokensConfig(variable: String = "overweight", domainAdaptation: Boolean = false)
+
+  def parseArgs(args: Array[String]): PrintTokensConfig = {
+    val parser = new scopt.OptionParser[PrintTokensConfig]("tokenPrinter") {
+      opt[String]('v', "variable") action { (x, c) =>
+        c.copy(variable = x)} text "Variable to use"
+      opt[Unit]('d', "domainAdaptation") action { (x, c) =>
+        c.copy(domainAdaptation = true)} text "Use domain adaptation"
+    }
+    val opts = parser.parse(args, PrintTokensConfig())
+
+    opts.get
+  }
+
+  def getGender(account: TwitterAccount, fe: FeatureExtractor): String = {
+    val acctGenderFirst = if (fe.genderAnnotation.nonEmpty)
+      fe.genderAnnotation.get.get(account.id.toString)
+    else None
+    val acctGenderSecond = if (acctGenderFirst.isEmpty && fe.genderClassifier.nonEmpty)
+      fe.genderClassifier.get.predict(account)
+    else "UNK"
+    acctGenderFirst.getOrElse(acctGenderSecond)
+  }
+
+  def getAge(account: TwitterAccount, fe: FeatureExtractor): String = {
+    val ageExact = fe.ageAnnotation.get.get(account.id.toString)
+    if (ageExact.nonEmpty) {
+      val ae = ageExact.get.toDouble
+      f"$ae%1.1f"
+    } else "UNK"
+  }
+
   /**
     * Prints each account's tweets (one per line) to its own file.
     * Tweets are pre-tokenized (so no newlines w/i text).
     */
-  def writeTokens(accounts: Map[Long, Seq[String]], loc: String): Unit = {
+  def writeTokens(accounts: Seq[TwitterAccount], loc: String, fe: Option[FeatureExtractor]): Unit = {
     val pb = new me.tongfei.progressbar.ProgressBar("printing", 100)
     pb.start()
     pb.maxHint(accounts.size)
 
-    val locFile = new File(loc)
+    val da = if (fe.nonEmpty) "_da" else ""
+    val locFile = new File(s"$loc$da")
     if (!locFile.exists) locFile.mkdir()
-    accounts.foreach{ case (id, tweets) =>
-      val fileName = s"$loc$sep$id.txt"
+
+    accounts.foreach{ account =>
+      val fileName = s"$loc$da$sep${account.id}.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
-      writer.write(tweets.mkString("\n"))
+      if (fe.nonEmpty) {
+        val gender = getGender(account, fe.get)
+        val age = getAge(account, fe.get)
+        val lines = account.tweets.map{ tweet =>
+          val rt = if (tweet.isRetweet) "rt" else "nrt"
+          val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
+          s"($gender, $age, $rt, $noise)\t${tweet.text}"
+        }
+        writer.write(lines.mkString("\n"))
+      }
+      else writer.write(account.tweets.map(_.text).mkString("\n"))
       writer.close()
       pb.step()
     }
@@ -40,18 +85,24 @@ object PrintTokens {
     * train/test folders for each variable value. Database choices are "overweight", "human", "gender".
     */
   def main(args: Array[String]): Unit = {
-    val dataset = if(args.isEmpty) "overweight" else args.head
+    val printConfig = parseArgs(args)
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.load(config.getString(s"classifiers.$dataset.data")).toSeq
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.${printConfig.variable}.data")).toSeq
 
     logger.info("Writing tokens in LSTM-readable format")
+
+    val fe = if (printConfig.domainAdaptation)
+      Option(new FeatureExtractor(useRT = true, useGender = true, useAge = true, variable = printConfig.variable))
+    else
+      None
 
     labeledAccts.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
       // folderNames should not contain whitespace
       val folderName = lbl.replaceAll("[^a-zA-Z0-9]+", "")
-      val texts = acctsWithLabels.map(al => al._1.id -> al._1.tweets.map(_.text)).toMap
-      writeTokens(texts, s"$base$sep$folderName")
+      val texts = acctsWithLabels.map(_._1)
+
+      writeTokens(texts, s"$base$sep$folderName", fe)
     }
   }
 }

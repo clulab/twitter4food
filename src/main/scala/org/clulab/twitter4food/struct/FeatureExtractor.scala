@@ -102,7 +102,7 @@ class FeatureExtractor (
   )
 
   // LDA topic model
-  var topicModel: Option[LDA] = if (useTopics) {
+  val topicModel: Option[LDA] = if (useTopics) {
     logger.info("Loading LDA topic model...")
     Some(LDA.load(config.getString("lda.topicModel")))
   } else None
@@ -182,13 +182,13 @@ class FeatureExtractor (
       // train a fresh classifier
       logger.debug(s"$modelFile not found; attempting to train...")
 
-      val trainingData = FileUtils.load(config.getString("classifiers.human.trainingData")) ++
-        FileUtils.load(config.getString("classifiers.human.devData")) ++
-        FileUtils.load(config.getString("classifiers.human.testData"))
+      val trainingData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.human.testData"))
       // val tmp = new HumanClassifier(useDictionaries=true, useFollowers=true, useMaxEmbeddings=true)
       val tmp = new HumanClassifier(useDictionaries=true, useMaxEmbeddings=true, customFeatures = HumanClassifier.customFeatures)
 
-      // bad to have to load followers possibly multiple times, but this should happen only rarely
+      // bad to have to loadTwitterAccounts followers possibly multiple times, but this should happen only rarely
       // TODO: different follower files by classifier
       val followers = if (tmp.useFollowers) {
         Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
@@ -217,12 +217,12 @@ class FeatureExtractor (
       // train a fresh classifier
       logger.info(s"$modelFile not found; attempting to train...")
 
-      val trainingData = FileUtils.load(config.getString("classifiers.gender.trainingData")) ++
-        FileUtils.load(config.getString("classifiers.gender.devData")) ++
-        FileUtils.load(config.getString("classifiers.gender.testData"))
+      val trainingData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData")) ++
+        FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.testData"))
       val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
 
-      // bad to have to load followers possibly multiple times, but this should happen only rarely
+      // bad to have to loadTwitterAccounts followers possibly multiple times, but this should happen only rarely
       // TODO: different follower files by classifier
       val followers = if (tmp.useFollowers) {
         Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
@@ -438,8 +438,8 @@ class FeatureExtractor (
     // n-gram for tweets
     denoised.foreach{ tweet =>
       val split = retokenize(tweet.text) // split on whitespace
-      val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
-      val filtered = if (n == 1) filterStopWords(relevant) else relevant // remove stopwords
+    val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
+    val filtered = if (n == 1) filterStopWords(relevant) else relevant // remove stopwords
       setCounts(tokenNGrams(n, filtered), counter) // always set n-gram counts
       if (useRT) setCounts(tokenNGrams(n, filtered, if (tweet.isRetweet) "RT_" else "NRT_"), counter) // prepend if marking RT
     }
@@ -829,7 +829,7 @@ class FeatureExtractor (
       val userCaptions = captions.get(id)
       userCaptions.foreach{ caption =>
         val split = retokenize(caption) // split on whitespace
-        val filtered = if (n == 1) filterStopWords(split) else split // remove stopwords
+      val filtered = if (n == 1) filterStopWords(split) else split // remove stopwords
         setCounts(tokenNGrams(n, filtered, prefix = "cap_"), counter)
       }
     }

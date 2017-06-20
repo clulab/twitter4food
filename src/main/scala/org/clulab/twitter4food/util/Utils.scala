@@ -113,6 +113,8 @@ object Utils {
         c.copy(useCaptions = true)} text "use unigrams of image captions"
       opt[Unit]('s', "customAction") action { (x, c) =>
         c.copy(useCustomAction = true)} text "use any custom actions for the classifier"
+      opt[Unit]('r', "retweet") action { (x, c) =>
+        c.copy(useRT = true)} text "treat retweet n-grams differently"
       opt[Unit]('g', "gender") action { (x, c) =>
         c.copy(useGender = true)} text "use gender classifier"
       opt[Unit]('o', "age") action { (x, c) =>

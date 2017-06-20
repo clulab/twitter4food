@@ -22,7 +22,7 @@ object OverweightSuite {
       user(1).toLong -> user(0).toInt // id -> partition
     }.toMap
 
-    val labeledAccts = FileUtils.load(config.getString("classifiers.overweight.data"))
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
       .filter{ case (acct, lbl) => partitions.contains(acct.id)}
