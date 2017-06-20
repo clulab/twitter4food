@@ -143,7 +143,7 @@ class ClassifierImpl(
 
     datums.foreach(datum => this.synchronized { dataset += datum })
 
-    dataset.removeFeaturesByFrequency(freqThreshold)
+    dataset.removeFeaturesByFrequency(freqThreshold).asInstanceOf[RVFDataset[String,String]]
   }
 
   /**
