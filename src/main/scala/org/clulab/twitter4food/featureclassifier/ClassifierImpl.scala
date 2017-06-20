@@ -110,7 +110,7 @@ class ClassifierImpl(
   val lowerBound = 0.0
   val upperBound = 1.0
 
-  val freqThreshold = 1
+  val freqThreshold = 4
 
   def constructDataset(
     accounts: Seq[TwitterAccount],
