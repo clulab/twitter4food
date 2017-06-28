@@ -210,6 +210,39 @@ object FileUtils {
     texts
   }
 
+  def loadThreeLineIds(fileName: String, englishOnly: Boolean = true): Seq[Long] = {
+    val fileInit = scala.io.Source.fromFile(fileName)
+    val hint = fileInit.getLines.length / 3
+    fileInit.close
+
+    val file = scala.io.Source.fromFile(fileName)
+    val lines = file.getLines
+
+    val ids = new ArrayBuffer[Long]()
+
+    var count = 0
+    val pb = new me.tongfei.progressbar.ProgressBar("FileUtils", 100)
+    pb.start()
+    pb.maxHint(hint)
+    pb.setExtraMessage("Loading...")
+
+    lines.foreach { line =>
+      count match {
+        case 0 =>
+          val splits = line.split("\\t")
+          if (splits.last == "en") ids.append(splits(2).toLong)
+        case other => () // do nothing
+      }
+      count += 1
+      count %= 3
+    }
+    pb.stop()
+
+    file.close
+
+    ids
+  }
+
   def writeToCsv(fileName: String, toWrite: Seq[Seq[String]], sep: String = ","): Unit = {
     val writer = new BufferedWriter(new FileWriter(fileName, false))
     toWrite.foreach{ row => writer.write(row.mkString(sep) + "\n") }

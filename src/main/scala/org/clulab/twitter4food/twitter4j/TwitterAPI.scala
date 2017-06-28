@@ -118,7 +118,7 @@ class TwitterAPI(keyset: Int) {
           var tweets = twitter.getUserTimeline(handle, page).asScala.toList
           sleep("getUserTimeline", isAppOnly)
 
-          while(!tweets.isEmpty) {
+          while(tweets.nonEmpty) {
             tweetBuffer ++= tweets.map(x => new Tweet(option(x.getText), x.getId,
                                        option(x.getLang), x.getCreatedAt,
                                        sanitizeHandle(user.getScreenName)))
