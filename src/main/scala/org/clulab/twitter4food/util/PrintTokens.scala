@@ -4,7 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.FileSystems
 
 import com.typesafe.config.ConfigFactory
-import org.clulab.twitter4food.struct.{FeatureExtractor, TwitterAccount}
+import org.clulab.twitter4food.struct.{FeatureExtractor, Location, Tweet, TwitterAccount}
 import org.slf4j.LoggerFactory
 
 object PrintTokens {
@@ -46,6 +46,17 @@ object PrintTokens {
     } else "UNK"
   }
 
+  def getLoc(tweet: Tweet, locs: Option[Seq[Location]]): (String, String, String, String) = {
+    if (locs.isEmpty || locs.get.isEmpty) return ("", "", "", "")
+    val loc = locs.get.find(l => l.id.toLong == tweet.id)
+    if (loc.isEmpty || loc.get.venues.isEmpty) return ("", "", "", "")
+    val placeType = loc.get.venues.head.types.head
+    val placeName = loc.get.venues.head.name
+    val lat = loc.get.llat
+    val lng = loc.get.llng
+    (placeType, placeName, lat.toString, lng.toString)
+  }
+
   /**
     * Prints each account's tweets (one per line) to its own file.
     * Tweets are pre-tokenized (so no newlines w/i text).
@@ -65,10 +76,12 @@ object PrintTokens {
       if (fe.nonEmpty) {
         val gender = getGender(account, fe.get)
         val age = getAge(account, fe.get)
+        val acctLocs = fe.get.locations.get(account.id)
         val lines = account.tweets.map{ tweet =>
+          val (placeType, placeName, lat, lng) = getLoc(tweet, acctLocs)
           val rt = if (tweet.isRetweet) "rt" else "nrt"
           val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
-          s"($gender, $age, $rt, $noise)\t${tweet.text}"
+          s"($gender, $age, $rt, $noise, $placeType, $placeName, $lat, $lng)\t${tweet.text}"
         }
         writer.write(lines.mkString("\n"))
       }
@@ -93,7 +106,15 @@ object PrintTokens {
     logger.info("Writing tokens in LSTM-readable format")
 
     val fe = if (printConfig.domainAdaptation)
-      Option(new FeatureExtractor(useRT = true, useGender = true, useAge = true, variable = printConfig.variable))
+      Option(
+        new FeatureExtractor(
+          useLocation = true,
+          useRT = true,
+          useGender = true,
+          useAge = true,
+          variable = printConfig.variable
+        )
+      )
     else
       None
 
