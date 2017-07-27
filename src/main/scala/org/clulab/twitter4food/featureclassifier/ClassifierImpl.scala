@@ -116,7 +116,8 @@ class ClassifierImpl(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     followers: Option[Map[String, Seq[TwitterAccount]]],
-    followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
+    followees: Option[Map[String, Seq[String]]],
+    pctToKeep: Option[Double] = None): RVFDataset[String, String] = {
 
     if (useFollowers && followers.nonEmpty) this.featureExtractor.setFollowers(followers.get)
     if (useFollowees && followees.nonEmpty) this.featureExtractor.setFollowees(followees.get)
@@ -141,7 +142,10 @@ class ClassifierImpl(
 
     datums.foreach(datum => this.synchronized { dataset += datum })
 
-    dataset
+    if (pctToKeep.nonEmpty)
+      dataset.removeFeaturesByInformationGain(pctToKeep.get).asInstanceOf[RVFDataset[String, String]]
+    else
+      dataset
   }
 
   /**
@@ -690,7 +694,7 @@ class ClassifierImpl(
     val numAccts = 20
 
     // Important: this dataset is sorted by id
-    val dataset = constructDataset(accounts, labels, followers, followees)
+    val dataset = constructDataset(accounts, labels, followers, followees, pctToKeep = Option(0.01))
     val ids = accounts.map(_.id).sorted
     val folds = foldsFromIds(ids, partitions)
 
