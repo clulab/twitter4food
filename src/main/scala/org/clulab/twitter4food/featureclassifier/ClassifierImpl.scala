@@ -10,10 +10,12 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.Random
 import org.clulab.struct.Counter
 import org.clulab.struct.Counter
+
+import scala.collection.mutable
 
 /** Implementation of the FeatureClassifier trait that contains the
   * nitty-gritty of creating FeatureExtractors, adding datums,
@@ -142,10 +144,7 @@ class ClassifierImpl(
 
     datums.foreach(datum => this.synchronized { dataset += datum })
 
-    if (pctToKeep.nonEmpty)
-      dataset.removeFeaturesByInformationGain(pctToKeep.get).asInstanceOf[RVFDataset[String, String]]
-    else
-      dataset
+    dataset
   }
 
   /**
@@ -672,6 +671,34 @@ class ClassifierImpl(
     output.flatten.toSeq
   }
 
+  def removeFeaturesByInformationGain[L,F](ds: RVFDataset[L,F], ids: Seq[Int], pctToKeep:Double): RVFDataset[L, F] = {
+    logger.debug("Computing information gain for all features in dataset...")
+
+    val fs = ds.features.zipWithIndex.filter{ case (features, ix) => ids contains ix }.map(_._1)
+    val ls = ds.labels.zipWithIndex.filter{ case (labels, ix) => ids contains ix }.map(_._1)
+
+    // compute information gain per feature
+    val (total, igs) = ds.computeInformationGains(fs, ls)
+    logger.debug("Total unique features before filtering: " + igs.size)
+
+    // sort all features in descending order of their IG
+    val fb = new ListBuffer[(Int, Double)]
+    for(f <- igs.keySet) fb += new Tuple2(f, igs.get(f).get.ig(total))
+    val sortedFeats = fb.sortBy(- _._2).toArray
+
+    // keep the top pctToKeep
+    val maxLen = (pctToKeep * sortedFeats.length.toDouble).ceil.toInt
+    assert(maxLen > 0 && maxLen <= sortedFeats.length)
+    logger.debug(s"Will keep $maxLen features after filtering by IG.")
+
+    // these are the features to keep
+    val featsToKeep = new mutable.HashSet[Int]()
+    for(i <- 0 until maxLen) featsToKeep += sortedFeats(i)._1
+
+    // keep only these features in the dataset
+    ds.keepOnly(featsToKeep.toSet).asInstanceOf[RVFDataset[L,F]]
+  }
+
   /**
     * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
     * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
@@ -694,7 +721,7 @@ class ClassifierImpl(
     val numAccts = 20
 
     // Important: this dataset is sorted by id
-    val dataset = constructDataset(accounts, labels, followers, followees, pctToKeep = Option(0.01))
+    val dataset = constructDataset(accounts, labels, followers, followees)
     val ids = accounts.map(_.id).sorted
     val folds = foldsFromIds(ids, partitions)
 
@@ -704,6 +731,8 @@ class ClassifierImpl(
         logger.debug(s"fold: ${balance.mkString(", ")}")
       }
       val classifier = classifierFactory()
+      val pruned = removeFeaturesByInformationGain(dataset, fold.train, 0.001)
+
       classifier.train(dataset, fold.train.toArray)
       val W = classifier.getWeights()
       val predictions = for(i <- fold.test) yield {
