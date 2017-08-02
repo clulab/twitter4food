@@ -733,12 +733,12 @@ class ClassifierImpl(
       val classifier = classifierFactory()
       val pruned = removeFeaturesByInformationGain(dataset, fold.train, 0.001)
 
-      classifier.train(dataset, fold.train.toArray)
+      classifier.train(pruned, fold.train.toArray)
       val W = classifier.getWeights()
       val predictions = for(i <- fold.test) yield {
         val id = ids(i).toString
-        val gold = dataset.labelLexicon.get(dataset.labels(i))
-        val datum = dataset.mkDatum(i)
+        val gold = pruned.labelLexicon.get(dataset.labels(i))
+        val datum = pruned.mkDatum(i)
         val pred = classifier.classOf(datum)
         val score = classifier.scoresOf(datum)
         // NOTE: for the high confidence classifier, sort this tuple in decreasing order of classifier confidence ('score(pred)')
