@@ -25,16 +25,14 @@ object AnalyzeTweets extends App {
 
   val divider = "-" * 75
   var verbose = false
-  var full = false
-
-  var users = Map[TwitterAccount,String]()
+  var full = true
 
   logger.info("Loading users")
-  users = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
+  val users = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
 
   println("Loading dictionaries")
 
-  var handleMap = users.map{ case (acct, lbl) => stripAt(acct.handle) -> (acct, lbl) }
+  val handleMap = users.map{ case (acct, lbl) => stripAt(acct.handle) -> (acct, lbl) }
   assert(handleMap.nonEmpty, "Failed to loadTwitterAccounts users!")
 
   val handlesToAnalyze = Array("angiewhoohoo", "MaeghanLucinda", "JulianaYaz", "Kathneko", "YOB_JayDaisy", "queenachan", "checkoutfashion", "Graziella_a", "Banditgangnate", "YunJae8686", "alfritz04", "YungPauline", "yakdon", "ceejaydeleon", "Hannah_Barnett0", "steveendranata", "DrDamodhar", "Emily11949309", "LeumasHon", "sarlynclements", "Jo_RDPT16", "JonathanOneLife", "kat0417", "JessCording", "Lottie_Lamour", "siShingalinG", "sachadetti", "ScouseMattSmith", "jonathanlegate", "kanahina", "ellwoodz", "bl3berry", "jackiehagland", "oh_mandy93", "nohyunji", "Myatzee", "GarnerStyle", "mchefajaychopra", "MissMelanieD", "Beksville", "edibleASH", "Parsnip_Pete", "Gloriahillching", "JenniferBible1", "Spezzie", "GluttonEire")
@@ -87,12 +85,22 @@ object AnalyzeTweets extends App {
       reader.readLine match {
         case "" => ()
         case ":help" => printHelp()
-        case ":verbose" => verbose = ! verbose
-        case ":full" => full = ! full
+        case ":verbose" =>
+          verbose = ! verbose
+          if (verbose)
+            println("Now printing verbose messages.")
+          else
+            println("Now printing succinct messages.")
+        case ":full" =>
+          full = ! full
+          if (full)
+            println("Now analyzing full dataset.")
+          else
+            println("Now analyzing subset of data.")
         case ":exit" =>
           running = false
         case query =>
-          if (full) search(handleMapSubset, query) else search(handleMap, query)
+          if (full) search(handleMap, query) else search(handleMapSubset, query)
       }
     }
   } else {
@@ -214,7 +222,7 @@ object AnalyzeTweets extends App {
     val commandMap = Map(
       ":help" -> "Print this message",
       ":verbose" -> "Toggle printing all relevant tweets (default false)",
-      ":full" -> "Toggle searching full dataset (default false)",
+      ":full" -> "Toggle searching full dataset (default true)",
       ":exit" -> "Exit"
     )
     val len = commandMap.keys.map(_.length).max
