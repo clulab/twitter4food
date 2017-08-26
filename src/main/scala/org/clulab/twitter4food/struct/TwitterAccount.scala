@@ -40,8 +40,7 @@ class TwitterAccount (
        |${sp * (indents + 1)}"tweets": [
        |${tweets.map{t => t.toJson(indents + 2, sp)}.mkString(",\n")}
        |${sp * (indents + 1)}]
-       |}
-     """.stripMargin
+       |}""".stripMargin
   }
 
 

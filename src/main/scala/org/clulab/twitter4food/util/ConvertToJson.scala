@@ -2,7 +2,8 @@ package org.clulab.twitter4food.util
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
-import java.io.{BufferedWriter, File, FileWriter, FilenameFilter}
+import java.io.{BufferedWriter, File, FileWriter}
+import org.clulab.twitter4food.util.FileUtils
 
 object ConvertToJson extends App {
   case class Opts(corpus: String = "overweight", toy: Boolean = false)
@@ -28,6 +29,7 @@ object ConvertToJson extends App {
   val logger = LoggerFactory.getLogger(this.getClass)
   val params = parseArgs(args)
   val config = ConfigFactory.load
+  val sep = java.io.File.separator
 
   val corpus = params.corpus.toLowerCase match {
     case "overweight" => "overweight"
@@ -44,12 +46,10 @@ object ConvertToJson extends App {
 
   if (params.toy) {
     val imageLoc = config.getString(s"classifiers.${params.corpus}.twitterImages")
-    val imageFolders = new File(imageLoc).list
+    val imageFolders = new File(imageLoc).listFiles
     val images = imageFolders.map { f =>
-      val file = new File(f)
-      val id = file.getName.toLong
-      val blah = new File(f).list
-      val acctImages: Seq[String] = if (! file.isDirectory) Nil else new File(f).list
+      val id = f.getName.toLong
+      val acctImages: Seq[String] = if (! f.isDirectory) Nil else f.list
       id -> acctImages
     }.toMap
 

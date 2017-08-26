@@ -18,15 +18,15 @@ class Tweet (val text: String,
   val space = "  "
 
   def toJson(indents: Int = 0, sp: String = space): String = {
+    val imageLines = ( if(images.nonEmpty) s"\n${sp * (indents + 2)}" ) + images.mkString(s",\n${sp * (indents + 2)}")
     s"""${sp * indents}{
        |${sp * (indents + 1)}"id": $id,
        |${sp * (indents + 1)}"lang": "$lang",
        |${sp * (indents + 1)}"created_at": "${createdAt.toString}",
        |${sp * (indents + 1)}"text": "${sanitize(text)}",
-       |${sp * (indents + 1)}"images": [
+       |${sp * (indents + 1)}"images": [$imageLines
        |${sp * (indents + 1)}]
-       |${sp * indents}}
-     """.stripMargin
+       |${sp * indents}}""".stripMargin
   }
 
   def copy(
