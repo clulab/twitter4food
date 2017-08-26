@@ -18,7 +18,7 @@ class Tweet (val text: String,
   val space = "  "
 
   def toJson(indents: Int = 0, sp: String = space): String = {
-    val imageLines = ( if(images.nonEmpty) s"\n${sp * (indents + 2)}" ) + images.mkString(s",\n${sp * (indents + 2)}")
+    val imageLines = images.map(img => s"""\n${sp * (indents + 2)}"$img"""").mkString(",")
     s"""${sp * indents}{
        |${sp * (indents + 1)}"id": $id,
        |${sp * (indents + 1)}"lang": "$lang",
