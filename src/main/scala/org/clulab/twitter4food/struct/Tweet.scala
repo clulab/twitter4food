@@ -14,7 +14,7 @@ class Tweet (val text: String,
 
   override def toString = s"$handle: $text [$createdAt]"
 
-  def sanitize(s: String) = s.replaceAll("(\\\\)*\"", "\\\\\"")
+  def sanitize(s: String) = s.replaceAll("\\\\+", "\\\\\\\\").replaceAll("(\\\\)*\"", "\\\\\"")
   val space = "  "
 
   def toJson(indents: Int = 0, sp: String = space): String = {

@@ -3,7 +3,6 @@ package org.clulab.twitter4food.util
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 import java.io.{BufferedWriter, File, FileWriter}
-import org.clulab.twitter4food.util.FileUtils
 
 object ConvertToJson extends App {
   case class Opts(corpus: String = "overweight", toy: Boolean = false)

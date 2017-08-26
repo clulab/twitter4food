@@ -20,7 +20,7 @@ class TwitterAccount (
 
   override def toString = s"$handle: ($name, $description)"
 
-  def sanitize(s: String) = s.replaceAll("(\\\\)*\"", "\\\\\"")
+  def sanitize(s: String) = s.replaceAll("\\\\+", "\\\\\\\\").replaceAll("(\\\\)*\"", "\\\\\"")
   val space = "  " //space
 
   def toJson(indents: Int = 0, sp: String = space, label: Option[String] = None) = {
