@@ -23,7 +23,7 @@ class TwitterAccount (
   def sanitize(s: String) = s.replaceAll("\\\\+", "\\\\\\\\").replaceAll("(\\\\)*\"", "\\\\\"")
   val space = "  " //space
 
-  def toJson(indents: Int = 0, sp: String = space, label: Option[String] = None) = {
+  def toJson(indents: Int = 0, sp: String = space, label: Option[String] = None): String = {
     val labelLine = if (label.isEmpty)
       ""
     else
@@ -43,6 +43,11 @@ class TwitterAccount (
        |}""".stripMargin
   }
 
+  def toFlat(maxTweets: Option[Int]): String = {
+    val ts = if (maxTweets.isEmpty) this.tweets else this.tweets.slice(0, maxTweets.get)
+    val lines = for (t <- ts) yield s"${this.handle}\t${t.text}"
+    lines.mkString("\n")
+  }
 
   /**
     * Returns a copy of this [[TwitterAccount]], optionally specifying new input values

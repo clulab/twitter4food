@@ -4,12 +4,12 @@ import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 import java.io.{BufferedWriter, File, FileWriter}
 
-object ConvertToJson extends App {
+object DumpToJson extends App {
   case class Opts(corpus: String = "overweight", toy: Boolean = false)
 
   def parseArgs(args: Array[String]): Opts = {
-    val parser = new scopt.OptionParser[Opts]("convertToJson") {
-      head("convertToJson", "0.x")
+    val parser = new scopt.OptionParser[Opts]("dumpToJson") {
+      head("dumpToJson", "0.x")
       opt[String]('c', "corpus") action { (x, c) =>
         c.copy(corpus = x)
       } text "which corpus {overweight, human, gender}"
@@ -20,7 +20,7 @@ object ConvertToJson extends App {
 
     val opts = parser.parse(args, Opts())
 
-    if(opts.isEmpty) throw new IllegalArgumentException(s"args ${args.mkString(" ")} are not supported!")
+    if(opts.isEmpty) throw new IllegalArgumentException(s"args '${args.mkString(" ")}' are not supported!")
 
     opts.get
   }
