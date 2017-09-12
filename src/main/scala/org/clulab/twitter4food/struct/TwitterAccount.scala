@@ -45,7 +45,7 @@ class TwitterAccount (
 
   def toFlat(maxTweets: Option[Int], minWds: Option[Int]): String = {
     val ts = if (maxTweets.isEmpty) this.tweets else this.tweets.slice(0, maxTweets.get)
-    val longEnough = if (minWds.isEmpty) ts else ts.filter(t => t.text.split("\\s+").length > minWds.get)
+    val longEnough = if (minWds.isEmpty) ts else ts.filter(t => t.text.split("\\s+").length >= minWds.get)
     val lines = for (t <- longEnough) yield s"${this.handle}\t${t.text}"
     lines.mkString("\n")
   }
