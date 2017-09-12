@@ -6,7 +6,11 @@ import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 object DumpToFlat extends App {
-  case class Opts(corpus: String = "overweight", minTweets: Int = 0, maxTweets: Option[Int] = None)
+  case class Opts(
+    corpus: String = "overweight",
+    minTweets: Int = 0,
+    maxTweets: Option[Int] = None,
+    minWds: Option[Int] = None)
 
   def parseArgs(args: Array[String]): Opts = {
     val parser = new scopt.OptionParser[Opts]("dumpToJson") {
@@ -20,6 +24,9 @@ object DumpToFlat extends App {
       opt[Int]('x', "max") action { (x, c) =>
         c.copy(maxTweets = Option(x))
       } text "maximum number of tweets to print"
+      opt[Int]('s', "minWds") action { (x, c) =>
+        c.copy(minWds = Option(x))
+      } text "minimum message size"
     }
 
     val opts = parser.parse(args, Opts())
@@ -48,7 +55,7 @@ object DumpToFlat extends App {
     .map(_._1)
     .filter(_.tweets.length >= params.minTweets)
 
-  val flattened = unlabeledAccts.map(_.toFlat(params.maxTweets)).mkString("\n")
+  val flattened = unlabeledAccts.map(_.toFlat(params.maxTweets, params.minWds)).mkString("\n")
 
   val out = new BufferedWriter(new FileWriter(config.getString(s"classifiers.${params.corpus}.data_flat"), false))
 
