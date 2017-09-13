@@ -67,13 +67,11 @@ object DumpToFlat extends App {
   val flattened = labeledAccts.map(_._1.toFlat(params.maxTweets, params.minWds)).mkString("\n")
 
   val flatOut = new BufferedWriter(new FileWriter(config.getString(s"classifiers.${params.corpus}.data_flat"), false))
-
   flatOut.write(flattened)
-
   flatOut.close()
 
   val labelOut = new BufferedWriter(new FileWriter(config.getString(s"classifiers.${params.corpus}.data_labels"), false))
   labeledAccts.foreach{ case (acct, label) =>
-      labelOut.write(s"${acct.handle}\t${mapLabel(label)}")
+      labelOut.write(s"${acct.handle}\t${mapLabel(label)}\n")
   }
 }
