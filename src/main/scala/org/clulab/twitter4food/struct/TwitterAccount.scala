@@ -49,7 +49,7 @@ class TwitterAccount (
     else
       this.tweets.filter(t => t.text.split("\\s+").length >= minWds.get)
     val ts = if (maxTweets.isEmpty) longEnough else longEnough.slice(0, maxTweets.get)
-    val lines = for (t <- ts) yield s"${this.id}\t${t.text}"
+    val lines = for (t <- ts) yield s"${this.id}\t${t.text.toLowerCase}"
     lines.mkString("\n")
   }
 
