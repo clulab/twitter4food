@@ -71,7 +71,7 @@ object DumpToFlat extends App {
   flatOut.close()
 
   val labelOut = new BufferedWriter(new FileWriter(config.getString(s"classifiers.${params.corpus}.data_labels"), false))
-  labeledAccts.foreach{ case (acct, label) =>
-      labelOut.write(s"${acct.handle}\t${mapLabel(label)}\n")
-  }
+  val labels = labeledAccts.map{ case (acct, label) => s"${acct.handle}\t${mapLabel(label)}\n"}.mkString("\n")
+  labelOut.write(labels)
+  labelOut.close()
 }
