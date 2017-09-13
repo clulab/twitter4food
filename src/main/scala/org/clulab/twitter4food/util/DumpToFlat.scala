@@ -4,6 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
+import scala.collection.JavaConverters._
 
 object DumpToFlat extends App {
   case class Opts(
@@ -36,6 +37,15 @@ object DumpToFlat extends App {
     opts.get
   }
 
+  val labelMap = config
+    .getStringList(s"classifiers.${params.corpus}.possibleLabels")
+    .asScala
+    .toList
+    .reverse
+    .zipWithIndex
+    .toMap
+  def mapLabel(textLabel: String): Int = labelMap(textLabel)
+
   val logger = LoggerFactory.getLogger(this.getClass)
   val params = parseArgs(args)
   val config = ConfigFactory.load
@@ -50,16 +60,20 @@ object DumpToFlat extends App {
       "overweight"
   }
 
-  val unlabeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.${params.corpus}.data"))
+  val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.${params.corpus}.data"))
     .toSeq
-    .map(_._1)
-    .filter(_.tweets.length >= params.minTweets)
+    .filter(_._1.tweets.length >= params.minTweets)
 
-  val flattened = unlabeledAccts.map(_.toFlat(params.maxTweets, params.minWds)).mkString("\n")
+  val flattened = labeledAccts.map(_._1.toFlat(params.maxTweets, params.minWds)).mkString("\n")
 
-  val out = new BufferedWriter(new FileWriter(config.getString(s"classifiers.${params.corpus}.data_flat"), false))
+  val flatOut = new BufferedWriter(new FileWriter(config.getString(s"classifiers.${params.corpus}.data_flat"), false))
 
-  out.write(flattened)
+  flatOut.write(flattened)
 
-  out.close()
+  flatOut.close()
+
+  val labelOut = new BufferedWriter(new FileWriter(config.getString(s"classifiers.${params.corpus}.data_labels"), false))
+  labeledAccts.foreach{ case (acct, label) =>
+      labelOut.write(s"${acct.handle}\t${mapLabel(label)}")
+  }
 }
