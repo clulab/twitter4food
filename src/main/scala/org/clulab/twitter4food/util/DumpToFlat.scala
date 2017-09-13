@@ -37,6 +37,11 @@ object DumpToFlat extends App {
     opts.get
   }
 
+  val logger = LoggerFactory.getLogger(this.getClass)
+  val params = parseArgs(args)
+  val config = ConfigFactory.load
+  val sep = java.io.File.separator
+
   val labelMap = config
     .getStringList(s"classifiers.${params.corpus}.possibleLabels")
     .asScala
@@ -45,11 +50,6 @@ object DumpToFlat extends App {
     .zipWithIndex
     .toMap
   def mapLabel(textLabel: String): Int = labelMap(textLabel)
-
-  val logger = LoggerFactory.getLogger(this.getClass)
-  val params = parseArgs(args)
-  val config = ConfigFactory.load
-  val sep = java.io.File.separator
 
   val corpus = params.corpus.toLowerCase match {
     case "overweight" => "overweight"
