@@ -47,8 +47,8 @@ object DiabetesDataExtraction {
   def main(args: Array[String]) {
 
     val config = ConfigFactory.load
-    val outputFile = config.getString("diabetes.data")
-    val inputFileStr = config.getString("diabetes.handles")
+    val outputFile = config.getString("classifiers.diabetes.data")
+    val inputFileStr = config.getString("classifiers.diabetes.handles")
 
     val inputFile = scala.io.Source.fromFile(inputFileStr)
     val lines = inputFile.getLines
