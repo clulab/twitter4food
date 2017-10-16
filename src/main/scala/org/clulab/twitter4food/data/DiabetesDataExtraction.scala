@@ -24,20 +24,23 @@ object DiabetesDataExtraction {
     val numProcesses = 16
     val chunkSize = names.length / numProcesses
 
-    val pb = new ProgressBar("Retrieving...", 100)
-    pb.start()
-    pb.maxHint(names.length)
+    // val pb = new ProgressBar("Retrieving...", 100)
+    // pb.start()
+    // pb.maxHint(names.length)
+    var steps = 0
 
     val accts = for {
       thread <- (0 until numProcesses).par
       api = new TwitterAPI(thread)
       startIdx = thread * chunkSize
       lastIdx = if (thread + 1 == numProcesses) names.length else (thread + 1) * chunkSize
-      i <- (thread * chunkSize to lastIdx).seq
+      i <- (startIdx until lastIdx).seq
     } yield {
-      pb.setExtraMessage(s"$thread:${i - startIdx}/${lastIdx - startIdx}\t${names(i)}")
+      println(s"$steps/${names.length} ${names(i)}")
+      // pb.setExtraMessage(s"$thread:${i - startIdx}/${lastIdx - startIdx}\t${names(i)}")
       val fetched = api.fetchAccount(names(i), fetchTweets = true)
-      pb.step()
+      // pb.step()
+      steps += 1
       fetched
     }
 
@@ -61,10 +64,10 @@ object DiabetesDataExtraction {
       (handle, label)
     }
 
-    inputFile.close()
-
     val labeledAccounts = pairs.toMap
     val handles = labeledAccounts.keys.toSeq
+
+    inputFile.close()
 
     val accounts = retrieveAccts(handles)
     val labels = accounts.map(acct => labeledAccounts.getOrElse(acct.handle, "NULL"))
