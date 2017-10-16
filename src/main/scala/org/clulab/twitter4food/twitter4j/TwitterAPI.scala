@@ -1,12 +1,13 @@
 package org.clulab.twitter4food.twitter4j
 
-import org.clulab.twitter4food.struct.{Tweet, TwitterAccount, Location}
+import org.clulab.twitter4food.struct.{Location, Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
+import org.slf4j.LoggerFactory
 
 /**
   * Wrapper for Twitter4J
@@ -18,6 +19,7 @@ import com.typesafe.config.ConfigFactory
   */
 
 class TwitterAPI(keyset: Int) {
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   val AccountSleepTime = 5050
   val AppOnlySleepTime = 3050
@@ -109,7 +111,6 @@ class TwitterAPI(keyset: Int) {
       val location = option(user.getLocation)
       val description = option(user.getDescription)
 
-      var tweets : Seq[Tweet] = null
       val tweetBuffer = ArrayBuffer[Tweet]()
 
       if(fetchTweets) {
@@ -118,7 +119,7 @@ class TwitterAPI(keyset: Int) {
           var tweets = twitter.getUserTimeline(handle, page).asScala.toList
           sleep("getUserTimeline", isAppOnly)
 
-          while(!tweets.isEmpty) {
+          while(tweets.nonEmpty) {
             tweetBuffer ++= tweets.map(x => new Tweet(option(x.getText), x.getId,
                                        option(x.getLang), x.getCreatedAt,
                                        sanitizeHandle(user.getScreenName)))
@@ -129,8 +130,8 @@ class TwitterAPI(keyset: Int) {
             sleep("getUserTimeline", isAppOnly)
             } 
         } catch {
-          case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-                                       println(s"ErrorMsg = ${te.getErrorMessage}")
+          case te: TwitterException =>
+            logger.error(s"ErrorCode = ${te.getErrorCode}\tErrorMsg = ${te.getErrorMessage}")
         }
       }
 
@@ -139,7 +140,7 @@ class TwitterAPI(keyset: Int) {
       if (fetchNetwork) {
         // Query the user. Sort by decreasing number of interactions
         val candidates = search(Array(handle)).toSeq
-          .sortWith(_._2.size > _._2.size).map(_._1)
+          .sortWith(_._2.length > _._2.length).map(_._1)
 
         // Sleep for user-only sleep time
         println(s"Checking for follower status")
