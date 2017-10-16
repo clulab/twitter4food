@@ -70,11 +70,9 @@ class TwitterAPI(keyset: Int) {
   private def calcSleepTime(numGetsPer15: Int) = (60*15/numGetsPer15 * 1000)+20
 
   private def sleep(method: String, isAppOnly: Boolean = true) = {
-    val DEBUG = false
     val idx = if(isAppOnly) AppOnly else UserOnly
     val sleepTime = calcSleepTime(RateLimitChart(method)(idx))
 
-    if(DEBUG) println(s"$method call sleeping for ${sleepTime/1000.0} seconds")
     Thread.sleep(sleepTime)
   }
 
@@ -95,8 +93,8 @@ class TwitterAPI(keyset: Int) {
       else
         user = twitter.showUser(_handle)
     } catch {
-        case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-                                   println(s"ErrorMsg = ${te.getErrorMessage}")
+        case te: TwitterException =>
+          logger.error(s"${_handle} ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
     }
 
     sleep("showUser", isAppOnly)
@@ -131,7 +129,7 @@ class TwitterAPI(keyset: Int) {
             } 
         } catch {
           case te: TwitterException =>
-            logger.error(s"ErrorCode = ${te.getErrorCode}\tErrorMsg = ${te.getErrorMessage}")
+            logger.error(s"$handle ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
         }
       }
 
@@ -142,8 +140,6 @@ class TwitterAPI(keyset: Int) {
         val candidates = search(Array(handle)).toSeq
           .sortWith(_._2.length > _._2.length).map(_._1)
 
-        // Sleep for user-only sleep time
-        println(s"Checking for follower status")
         val addActiveFollowers = (_count: Int, users: Seq[String],
           isID: Boolean) => {
 
@@ -164,8 +160,8 @@ class TwitterAPI(keyset: Int) {
               sleep("showFriendship", isAppOnly=false)
 
             } catch {
-              case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-                                           println(s"ErrorMsg = ${te.getErrorMessage}")
+              case te: TwitterException =>
+                logger.error(s"$handle ErrorCode = ${te.getErrorCode};ErrorMsg = ${te.getErrorMessage}")
             }
 
             val follower = if(condition) fetchAccount(tgt,
@@ -191,8 +187,8 @@ class TwitterAPI(keyset: Int) {
             val _followerIDs = addActiveFollowers(numToRetrieve - followers.size,
             twitter.getFollowersIDs(id, -1, 5000).getIDs.map(_.toString), true)
             } catch {
-              case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-                                       println(s"ErrorMsg = ${te.getErrorMessage}")
+              case te: TwitterException =>
+                logger.error(s"$handle ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
             }
           sleep("getFollowersIDs", isAppOnly) //one minute per getFollowers
         }
@@ -241,8 +237,8 @@ class TwitterAPI(keyset: Int) {
             sleep("search", isAppOnly)
           }
         } catch {
-          case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-                                       println(s"ErrorMsg = ${te.getErrorMessage}")
+          case te: TwitterException =>
+            logger.error(s"$k: ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
         }
       }
     }
@@ -254,7 +250,7 @@ class TwitterAPI(keyset: Int) {
     val ids = try {
       appOnlyTwitter.getFriendsIDs(handle, -1).getIDs.toSeq // first 5000 only
     } catch {
-      case e: Exception => println(s"Account $handle not found!")
+      case e: Exception => logger.error(s"Account $handle not found!")
       Nil
     }
     sleep("getFriendsIDs", isAppOnly = true)
@@ -275,7 +271,7 @@ class TwitterAPI(keyset: Int) {
       Option(appOnlyTwitter.showUser(handle))
     } catch {
       case te: TwitterException =>
-        println(s"ErrorCode = ${te.getErrorCode}\tErrorMsg = ${te.getErrorMessage}")
+        logger.error(s"$h: ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
         None
     }
     sleep("showUser", isAppOnly = true)
@@ -317,8 +313,8 @@ class TwitterAPI(keyset: Int) {
       }
 
     } catch {
-      case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-        println(s"ErrorMsg = ${te.getErrorMessage}")
+      case te: TwitterException =>
+        logger.error(s"$id ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
     }
 
     (mediaBuffer, urlBuffer)
@@ -347,8 +343,8 @@ class TwitterAPI(keyset: Int) {
       }
 
     } catch {
-      case te: TwitterException => print(s"ErrorCode = ${te.getErrorCode}\t")
-        println(s"ErrorMsg = ${te.getErrorMessage}")
+      case te: TwitterException =>
+        logger.error(s"$id ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
     }
 
     coords
