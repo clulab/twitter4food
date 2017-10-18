@@ -22,7 +22,7 @@ object SplitData {
     val labels = config
       .getStringList(s"classifiers.$variable.possibleLabels")
       .asScala
-      .toSet
+    val labelClass = Map("pos" -> labels.head, "neg" -> labels.last)
 
     val inputFile = config.getString(s"classifiers.$variable.data")
     val foldsLoc = config.getString(s"classifiers.$variable.folds")
@@ -33,7 +33,7 @@ object SplitData {
       .toSeq
       .filter(_._1.tweets.nonEmpty)
 
-    val wholeSplits = split(labeledAccounts, labels)
+    val wholeSplits = split(labeledAccounts, labelClass)
     writeToCsv(foldsLoc, wholeSplits)
 
 //    // Scale number of accounts so that sample corresponds to US proportion of overweight
@@ -45,15 +45,15 @@ object SplitData {
   }
 
   def split(sample: Seq[(TwitterAccount, String)],
-    possibleLabels: Set[String],
+    possibleLabels: Map[String, String],
     numFolds: Int = 10): Seq[Seq[String]] = {
 
     val (pos, neg) = shuffle(sample)
-      .filter{ case (acct, lbl) => possibleLabels.contains(lbl) }
-      .partition{ case (acct, lbl) => lbl == "Overweight" }
+      .filter{ case (_, lbl) => possibleLabels.contains(lbl) }
+      .partition{ case (_, lbl) => lbl == possibleLabels("pos") }
 
-    println(s"overweight.size=${pos.size}")
-    println(s"notOverweight.size=${neg.size}")
+    println(s"pos.size=${pos.size}")
+    println(s"neg.size=${neg.size}")
     println(s"other=${sample.size - (pos.size + neg.size)}")
 
     val oneStep = 1.0 / numFolds
