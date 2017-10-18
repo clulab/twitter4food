@@ -74,6 +74,6 @@ object DiabetesDataExtraction {
     val labels = nonNull.map(acct => labeledAccounts.getOrElse(acct.handle, "NULL"))
 
     logger.info("DiabetesDataExtraction: Saving to file...")
-    FileUtils.saveToFile(accounts, labels, outputFile)
+    FileUtils.saveToFile(nonNull, labels, outputFile)
   }
 }
