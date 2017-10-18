@@ -26,7 +26,7 @@ object SplitData {
 
     val inputFile = config.getString(s"classifiers.$variable.data")
     val foldsLoc = config.getString(s"classifiers.$variable.folds")
-    val usFoldsLoc = config.getString(s"classifiers.$variable.usFolds")
+//    val usFoldsLoc = config.getString(s"classifiers.$variable.usFolds")
 
     logger.info(s"Reading in data from ${inputFile}")
     val labeledAccounts = FileUtils.loadTwitterAccounts(inputFile)
