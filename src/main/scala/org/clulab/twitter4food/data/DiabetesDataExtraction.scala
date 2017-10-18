@@ -71,7 +71,7 @@ object DiabetesDataExtraction {
 
     val accounts = retrieveAccts(handles)
     val nonNull = accounts.filterNot(_ == null)
-    val labels = nonNull.map(acct => labeledAccounts.getOrElse(acct.handle, "NULL"))
+    val labels = nonNull.map(acct => labeledAccounts.getOrElse(sanitizeHandle(acct.handle), "NULL"))
 
     logger.info("DiabetesDataExtraction: Saving to file...")
     FileUtils.saveToFile(nonNull, labels, outputFile)
