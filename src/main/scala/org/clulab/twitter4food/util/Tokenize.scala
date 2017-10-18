@@ -11,15 +11,17 @@ import scala.collection.mutable.ArrayBuffer
 
 object Tokenize {
 
-  case class Config(inFile: String = "", isThreeLine: Boolean = false)
+  case class Config(inFile: String = "", outFile: Option[String] = None, isThreeLine: Boolean = false)
 
-  def tokenizeTwoLines(filename: String): Unit = {
+  def tokenizeTwoLines(filename: String, outFile: Option[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
 
-    val tokenizedPath = FilenameUtils.getPrefix(filename) +
-      FilenameUtils.getPathNoEndSeparator(filename) +
-      "_tokenized/"
-    val tokenizedFN = tokenizedPath + FilenameUtils.getName(filename)
+    val tokenizedFN = if (outFile.isEmpty) {
+      val tokenizedPath = FilenameUtils.getPrefix(filename) +
+        FilenameUtils.getPathNoEndSeparator(filename) +
+        "_tokenized/"
+      tokenizedPath + FilenameUtils.getName(filename)
+    } else outFile.get
 
     // check if untokenized file is older for appropriate warning
     val untokFile = new File(filename)
@@ -76,13 +78,15 @@ object Tokenize {
     FileUtils.saveToFile(tokenizedTweets, labels, tokenizedFN, append = false)
   }
 
-  def tokenizeThreeLines(filename: String): Unit = {
+  def tokenizeThreeLines(filename: String, outFile: Option[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
 
-    val tokenizedPath = FilenameUtils.getPrefix(filename) +
-      FilenameUtils.getPathNoEndSeparator(filename) +
-      "_tokenized/"
-    val tokenizedFN = tokenizedPath + FilenameUtils.getName(filename)
+    val tokenizedFN = if (outFile.isEmpty) {
+      val tokenizedPath = FilenameUtils.getPrefix(filename) +
+        FilenameUtils.getPathNoEndSeparator(filename) +
+        "_tokenized/"
+      tokenizedPath + FilenameUtils.getName(filename)
+    } else outFile.get
 
     // check if untokenized file is older for appropriate warning
     val untokFile = new File(filename)
@@ -153,6 +157,9 @@ object Tokenize {
         opt[String]('f', "inFile") action { (x, c) =>
           c.copy(inFile = x)
         } text "which file to tokenize"
+        opt[String]('o', "outFile") action { (x, c) =>
+          c.copy(outFile = Option(x))
+        } text "location for result"
         opt[Unit]('t', "isThreeLine") action { (x, c) =>
           c.copy(isThreeLine = true)
         } text ""
@@ -166,6 +173,9 @@ object Tokenize {
       throw new RuntimeException("File to be tokenized must be specified using -f")
     }
 
-    if (params.isThreeLine) tokenizeThreeLines(params.inFile) else tokenizeTwoLines(params.inFile)
+    if (params.isThreeLine)
+      tokenizeThreeLines(params.inFile, params.outFile)
+    else
+      tokenizeTwoLines(params.inFile, params.outFile)
   }
 }

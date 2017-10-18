@@ -135,7 +135,7 @@ object OverweightEnsemble {
       val ocs = new Ensemble(Seq(oc1, oc2))
 
       logger.info("Training classifiers...")
-      val predictions = ocs.overweightCV(accts, lbls, partitions, portion, followers, followees, Utils.svmFactory)
+      val predictions = ocs.binaryCV(accts, lbls, partitions, portion, followers, followees, Utils.svmFactory)
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
