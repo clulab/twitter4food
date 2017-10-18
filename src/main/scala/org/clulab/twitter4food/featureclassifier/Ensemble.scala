@@ -17,7 +17,7 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
     * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
     * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
     */
-  def overweightCV(
+  def binaryCV(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     partitions: Map[Long, Int],

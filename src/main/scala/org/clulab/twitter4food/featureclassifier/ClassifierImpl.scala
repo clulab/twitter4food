@@ -672,7 +672,7 @@ class ClassifierImpl(
     * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
     * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
     */
-  def overweightCV(
+  def binaryCV(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     partitions: Map[Long, Int],
@@ -680,6 +680,7 @@ class ClassifierImpl(
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
+    labelSet: Map[String, String],
     percentTopToConsider: Double = 1.0
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
@@ -739,21 +740,21 @@ class ClassifierImpl(
       p <- results(i)._2
     } yield p -> i).toMap
 
-    val owScale = predictions
+    val posScale = predictions
       .flatten
-      .filter(acct => acct._2 != "Overweight" && acct._3 == "Overweight") // only false positives
-      .sortBy(_._5.getCount("Overweight"))
+      .filter(acct => acct._2 != labelSet("pos") && acct._3 == labelSet("pos")) // only false positives
+      .sortBy(_._5.getCount(labelSet("pos")))
       .reverse
       .take(numAccts)
-    val noScale = predictions
+    val negScale = predictions
       .flatten
-      .filter(acct => acct._2 == "Overweight" && acct._3 != "Overweight") // only false negatives
-      .sortBy(_._5.getCount("Not overweight"))
+      .filter(acct => acct._2 == labelSet("pos") && acct._3 != labelSet("pos")) // only false negatives
+      .sortBy(_._5.getCount(labelSet("neg")))
       .reverse
       .take(numAccts)
 
-    val falsePos = owScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-    val falseNeg = noScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+    val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+    val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
 
     (evalInput, topWeights, falsePos, falseNeg)
   }
