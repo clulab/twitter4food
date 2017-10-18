@@ -2,7 +2,6 @@ package org.clulab.twitter4food.data
 
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
-import me.tongfei.progressbar.ProgressBar
 
 import org.clulab.twitter4food.util.FileUtils
 import org.clulab.twitter4food.util.Utils.sanitizeHandle
