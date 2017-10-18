@@ -49,7 +49,7 @@ object SplitData {
     numFolds: Int = 10): Seq[Seq[String]] = {
 
     val (pos, neg) = shuffle(sample)
-      .filter{ case (_, lbl) => possibleLabels.contains(lbl) }
+      .filter{ case (_, lbl) => possibleLabels.values.toList.contains(lbl) }
       .partition{ case (_, lbl) => lbl == possibleLabels("pos") }
 
     println(s"pos.size=${pos.size}")
