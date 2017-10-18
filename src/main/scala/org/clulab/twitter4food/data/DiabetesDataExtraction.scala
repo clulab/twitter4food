@@ -23,9 +23,6 @@ object DiabetesDataExtraction {
     val numProcesses = 16
     val chunkSize = names.length / numProcesses
 
-    // val pb = new ProgressBar("Retrieving...", 100)
-    // pb.start()
-    // pb.maxHint(names.length)
     var steps = 0
 
     val accts = for {
@@ -36,9 +33,7 @@ object DiabetesDataExtraction {
       i <- (startIdx until lastIdx).seq
     } yield {
       println(s"$steps/${names.length} ${names(i)}")
-      // pb.setExtraMessage(s"$thread:${i - startIdx}/${lastIdx - startIdx}\t${names(i)}")
       val fetched = api.fetchAccount(names(i), fetchTweets = true)
-      // pb.step()
       steps += 1
       fetched
     }
