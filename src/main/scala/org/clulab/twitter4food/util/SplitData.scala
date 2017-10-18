@@ -20,11 +20,9 @@ object SplitData {
 
     val variable = if (args.isEmpty) "overweight" else args.head
     val labels = config
-      .getList(s"classifiers.$variable.possibleLabels")
-      .unwrapped()
+      .getStringList(s"classifiers.$variable.possibleLabels")
       .asScala
       .toSet
-      .asInstanceOf[Set[String]]
 
     val inputFile = config.getString(s"classifiers.$variable.data")
     val foldsLoc = config.getString(s"classifiers.$variable.folds")
