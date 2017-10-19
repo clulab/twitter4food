@@ -58,12 +58,15 @@ object OverweightSuite {
       datumScaling = true
     )
 
+    val labelSet = Map("pos" -> "Overweight", "neg" -> "Not overweight")
+
     val predictions = oc.fscv(accounts,
       labels,
       partitions,
       Option(followers),
       Option(followees),
       Utils.svmFactory,
+      labelSet,
       Eval.f1ForLabel("Overweight")
     )
 

@@ -49,12 +49,15 @@ object DiabetesSuite {
       datumScaling = true
     )
 
+    val labelSet = Map("pos" -> "risk", "neg" -> "not")
+
     val predictions = dc.fscv(accounts,
       labels,
       partitions,
       None,
       None,
       Utils.svmFactory,
+      labelSet,
       Eval.f1ForLabel("risk")
     )
 

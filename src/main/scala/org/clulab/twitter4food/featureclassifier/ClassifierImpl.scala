@@ -771,6 +771,7 @@ class ClassifierImpl(
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
+    labelSet: Map[String, String],
     evalMetric: Iterable[(String, String)] => Double
   ): Seq[(String, String)] = {
 
@@ -806,7 +807,7 @@ class ClassifierImpl(
     val scoreBoard = scala.collection.mutable.Map[String, Double]()
     results.foreach{ case (features, preds) =>
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(preds)
-      val f1 = evalMeasures("Overweight").F
+      val f1 = evalMeasures(labelSet("pos")).F
       features.foreach(f => scoreBoard(f) = scoreBoard.getOrElse(f,0.0) + f1)
     }
     scoreBoard.toMap.foreach{ case (feature, f1) => logger.info(f"$feature: $f1%1.3f") }
