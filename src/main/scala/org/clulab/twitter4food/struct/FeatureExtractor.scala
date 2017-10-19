@@ -556,11 +556,12 @@ class FeatureExtractor (
     val cType = lexicons.get.keys.head match {
       case "M" | "F" => "gender"
       case "Overweight" | "Not overweight" => "overweight"
+      case "risk" | "not" => "diabetes"
       case "human" | "org" => "human"
       case "asian" | "hispanic" | "white" | "black" => "race"
     }
 
-    if((cType equals "human") || (cType equals "gender")) {
+    if((cType == "human") || (cType == "gender")) {
       lexicons.get foreach {
         case (k, v) =>
           v foreach {
@@ -585,10 +586,10 @@ class FeatureExtractor (
           }
       }
     }
-    else if(cType equals "race") {
+    else if(cType == "race") {
 
     }
-    else if(cType equals "overweight") {
+    else if(cType == "overweight" || cType == "diabetes") {
       // Load dictionaries
       val foodWords = lexicons.get("Overweight")("food_words")
       val activityWords = lexicons.get("Overweight")("activity_words")
