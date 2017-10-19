@@ -590,7 +590,7 @@ class FeatureExtractor (
 
     }
     else if(cType == "overweight" || cType == "diabetes") {
-      val k = if (cType == "overweight") "Overweight" else "diabetes"
+      val k = if (cType == "overweight") "Overweight" else "risk"
 
       // Load dictionaries
       val foodWords = lexicons.get(k)("food_words")
