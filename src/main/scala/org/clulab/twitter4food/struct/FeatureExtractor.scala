@@ -117,8 +117,7 @@ class FeatureExtractor (
     val lexMap = populateLexiconList(lbls, this.variable)
     val l = lexMap map {
       case (k, v) => (k, v.map(fileName => {
-        val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
-          fileName.indexOf("."))
+        val lexName = this.variable
         (lexName, Lexicon.loadFrom[String](fileName))
       }).toMap)
     }
