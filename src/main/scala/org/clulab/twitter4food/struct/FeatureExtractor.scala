@@ -590,11 +590,13 @@ class FeatureExtractor (
 
     }
     else if(cType == "overweight" || cType == "diabetes") {
+      val k = if (cType == "overweight") "Overweight" else "diabetes"
+
       // Load dictionaries
-      val foodWords = lexicons.get("Overweight")("food_words")
-      val activityWords = lexicons.get("Overweight")("activity_words")
-      val restaurants = lexicons.get("Overweight")("restaurant_hashtags")
-      val hashtags = lexicons.get("Overweight")("overweight_hashtags")
+      val foodWords = lexicons.get(k)("food_words")
+      val activityWords = lexicons.get(k)("activity_words")
+      val restaurants = lexicons.get(k)("restaurant_hashtags")
+      val hashtags = lexicons.get(k)("overweight_hashtags")
       // keep track of the average calorie and health grade of the food words mentioned
       val calCount = new ArrayBuffer[Double]()
       val healthCount = new ArrayBuffer[Int]()
