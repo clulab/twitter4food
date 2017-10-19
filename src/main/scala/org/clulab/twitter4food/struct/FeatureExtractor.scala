@@ -117,7 +117,8 @@ class FeatureExtractor (
     val lexMap = populateLexiconList(lbls, this.variable)
     val l = lexMap map {
       case (k, v) => (k, v.map(fileName => {
-        val lexName = this.variable
+        val lexName = fileName.substring(fileName.lastIndexOf("/") + 1,
+          fileName.indexOf("."))
         (lexName, Lexicon.loadFrom[String](fileName))
       }).toMap)
     }
@@ -589,7 +590,7 @@ class FeatureExtractor (
 
     }
     else if(cType == "overweight" || cType == "diabetes") {
-      val k = if (cType == "overweight") "Overweight" else "risk"
+      val k = if (cType == "overweight") "Overweight" else "diabetes"
 
       // Load dictionaries
       val foodWords = lexicons.get(k)("food_words")
