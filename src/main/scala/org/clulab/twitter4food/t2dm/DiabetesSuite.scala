@@ -61,7 +61,6 @@ object DiabetesSuite {
       Eval.f1ForLabel("risk")
     )
 
-
     // Print results
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
 
