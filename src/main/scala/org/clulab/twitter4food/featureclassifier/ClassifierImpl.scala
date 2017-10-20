@@ -570,7 +570,7 @@ class ClassifierImpl(
     val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
     val test = foldToIndices(lastPartition) // the test partition will be the same in all cases
     for (p <- 0 until lastPartition) yield {
-      TrainDevTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p) -- test).toSeq, test.toSeq)
+      TrainDevTestFold(test.toSeq, foldToIndices(p).toSeq, (allIndices -- foldToIndices(p) -- test).toSeq)
     }
   }
 
