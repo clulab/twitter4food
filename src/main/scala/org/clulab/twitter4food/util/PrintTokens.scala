@@ -11,7 +11,6 @@ object PrintTokens {
 
   val logger = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.load
-  val base = config.getString("classifiers.overweight.rawTokens")
   val sep = FileSystems.getDefault.getSeparator
 
   case class PrintTokensConfig(variable: String = "overweight", domainAdaptation: Boolean = false)
@@ -82,10 +81,11 @@ object PrintTokens {
 
   /**
     * Load all the tweets pertaining to a given variable ("overweight" by default), and print them to
-    * train/test folders for each variable value. Database choices are "overweight", "human", "gender".
+    * train/test folders for each variable value. Database choices are "overweight", "human", "gender", "diabetes".
     */
   def main(args: Array[String]): Unit = {
     val printConfig = parseArgs(args)
+    val base = config.getString(s"classifiers.${printConfig.variable}.rawTokens")
 
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.${printConfig.variable}.data")).toSeq
