@@ -57,6 +57,8 @@ object ProfileImagesFromHandles {
 
     val outf = new File(config.getString(s"classifiers.${piConfig.variable}.profile_pic_urls"))
     val outDir = config.getString(s"classifiers.${piConfig.variable}.twitterImages")
+    val od = new File(outDir)
+    if (!od.exists()) od.mkdir
 
     val handles = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.${piConfig.variable}.data"))
       .toSeq
@@ -83,7 +85,7 @@ object ProfileImagesFromHandles {
     found.foreach { case (handle, u) =>
       val id = handles.get(handle)
       if (id.nonEmpty) {
-        val userDirName = s"$outDir/$id"
+        val userDirName = s"$outDir/${id.get}"
         val userDir = new File(userDirName)
         if (!userDir.exists()) userDir.mkdir
 
