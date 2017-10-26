@@ -62,8 +62,8 @@ object PrintTokens {
       val fileName = s"$loc$da$sep${account.id}.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
       if (fe.nonEmpty) {
-        val gender = getGender(account, fe.get)
-        val age = getAge(account, fe.get)
+        val gender = if (fe.get.useGender) getGender(account, fe.get) else "UNK"
+        val age = if (fe.get.useAge) getAge(account, fe.get) else "UNK"
         val lines = account.tweets.map{ tweet =>
           val rt = if (tweet.isRetweet) "rt" else "nrt"
           val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
@@ -92,7 +92,9 @@ object PrintTokens {
 
     logger.info("Writing tokens in LSTM-readable format")
 
-    val fe = if (printConfig.domainAdaptation)
+    val fe = if (printConfig.domainAdaptation && printConfig.variable == "diabetes")
+      Option(new FeatureExtractor(useRT = true, variable = printConfig.variable))
+    else if (printConfig.domainAdaptation)
       Option(new FeatureExtractor(useRT = true, useGender = true, useAge = true, variable = printConfig.variable))
     else
       None
