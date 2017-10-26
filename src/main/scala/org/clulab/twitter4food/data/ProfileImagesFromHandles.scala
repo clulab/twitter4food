@@ -32,21 +32,16 @@ object ProfileImagesFromHandles {
     val numProcesses = 16
     val chunkSize = names.length / numProcesses
 
-    var steps = 0
-
     val pics = for {
       thread <- (0 until numProcesses).par
       api = new TwitterAPI(thread)
       startIdx = thread * chunkSize
       lastIdx = if (thread + 1 == numProcesses) names.length else (thread + 1) * chunkSize
       i <- (startIdx until lastIdx).seq
-      _ = println(s"$steps/${names.length} ${names(i)}")
+      _ = println(s"$thread:${i-startIdx}/${lastIdx-startIdx} ${names(i)}")
       fetched = api.fetchProfilePic(names(i))
-      if fetched.nonEmpty
-    } yield {
-      steps = steps + 1
-      names(i) -> fetched.get
-    }
+      if fetched.nonEmpty && fetched != Option("default")
+    } yield names(i) -> fetched.get
 
     pics.seq.toMap
   }
