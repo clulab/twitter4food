@@ -87,6 +87,9 @@ object PrintTokens {
     val printConfig = parseArgs(args)
     val base = config.getString(s"classifiers.${printConfig.variable}.rawTokens")
 
+    val baseDir = new File(base)
+    if (!baseDir.exists) baseDir.mkdir()
+
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.${printConfig.variable}.data")).toSeq
 
