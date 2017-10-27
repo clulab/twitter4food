@@ -102,9 +102,14 @@ object PrintTokens {
     labeledAccts.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
       // folderNames should not contain whitespace
       val folderName = lbl.replaceAll("[^a-zA-Z0-9]+", "")
+      val path = s"$base$sep$folderName"
+
+      val dir = new File(path)
+      if (!dir.exists) dir.mkdir()
+
       val texts = acctsWithLabels.map(_._1)
 
-      writeTokens(texts, s"$base$sep$folderName", fe)
+      writeTokens(texts, path, fe)
     }
   }
 }
