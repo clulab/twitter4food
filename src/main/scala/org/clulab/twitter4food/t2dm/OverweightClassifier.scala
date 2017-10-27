@@ -98,13 +98,15 @@ object OverweightClassifier {
     )
     val default = allFeatures.forall(!_) // true if all features are off
 
+    val dataset = if (params.useDiabetesData) "ow2" else "overweight"
+
     val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
     val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
 
-    val outputDir = config.getString("classifier") + "/overweight/results/" + fileExt
+    val outputDir = config.getString(s"classifier.$dataset.results") + "/" + fileExt
     if (!Files.exists(Paths.get(outputDir))) {
       if (new File(outputDir).mkdir()) logger.info(s"Created output directory $outputDir")
       else logger.info(s"ERROR: failed to create output directory $outputDir")
@@ -114,16 +116,16 @@ object OverweightClassifier {
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to loadTwitterAccounts)
 
     val partitionFile = if (params.usProps)
-      config.getString("classifiers.overweight.usFolds")
+      config.getString(s"classifiers.$dataset.usFolds")
     else
-      config.getString("classifiers.overweight.folds")
+      config.getString(s"classifiers.$dataset.folds")
 
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
     }.toMap
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$dataset.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
       .filter{ case (acct, lbl) => partitions.contains(acct.id)}
@@ -135,7 +137,7 @@ object OverweightClassifier {
 
     val followees = if(params.useFollowees) {
       logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(labeledAccts.map(_._1), "overweight"))
+      Option(ClassifierImpl.loadFollowees(labeledAccts.map(_._1), dataset))
     } else None
 
     val evals = for {
@@ -170,7 +172,7 @@ object OverweightClassifier {
       logger.info("Training classifier...")
 
       val labelSet = Map("pos" -> "Overweight", "neg" -> "Not overweight")
-      val highConfPercent = config.getDouble("classifiers.overweight.highConfPercent")
+      val highConfPercent = config.getDouble(s"classifiers.$dataset.highConfPercent")
 
       val (predictions, avgWeights, falsePos, falseNeg) =
         oc.binaryCV(
