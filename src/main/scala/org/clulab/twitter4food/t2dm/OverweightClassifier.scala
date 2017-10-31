@@ -100,7 +100,7 @@ object OverweightClassifier {
 
     val dataset = if (params.useDiabetesData) "ow2" else "overweight"
 
-    val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
+    val percents = (1 to 20).map(_.toDouble / 20)
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
@@ -146,7 +146,7 @@ object OverweightClassifier {
     } else None
 
     val evals = for {
-      portion <- portions
+      highConfPercent <- percents
     } yield {
       val (accts, lbls) = labeledAccts.unzip
 
@@ -177,14 +177,13 @@ object OverweightClassifier {
       logger.info("Training classifier...")
 
       val labelSet = Map("pos" -> "Overweight", "neg" -> "Not overweight")
-      val highConfPercent = config.getDouble(s"classifiers.$dataset.highConfPercent")
 
       val (predictions, avgWeights, falsePos, falseNeg) =
         oc.binaryCV(
           accts,
           lbls,
           partitions,
-          portion,
+          1.0,
           followers,
           followees,
           Utils.svmFactory,
@@ -204,36 +203,12 @@ object OverweightClassifier {
       val precision = evalMetric.P
       val recall = evalMetric.R
 
-      // Write analysis only on full portion
-      if (portion == 1.0) {
-        if (params.fpnAnalysis) {
-          // Perform analysis on false negatives and false positives
-          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
-        }
-
-        // Save results
-        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-        writer.write(s"Precision: $precision\n")
-        writer.write(s"Recall: $recall\n")
-        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
-        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-        writer.write(s"Macro average: $macroAvg\n")
-        writer.write(s"Micro average: $microAvg\n")
-        writer.close()
-
-        // Save individual predictions for bootstrap significance
-        val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-        predWriter.write(s"gold\tpred\n")
-        predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
-        predWriter.close()
-      }
-
-      (portion, predictions.length, precision, recall, macroAvg, microAvg)
+      (highConfPercent, predictions.length, precision, recall, macroAvg, microAvg)
     }
 
     println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+    evals.foreach { case (hc, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$hc\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
     }
   }
