@@ -694,26 +694,33 @@ class ClassifierImpl(
 
     // fold { conf { predictions } }
     val results = for (fold <- folds) yield {
-      if(logger.isDebugEnabled) {
+      if (logger.isDebugEnabled) {
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
       }
       val classifier = classifierFactory()
       classifier.train(dataset, fold.train.toArray)
       val W = classifier.getWeights()
-      val predictions = for(i <- fold.test) yield {
+      val predictions = for (i <- fold.test) yield {
         val id = ids(i).toString
         val gold = dataset.labelLexicon.get(dataset.labels(i))
         val datum = dataset.mkDatum(i)
-        val pred = classifier.classOf(datum)
         val score = classifier.scoresOf(datum)
-        // NOTE: for the high confidence classifier, sort this tuple in decreasing order of classifier confidence ('score(pred)')
-        //    and take the top x percent (x is a parameter)
-        (id, gold, pred, datum, score, score.getCount(pred))
+        (id, gold, datum, score)
       }
 
-      val highConfPredictions = for (perc <- percentTopToConsider)
-        yield predictions.sortBy(- _._6).take( (perc * predictions.size).toInt )
+      // keep double for-loop to keep nested-Seq structure
+      val highConfPredictions = for {
+        perc <- percentTopToConsider
+      } yield {
+        for {
+          (id, gold, datum, score) <- predictions
+        } yield {
+          val pred = if (score.getCount(labelSet("pos")) >= perc) labelSet("pos") else labelSet("neg")
+          (id, gold, pred, datum, score)
+        }
+      }
+
       highConfPredictions
     }
 
