@@ -193,7 +193,7 @@ object OverweightClassifier {
         )
 
       for {
-        (predictions, avgWeights, falsePos, falseNeg, conf) <- results
+        (predictions, conf) <- results
       } yield {
         // Print results
         val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)

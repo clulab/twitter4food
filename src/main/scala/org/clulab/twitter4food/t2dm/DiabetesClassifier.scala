@@ -176,7 +176,7 @@ object DiabetesClassifier {
       val labelSet = Map("pos" -> "risk", "neg" -> "not")
       val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
-      val (predictions, avgWeights, falsePos, falseNeg, conf) =
+      val (predictions, conf) =
         dc.binaryCV(
           accts,
           lbls,
@@ -200,30 +200,6 @@ object DiabetesClassifier {
       }
       val precision = evalMetric.P
       val recall = evalMetric.R
-
-      // Write analysis only on full portion
-      if (portion == 1.0) {
-        if (params.fpnAnalysis) {
-          // Perform analysis on false negatives and false positives
-          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
-        }
-
-        // Save results
-        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-        writer.write(s"Precision: $precision\n")
-        writer.write(s"Recall: $recall\n")
-        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
-        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-        writer.write(s"Macro average: $macroAvg\n")
-        writer.write(s"Micro average: $microAvg\n")
-        writer.close()
-
-        // Save individual predictions for bootstrap significance
-        val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-        predWriter.write(s"gold\tpred\n")
-        predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
-        predWriter.close()
-      }
 
       (portion, predictions.length, precision, recall, macroAvg, microAvg)
     }

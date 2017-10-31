@@ -682,11 +682,7 @@ class ClassifierImpl(
     classifierFactory: () => LiblinearClassifier[String, String],
     labelSet: Map[String, String],
     percentTopToConsider: Seq[Double] = Seq(1.0)
-  ): Seq[(Seq[(String, String)],
-    Map[String, Seq[(String, Double)]],
-    Seq[(String, Map[String, Seq[(String, Double)]])],
-    Seq[(String, Map[String, Seq[(String, Double)]])],
-    Double)] = {
+  ): Seq[(Seq[(String, String)], Double)] = {
 
     val numFeatures = 30
     val numAccts = 20
@@ -729,39 +725,7 @@ class ClassifierImpl(
       val p = predictions.flatten.map(_._3)
       val evalInput = g.zip(p)
 
-      val avgWeights = (for {
-        l <- dataset.labelLexicon.keySet
-      } yield {
-        val c = new Counter[String]
-        allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
-        c.mapValues(_ / allWeights.length)
-        l -> c
-      }).toMap
-
-      val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
-
-      val pToW = (for {
-        i <- perc.indices
-        p <- perc(i)._2
-      } yield p -> i).toMap
-
-      val posScale = predictions
-        .flatten
-        .filter(acct => acct._2 != labelSet("pos") && acct._3 == labelSet("pos")) // only false positives
-        .sortBy(_._5.getCount(labelSet("pos")))
-        .reverse
-        .take(numAccts)
-      val negScale = predictions
-        .flatten
-        .filter(acct => acct._2 == labelSet("pos") && acct._3 != labelSet("pos")) // only false negatives
-        .sortBy(_._5.getCount(labelSet("neg")))
-        .reverse
-        .take(numAccts)
-
-      val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-      val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-
-      (evalInput, topWeights, falsePos, falseNeg, conf.head)
+      (evalInput, conf.head)
     }
   }
 
