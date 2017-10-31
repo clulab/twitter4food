@@ -100,7 +100,8 @@ object OverweightClassifier {
 
     val dataset = if (params.useDiabetesData) "ow2" else "overweight"
 
-    val percents = (1 to 20).map(_.toDouble / 20)
+    val portions = Seq(1.0)
+    val percents = (1 to 100).map(_.toDouble / 100)
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
@@ -146,7 +147,7 @@ object OverweightClassifier {
     } else None
 
     val evals = for {
-      highConfPercent <- percents
+      portion <- portions
     } yield {
       val (accts, lbls) = labeledAccts.unzip
 
@@ -163,7 +164,7 @@ object OverweightClassifier {
         useLocation = params.useLocation,
         useTimeDate = params.useTimeDate,
         useFoodPerc = params.useFoodPerc,
-        useCaptions= params.useCaptions,
+        useCaptions = params.useCaptions,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,
@@ -178,7 +179,7 @@ object OverweightClassifier {
 
       val labelSet = Map("pos" -> "Overweight", "neg" -> "Not overweight")
 
-      val (predictions, avgWeights, falsePos, falseNeg) =
+      val results =
         oc.binaryCV(
           accts,
           lbls,
@@ -188,26 +189,30 @@ object OverweightClassifier {
           followees,
           Utils.svmFactory,
           labelSet,
-          percentTopToConsider=highConfPercent
+          percentTopToConsider = percents
         )
 
-      // Print results
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
+      for {
+        (predictions, avgWeights, falsePos, falseNeg, conf) <- results
+      } yield {
+        // Print results
+        val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
 
-      val evalMetric = if (evalMeasures.keySet contains "Overweight") {
-        evalMeasures("Overweight")
-      } else {
-        logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
-        evalMeasures.head._2
+        val evalMetric = if (evalMeasures.keySet contains "Overweight") {
+          evalMeasures("Overweight")
+        } else {
+          logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
+          evalMeasures.head._2
+        }
+        val precision = evalMetric.P
+        val recall = evalMetric.R
+
+        (conf, predictions.length, precision, recall, macroAvg, microAvg)
       }
-      val precision = evalMetric.P
-      val recall = evalMetric.R
-
-      (highConfPercent, predictions.length, precision, recall, macroAvg, microAvg)
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (hc, numAccounts, precision, recall, macroAvg, microAvg) =>
+    println(s"\n$fileExt\nconf\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
+    evals.head.foreach { case (hc, numAccounts, precision, recall, macroAvg, microAvg) =>
       println(s"$hc\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
     }

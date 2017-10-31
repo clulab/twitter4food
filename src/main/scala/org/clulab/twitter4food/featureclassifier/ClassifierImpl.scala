@@ -681,11 +681,12 @@ class ClassifierImpl(
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
     labelSet: Map[String, String],
-    percentTopToConsider: Double = 1.0
-  ): (Seq[(String, String)],
+    percentTopToConsider: Seq[Double] = Seq(1.0)
+  ): Seq[(Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
-    Seq[(String, Map[String, Seq[(String, Double)]])]) = {
+    Seq[(String, Map[String, Seq[(String, Double)]])],
+    Double)] = {
 
     val numFeatures = 30
     val numAccts = 20
@@ -714,49 +715,54 @@ class ClassifierImpl(
         (id, gold, pred, datum, score, score.getCount(pred))
       }
 
-      val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * predictions.size).toInt )
-      (W, highConfPredictions)
+      val highConfPredictions = for (perc <- percentTopToConsider)
+        yield
+          (W, predictions.sortBy(- _._6).take( (perc * predictions.size).toInt ), perc)
+      highConfPredictions
     }
 
     val allFeats = dataset.featureLexicon.keySet
-    val (allWeights, predictions) = results.unzip
-    val g = predictions.flatten.map(_._2)
-    val p = predictions.flatten.map(_._3)
-    val evalInput = g.zip(p)
 
-    val avgWeights = (for {
-      l <- dataset.labelLexicon.keySet
-    } yield {
-      val c = new Counter[String]
-      allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
-      c.mapValues(_ / allWeights.length)
-      l -> c
-    }).toMap
+    for (perc <- results) yield {
+      val (allWeights, predictions, conf) = perc.unzip3
+      val g = predictions.flatten.map(_._2)
+      val p = predictions.flatten.map(_._3)
+      val evalInput = g.zip(p)
 
-    val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
+      val avgWeights = (for {
+        l <- dataset.labelLexicon.keySet
+      } yield {
+        val c = new Counter[String]
+        allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
+        c.mapValues(_ / allWeights.length)
+        l -> c
+      }).toMap
 
-    val pToW = (for {
-      i <- results.indices
-      p <- results(i)._2
-    } yield p -> i).toMap
+      val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
 
-    val posScale = predictions
-      .flatten
-      .filter(acct => acct._2 != labelSet("pos") && acct._3 == labelSet("pos")) // only false positives
-      .sortBy(_._5.getCount(labelSet("pos")))
-      .reverse
-      .take(numAccts)
-    val negScale = predictions
-      .flatten
-      .filter(acct => acct._2 == labelSet("pos") && acct._3 != labelSet("pos")) // only false negatives
-      .sortBy(_._5.getCount(labelSet("neg")))
-      .reverse
-      .take(numAccts)
+      val pToW = (for {
+        i <- perc.indices
+        p <- perc(i)._2
+      } yield p -> i).toMap
 
-    val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-    val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+      val posScale = predictions
+        .flatten
+        .filter(acct => acct._2 != labelSet("pos") && acct._3 == labelSet("pos")) // only false positives
+        .sortBy(_._5.getCount(labelSet("pos")))
+        .reverse
+        .take(numAccts)
+      val negScale = predictions
+        .flatten
+        .filter(acct => acct._2 == labelSet("pos") && acct._3 != labelSet("pos")) // only false negatives
+        .sortBy(_._5.getCount(labelSet("neg")))
+        .reverse
+        .take(numAccts)
 
-    (evalInput, topWeights, falsePos, falseNeg)
+      val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+      val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+
+      (evalInput, topWeights, falsePos, falseNeg, conf.head)
+    }
   }
 
 
