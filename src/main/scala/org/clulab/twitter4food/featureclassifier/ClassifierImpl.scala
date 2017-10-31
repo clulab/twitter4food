@@ -692,6 +692,7 @@ class ClassifierImpl(
     val ids = accounts.map(_.id).sorted
     val folds = foldsFromIds(ids, partitions)
 
+    // fold { conf { predictions } }
     val results = for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
@@ -712,20 +713,23 @@ class ClassifierImpl(
       }
 
       val highConfPredictions = for (perc <- percentTopToConsider)
-        yield
-          (W, predictions.sortBy(- _._6).take( (perc * predictions.size).toInt ), perc)
+        yield predictions.sortBy(- _._6).take( (perc * predictions.size).toInt )
       highConfPredictions
     }
 
-    val allFeats = dataset.featureLexicon.keySet
+    // conf { fold { predictions } }
+    val readable = results.transpose
 
-    for (perc <- results) yield {
-      val (allWeights, predictions, conf) = perc.unzip3
+    for {
+      i <- readable.indices
+      predictions = readable(i)
+      perc = percentTopToConsider(i)
+    } yield {
       val g = predictions.flatten.map(_._2)
       val p = predictions.flatten.map(_._3)
       val evalInput = g.zip(p)
 
-      (evalInput, conf.head)
+      (evalInput, perc)
     }
   }
 

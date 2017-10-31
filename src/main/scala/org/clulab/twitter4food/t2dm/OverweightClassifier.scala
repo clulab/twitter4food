@@ -193,7 +193,7 @@ object OverweightClassifier {
         )
 
       for {
-        (predictions, conf) <- results
+        (predictions, perc) <- results
       } yield {
         // Print results
         val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
@@ -207,13 +207,13 @@ object OverweightClassifier {
         val precision = evalMetric.P
         val recall = evalMetric.R
 
-        (conf, predictions.length, precision, recall, macroAvg, microAvg)
+        (perc, predictions.length, precision, recall, macroAvg, microAvg)
       }
     }
 
     println(s"\n$fileExt\nconf\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.head.foreach { case (hc, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$hc\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+    evals.head.foreach { case (perc, numAccounts, precision, recall, macroAvg, microAvg) =>
+      println(s"$perc\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
         s"\t$macroAvg\t$microAvg")
     }
   }

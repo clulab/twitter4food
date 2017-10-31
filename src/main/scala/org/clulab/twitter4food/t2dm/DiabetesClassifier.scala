@@ -176,7 +176,7 @@ object DiabetesClassifier {
       val labelSet = Map("pos" -> "risk", "neg" -> "not")
       val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
-      val (predictions, conf) =
+      val predictions =
         dc.binaryCV(
           accts,
           lbls,
@@ -187,7 +187,7 @@ object DiabetesClassifier {
           Utils.svmFactory,
           labelSet,
           percentTopToConsider=Seq(highConfPercent)
-        ).head
+        ).head._1
 
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
