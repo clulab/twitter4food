@@ -106,7 +106,12 @@ object OverweightClassifier {
     // This model and results are specified by all input args that represent featuresets
     val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
 
-    val outputDir = config.getString(s"classifiers.$dataset.results") + "/" + fileExt
+    val resultsDir = config.getString(s"classifiers.$dataset.results")
+    if (!Files.exists(Paths.get(resultsDir))) {
+      if (new File(resultsDir).mkdir()) logger.info(s"Created output directory $resultsDir")
+      else logger.info(s"ERROR: failed to create output directory $resultsDir")
+    }
+    val outputDir = resultsDir + "/" + fileExt
     if (!Files.exists(Paths.get(outputDir))) {
       if (new File(outputDir).mkdir()) logger.info(s"Created output directory $outputDir")
       else logger.info(s"ERROR: failed to create output directory $outputDir")
