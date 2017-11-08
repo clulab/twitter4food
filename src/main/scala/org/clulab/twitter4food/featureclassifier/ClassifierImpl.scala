@@ -544,15 +544,31 @@ class ClassifierImpl(
   /**
     * Returns a [[Seq]] of [[TrainTestFold]]s given unique ids and a map of what partition they belong in.
     */
-  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainTestFold] = {
-    val numPartitions = partitions.values.max
-    val allIndices = ids.indices.toSet
-    val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
+  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int], portion: Double = 1.0): Seq[TrainTestFold] = {
+    // make our map from ID to partition into a map from partition to sequence of IDs
+    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> ids.unzip._1 }
+
+    // reduce the size of each partition (at random) to portion size
+    val trainPart = for {
+      (grp, ids) <- partToId
+      sampled = Random.shuffle(ids).take((portion * ids.length).round.toInt)
+      s <- sampled
+    } yield s -> grp
+
+    val idxToTest = for ((id, idx) <- ids.filter(partitions.contains).zipWithIndex) yield {
       idx -> partitions(id)
     }
-    val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+    val testFolds = idxToTest.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+
+    val idxToTrain = for ((id, idx) <- ids.filter(trainPart.contains).zipWithIndex) yield {
+      idx -> partitions(id)
+    }
+    val trainIndices = ids.indices.filter(i => trainPart.keys.toSeq.contains(ids(i))).toSet
+    val trainFolds = idxToTrain.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+
+    val numPartitions = partitions.values.max
     for (p <- 0 until numPartitions) yield {
-      TrainTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p)).toSeq)
+      TrainTestFold(testFolds(p).toSeq, (trainIndices -- trainFolds(p)).toSeq)
     }
   }
 
@@ -681,41 +697,22 @@ class ClassifierImpl(
     followees: Option[Map[String, Seq[String]]] = None,
     classifierFactory: () => LiblinearClassifier[String, String],
     labelSet: Map[String, String],
-    percentTopToConsider: Double = 1.0,
-    seed: Long = 115249
+    percentTopToConsider: Double = 1.0
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
     Seq[(String, Map[String, Seq[(String, Double)]])]) = {
 
     assert(accounts.length == labels.length, "Number of accounts and labels must be equal")
-    Random.setSeed(seed)
 
     // for printing out feature weights (including for specific account classifications)
     val numFeatures = 30
     val numAccts = 20
 
-    // make our map from ID to partition into a map from partition to sequence of IDs
-    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> ids.unzip._1 }
-    // reduce the size of each partition (at random) to portion size
-    val portionedPart = for {
-      (grp, ids) <- partToId
-      sampled = Random.shuffle(ids).take((portion * ids.length).round.toInt)
-      s <- sampled
-    } yield s -> grp
-
-    // reduce the size of the data to match new partition sizes
-    val (portionedAccts, portionedLbls) = accounts
-      .zip(labels)
-      .filter{ case (acct, lbl) =>
-        portionedPart.contains(acct.id)
-      }
-      .unzip
-
     // Important: this dataset is sorted by id
-    val dataset = constructDataset(portionedAccts, portionedLbls, followers, followees)
-    val ids = portionedPart.keys.toSeq.sorted
-    val folds = foldsFromIds(ids, portionedPart)
+    val ids = partitions.keys.toSeq.sorted
+    val dataset = constructDataset(accounts, labels, followers, followees)
+    val folds = foldsFromIds(ids, partitions, portion)
 
     val results = for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
