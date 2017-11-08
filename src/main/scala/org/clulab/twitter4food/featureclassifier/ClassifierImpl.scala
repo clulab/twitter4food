@@ -688,26 +688,34 @@ class ClassifierImpl(
     Seq[(String, Map[String, Seq[(String, Double)]])],
     Seq[(String, Map[String, Seq[(String, Double)]])]) = {
 
+    assert(accounts.length == labels.length, "Number of accounts and labels must be equal")
     Random.setSeed(seed)
 
+    // for printing out feature weights (including for specific account classifications)
     val numFeatures = 30
     val numAccts = 20
 
+    // make our map from ID to partition into a map from partition to sequence of IDs
     val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> ids.unzip._1 }
-    val portioned = if (portion == 1.0)
-      partitions
-    else {
-      for {
-        (grp, ids) <- partToId
-        sampled = Random.shuffle(ids).take((portion * ids.length).round.toInt)
-        s <- sampled
-      } yield s -> grp
-    }
+    // reduce the size of each partition (at random) to portion size
+    val portionedPart = for {
+      (grp, ids) <- partToId
+      sampled = Random.shuffle(ids).take((portion * ids.length).round.toInt)
+      s <- sampled
+    } yield s -> grp
+
+    // reduce the size of the data to match new partition sizes
+    val (portionedAccts, portionedLbls) = accounts
+      .zip(labels)
+      .filter{ case (acct, lbl) =>
+        portionedPart.contains(acct.id)
+      }
+      .unzip
 
     // Important: this dataset is sorted by id
-    val dataset = constructDataset(accounts.filter(acct => portioned.contains(acct.id)), labels, followers, followees)
-    val ids = accounts.map(_.id).sorted
-    val folds = foldsFromIds(ids, portioned)
+    val dataset = constructDataset(portionedAccts, portionedLbls, followers, followees)
+    val ids = portionedPart.keys.toSeq.sorted
+    val folds = foldsFromIds(ids, portionedPart)
 
     val results = for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
