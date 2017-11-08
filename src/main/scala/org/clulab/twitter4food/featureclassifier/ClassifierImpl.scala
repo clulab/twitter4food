@@ -676,24 +676,38 @@ class ClassifierImpl(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     partitions: Map[Long, Int],
-    portion: Double = 1.0, // This doesn't do anything yet
-    followers: Option[Map[String, Seq[TwitterAccount]]],
-    followees: Option[Map[String, Seq[String]]],
+    portion: Double = 1.0,
+    followers: Option[Map[String, Seq[TwitterAccount]]] = None,
+    followees: Option[Map[String, Seq[String]]] = None,
     classifierFactory: () => LiblinearClassifier[String, String],
     labelSet: Map[String, String],
-    percentTopToConsider: Double = 1.0
+    percentTopToConsider: Double = 1.0,
+    seed: Long = 115249
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
     Seq[(String, Map[String, Seq[(String, Double)]])]) = {
 
+    Random.setSeed(seed)
+
     val numFeatures = 30
     val numAccts = 20
 
+    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> ids.unzip._1 }
+    val portioned = if (portion == 1.0)
+      partitions
+    else {
+      for {
+        (grp, ids) <- partToId
+        sampled = Random.shuffle(ids).take((portion * ids.length).round.toInt)
+        s <- sampled
+      } yield s -> grp
+    }
+
     // Important: this dataset is sorted by id
-    val dataset = constructDataset(accounts, labels, followers, followees)
+    val dataset = constructDataset(accounts.filter(acct => portioned.contains(acct.id)), labels, followers, followees)
     val ids = accounts.map(_.id).sorted
-    val folds = foldsFromIds(ids, partitions)
+    val folds = foldsFromIds(ids, portioned)
 
     val results = for (fold <- folds) yield {
       if(logger.isDebugEnabled) {
