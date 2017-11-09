@@ -555,12 +555,16 @@ class ClassifierImpl(
       s <- sampled
     } yield s -> grp
 
-    val idxToTest = for ((id, idx) <- ids.filter(partitions.contains).zipWithIndex) yield {
+    // test folds will contain all indices so that evaluation is always the same
+    val teix = ids.zipWithIndex.filter{ case (id, ix) => partitions.contains(id) }
+    val idxToTest = for ((id, idx) <- teix) yield {
       idx -> partitions(id)
     }
     val testFolds = idxToTest.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
 
-    val idxToTrain = for ((id, idx) <- ids.filter(trainPart.contains).zipWithIndex) yield {
+    // train folds will contain only a portion of their originals
+    val trix = ids.zipWithIndex.filter{ case (id, ix) => trainPart.contains(id) }
+    val idxToTrain = for ((id, idx) <- trix) yield {
       idx -> partitions(id)
     }
     val trainIndices = ids.indices.filter(i => trainPart.keys.toSeq.contains(ids(i))).toSet
@@ -715,6 +719,7 @@ class ClassifierImpl(
     val folds = foldsFromIds(ids, partitions, portion)
 
     val results = for (fold <- folds) yield {
+      logger.debug(s"train:${fold.train.length}; test:${fold.test.length}; overlap:${fold.train.toSet.intersect(fold.test.toSet).size}")
       if(logger.isDebugEnabled) {
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
