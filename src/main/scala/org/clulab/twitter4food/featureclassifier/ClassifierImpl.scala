@@ -546,12 +546,12 @@ class ClassifierImpl(
     */
   def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int], portion: Double = 1.0): Seq[TrainTestFold] = {
     // make our map from ID to partition into a map from partition to sequence of IDs
-    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> ids.unzip._1 }
+    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> Random.shuffle(ids.unzip._1) }
 
     // reduce the size of each partition (at random) to portion size
     val trainPart = for {
       (grp, ids) <- partToId
-      sampled = Random.shuffle(ids).take((portion * ids.length).round.toInt)
+      sampled = ids.take((portion * ids.length).round.toInt)
       s <- sampled
     } yield s -> grp
 
