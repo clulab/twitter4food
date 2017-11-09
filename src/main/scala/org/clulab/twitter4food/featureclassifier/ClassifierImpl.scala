@@ -571,7 +571,7 @@ class ClassifierImpl(
     val trainFolds = idxToTrain.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
 
     val numPartitions = partitions.values.max + 1 // 0 indexed
-    val ret = for (p <- 0 until numPartitions) yield {
+    for (p <- 0 until numPartitions) yield {
       TrainTestFold(testFolds(p).toSeq, (trainIndices -- trainFolds(p)).toSeq)
     }
   }
