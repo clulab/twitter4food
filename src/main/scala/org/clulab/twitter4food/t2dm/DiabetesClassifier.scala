@@ -230,12 +230,12 @@ object DiabetesClassifier {
         predWriter.close()
       }
 
-      (portion, predictions.length, precision, recall, macroAvg, microAvg)
+      (fraction, threshold, precision, recall, macroAvg, microAvg)
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
+    println(s"\n$fileExt\nfraction\tthreshold\tp\tr\tf1\tmacro\tmicro")
+    evals.foreach { case (fraction, threshold, precision, recall, macroAvg, microAvg) =>
+      println(s"$fraction\t$threshold\t$precision\t$recall\t${fMeasure(precision, recall, 1)}" +
         s"\t$macroAvg\t$microAvg")
     }
   }
