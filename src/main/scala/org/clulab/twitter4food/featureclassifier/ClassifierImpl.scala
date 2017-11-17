@@ -696,6 +696,8 @@ class ClassifierImpl(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     partitions: Map[Long, Int],
+    fraction: Double = 1.0,
+    threshold: Int = 0,
     portion: Double = 1.0,
     followers: Option[Map[String, Seq[TwitterAccount]]] = None,
     followees: Option[Map[String, Seq[String]]] = None,
@@ -724,8 +726,16 @@ class ClassifierImpl(
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
       }
+
+      val train = new RVFDataset[String, String]()
+      for (datum <- fold.train.toArray.map(dataset.mkDatum)) train += datum
+      val filtered = train
+        .removeFeaturesByFrequency(threshold)
+        .removeFeaturesByInformationGain(portion)
+        .asInstanceOf[RVFDataset[String, String]]
+
       val classifier = classifierFactory()
-      classifier.train(dataset, fold.train.toArray)
+      classifier.train(filtered)
       val W = classifier.getWeights()
       val predictions = for(i <- fold.test) yield {
         val id = ids(i).toString

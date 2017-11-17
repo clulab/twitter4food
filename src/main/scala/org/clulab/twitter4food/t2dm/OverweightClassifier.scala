@@ -100,7 +100,9 @@ object OverweightClassifier {
 
     val dataset = if (params.useDiabetesData) "ow2" else "overweight"
 
-    val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
+    val igFractions = (1 to 20).map(_.toDouble / 20)
+    val freqThresholds = 1 to 20
+    val portion = 1.0
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
@@ -146,7 +148,8 @@ object OverweightClassifier {
     } else None
 
     val evals = for {
-      portion <- portions
+      fraction <- igFractions.par
+      threshold <- freqThresholds.par
     } yield {
       val (accts, lbls) = labeledAccts.unzip
 
@@ -184,6 +187,8 @@ object OverweightClassifier {
           accts,
           lbls,
           partitions,
+          fraction,
+          threshold,
           portion,
           followers,
           followees,
