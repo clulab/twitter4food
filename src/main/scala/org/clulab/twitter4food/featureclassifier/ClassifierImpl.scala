@@ -731,7 +731,7 @@ class ClassifierImpl(
       for (datum <- fold.train.toArray.map(dataset.mkDatum)) train += datum
       val filtered = train
         .removeFeaturesByFrequency(threshold)
-        .removeFeaturesByInformationGain(portion)
+        .removeFeaturesByInformationGain(fraction)
         .asInstanceOf[RVFDataset[String, String]]
 
       val classifier = classifierFactory()
