@@ -234,7 +234,7 @@ object DiabetesClassifier {
     }
 
     println(s"\n$fileExt\nfraction\tthreshold\tp\tr\tf1\tmacro\tmicro")
-    evals.foreach { case (fraction, threshold, precision, recall, macroAvg, microAvg) =>
+    evals.seq.sorted.foreach{ case (fraction, threshold, precision, recall, macroAvg, microAvg) =>
       println(s"$fraction\t$threshold\t$precision\t$recall\t${fMeasure(precision, recall, 1)}" +
         s"\t$macroAvg\t$microAvg")
     }
