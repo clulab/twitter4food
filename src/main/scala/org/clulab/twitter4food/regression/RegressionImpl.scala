@@ -1,4 +1,4 @@
-package org.clulab.twitter4food.featureclassifier
+package org.clulab.twitter4food.regression
 
 import org.clulab.learning._
 import org.clulab.twitter4food.struct._
@@ -18,57 +18,42 @@ import org.clulab.struct.Counter
   *
   * Specific subclassifiers would extend ClassifierImpl with fixed
   * configuration to tweak usage of unigrams, bigrams, topics, embeddings,
-  * cosine similarity, and follower features. 
+  * cosine similarity, and follower features.
   *
   * @author adikou
   * @author tishihara
   * @author Dane Bell
   */
+class RegressionImpl(
+                      val useUnigrams: Boolean,
+                      val useBigrams: Boolean,
+                      val useName: Boolean,
+                      val useTopics: Boolean,
+                      val useDictionaries: Boolean,
+                      val useAvgEmbeddings: Boolean,
+                      val useMinEmbeddings: Boolean,
+                      val useMaxEmbeddings: Boolean,
+                      val useCosineSim: Boolean,
+                      val useLocation: Boolean,
+                      val useTimeDate: Boolean,
+                      val useFoodPerc: Boolean,
+                      val useCaptions: Boolean,
+                      val useFollowers: Boolean,
+                      val useFollowees: Boolean,
+                      val useRT: Boolean,
+                      val useGender: Boolean,
+                      val useAge: Boolean,
+                      val useRace: Boolean,
+                      val useHuman: Boolean,
+                      val dictOnly: Boolean,
+                      val denoise: Boolean,
+                      val datumScaling: Boolean,
+                      val featureScaling: Boolean,
+                      val variable: String,
+                      val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()
+                    ) extends Regression {
 
-/** Used by Stratified K-fold CV */
-case class TrainTestFold(test: Seq[Int], train: Seq[Int]) {
-  def merge(other: TrainTestFold): TrainTestFold = {
-    new TrainTestFold(this.test ++ other.test, this.train ++ other.train)
-  }
-}
-
-/** Used by Stratified K-fold CV */
-case class TrainDevTestFold(test: Seq[Int], dev: Seq[Int], train: Seq[Int]) {
-  def merge(other: TrainDevTestFold): TrainDevTestFold = {
-    new TrainDevTestFold(this.test ++ other.test, this.dev ++ other.dev, this.train ++ other.train)
-  }
-}
-
-class ClassifierImpl(
-  val useUnigrams: Boolean,
-  val useBigrams: Boolean,
-  val useName: Boolean,
-  val useTopics: Boolean,
-  val useDictionaries: Boolean,
-  val useAvgEmbeddings: Boolean,
-  val useMinEmbeddings: Boolean,
-  val useMaxEmbeddings: Boolean,
-  val useCosineSim: Boolean,
-  val useLocation: Boolean,
-  val useTimeDate: Boolean,
-  val useFoodPerc: Boolean,
-  val useCaptions: Boolean,
-  val useFollowers: Boolean,
-  val useFollowees: Boolean,
-  val useRT: Boolean,
-  val useGender: Boolean,
-  val useAge: Boolean,
-  val useRace: Boolean,
-  val useHuman: Boolean,
-  val dictOnly: Boolean,
-  val denoise: Boolean,
-  val datumScaling: Boolean,
-  val featureScaling: Boolean,
-  val variable: String,
-  val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()
-) extends FeatureClassifier {
-
-  import ClassifierImpl._
+  import RegressionImpl._
 
   /** featureExtractor instance local to each classifier */
   val featureExtractor = new FeatureExtractor(
@@ -110,10 +95,10 @@ class ClassifierImpl(
   val upperBound = 1.0
 
   def constructDataset(
-    accounts: Seq[TwitterAccount],
-    labels: Seq[String],
-    followers: Option[Map[String, Seq[TwitterAccount]]],
-    followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
+                        accounts: Seq[TwitterAccount],
+                        labels: Seq[String],
+                        followers: Option[Map[String, Seq[TwitterAccount]]],
+                        followees: Option[Map[String, Seq[String]]]): RVFDataset[String, String] = {
 
     if (useFollowers && followers.nonEmpty) this.featureExtractor.setFollowers(followers.get)
     if (useFollowees && followees.nonEmpty) this.featureExtractor.setFollowees(followees.get)
@@ -160,9 +145,9 @@ class ClassifierImpl(
     * @return Unit
     */
   def train(accounts: Seq[TwitterAccount],
-    labels: Seq[String],
-    followers: Option[Map[String, Seq[TwitterAccount]]],
-    followees: Option[Map[String, Seq[String]]]) = {
+            labels: Seq[String],
+            followers: Option[Map[String, Seq[TwitterAccount]]],
+            followees: Option[Map[String, Seq[String]]]) = {
     assert(accounts.size == labels.size)
 
     this.setClassifier(new L1LinearSVMClassifier[String, String]())
@@ -204,258 +189,6 @@ class ClassifierImpl(
     subClassifier = Some(newClassifier)
   }
 
-  /** Part 1/3 of test suite associated with each classifier. Resets the
-    * subClassifier with new hyperparameter C, fetches top-K tweets for
-    * each account in trainingSet and calls {@link train} method over
-    * the modified trainingSet.
-    *
-    * @param trainingSet sequence of twitter accounts to train on
-    * @param trainingLabels sequence of annotated labels for each account
-    * @param _C hyperparameter for current run of subClassifier
-    * @param K parameter for slicing the top-K tweets of each account.
-    * @param args Used for directing the filename for the model file
-    * @return Unit
-    */
-  def _train(trainingSet: Seq[TwitterAccount],
-    trainingLabels: Seq[String],
-    _C: Double,
-    K: Int,
-    args: Array[String]) = {
-
-    subClassifier = Some(new L1LinearSVMClassifier[String, String](C=_C))
-
-    // Skim only top-K tweets for each account
-    val customAccounts = trainingSet.map(t => {
-      val numTweets = Math.min(K, t.tweets.size)
-      new TwitterAccount(t.handle, t.id, t.name, t.lang, t.url,
-        t.location, t.description, t.tweets.slice(0, numTweets),
-        Seq[TwitterAccount]())
-    })
-
-    val opt = config.getString(s"classifiers.${this.variable}.model")
-    val nonFeats = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
-    val fout = s"$opt/svm_${args.filterNot(nonFeats.contains).sorted.mkString("").replace("-", "")}_${_C}_$K.dat"
-
-    logger.info(s"Training on ${customAccounts.length} accounts, ${customAccounts.map(_.tweets.length).sum} tweets")
-
-    // Train with top K tweets
-    train(customAccounts, trainingLabels)
-    subClassifier.get.saveTo(fout)
-  }
-
-  /** Part 2/3 of test suite. After calling {@link _train} method, _test
-    * predicts the label for each twitter account in testSet.
-    *
-    * @param testSet sequence of twitter accounts to predict labels on
-    * @return predictedLabels sequence of predicted labels
-    */
-  def _test(testSet: Seq[TwitterAccount]): Seq[String] = {
-
-    // Don't bother with print statements for only one account
-    val plural = testSet.length > 1
-    if (plural) logger.info(s"Testing on ${testSet.length} accounts, ${testSet.map(_.tweets.length).sum} tweets")
-
-    val pb = if (plural) Some(new me.tongfei.progressbar.ProgressBar("runTest()", 100)) else None
-    if (plural) {
-      pb.get.start()
-      pb.get.maxHint(testSet.length)
-      pb.get.setExtraMessage("Predicting...")
-    }
-
-    val predictedLabels = testSet.map{u =>
-      val label = classify(u)
-      if (plural) pb.get.step()
-      label
-    }
-
-    if (plural) pb.get.stop()
-
-    predictedLabels
-  }
-
-  /** Part 3/3 of test suite. Following calls to {@link _train} and
-    * {@link _test}, _evaluate prints and writes to file, the F-1 scores
-    * and (Precision, Recall, Accuracy, F-1 score) for each label, along
-    * with macro- and micro- averages for the system.
-    *
-    * @param testingLabels sequence of source labels
-    * @param predictedLabels sequence of target labels
-    * @param testSet sequence of test accounts to track wrong predictions
-    * @param writer BufferedWriter to write output to file
-    * @param _C subClassifier hyperparameter
-    * @param K threshold for top-K tweets
-    * @return (evalMeasures, microAvg, macroAvg) tuple to track performance
-    */
-  def _evaluate(testingLabels: Seq[String],
-    predictedLabels: Seq[String],
-    testSet: Seq[TwitterAccount],
-    writer: BufferedWriter, _C: Double, K: Int) = {
-    val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testingLabels,
-      predictedLabels, testSet)
-
-    val df = new java.text.DecimalFormat("#.###")
-
-    println(s"C=${_C}, #K=$K")
-    println(evalMeasures.mkString("\n"))
-    println(s"\nMacro avg F-1 : ${df.format(macroAvg)}")
-    println(s"Micro avg F-1 : ${df.format(microAvg)}")
-    writer.write(s"C=${_C}, #K=$K\n")
-    writer.write(evalMeasures.mkString("\n"))
-    evalMeasures.keys.foreach(l => {
-      writer.write(s"\nl\nFP:\n")
-      writer.write(s"${evalMeasures(l).FPAccounts.map(u => u.handle).mkString("\n")}\nFN:\n")
-      writer.write(s"${evalMeasures(l).FNAccounts.map(u => u.handle).mkString("\n")}\n")
-    })
-    writer.write(s"\nMacro avg F-1 : ${df.format(macroAvg)}\n")
-    writer.write(s"Micro avg F-1 : ${df.format(microAvg)}\n")
-    writer.flush()
-
-    (evalMeasures, microAvg, macroAvg)
-  }
-
-  /** Pick one of (C, K) and store in gridCbyK and pick (C,,max,,, K,,max,,)
-    * such that accuracy for that micro-average for that tuple in dev set
-    * is maximum. Use the max values and train with trainSet++devSet and test
-    * with testSet.
-    *
-    * @param args command line arguments for specifying output file name
-    * @param ctype classifier type: "gender", "human", "overweight" etc.
-    * @param outputFile filename to direct output to
-    * @return Unit
-    */
-  def runTest(args: Array[String], ctype: String, outputFile: String = null, devOnly: Boolean = true) = {
-
-    println("Loading training accounts...")
-    val trainingData = FileUtils.loadTwitterAccounts(config
-      .getString(s"classifiers.$ctype.trainingData"))
-    println("Loading dev accounts...")
-    val devData = FileUtils.loadTwitterAccounts(config
-      .getString(s"classifiers.$ctype.devData"))
-    println("Loading test accounts...")
-    val testData = if(!devOnly) Some(FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$ctype.testData"))) else None
-
-    val fileExt = args.mkString("").replace("-", "").sorted
-    val tweetFolds = Array(100, 500, 1000, 5000)
-    val cFolds = Array(0.001, 0.1, 10, 1000)
-
-    /*
-     * (i)  Tune parameters
-     * (ii) Pick top-K tweets
-     */
-
-    val (trainUsers, devUsers, testUsers) = (trainingData.keys.toArray,
-      devData.keys.toArray, testData.getOrElse(Map()).keys.toArray)
-
-    val (trainLabels, devLabels, testLabels) = (trainingData.values.toArray,
-      devData.values.toArray, testData.getOrElse(Map()).values.toArray)
-
-    val writerFile = if (outputFile != null) outputFile
-    else config.getString("classifier") + s"/$ctype/output-" +
-      fileExt + ".txt"
-
-    val writer = new BufferedWriter(new FileWriter(
-      writerFile, true))
-
-    // Values for accuracies for C * K
-    val gridCbyK = Array.ofDim[Double](4,4)
-
-    /** For a given classifier, loadTwitterAccounts its associated train, dev, and test
-      * accounts, and write results to file.
-      *
-      * @return microAvg micro-average aggregated over each label
-      */
-    val unitTest = (trainingSet: Seq[TwitterAccount],
-    trainingLabels: Seq[String],
-    testingSet: Seq[TwitterAccount],
-    testingLabels: Seq[String],
-    _C: Double,
-    K: Int) => {
-
-      println(s"Training with C=${_C} and top-$K tweets")
-
-      _train(trainingSet, trainingLabels,_C, K, args)
-      val predictedLabels = _test(testingSet)
-
-      val (evalMeasures, microAvg, macroAvg) = _evaluate(testingLabels,
-        predictedLabels, testingSet, writer, _C, K)
-
-      microAvg
-    }
-
-    for(i <- cFolds.indices) {
-      val _C = cFolds(i)
-      for(j <- tweetFolds.indices) {
-        val K = tweetFolds(j)
-        gridCbyK(i)(j) = unitTest(trainUsers, trainLabels,
-          devUsers, devLabels, _C, K)
-      }
-    }
-
-    var (iMax, jMax) = (0,0)
-    var max = Double.MinValue
-    for(i <- gridCbyK.indices)
-      for(j <- gridCbyK(i).indices)
-        if(gridCbyK(i)(j) > max) {
-          max = gridCbyK(i)(j)
-          iMax = i
-          jMax = j
-        }
-
-    println(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}")
-    writer.write(s"Best C = ${cFolds(iMax)}, Top K = ${tweetFolds(jMax)}\n")
-
-    if (!devOnly) {
-      println("Testing with test users")
-      writer.write("*****Test*****\n")
-      writer.flush()
-
-      // Final run on test Set
-      unitTest(trainUsers ++ devUsers, trainLabels ++ devLabels,
-        testUsers, testLabels, cFolds(iMax), tweetFolds(jMax))
-
-      println("*****Test complete*****")
-      writer.write("*****Test complete*****\n")
-    }
-    writer.flush()
-
-    writer.close()
-  }
-
-  /** Training over all data: train, dev, and test as one. Used for
-    * predicting labels for new unlabeled accounts
-    *
-    * @param args Options for selectin features
-    * @param ctype Classifier type: "gender", "age", "race" etc.
-    * @param _C hyperparameter
-    * @param K threshold for top-K tweets
-    */
-  def learn(args: Array[String], ctype: String, _C: Double, K: Int) = {
-    val allTrainData = FileUtils.loadTwitterAccounts(config.getString(
-      s"classifiers.$ctype.allTrainData"))
-
-    val allTrainAccounts = allTrainData.keys.toArray
-    val allTrainLabels = allTrainData.values.toArray
-
-    _train(allTrainAccounts, allTrainLabels, _C, K, args)
-
-  }
-
-  /** Predict labels after calling {@link learn}
-    *
-    * @param test/tests/testFile Load from file, or input sequence of tests
-    * @return Seq[String] predicted labels
-    */
-  def predict(test: TwitterAccount) = _test(Array(test)).head
-
-  def predict(tests: Seq[TwitterAccount]) = _test(tests)
-
-  def predict(testFile: String) = {
-
-    val allTestData = FileUtils.loadTwitterAccounts(testFile)
-    val testAccounts = allTestData.keys.toArray
-
-    val predictedLabels = _test(testAccounts)
-  }
 
   /** Writes the predicted labels for each test account to file
     *
@@ -474,9 +207,9 @@ class ClassifierImpl(
   }
 
   def featureSelectionIncremental(accounts: Map[TwitterAccount, String],
-    followers: Map[String, Seq[TwitterAccount]],
-    followees: Map[String, Seq[String]],
-    evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+                                  followers: Map[String, Seq[TwitterAccount]],
+                                  followees: Map[String, Seq[String]],
+                                  evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
 
     val dataset = constructDataset(accounts.keys.toSeq, accounts.values.toSeq, Option(followers), Option(followees))
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
@@ -493,9 +226,9 @@ class ClassifierImpl(
   }
 
   def featureSelectionByFrequency(accounts: Map[TwitterAccount, String],
-    followers: Map[String, Seq[TwitterAccount]],
-    followees: Map[String, Seq[String]],
-    evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
+                                  followers: Map[String, Seq[TwitterAccount]],
+                                  followees: Map[String, Seq[String]],
+                                  evalMetric: Iterable[(String, String)] => Double): Dataset[String, String] = {
     val dataset = constructDataset(accounts.keys.toSeq, accounts.values.toSeq, Option(followers), Option(followees))
     val chosenFeatures = Datasets.featureSelectionByFrequency(dataset, Utils.svmFactory, evalMetric)
     dataset.keepOnly(chosenFeatures)
@@ -516,8 +249,8 @@ class ClassifierImpl(
   }
 
   def featureSelectionIncrementalCV(
-    dataset:Dataset[String, String],
-    evalMetric: Iterable[(String, String)] => Double): (Dataset[String, String], Set[String]) = {
+                                     dataset:Dataset[String, String],
+                                     evalMetric: Iterable[(String, String)] => Double): (Dataset[String, String], Set[String]) = {
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
     logger.debug(s"Found ${featureGroups.size} feature groups:")
     for(f <- featureGroups.keySet) {
@@ -593,10 +326,10 @@ class ClassifierImpl(
 
   /** Creates dataset folds to be used for cross validation */
   def mkStratifiedTrainTestFolds[L, F](
-    numFolds:Int,
-    dataset:Dataset[L, F],
-    seed:Int
-  ): Iterable[TrainTestFold] = {
+                                        numFolds:Int,
+                                        dataset:Dataset[L, F],
+                                        seed:Int
+                                      ): Iterable[TrainTestFold] = {
     val r = new Random(seed)
 
     val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
@@ -625,10 +358,10 @@ class ClassifierImpl(
 
   /** Creates dataset folds to be used for cross validation */
   def mkStratifiedTrainDevTestFolds[L, F](
-    numFolds:Int,
-    dataset:Dataset[L, F],
-    seed:Int
-  ): Iterable[TrainDevTestFold] = {
+                                           numFolds:Int,
+                                           dataset:Dataset[L, F],
+                                           seed:Int
+                                         ): Iterable[TrainDevTestFold] = {
     val r = new Random(seed)
 
     val byClass: Map[Int, Seq[Int]] = r.shuffle[Int, IndexedSeq](dataset.indices).groupBy(idx => dataset.labels(idx))
@@ -660,11 +393,11 @@ class ClassifierImpl(
     * Each fold is as balanced as possible by label L.
     */
   def stratifiedCrossValidate[L, F](
-    dataset:Dataset[L, F],
-    classifierFactory: () => Classifier[L, F],
-    numFolds:Int = 10,
-    seed:Int = 73
-  ): Seq[(L, L)] = {
+                                     dataset:Dataset[L, F],
+                                     classifierFactory: () => Classifier[L, F],
+                                     numFolds:Int = 10,
+                                     seed:Int = 73
+                                   ): Seq[(L, L)] = {
 
     val folds = mkStratifiedTrainTestFolds(numFolds, dataset, seed)
 
@@ -690,16 +423,16 @@ class ClassifierImpl(
     * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
     */
   def binaryCV(
-    accounts: Seq[TwitterAccount],
-    labels: Seq[String],
-    partitions: Map[Long, Int],
-    portion: Double = 1.0,
-    followers: Option[Map[String, Seq[TwitterAccount]]] = None,
-    followees: Option[Map[String, Seq[String]]] = None,
-    classifierFactory: () => LiblinearClassifier[String, String],
-    labelSet: Map[String, String],
-    percentTopToConsider: Double = 1.0
-  ): (Seq[(String, String)],
+                accounts: Seq[TwitterAccount],
+                labels: Seq[String],
+                partitions: Map[Long, Int],
+                portion: Double = 1.0,
+                followers: Option[Map[String, Seq[TwitterAccount]]] = None,
+                followees: Option[Map[String, Seq[String]]] = None,
+                classifierFactory: () => LiblinearClassifier[String, String],
+                labelSet: Map[String, String],
+                percentTopToConsider: Double = 1.0
+              ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
     Seq[(String, Map[String, Seq[(String, Double)]])]) = {
@@ -786,15 +519,15 @@ class ClassifierImpl(
     * Each fold is as balanced as possible by label L. Returns selected features with predictions to help estimate F1.
     */
   def fscv(
-    accounts: Seq[TwitterAccount],
-    labels: Seq[String],
-    partitions: Map[Long, Int],
-    followers: Option[Map[String, Seq[TwitterAccount]]],
-    followees: Option[Map[String, Seq[String]]],
-    classifierFactory: () => LiblinearClassifier[String, String],
-    labelSet: Map[String, String],
-    evalMetric: Iterable[(String, String)] => Double
-  ): Seq[(String, String)] = {
+            accounts: Seq[TwitterAccount],
+            labels: Seq[String],
+            partitions: Map[Long, Int],
+            followers: Option[Map[String, Seq[TwitterAccount]]],
+            followees: Option[Map[String, Seq[String]]],
+            classifierFactory: () => LiblinearClassifier[String, String],
+            labelSet: Map[String, String],
+            evalMetric: Iterable[(String, String)] => Double
+          ): Seq[(String, String)] = {
 
     // Important: this dataset is sorted by id
     val dataset = constructDataset(accounts, labels, followers, followees)
@@ -860,15 +593,14 @@ class ClassifierImpl(
   }
 }
 
-object ClassifierImpl {
+object RegressionImpl {
   /** config file that fetches filepaths */
   val config = ConfigFactory.load()
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-
   def loadFollowees(accounts: Seq[TwitterAccount], variable: String): Map[String, Seq[String]] = {
-    val followeeFile = scala.io.Source.fromFile(config.getString(s"classifiers.$variable.followeeRelations"))
+    val followeeFile = scala.io.Source.fromFile(config.getString(s"regressions.$variable.followeeRelations"))
     val handleToFollowees = (for (line <- followeeFile.getLines) yield {
       val handles = line.split("\t+")
       handles.head -> handles.tail.toSeq
@@ -879,14 +611,14 @@ object ClassifierImpl {
   }
 
   def loadFollowers(accounts: Seq[TwitterAccount]): Map[String, Seq[TwitterAccount]] = {
-    val followerFile = scala.io.Source.fromFile(config.getString("classifiers.features.followerRelations"))
+    val followerFile = scala.io.Source.fromFile(config.getString("regressions.features.followerRelations"))
     val handleToFollowers: Map[String, Seq[String]] = (for (line <- followerFile.getLines) yield {
       val handles = line.split("\t")
       handles.head -> handles.tail.toSeq
     }).toMap
     followerFile.close
 
-    val accountsFileStr = config.getString("classifiers.features.followerAccounts")
+    val accountsFileStr = config.getString("regressions.features.followerAccounts")
     val followerAccounts = FileUtils.loadTwitterAccounts(accountsFileStr)
     val handleToFollowerAccts = accounts.map{ account =>
       val followerAccount = handleToFollowers.getOrElse(account.handle, Nil).flatMap { followerHandle =>
@@ -899,9 +631,9 @@ object ClassifierImpl {
   }
 
   def outputAnalysis(outputDir: String,
-    weights: Map[String, Seq[(String, Double)]],
-    falsePos: Seq[(String, Map[String, Seq[(String, Double)]])],
-    falseNeg: Seq[(String, Map[String, Seq[(String, Double)]])]): Unit = {
+                     weights: Map[String, Seq[(String, Double)]],
+                     falsePos: Seq[(String, Map[String, Seq[(String, Double)]])],
+                     falseNeg: Seq[(String, Map[String, Seq[(String, Double)]])]): Unit = {
 
     val numWeights = 30
     val numAccts = 20
@@ -943,7 +675,7 @@ object ClassifierImpl {
     writer.close()
   }
 
-  def outputAnalysis(outputFile: String, header: String, accounts: Seq[TwitterAccount], cls: ClassifierImpl, labels: Set[String]) {
+  def outputAnalysis(outputFile: String, header: String, accounts: Seq[TwitterAccount], cls: RegressionImpl, labels: Set[String]) {
     // Set progress bar
     var numAccountsToPrint = 20
     val numWeightsToPrint = 30
