@@ -11,6 +11,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
 object FileUtils {
+  def normalizeText(text: String): String = text.replaceAll("[\0\b\t\n\f\r]", " ").replaceAll(" +", " ")
+
   def saveToFile(users: Seq[TwitterAccount], labels: Seq[String],
     fileName: String, append: Boolean = false) = {
     val writer = new BufferedWriter(new FileWriter(fileName, append))
@@ -21,19 +23,18 @@ object FileUtils {
 
     for (i <- labels.indices) {
       val user = users(i)
-      val ctrlChars = "[\0\b\t\n\f\r]"
       try {
         if (user != null) {
           writer.write(s"${user.handle}\t${labels(i)}\n")
           writer.write(s"${user.handle}\t${user.id}\t")
-          writer.write(s"${user.name.replaceAll(ctrlChars, " ")}\t")
+          writer.write(s"${normalizeText(user.name)}\t")
           writer.write(s"${user.tweets.size}\n")
-          writer.write(s"${user.lang}\t${user.url.replaceAll(ctrlChars, " ")}\t")
-          writer.write(s"${user.location.replaceAll(ctrlChars, " ")}\n")
-          writer.write(s"${user.description.replaceAll(ctrlChars, " ")}\n")
+          writer.write(s"${user.lang}\t${normalizeText(user.url)}\t")
+          writer.write(s"${normalizeText(user.location)}\n")
+          writer.write(s"${normalizeText(user.description)}\n")
           user.tweets.foreach(tweet => {
             writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.lang}\n")
-            writer.write(s"${tweet.text.replaceAll(ctrlChars, " ")}\n")
+            writer.write(s"${normalizeText(tweet.text)}\n")
           })
         }
       } catch {
