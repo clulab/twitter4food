@@ -37,7 +37,8 @@ class TwitterAccount (
   }
 
   /**
-    * Returns a merged [[TwitterAccount]] with all the tweets of both input accounts.
+    * Returns a merged [[TwitterAccount]] with all the tweets of both input accounts. Argument account's other info
+    * (e.g. handle) is discarded.
     */
   def merge(that: TwitterAccount): TwitterAccount = {
     assert(this.id == that.id, "They must be instantiations of the same account!")
