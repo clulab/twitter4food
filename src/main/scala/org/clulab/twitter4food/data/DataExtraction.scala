@@ -11,6 +11,8 @@ import org.clulab.twitter4food.util.Utils.sanitizeHandle
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.twitter4j.TwitterAPI
 
+case class DataExtractionConfig(variable: String = "diabetes")
+
 /**
   * Author: Dane Bell
   *
@@ -19,21 +21,35 @@ import org.clulab.twitter4food.twitter4j.TwitterAPI
   * [handle]\t[classificationLabel]
   * on each line.
   */
-object DiabetesDataExtraction {
+object DataExtraction {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def retrieveAccts[T](names: Seq[T]): Seq[TwitterAccount] = {
+  def parseArgs(args: Array[String]): DataExtractionConfig = {
+    val parser = new scopt.OptionParser[DataExtractionConfig]("dataExtraction") {
+      head("Choose a variable from the set {overweight, ow2, diabetes, human, gender}")
+      arg[String]("variable") action { (x, c) =>
+        c.copy(variable = x)} text "variable to use"
+    }
+
+    val opts = parser.parse(args, DataExtractionConfig())
+
+    if(opts.isEmpty) throw new IllegalArgumentException(s"args ${args.mkString(" ")} are not supported!")
+
+    opts.get
+  }
+
+
+  def retrieveAccounts[T](names: Seq[T], numProcesses: Int = 16): Seq[TwitterAccount] = {
     assert(names.isEmpty ||
       names.head.isInstanceOf[String] ||
       names.head.isInstanceOf[Long],
       "TwitterAccount identifiers must be Strings or Longs!")
 
-    val numProcesses = 16
     val chunkSize = names.length / numProcesses
 
     var steps = 0
 
-    val accts = for {
+    val accounts = for {
       thread <- (0 until numProcesses).par
       api = new TwitterAPI(thread)
       startIdx = thread * chunkSize
@@ -43,22 +59,22 @@ object DiabetesDataExtraction {
       steps += 1
       println(s"$steps/${names.length} ${names(i)}")
       val fetched = names(i) match {
-        case name: String =>
-          api.fetchAccount(names(i).asInstanceOf[String], fetchTweets = true)
-        case id: Long =>
-          api.fetchAccount(names(i).toString, fetchTweets = true, isID = true)
+        case handle: String => api.fetchAccount(handle, fetchTweets = true)
+        case id: Long => api.fetchAccount(id.toString, fetchTweets = true, isID = true)
       }
       fetched
     }
 
-    accts.seq
+    accounts.seq
   }
 
   def main(args: Array[String]) {
 
+    val deConfig = parseArgs(args)
+
     val config = ConfigFactory.load
-    val outputFile = config.getString("classifiers.diabetes.data_raw")
-    val inputFileStr = config.getString("classifiers.diabetes.handles")
+    val outputFile = config.getString(s"classifiers.${deConfig.variable}.data_raw")
+    val inputFileStr = config.getString(s"classifiers.${deConfig.variable}}.handles")
 
     // Save a copy of the existing accounts in case something goes wrong
     val corpusExists = Files.exists(Paths.get(outputFile))
@@ -87,29 +103,28 @@ object DiabetesDataExtraction {
 
     inputFile.close()
 
-    val accounts = retrieveAccts(handles).filterNot(_ == null)
+    val accounts = retrieveAccounts(handles).filterNot(_ == null)
     val labels = accounts.map(acct => labeledHandles.getOrElse(sanitizeHandle(acct.handle), "NULL"))
 
     // Update existing accounts. Notice that we keep all the account's *new* information (e.g. description) which could
     // have changed. Likewise, we are keeping only the new labels.
-    val updated = for (acct <- accounts) yield {
-      val query = prevAccounts.filter(_.id == acct.id)
+    val updated = for (account <- accounts) yield {
+      val query = prevAccounts.filter(_.id == account.id)
       if (query.nonEmpty)
-        acct.merge(query.head)
+        account.merge(query.head)
       else
-        acct
+        account
     }
 
     // Some old accounts may have
-    /// 1. changed their handles,
-    /// 2. been deactivated, or
-    /// 3. made private,
+    //  1. changed their handles,
+    //  2. been deactivated, or
+    //  3. made private,
     // but we still want them. We will check IDs for updates and then just keep the rest as is.
     val updatedIds = updated.map(_.id)
     val lostIds = previous.map(_._1.id).filterNot(id => updatedIds.contains(id))
 
-    val newLostAccounts = retrieveAccts(lostIds).filterNot(_ == null)
-
+    val newLostAccounts = retrieveAccounts(lostIds).filterNot(_ == null)
     val (oldLostAccounts, lostLabels) = previous.filterNot{ case (acct, lbl) => updatedIds.contains(acct.id) }.unzip
 
     // Update existing accounts whose names have not been found. Notice that we prefer to keep all the account's *new*
@@ -122,7 +137,7 @@ object DiabetesDataExtraction {
         acct
     }
 
-    logger.info("DiabetesDataExtraction: Saving to file...")
+    logger.info("DataExtraction: Saving to file...")
     FileUtils.saveToFile(updated ++ updatedLost, labels ++ lostLabels, outputFile)
   }
 }

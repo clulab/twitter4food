@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object Tokenize {
 
-  case class Config(inFile: String = "", outFile: Option[String] = None, isThreeLine: Boolean = false)
+  case class TokenizeConfig(inFile: String = "", outFile: Option[String] = None, isThreeLine: Boolean = false)
 
   def tokenizeTwoLines(filename: String, outFile: Option[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
@@ -152,8 +152,8 @@ object Tokenize {
   }
 
   def main(args: Array[String]): Unit = {
-    def parseArgs(args: Array[String]): Config = {
-      val parser = new scopt.OptionParser[Config]("lda") {
+    def parseArgs(args: Array[String]): TokenizeConfig = {
+      val parser = new scopt.OptionParser[TokenizeConfig]("lda") {
         opt[String]('f', "inFile") action { (x, c) =>
           c.copy(inFile = x)
         } text "which file to tokenize"
@@ -165,7 +165,7 @@ object Tokenize {
         } text ""
         help("help") text "prints this usage text"
       }
-      parser.parse(args, Config()).get
+      parser.parse(args, TokenizeConfig()).get
     }
 
     val params = parseArgs(args)
