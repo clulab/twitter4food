@@ -22,7 +22,10 @@ import org.clulab.twitter4food.twitter4j.TwitterAPI
 object DiabetesDataExtraction {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def retrieveAccts(names: Seq[String]): Seq[TwitterAccount] = {
+  def retrieveAccts[T](names: Seq[T]): Seq[TwitterAccount] = {
+    assert(names.isInstanceOf[Seq[String]] || names.isInstanceOf[Seq[Long]],
+      "TwitterAccount identifiers must be Strings or Longs!")
+
     val numProcesses = 16
     val chunkSize = names.length / numProcesses
 
@@ -35,9 +38,14 @@ object DiabetesDataExtraction {
       lastIdx = if (thread + 1 == numProcesses) names.length else (thread + 1) * chunkSize
       i <- (startIdx until lastIdx).seq
     } yield {
-      println(s"$steps/${names.length} ${names(i)}")
-      val fetched = api.fetchAccount(names(i), fetchTweets = true)
       steps += 1
+      println(s"$steps/${names.length} ${names(i)}")
+      val fetched = names(i) match {
+        case name: String =>
+          api.fetchAccount(names(i).asInstanceOf[String], fetchTweets = true)
+        case id: Long =>
+          api.fetchAccount(names(i).toString, fetchTweets = true, isID = true)
+      }
       fetched
     }
 
@@ -72,18 +80,17 @@ object DiabetesDataExtraction {
       (handle, label)
     }
 
-    val labeledAccounts = pairs.toMap
-    val handles = labeledAccounts.keys.toSeq
+    val labeledHandles = pairs.toMap
+    val handles = labeledHandles.keys.toSeq
 
     inputFile.close()
 
-    val accounts = retrieveAccts(handles)
-    val nonNull = accounts.filterNot(_ == null)
-    val labels = nonNull.map(acct => labeledAccounts.getOrElse(sanitizeHandle(acct.handle), "NULL"))
+    val accounts = retrieveAccts(handles).filterNot(_ == null)
+    val labels = accounts.map(acct => labeledHandles.getOrElse(sanitizeHandle(acct.handle), "NULL"))
 
     // Update existing accounts. Notice that we keep all the account's *new* information (e.g. description) which could
     // have changed. Likewise, we are keeping only the new labels.
-    val updated = for (acct <- nonNull) yield {
+    val updated = for (acct <- accounts) yield {
       val query = prevAccounts.filter(_.id == acct.id)
       if (query.nonEmpty)
         acct.merge(query.head)
@@ -91,11 +98,29 @@ object DiabetesDataExtraction {
         acct
     }
 
-    // Some old accounts may have been deactivated or made private, but we still want them.
+    // Some old accounts may have
+    /// 1. changed their handles,
+    /// 2. been deactivated, or
+    /// 3. made private,
+    // but we still want them. We will check IDs for updates and then just keep the rest as is.
     val updatedIds = updated.map(_.id)
-    val (lostAccounts, lostLabels) = previous.filterNot{ case (acct, lbl) => updatedIds.contains(acct.id) }.unzip
+    val lostIds = previous.map(_._1.id).filterNot(id => updatedIds.contains(id))
+
+    val newLostAccounts = retrieveAccts(lostIds).filterNot(_ == null)
+
+    val (oldLostAccounts, lostLabels) = previous.filterNot{ case (acct, lbl) => updatedIds.contains(acct.id) }.unzip
+
+    // Update existing accounts whose names have not been found. Notice that we prefer to keep all the account's *new*
+    // information (e.g. description), which could have changed.
+    val updatedLost = for (acct <- oldLostAccounts) yield {
+      val query = newLostAccounts.filter(_.id == acct.id)
+      if (query.nonEmpty)
+        query.head.merge(acct)
+      else
+        acct
+    }
 
     logger.info("DiabetesDataExtraction: Saving to file...")
-    FileUtils.saveToFile(updated ++ lostAccounts, labels ++ lostLabels, outputFile)
+    FileUtils.saveToFile(updated ++ updatedLost, labels ++ lostLabels, outputFile)
   }
 }
