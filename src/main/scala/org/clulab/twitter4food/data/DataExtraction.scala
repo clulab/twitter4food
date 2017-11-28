@@ -72,9 +72,11 @@ object DataExtraction {
 
     val deConfig = parseArgs(args)
 
+    logger.info(s"Updating tweets for ${deConfig.variable} classification")
+
     val config = ConfigFactory.load
     val outputFile = config.getString(s"classifiers.${deConfig.variable}.data_raw")
-    val inputFileStr = config.getString(s"classifiers.${deConfig.variable}}.handles")
+    val inputFileStr = config.getString(s"classifiers.${deConfig.variable}.handles")
 
     // Save a copy of the existing accounts in case something goes wrong
     val corpusExists = Files.exists(Paths.get(outputFile))
