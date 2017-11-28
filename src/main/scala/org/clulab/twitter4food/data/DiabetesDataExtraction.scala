@@ -23,7 +23,9 @@ object DiabetesDataExtraction {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   def retrieveAccts[T](names: Seq[T]): Seq[TwitterAccount] = {
-    assert(names.isInstanceOf[Seq[String]] || names.isInstanceOf[Seq[Long]],
+    assert(names.isEmpty ||
+      names.head.isInstanceOf[String] ||
+      names.head.isInstanceOf[Long],
       "TwitterAccount identifiers must be Strings or Longs!")
 
     val numProcesses = 16
