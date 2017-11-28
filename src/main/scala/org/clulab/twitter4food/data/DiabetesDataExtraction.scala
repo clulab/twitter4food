@@ -47,7 +47,7 @@ object DiabetesDataExtraction {
   def main(args: Array[String]) {
 
     val config = ConfigFactory.load
-    val outputFile = config.getString("classifiers.diabetes.data")
+    val outputFile = config.getString("classifiers.diabetes.data_raw")
     val inputFileStr = config.getString("classifiers.diabetes.handles")
 
     // Save a copy of the existing accounts in case something goes wrong
