@@ -9,7 +9,8 @@ class Tweet (val text: String,
              val id: Long,
              val lang: String,
              val createdAt: java.util.Date,
-             val handle: String) {
+             val handle: String) { // TODO: Add image locations
+
   override def toString = s"$handle: $text [$createdAt]"
 
   /**
@@ -47,4 +48,13 @@ class Tweet (val text: String,
     * Returns true if the tweet is "normal", i.e. not a retweet or addressed to other accounts
     */
   def isNormal: Boolean = !this.isAddressed && !this.isRetweet
+
+  def canEqual(that: Any): Boolean = that.isInstanceOf[Tweet]
+
+  override def equals(that: Any): Boolean = {
+    that match {
+      case that: Tweet => this.canEqual(that) && this.id == that.id // TODO: check if images are the same
+      case _ => false
+    }
+  }
 }
