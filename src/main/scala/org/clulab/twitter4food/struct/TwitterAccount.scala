@@ -42,7 +42,7 @@ class TwitterAccount (
     */
   def merge(that: TwitterAccount): TwitterAccount = {
     assert(this.id == that.id, "They must be instantiations of the same account!")
-    this.copy(tweets = (this.tweets.toSet ++ that.tweets.toSet).toSeq.sortBy(_.createdAt))
+    this.copy(tweets = (this.tweets ++ that.tweets).distinct.sortBy(_.createdAt))
   }
 
   /**

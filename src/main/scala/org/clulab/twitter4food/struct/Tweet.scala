@@ -57,4 +57,6 @@ class Tweet (val text: String,
       case _ => false
     }
   }
+
+  override def hashCode = id.hashCode()
 }
