@@ -33,7 +33,7 @@ object FileUtils {
           writer.write(s"${normalizeText(user.location)}\n")
           writer.write(s"${normalizeText(user.description)}\n")
           user.tweets.foreach(tweet => {
-            writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.lang}\n")
+            writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.lang}\t${tweet.urls.mkString("|||")}\n")
             writer.write(s"${normalizeText(tweet.text)}\n")
           })
         }
@@ -90,6 +90,7 @@ object FileUtils {
 
             var tweetId, tweetLang = ""
             var date: Date = null
+            var urls: Seq[String] = Nil
             while (tweetLines.hasNext) {
               val tweetLine = tweetLines.next
               val tweetSplit = tweetLine.split("\t")
@@ -98,8 +99,9 @@ object FileUtils {
                   val df = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
                   date = df.parse(tweetSplit(1))
                   tweetLang = tweetSplit(2)
+                  urls = if (tweetSplit.length < 4) Nil else tweetSplit(3).split("\\|\\|\\|")
                 case 1 => tweets += new Tweet(tweetLine, tweetId.toLong,
-                  tweetLang, date, handle)
+                  tweetLang, date, handle, urls)
               }
               jCount += 1
               jCount %= 2

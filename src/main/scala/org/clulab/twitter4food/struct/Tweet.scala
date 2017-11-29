@@ -9,7 +9,8 @@ class Tweet (val text: String,
              val id: Long,
              val lang: String,
              val createdAt: java.util.Date,
-             val handle: String) { // TODO: Add image locations
+             val handle: String,
+             val urls: Seq[String] = Nil) { // TODO: Add image locations
 
   override def toString = s"$handle: $text [$createdAt]"
 
@@ -21,18 +22,21 @@ class Tweet (val text: String,
     id: Long = this.id,
     lang: String = this.lang,
     createdAt: java.util.Date = this.createdAt,
-    handle: String = this.handle): Tweet = {
+    handle: String = this.handle,
+    urls: Seq[String] = this.urls): Tweet = {
     new Tweet(text, id, lang, createdAt, handle)
   }
 
-//  /**
-//    * Returns a new [[Tweet]] with the images of both copies of the tweet. The argument tweet's other info is discarded.
-//    */
-//  def merge(that: Tweet): Tweet = {
-//    assert(this.id == that.id, "Merged tweets must have the same ID!")
-//    val allImages = (this.images ++ that.images).distinct
-//    this.copy(images = allImages)
-//  }
+  /**
+    * Returns a new [[Tweet]] with the images of both copies of the tweet. The argument tweet's other info is discarded.
+    */
+  def merge(that: Tweet): Tweet = {
+    assert(this.id == that.id, "Merged tweets must have the same ID!")
+    val allUrls = (this.urls ++ that.urls).distinct
+    // val allImages = (this.images ++ that.images).distinct
+    // this.copy(urls = allUrls, images = allImages)
+    this.copy(urls = allUrls)
+  }
 
   /**
     * Returns true if the tweet is a retweet. Assumes pre-tokenized text
@@ -48,15 +52,4 @@ class Tweet (val text: String,
     * Returns true if the tweet is "normal", i.e. not a retweet or addressed to other accounts
     */
   def isNormal: Boolean = !this.isAddressed && !this.isRetweet
-
-  def canEqual(that: Any): Boolean = that.isInstanceOf[Tweet]
-
-  override def equals(that: Any): Boolean = {
-    that match {
-      case that: Tweet => this.canEqual(that) && this.id == that.id // TODO: check if images are the same
-      case _ => false
-    }
-  }
-
-  override def hashCode = id.hashCode()
 }
