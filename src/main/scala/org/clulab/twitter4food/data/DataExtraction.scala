@@ -139,7 +139,11 @@ object DataExtraction {
         acct
     }
 
+    val allAccounts = updated ++ updatedLost
+    val allLabels = labels ++ lostLabels
+    val (nonEmptyAccounts, nonEmptyLabels) = allAccounts.zip(allLabels).filter(_._1.tweets.nonEmpty).unzip
+
     logger.info("DataExtraction: Saving to file...")
-    FileUtils.saveToFile(updated ++ updatedLost, labels ++ lostLabels, outputFile)
+    FileUtils.saveToFile(nonEmptyAccounts, nonEmptyLabels, outputFile)
   }
 }
