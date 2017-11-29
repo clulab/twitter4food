@@ -12,9 +12,9 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 import org.clulab.struct.Counter
 
-/** Implementation of the FeatureClassifier trait that contains the
+/** Implementation of the Regression trait that contains the
   * nitty-gritty of creating FeatureExtractors, adding datums,
-  * training and testing of datasets (with hyperparameter tuning).
+  * training and testing of regressionDatasets (with hyperparameter tuning).
   *
   * Specific subclassifiers would extend ClassifierImpl with fixed
   * configuration to tweak usage of unigrams, bigrams, topics, embeddings,
@@ -84,7 +84,7 @@ class RegressionImpl(
     customFeatures=customFeatures)
 
   /** subClassifier that does the actual training over {@link dataset} */
-  var subClassifier: Option[LiblinearClassifier[String, String]] = None
+  var subClassifier: Option[LiblinearRegression[String]] = None
 
   /** config file that fetches filepaths */
   val config: Config = ConfigFactory.load()
