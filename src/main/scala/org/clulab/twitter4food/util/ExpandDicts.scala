@@ -68,7 +68,7 @@ object ExpandDicts extends App {
   val nearestDist = for ((candWord, candVec) <- candidates.par) yield {
     val distances = for ((startWord, startVec) <- starting) yield startWord -> cosSim(candVec, startVec)
     pb.step()
-    candWord -> distances.minBy(_._2)
+    candWord -> distances.maxBy(_._2)
   }
   pb.stop()
 
