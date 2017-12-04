@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory
 
 import org.clulab.struct.Lexicon
 
-case class ExpandDictsConfig(dictName: String = "", expandBy: Int = 0)
+case class ExpandDictsConfig(dictName: String = "", expandBy: Int = 0, fromFreqRank: Int = 0)
 
 /**
   * Expand an existing dictionary by finding the _N_ nearest neighbors according to word2vec vectors.
@@ -18,6 +18,8 @@ object ExpandDicts extends App {
         c.copy(dictName = x)} text "dictionary to expand"
       arg[Int]("expandBy")action { (x, c) =>
         c.copy(expandBy = x)} text "how many words to add"
+      opt[Int]('k', "mostFrequentK")action { (x, c) =>
+        c.copy(fromFreqRank = x)} text "choose from the top k most frequent words"
     }
 
     val arguments = parser.parse(args, ExpandDictsConfig())
@@ -38,16 +40,21 @@ object ExpandDicts extends App {
   val config = ConfigFactory.load
   val arguments = parseArgs(args)
 
+  logger.info(s"finding ${arguments.expandBy} new words for ${arguments.dictName} from top ${arguments.fromFreqRank} words")
+
   val lastDictLoc = config.getString(s"classifiers.features.lexicons.${arguments.dictName}")
   val expandedDictLoc = config.getString(s"classifiers.features.expanded_lexicons.${arguments.dictName}")
 
   val dictionary = Lexicon.loadFrom[String](lastDictLoc)
 
-  val vectorLoc = config.getString("classifiers.features.vectors")
-  val lines = scala.io.Source.fromFile(vectorLoc).getLines
-  lines.next() // we don't need to know how big the vocabulary or vectors are
+  logger.info(s"${arguments.dictName} contains ${dictionary.size} words")
 
-  val vectorMap = (for (line <- lines) yield {
+  val vectorLoc = config.getString("classifiers.features.vectors")
+  val lines = scala.io.Source.fromFile(vectorLoc).getLines.toSeq.tail // skip first meta-info line
+
+  val freqCutoff = if(arguments.fromFreqRank > 0) arguments.fromFreqRank else lines.length
+
+  val vectorMap = (for (line <- lines.take(freqCutoff)) yield {
     val splits = line.split(" ")
     splits.head -> splits.tail.map(_.toDouble)
   }).toMap
@@ -58,7 +65,7 @@ object ExpandDicts extends App {
   pb.start()
   pb.maxHint(candidates.size)
 
-  val nearestDist = for ((candWord, candVec) <- candidates) yield {
+  val nearestDist = for ((candWord, candVec) <- candidates.par) yield {
     val distances = for ((startWord, startVec) <- starting) yield startWord -> cosSim(candVec, startVec)
     pb.step()
     candWord -> distances.minBy(_._2)
