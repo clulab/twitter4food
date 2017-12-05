@@ -673,7 +673,7 @@ class FeatureExtractor (
   // Loads the embeddings for creating embedding-related features
   private def loadVectors: Option[Map[String, Array[Double]]] = {
     logger.info("Loading word embeddings...")
-    val lines = scala.io.Source.fromFile(config.getString("classifiers.features.vectors")).getLines
+    val lines = scala.io.Source.fromFile(config.getString("classifiers.features.food_vectors")).getLines
     lines.next() // we don't need to know how big the vocabulary or vectors are
     val vectorMap = scala.collection.mutable.Map[String, Array[Double]]()
     while (lines.hasNext) {
