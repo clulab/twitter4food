@@ -49,7 +49,7 @@ object ExpandDicts extends App {
 
   logger.info(s"${arguments.dictName} contains ${dictionary.size} words")
 
-  val vectorLoc = config.getString("classifiers.features.vectors")
+  val vectorLoc = config.getString("classifiers.features.food_vectors")
   val lines = scala.io.Source.fromFile(vectorLoc).getLines.toSeq.tail // skip first meta-info line
 
   val freqCutoff = if(arguments.fromFreqRank > 0) arguments.fromFreqRank else lines.length
