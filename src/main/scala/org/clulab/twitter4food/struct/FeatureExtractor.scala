@@ -2,21 +2,21 @@ package org.clulab.twitter4food.struct
 
 import java.io.{BufferedReader, FileReader}
 import java.nio.file.{Files, Paths}
+import scala.collection.JavaConverters._
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+
+import cmu.arktweetnlp.Tagger._
+import com.typesafe.config.ConfigFactory
+import org.slf4j.LoggerFactory
 
 import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.struct.Normalization._
 import org.clulab.twitter4food.util.Utils._
-import cmu.arktweetnlp.Tagger._
-import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, GenderClassifier, HumanClassifier}
 import org.clulab.twitter4food.lda.LDA
 import org.clulab.twitter4food.util.FileUtils
-import org.slf4j.LoggerFactory
-
-import scala.collection.JavaConverters._
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 /**
   * Designed to be used in tandem with a classifier, with the features
@@ -940,7 +940,7 @@ object FeatureExtractor {
 
   // NOTE: all features that run over description and tweets should probably apply this for consistency.
   // If the feature calculator uses tokenized tweets, this should already be done, but stopwords aren't filtered
-  def filterTags(tagTok: Array[TaggedToken]): Array[String] = {
+  def filterTags(tagTok: Array[TaggedToken], lowerCase: Boolean = false): Array[String] = {
     val emptyString = "^[\\s\b]*$"
 
     val url = "^(http|:/)".r
@@ -952,6 +952,9 @@ object FeatureExtractor {
     val emoji = "\\ud83c\\udc00-\\ud83c\\udfff\\ud83d\\udc00-\\ud83d\\udfff\\u2600-\\u27ff"
     val hasEmoji = s"[^$emoji][$emoji]|[$emoji][^$emoji]".r
     val emojiSplit = s"(?=[$emoji])|(?<=[$emoji])"
+
+    val hasRepeatedChars = """(.)\1\1\1\1+""".r
+    val standardRepeats = "$1$1$1"
 
     val lumped = for (tt <- tagTok) yield {
       (tt.token, tt.tag) match {
@@ -965,10 +968,15 @@ object FeatureExtractor {
         case (otherRT, "~") => Nil
         case (site, tag) if url.findFirstIn(site).nonEmpty => Seq("<URL>")
         case (slashed, tag) if hasPunct.findFirstIn(slashed).nonEmpty =>
-          mergeRegex(slashed.split(punctSplit), s"[$punct]")
+          val toks = mergeRegex(slashed.split(punctSplit), s"[$punct]")
+          if (lowerCase) toks.map(_.toLowerCase) else toks
         case (emojis, tag) if hasEmoji.findFirstIn(emojis).nonEmpty =>
           mergeRegex(emojis.split(emojiSplit), s"[$emoji]")
-        case (token, tag) => Seq(token)
+        case (repeated, tag) if hasRepeatedChars.findFirstIn(repeated).nonEmpty =>
+          val fewerRepeats = hasRepeatedChars.replaceAllIn(repeated, standardRepeats)
+          if (lowerCase) Seq(fewerRepeats.toLowerCase) else Seq(fewerRepeats)
+        case (token, tag) =>
+          if (lowerCase) Seq(token.toLowerCase) else Seq(token)
       }
     }
     lumped.flatten

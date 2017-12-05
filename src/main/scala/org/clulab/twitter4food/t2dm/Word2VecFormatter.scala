@@ -48,7 +48,7 @@ object Word2VecFormatter extends App {
 
     val tokenized = tweets.par.map { tweet =>
       val tt = Tokenizer.annotate(tweet)
-      val ft = filterTags(tt).mkString(" ")
+      val ft = filterTags(tt, lowerCase = true).mkString(" ")
       pb.step()
       ft
     }.seq
