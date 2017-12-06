@@ -51,8 +51,8 @@ object ExpandDicts extends App {
 
   logger.info(s"finding ${arguments.expandBy} new words for ${arguments.dictName} from top ${arguments.fromFreqRank} words")
 
-  val lastDictLoc = config.getString(s"classifiers.features.lexicons.${arguments.dictName}")
-  val expandedDictLoc = config.getString(s"classifiers.features.expanded_lexicons.${arguments.dictName}")
+  val lastDictLoc = config.getString(s"lexicons.${arguments.dictName}")
+  val expandedDictLoc = config.getString(s"expanded_lexicons.${arguments.dictName}")
 
   val dictionary = Lexicon.loadFrom[String](lastDictLoc)
 
