@@ -101,7 +101,7 @@ object ExpandDicts extends App {
     println(f"$closestExisting\t$wordToAdd\t$dist%1.5f")
   }
 
-  wordsToAdd.foreach{ case (wta, _, _) => dictionary.add(wta) }
+  wordsToAdd.foreach{ case (_, wta, _) => dictionary.add(wta) }
 
   dictionary.saveTo(expandedDictLoc)
 }
