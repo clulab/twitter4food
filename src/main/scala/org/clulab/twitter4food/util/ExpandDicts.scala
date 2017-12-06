@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 import org.clulab.struct.Lexicon
 
 
-case class ExpandDictsConfig(dictName: String = "", expandBy: Int = 0, fromFreqRank: Int = 0)
+case class ExpandDictsConfig(dictName: String = "", expandBy: Int = 0, fromFreqRank: Int = 0, limitPerWord: Int = 10)
 
 /**
   * Expand an existing dictionary by finding the _N_ nearest neighbors according to word2vec vectors.
@@ -23,6 +23,8 @@ object ExpandDicts extends App {
         c.copy(expandBy = x)} text "how many words to add"
       opt[Int]('k', "mostFrequentK")action { (x, c) =>
         c.copy(fromFreqRank = x)} text "choose from the top k most frequent words"
+      opt[Int]('l', "limit")action { (x, c) =>
+        c.copy(limitPerWord = x)} text "an existing word can only expand to the l closest"
     }
 
     val arguments = parser.parse(args, ExpandDictsConfig())
@@ -72,17 +74,26 @@ object ExpandDicts extends App {
   pb.start()
   pb.maxHint(candidates.size)
 
-  val nearestDist = for ((candWord, candVec) <- candidates.par) yield {
-    val distances = for ((startWord, startVec) <- starting) yield startWord -> cosSim(candVec, startVec)
+  val nearestDist = for ((startWord, startVec) <- starting.par) yield {
+    val distances = for ((candWord, candVec) <- candidates) yield candWord -> cosSim(candVec, startVec)
     pb.step()
-    candWord -> distances.toSeq.sortBy(_._2).takeRight(1)
+    startWord -> distances.toSeq.sortBy(_._2).takeRight(arguments.limitPerWord)
   }
   pb.stop()
 
+  // flatten representation to ease sorting (existing word, candidate word, distance)
   val sortable = nearestDist.seq.flatMap{ case (source, targets) =>
     targets.map(target => (source, target._1, target._2))
   }
-  val wordsToAdd = sortable.toSeq.sortBy(_._3).takeRight(arguments.expandBy)
+
+  // we only want a candidate to appear once, even if it's close to more than one existing word
+  val oneCandInstance = sortable
+    .groupBy(_._2)
+    .map{ case (candidate, proposals) =>
+      proposals.maxBy(_._3)
+    }
+  
+  val wordsToAdd = oneCandInstance.toSeq.sortBy(_._3).takeRight(arguments.expandBy)
 
   println("\nwordToAdd\texisting\tdistance")
   println("=====================================")
