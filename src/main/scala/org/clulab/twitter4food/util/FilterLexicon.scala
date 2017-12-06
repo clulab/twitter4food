@@ -15,7 +15,7 @@ object FilterLexicon extends App {
     "edge", "empty", "fast", "fire", "fold", "gray", "handful", "hang", "high", "junk", "layer", "leaf", "lid", "main",
     "pulses", "reduce", "remove", "rest", "return", "rinse", "side", "skin", "soak", "stuff", "system", "tie", "trim",
     "wash", "pour", "toaster", "diet", "coat", "chew", "tender", "tart", "cheesecake", "heat", "ate", "brown", "dress",
-    "blood", "toss", "fries", "drink", "stock", "order", "crust")
+    "blood", "toss", "fries", "drink", "stock", "order", "crust", "brush", "cater", "dine", "jordan")
 
   removables.zipWithIndex.foreach { case (removable, j) =>
     val remove = edited(j).get(removable)
