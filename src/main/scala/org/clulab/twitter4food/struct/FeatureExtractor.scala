@@ -287,7 +287,10 @@ class FeatureExtractor (
     handleToFollowerAccount = Option(followers)
   }
 
-  val allDicts = if (dictOnly) Option(lexicons.get("Overweight").values.toSeq) else None
+  val allDicts = if (dictOnly) {
+    val label = config.getStringList(s"classifiers.${this.variable}.possibleLabels").asScala.head
+    Option(lexicons.get(label).values.toSeq)
+  } else None
 
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
@@ -460,6 +463,7 @@ class FeatureExtractor (
 
   /**
     * Returns a [[Counter]] of character/word n-grams based on user's name and handle
+    *
     * @param account the [[TwitterAccount]] under analysis
     */
   def name(account: TwitterAccount): Counter[String] = {
@@ -784,6 +788,7 @@ class FeatureExtractor (
 
   /**
     * Returns a [[Counter]] of unigrams based on the locations the user has visited.
+    *
     * @param id the current account's id
     * @return a [[Counter]] with location-based unigram features
     */
