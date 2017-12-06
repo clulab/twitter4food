@@ -37,11 +37,23 @@ class TwitterAccount (
   }
 
   /**
-    * Returns a merged [[TwitterAccount]] with all the tweets of both input accounts.
+    * Returns a merged [[TwitterAccount]] with all the tweets of both input accounts. Argument account's other info
+    * (e.g. handle) is discarded.
     */
   def merge(that: TwitterAccount): TwitterAccount = {
     assert(this.id == that.id, "They must be instantiations of the same account!")
-    this.copy(tweets = (this.tweets.toSet ++ that.tweets.toSet).toSeq.sortBy(_.createdAt))
+    this.copy(tweets = mergeTweets(this.tweets ++ that.tweets).sortBy(_.createdAt).reverse)
+  }
+
+  def mergeTweets(tweets: Seq[Tweet]): Seq[Tweet] = {
+    val groupedById = tweets.groupBy(_.id)
+    val merged = groupedById.map{
+      case (_, sameId) =>
+        sameId.reduce{
+          (a, b) => a.merge(b)
+        }
+    }
+    merged.toSeq.sortBy(_.createdAt)
   }
 
   /**
