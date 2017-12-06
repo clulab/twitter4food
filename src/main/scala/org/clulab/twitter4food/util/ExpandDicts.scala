@@ -1,9 +1,12 @@
 package org.clulab.twitter4food.util
 
+import java.nio.charset.CodingErrorAction
+import scala.io.{Source, Codec}
+
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
-
 import org.clulab.struct.Lexicon
+
 
 case class ExpandDictsConfig(dictName: String = "", expandBy: Int = 0, fromFreqRank: Int = 0)
 
@@ -36,6 +39,10 @@ object ExpandDicts extends App {
     dotProduct / magnitudeX * magnitudeY
   }
 
+  implicit val codec = Codec("UTF-8")
+  codec.onMalformedInput(CodingErrorAction.REPLACE)
+  codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+
   val logger = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.load
   val arguments = parseArgs(args)
@@ -50,7 +57,7 @@ object ExpandDicts extends App {
   logger.info(s"${arguments.dictName} contains ${dictionary.size} words")
 
   val vectorLoc = config.getString("classifiers.features.food_vectors")
-  val lines = scala.io.Source.fromFile(vectorLoc).getLines.toSeq.tail // skip first meta-info line
+  val lines = Source.fromFile(vectorLoc).getLines.toSeq.tail // skip first meta-info line
 
   val freqCutoff = if(arguments.fromFreqRank > 0) arguments.fromFreqRank else lines.length
 
@@ -68,19 +75,22 @@ object ExpandDicts extends App {
   val nearestDist = for ((candWord, candVec) <- candidates.par) yield {
     val distances = for ((startWord, startVec) <- starting) yield startWord -> cosSim(candVec, startVec)
     pb.step()
-    candWord -> distances.maxBy(_._2)
+    candWord -> distances.toSeq.sortBy(_._2).takeRight(1)
   }
   pb.stop()
 
-  val wordsToAdd = nearestDist.seq.toSeq.sortBy(_._2._2).take(arguments.expandBy)
+  val sortable = nearestDist.seq.flatMap{ case (source, targets) =>
+    targets.map(target => (source, target._1, target._2))
+  }
+  val wordsToAdd = sortable.toSeq.sortBy(_._3).takeRight(arguments.expandBy)
 
   println("\nwordToAdd\texisting\tdistance")
   println("=====================================")
-  wordsToAdd.foreach{ case(wordToAdd, (closestExisting, dist)) =>
+  wordsToAdd.foreach{ case(wordToAdd, closestExisting, dist) =>
     println(f"$wordToAdd\t$closestExisting\t$dist%1.5f")
   }
 
-  wordsToAdd.foreach{ case (wta, _) => dictionary.add(wta) }
+  wordsToAdd.foreach{ case (wta, _, _) => dictionary.add(wta) }
 
   dictionary.saveTo(expandedDictLoc)
 }
