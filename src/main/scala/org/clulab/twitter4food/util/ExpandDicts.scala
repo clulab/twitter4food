@@ -72,7 +72,7 @@ object ExpandDicts extends App {
 
   val pb = new me.tongfei.progressbar.ProgressBar("findingNearest", 100)
   pb.start()
-  pb.maxHint(candidates.size)
+  pb.maxHint(starting.size)
 
   val nearestDist = for ((startWord, startVec) <- starting.par) yield {
     val distances = for ((candWord, candVec) <- candidates) yield candWord -> cosSim(candVec, startVec)
@@ -92,13 +92,13 @@ object ExpandDicts extends App {
     .map{ case (candidate, proposals) =>
       proposals.maxBy(_._3)
     }
-  
+
   val wordsToAdd = oneCandInstance.toSeq.sortBy(_._3).takeRight(arguments.expandBy)
 
-  println("\nwordToAdd\texisting\tdistance")
+  println("\nexisting\twordToAdd\tdistance")
   println("=====================================")
-  wordsToAdd.foreach{ case(wordToAdd, closestExisting, dist) =>
-    println(f"$wordToAdd\t$closestExisting\t$dist%1.5f")
+  wordsToAdd.foreach{ case(closestExisting, wordToAdd, dist) =>
+    println(f"$closestExisting\t$wordToAdd\t$dist%1.5f")
   }
 
   wordsToAdd.foreach{ case (wta, _, _) => dictionary.add(wta) }
