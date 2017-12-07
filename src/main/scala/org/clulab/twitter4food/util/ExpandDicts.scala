@@ -75,7 +75,7 @@ object ExpandDicts extends App {
 
   val lowEnough = math.max(lines.length - arguments.highestFreq, 0)
   val highEnough = if(arguments.lowestFreq > 0)
-    math.max(arguments.lowestFreq - lowEnough, 0)
+    math.max(lines.length - arguments.highestFreq - arguments.lowestFreq, 0)
   else
     lowEnough
   val goldilocksFrequency = lines.takeRight(lowEnough).take(highEnough)
