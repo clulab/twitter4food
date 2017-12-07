@@ -71,14 +71,11 @@ object ExpandDicts extends App {
     case food if food.startsWith("food") => config.getString("classifiers.features.food_vectors")
     case other => config.getString("classifiers.features.generic_vectors")
   }
-  val lines = Source.fromFile(vectorLoc).getLines.toSeq.tail // skip first meta-info line
 
-  val lowEnough = math.max(lines.length - arguments.highestFreq, 0)
-  val highEnough = if(arguments.lowestFreq > 0)
-    math.max(lines.length - arguments.highestFreq - arguments.lowestFreq, 0)
-  else
-    lowEnough
-  val goldilocksFrequency = lines.takeRight(lowEnough).take(highEnough)
+  val goldilocksFrequency = Source.
+    fromFile(vectorLoc).
+    getLines.
+    slice(arguments.highestFreq + 1, arguments.lowestFreq + 1)
 
   val vectorMap = (for (line <- goldilocksFrequency) yield {
     val splits = line.split(" ")
