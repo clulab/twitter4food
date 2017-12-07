@@ -8,10 +8,16 @@ import org.slf4j.LoggerFactory
 import org.clulab.struct.Lexicon
 
 
-case class ExpandDictsConfig(dictName: String = "", expandBy: Int = 0, fromFreqRank: Int = 0, limitPerWord: Int = 10)
+case class ExpandDictsConfig(
+                              dictName: String = "",
+                              expandBy: Int = 0,
+                              highestFreq: Int = 0,
+                              lowestFreq: Int = 0,
+                              limitPerWord: Int = 10
+                            )
 
 /**
-  * Expand an existing dictionary by finding the _N_ nearest neighbors according to word2vec vectors.
+  * Expand an existing dictionary by finding the _n_ nearest neighbors according to word2vec vectors.
   */
 object ExpandDicts extends App {
 
@@ -21,10 +27,12 @@ object ExpandDicts extends App {
         c.copy(dictName = x)} text "dictionary to expand"
       arg[Int]("expandBy")action { (x, c) =>
         c.copy(expandBy = x)} text "how many words to add"
-      opt[Int]('k', "mostFrequentK")action { (x, c) =>
-        c.copy(fromFreqRank = x)} text "choose from the top k most frequent words"
-      opt[Int]('l', "limit")action { (x, c) =>
-        c.copy(limitPerWord = x)} text "an existing word can only expand to the l closest"
+      opt[Int]('h', "highestFreq")action { (x, c) =>
+        c.copy(highestFreq = x)} text "ignore the top h most frequent words"
+      opt[Int]('l', "lowestFreq")action { (x, c) =>
+        c.copy(lowestFreq = x)} text "ignore words less frequent than word l"
+      opt[Int]('n', "neighbors")action { (x, c) =>
+        c.copy(limitPerWord = x)} text "an existing word can only expand to the n closest"
     }
 
     val arguments = parser.parse(args, ExpandDictsConfig())
@@ -49,7 +57,8 @@ object ExpandDicts extends App {
   val config = ConfigFactory.load
   val arguments = parseArgs(args)
 
-  logger.info(s"finding ${arguments.expandBy} new words for ${arguments.dictName} from top ${arguments.fromFreqRank} words")
+  logger.info(s"finding ${arguments.expandBy} new words for ${arguments.dictName}")
+  logger.info(s"min freq rank: ${arguments.highestFreq}; max freq rank: ${arguments.lowestFreq}; total: ${arguments.lowestFreq - arguments.highestFreq}")
 
   val lastDictLoc = config.getString(s"lexicons.${arguments.dictName}")
   val expandedDictLoc = config.getString(s"expanded_lexicons.${arguments.dictName}")
@@ -58,12 +67,20 @@ object ExpandDicts extends App {
 
   logger.info(s"${arguments.dictName} contains ${dictionary.size} words")
 
-  val vectorLoc = config.getString("classifiers.features.food_vectors")
+  val vectorLoc = arguments.dictName match {
+    case food if food.startsWith("food") => config.getString("classifiers.features.food_vectors")
+    case other => config.getString("classifiers.features.generic_vectors")
+  }
   val lines = Source.fromFile(vectorLoc).getLines.toSeq.tail // skip first meta-info line
 
-  val freqCutoff = if(arguments.fromFreqRank > 0) arguments.fromFreqRank else lines.length
+  val lowEnough = math.max(lines.length - arguments.highestFreq, 0)
+  val highEnough = if(arguments.lowestFreq > 0)
+    math.max(arguments.lowestFreq - lowEnough, 0)
+  else
+    lowEnough
+  val goldilocksFrequency = lines.takeRight(lowEnough).take(highEnough)
 
-  val vectorMap = (for (line <- lines.take(freqCutoff)) yield {
+  val vectorMap = (for (line <- goldilocksFrequency) yield {
     val splits = line.split(" ")
     splits.head -> splits.tail.map(_.toDouble)
   }).toMap
