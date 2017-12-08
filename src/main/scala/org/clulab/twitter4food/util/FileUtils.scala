@@ -32,7 +32,7 @@ object FileUtils {
           writer.write(s"${user.lang}\t${normalizeText(user.url)}\t")
           writer.write(s"${normalizeText(user.location)}\n")
           writer.write(s"${normalizeText(user.description)}\n")
-          user.tweets.foreach(tweet => {
+          user.tweets.sorted.foreach(tweet => {
             writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.lang}\t${tweet.urls.mkString("|||")}\n")
             writer.write(s"${normalizeText(tweet.text)}\n")
           })

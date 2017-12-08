@@ -55,5 +55,8 @@ class Tweet (val text: String,
     */
   def isNormal: Boolean = !this.isAddressed && !this.isRetweet
 
-  def compare(that: Tweet): Int = this.createdAt.compare(that.createdAt)
+  /**
+    * Returns a comparison Int for sorting. Tweets are sorted newest to oldest.
+    */
+  def compare(that: Tweet): Int = - this.createdAt.compare(that.createdAt)
 }
