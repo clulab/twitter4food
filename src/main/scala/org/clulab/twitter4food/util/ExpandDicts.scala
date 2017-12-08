@@ -72,10 +72,17 @@ object ExpandDicts extends App {
     case other => config.getString("classifiers.features.generic_vectors")
   }
 
-  val goldilocksFrequency = Source.
-    fromFile(vectorLoc).
-    getLines.
-    slice(arguments.highestFreq + 1, arguments.lowestFreq + 1)
+  val goldilocksFrequency = if(arguments.lowestFreq == 0) {
+    Source
+      .fromFile(vectorLoc)
+      .getLines
+      .drop(arguments.highestFreq + 1) // + 1 because we are skipping first line, which is metadata
+  } else {
+    Source
+      .fromFile(vectorLoc)
+      .getLines
+      .slice(arguments.highestFreq + 1, arguments.lowestFreq + 1)
+  }
 
   val vectorMap = (for (line <- goldilocksFrequency) yield {
     val splits = line.split(" ")
