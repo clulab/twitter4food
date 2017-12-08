@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.struct
 
+import scala.math.Ordered.orderingToOrdered
+
 /**
   * Stores information about an individual tweet
   * User: mihais
@@ -10,7 +12,7 @@ class Tweet (val text: String,
              val lang: String,
              val createdAt: java.util.Date,
              val handle: String,
-             val urls: Seq[String] = Nil) { // TODO: Add image locations
+             val urls: Seq[String] = Nil) extends Ordered[Tweet]{ // TODO: Add image locations
 
   override def toString = s"$handle: $text [$createdAt]"
 
@@ -52,4 +54,6 @@ class Tweet (val text: String,
     * Returns true if the tweet is "normal", i.e. not a retweet or addressed to other accounts
     */
   def isNormal: Boolean = !this.isAddressed && !this.isRetweet
+
+  def compare(that: Tweet): Int = this.createdAt.compare(that.createdAt)
 }
