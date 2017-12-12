@@ -230,8 +230,10 @@ object DiabetesClassifier {
 
     println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
     evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
-        s"\t$macroAvg\t$microAvg")
+      val f1 = fMeasure(precision, recall, 1)
+      val f1r5 = fMeasure(precision, recall, .2)
+      println(f"$portion\t$numAccounts\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
+        f"$f1r5%1.5f\t$macroAvg%1.5f\t$microAvg%1.5f")
     }
   }
 }
