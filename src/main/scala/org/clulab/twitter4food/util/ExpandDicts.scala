@@ -97,17 +97,24 @@ object ExpandDicts extends App {
   pb.start()
   pb.maxHint(starting.size * candidates.size)
 
+//  val distances = for {
+//    (startWord, startVec) <- starting.par
+//    (candWord, candVec) <- candidates
+//  } yield {
+//    pb.step()
+//    (candWord, startWord, cosSim(candVec, startVec))
+//  }
   val distances = for {
     (startWord, startVec) <- starting.par
-    (candWord, candVec) <- candidates
   } yield {
+    val allDistances = for ((candWord, candVec) <- candidates) yield (candWord, startWord, cosSim(candVec, startVec))
     pb.step()
-    (candWord, startWord, cosSim(candVec, startVec))
+    allDistances.toSeq.sortBy(_._3).takeRight(arguments.limitPerWord)
   }
   pb.stop()
 
-
   val softmaxes = distances
+    .flatten
     .toSeq
     .seq
     .groupBy(_._1)
