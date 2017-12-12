@@ -49,6 +49,8 @@ object ExpandDicts extends App {
     dotProduct / (magnitudeX * magnitudeY)
   }
 
+  def softmax(x: Seq[Double]): Double = 1 - x.map(1.0 - _).product
+
   implicit val codec = Codec("UTF-8")
   codec.onMalformedInput(CodingErrorAction.REPLACE)
   codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
@@ -104,22 +106,17 @@ object ExpandDicts extends App {
   }
   pb.stop()
 
-  /*
-  val
 
-  // flatten representation to ease sorting (existing word, candidate word, distance)
-  val sortable = nearestDist.seq.flatMap{ case (source, targets) =>
-    targets.map(target => (source, target._1, target._2))
-  }
-
-  // we only want a candidate to appear once, even if it's close to more than one existing word
-  val oneCandInstance = sortable
-    .groupBy(_._2)
-    .map{ case (candidate, proposals) =>
-      proposals.maxBy(_._3)
+  val softmaxes = distances
+    .toSeq
+    .seq
+    .groupBy(_._1)
+    .par
+    .map { case (candWord, dists) =>
+      (dists.maxBy(_._3)._2, candWord, softmax(dists.map(_._3)))
     }
 
-  val wordsToAdd = oneCandInstance.toSeq.sortBy(_._3).takeRight(arguments.expandBy)
+  val wordsToAdd = softmaxes.toSeq.seq.sortBy(_._3).takeRight(arguments.expandBy)
 
   println("\nexisting\twordToAdd\tdistance")
   println("=====================================")
@@ -130,5 +127,4 @@ object ExpandDicts extends App {
   wordsToAdd.foreach{ case (_, wta, _) => dictionary.add(wta) }
 
   dictionary.saveTo(expandedDictLoc)
-  */
 }
