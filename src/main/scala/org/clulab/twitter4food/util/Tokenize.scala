@@ -154,10 +154,10 @@ object Tokenize {
   def main(args: Array[String]): Unit = {
     def parseArgs(args: Array[String]): TokenizeConfig = {
       val parser = new scopt.OptionParser[TokenizeConfig]("lda") {
-        opt[String]('f', "inFile") action { (x, c) =>
+        arg[String]("inFile") action { (x, c) =>
           c.copy(inFile = x)
         } text "which file to tokenize"
-        opt[String]('o', "outFile") action { (x, c) =>
+        arg[String]("outFile") action { (x, c) =>
           c.copy(outFile = Option(x))
         } text "location for result"
         opt[Unit]('t', "isThreeLine") action { (x, c) =>
