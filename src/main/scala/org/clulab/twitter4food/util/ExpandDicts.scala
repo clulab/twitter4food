@@ -46,7 +46,7 @@ object ExpandDicts extends App {
     val dotProduct = x.zip(y).map{ case(a, b) => a * b }.sum
     val magnitudeX = math.sqrt(x.map(i => i * i).sum)
     val magnitudeY = math.sqrt(y.map(i => i * i).sum)
-    dotProduct / magnitudeX * magnitudeY
+    dotProduct / (magnitudeX * magnitudeY)
   }
 
   implicit val codec = Codec("UTF-8")
@@ -91,16 +91,21 @@ object ExpandDicts extends App {
 
   val (starting, candidates) = vectorMap.partition{ case (k, v) => dictionary.contains(k) }
 
-  val pb = new me.tongfei.progressbar.ProgressBar("findingNearest", 100)
+  val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
-  pb.maxHint(starting.size)
+  pb.maxHint(starting.size * candidates.size)
 
-  val nearestDist = for ((startWord, startVec) <- starting.par) yield {
-    val distances = for ((candWord, candVec) <- candidates) yield candWord -> cosSim(candVec, startVec)
+  val distances = for {
+    (startWord, startVec) <- starting.par
+    (candWord, candVec) <- candidates
+  } yield {
     pb.step()
-    startWord -> distances.toSeq.sortBy(_._2).takeRight(arguments.limitPerWord)
+    (candWord, startWord, cosSim(candVec, startVec))
   }
   pb.stop()
+
+  /*
+  val
 
   // flatten representation to ease sorting (existing word, candidate word, distance)
   val sortable = nearestDist.seq.flatMap{ case (source, targets) =>
@@ -125,4 +130,5 @@ object ExpandDicts extends App {
   wordsToAdd.foreach{ case (_, wta, _) => dictionary.add(wta) }
 
   dictionary.saveTo(expandedDictLoc)
+  */
 }
