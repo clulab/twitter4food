@@ -46,8 +46,10 @@ object ExpandDicts extends App {
     val dotProduct = x.zip(y).map{ case(a, b) => a * b }.sum
     val magnitudeX = math.sqrt(x.map(i => i * i).sum)
     val magnitudeY = math.sqrt(y.map(i => i * i).sum)
-    dotProduct / magnitudeX * magnitudeY
+    dotProduct / (magnitudeX * magnitudeY)
   }
+
+  def softmax(x: Seq[Double]): Double = 1 - x.map(1.0 - _).product
 
   implicit val codec = Codec("UTF-8")
   codec.onMalformedInput(CodingErrorAction.REPLACE)
@@ -91,30 +93,30 @@ object ExpandDicts extends App {
 
   val (starting, candidates) = vectorMap.partition{ case (k, v) => dictionary.contains(k) }
 
-  val pb = new me.tongfei.progressbar.ProgressBar("findingNearest", 100)
+  val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
   pb.maxHint(starting.size)
 
-  val nearestDist = for ((startWord, startVec) <- starting.par) yield {
-    val distances = for ((candWord, candVec) <- candidates) yield candWord -> cosSim(candVec, startVec)
+  val distances = for {
+    (startWord, startVec) <- starting.par
+  } yield {
+    val allDistances = for ((candWord, candVec) <- candidates) yield (candWord, startWord, cosSim(candVec, startVec))
     pb.step()
-    startWord -> distances.toSeq.sortBy(_._2).takeRight(arguments.limitPerWord)
+    allDistances.toSeq.sortBy(_._3).takeRight(arguments.limitPerWord)
   }
   pb.stop()
 
-  // flatten representation to ease sorting (existing word, candidate word, distance)
-  val sortable = nearestDist.seq.flatMap{ case (source, targets) =>
-    targets.map(target => (source, target._1, target._2))
-  }
-
-  // we only want a candidate to appear once, even if it's close to more than one existing word
-  val oneCandInstance = sortable
-    .groupBy(_._2)
-    .map{ case (candidate, proposals) =>
-      proposals.maxBy(_._3)
+  val softmaxes = distances
+    .flatten
+    .toSeq
+    .seq
+    .groupBy(_._1)
+    .par
+    .map { case (candWord, dists) =>
+      (dists.maxBy(_._3)._2, candWord, softmax(dists.map(_._3)))
     }
 
-  val wordsToAdd = oneCandInstance.toSeq.sortBy(_._3).takeRight(arguments.expandBy)
+  val wordsToAdd = softmaxes.toSeq.seq.sortBy(_._3).takeRight(arguments.expandBy)
 
   println("\nexisting\twordToAdd\tdistance")
   println("=====================================")
