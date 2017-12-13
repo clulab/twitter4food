@@ -446,8 +446,10 @@ class FeatureExtractor (
 
     val denoised = if (denoise) tweets.filterNot(isNoise) else tweets
 
+    val relevantDesc = if (dictOnly) dictFilter(description) else description // only relevant words if 'dictOnly'
+    val filteredDesc = if (n == 1) filterStopWords(relevantDesc) else relevantDesc // remove stopwords
     // special prefix for description tokens since they summarize an account more than tweets
-    setCounts(tokenNGrams(n, description, "desc"), counter)
+    setCounts(tokenNGrams(n, filteredDesc, "desc"), counter) // always set n-gram counts
 
     // n-gram for tweets
     denoised.foreach{ tweet =>
