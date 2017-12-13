@@ -229,9 +229,9 @@ object OverweightClassifier {
       }
 
       val (gold, pred) = predictions.unzip
-      val baseline = Array.fill[String](gold.length)("risk")
+      val baseline = Array.fill[String](gold.length)("Overweight")
 
-      val sig = BootstrapSignificance.bss(gold, baseline, pred, "risk")
+      val sig = BootstrapSignificance.bss(gold, baseline, pred, "Overweight")
 
       (portion, predictions.length, precision, recall, macroAvg, microAvg, sig)
     }
