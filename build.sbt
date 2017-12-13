@@ -10,10 +10,6 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-  "org.clulab" %% "processors" % "6.2.0",
-  "org.clulab" %% "processors" % "6.2.0" classifier "main",
-  "org.clulab" %% "processors" % "6.2.0" classifier "modelsmain",
   "ch.qos.logback" % "logback-classic" % "1.1.7",
   "com.typesafe" % "config" % "1.2.1",
   "org.json" % "json" % "latest.integration",
@@ -24,15 +20,17 @@ libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-analyzers-common" % "4.2.1",
   "org.apache.lucene" % "lucene-queryparser" % "4.2.1",
   "org.apache.lucene" % "lucene-highlighter" % "4.2.1",
-  "jp.sf.amateras.solr.scala" %% "solr-scala-client" % "latest.integration",
   "cc.mallet" % "mallet" % "2.0.8",
   "net.sf.trove4j" % "trove4j" % "2.0.2",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
-  "com.github.scopt" %% "scopt" % "3.4.0",
   "me.tongfei" % "progressbar" % "0.4.0",
-  "com.google.maps" % "google-maps-services" % "0.1.20"
+  "com.google.maps" % "google-maps-services" % "0.1.20",
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test",
+  "org.clulab" %% "processors-main" % "6.2.0",
+  "jp.sf.amateras.solr.scala" %% "solr-scala-client" % "0.0.12",
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
+  "com.github.scopt" %% "scopt" % "3.4.0"
 )
 
 dependencyOverrides += "net.sf.trove4j" % "trove4j" % "2.0.2"
 
-//updateOptions := updateOptions.value.withGigahorse(false)
+updateOptions := updateOptions.value.withGigahorse(false)
