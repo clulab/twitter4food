@@ -6,7 +6,7 @@ import java.nio.file.{Files, Paths}
 import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
-import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
+import org.clulab.twitter4food.util.{BootstrapSignificance, Eval, FileUtils, Utils}
 
 /**
   * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
@@ -228,15 +228,20 @@ object OverweightClassifier {
         predWriter.close()
       }
 
-      (portion, predictions.length, precision, recall, macroAvg, microAvg)
+      val (gold, pred) = predictions.unzip
+      val baseline = Array.fill[String](gold.length)("risk")
+
+      val sig = BootstrapSignificance.bss(gold, baseline, pred, "risk")
+
+      (portion, predictions.length, precision, recall, macroAvg, microAvg, sig)
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
+    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro\tp-val")
+    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg, sig) =>
       val f1 = fMeasure(precision, recall, 1)
       val f1r5 = fMeasure(precision, recall, .2)
       println(f"$portion\t$numAccounts\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
-        f"$f1r5%1.5f\t$macroAvg%1.5f\t$microAvg%1.5f")
+        f"$f1r5%1.5f\t$macroAvg%1.5f\t$microAvg%1.5f\t$sig%1.6f")
     }
   }
 }
