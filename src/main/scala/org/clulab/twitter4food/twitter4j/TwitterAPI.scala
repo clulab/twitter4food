@@ -118,9 +118,13 @@ class TwitterAPI(keyset: Int) {
           sleep("getUserTimeline", isAppOnly)
 
           while(tweets.nonEmpty) {
-            tweetBuffer ++= tweets.map(x => new Tweet(option(x.getText), x.getId,
-                                       option(x.getLang), x.getCreatedAt,
-                                       sanitizeHandle(user.getScreenName)))
+            tweetBuffer ++= tweets.map{ tweet =>
+              val urls: Seq[String] = Option(tweet.getURLEntities)
+                .getOrElse(Array())
+                .flatMap(url => Option(url.getExpandedURL))
+              new Tweet(option(tweet.getText), tweet.getId, option(tweet.getLang), tweet.getCreatedAt,
+                sanitizeHandle(user.getScreenName), urls)
+            }
             val min = minId(tweets)
 
             page.setMaxId(min-1)

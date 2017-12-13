@@ -9,16 +9,33 @@ class Tweet (val text: String,
              val id: Long,
              val lang: String,
              val createdAt: java.util.Date,
-             val handle: String) {
+             val handle: String,
+             val urls: Seq[String] = Nil) { // TODO: Add image locations
+
   override def toString = s"$handle: $text [$createdAt]"
 
+  /**
+    * Returns a copy of the tweet, with optionally altered arguments
+    */
   def copy(
-    text:String = this.text,
-    id:Long = this.id,
-    lang:String = this.lang,
-    createdAt:java.util.Date = this.createdAt,
-    handle:String = this.handle): Tweet = {
+    text: String = this.text,
+    id: Long = this.id,
+    lang: String = this.lang,
+    createdAt: java.util.Date = this.createdAt,
+    handle: String = this.handle,
+    urls: Seq[String] = this.urls): Tweet = {
     new Tweet(text, id, lang, createdAt, handle)
+  }
+
+  /**
+    * Returns a new [[Tweet]] with the images of both copies of the tweet. The argument tweet's other info is discarded.
+    */
+  def merge(that: Tweet): Tweet = {
+    assert(this.id == that.id, "Merged tweets must have the same ID!")
+    val allUrls = (this.urls ++ that.urls).distinct
+    // val allImages = (this.images ++ that.images).distinct
+    // this.copy(urls = allUrls, images = allImages)
+    this.copy(urls = allUrls)
   }
 
   /**
