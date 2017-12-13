@@ -95,15 +95,8 @@ object ExpandDicts extends App {
 
   val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
-  pb.maxHint(starting.size * candidates.size)
+  pb.maxHint(starting.size)
 
-//  val distances = for {
-//    (startWord, startVec) <- starting.par
-//    (candWord, candVec) <- candidates
-//  } yield {
-//    pb.step()
-//    (candWord, startWord, cosSim(candVec, startVec))
-//  }
   val distances = for {
     (startWord, startVec) <- starting.par
   } yield {
