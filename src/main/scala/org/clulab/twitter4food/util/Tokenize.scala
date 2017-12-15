@@ -11,15 +11,17 @@ import scala.collection.mutable.ArrayBuffer
 
 object Tokenize {
 
-  case class Config(inFile: String = "", isThreeLine: Boolean = false)
+  case class TokenizeConfig(inFile: String = "", outFile: Option[String] = None, isThreeLine: Boolean = false)
 
-  def tokenizeTwoLines(filename: String): Unit = {
+  def tokenizeTwoLines(filename: String, outFile: Option[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
 
-    val tokenizedPath = FilenameUtils.getPrefix(filename) +
-      FilenameUtils.getPathNoEndSeparator(filename) +
-      "_tokenized/"
-    val tokenizedFN = tokenizedPath + FilenameUtils.getName(filename)
+    val tokenizedFN = if (outFile.isEmpty) {
+      val tokenizedPath = FilenameUtils.getPrefix(filename) +
+        FilenameUtils.getPathNoEndSeparator(filename) +
+        "_tokenized/"
+      tokenizedPath + FilenameUtils.getName(filename)
+    } else outFile.get
 
     // check if untokenized file is older for appropriate warning
     val untokFile = new File(filename)
@@ -76,13 +78,15 @@ object Tokenize {
     FileUtils.saveToFile(tokenizedTweets, labels, tokenizedFN, append = false)
   }
 
-  def tokenizeThreeLines(filename: String): Unit = {
+  def tokenizeThreeLines(filename: String, outFile: Option[String]): Unit = {
     val logger = LoggerFactory.getLogger(this.getClass)
 
-    val tokenizedPath = FilenameUtils.getPrefix(filename) +
-      FilenameUtils.getPathNoEndSeparator(filename) +
-      "_tokenized/"
-    val tokenizedFN = tokenizedPath + FilenameUtils.getName(filename)
+    val tokenizedFN = if (outFile.isEmpty) {
+      val tokenizedPath = FilenameUtils.getPrefix(filename) +
+        FilenameUtils.getPathNoEndSeparator(filename) +
+        "_tokenized/"
+      tokenizedPath + FilenameUtils.getName(filename)
+    } else outFile.get
 
     // check if untokenized file is older for appropriate warning
     val untokFile = new File(filename)
@@ -148,17 +152,20 @@ object Tokenize {
   }
 
   def main(args: Array[String]): Unit = {
-    def parseArgs(args: Array[String]): Config = {
-      val parser = new scopt.OptionParser[Config]("lda") {
-        opt[String]('f', "inFile") action { (x, c) =>
+    def parseArgs(args: Array[String]): TokenizeConfig = {
+      val parser = new scopt.OptionParser[TokenizeConfig]("lda") {
+        arg[String]("inFile") action { (x, c) =>
           c.copy(inFile = x)
         } text "which file to tokenize"
+        arg[String]("outFile") action { (x, c) =>
+          c.copy(outFile = Option(x))
+        } text "location for result"
         opt[Unit]('t', "isThreeLine") action { (x, c) =>
           c.copy(isThreeLine = true)
         } text ""
         help("help") text "prints this usage text"
       }
-      parser.parse(args, Config()).get
+      parser.parse(args, TokenizeConfig()).get
     }
 
     val params = parseArgs(args)
@@ -166,6 +173,9 @@ object Tokenize {
       throw new RuntimeException("File to be tokenized must be specified using -f")
     }
 
-    if (params.isThreeLine) tokenizeThreeLines(params.inFile) else tokenizeTwoLines(params.inFile)
+    if (params.isThreeLine)
+      tokenizeThreeLines(params.inFile, params.outFile)
+    else
+      tokenizeTwoLines(params.inFile, params.outFile)
   }
 }

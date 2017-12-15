@@ -544,15 +544,35 @@ class ClassifierImpl(
   /**
     * Returns a [[Seq]] of [[TrainTestFold]]s given unique ids and a map of what partition they belong in.
     */
-  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainTestFold] = {
-    val numPartitions = partitions.values.max
-    val allIndices = ids.indices.toSet
-    val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
+  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int], portion: Double = 1.0): Seq[TrainTestFold] = {
+    // make our map from ID to partition into a map from partition to sequence of IDs
+    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> Random.shuffle(ids.unzip._1) }
+
+    // reduce the size of each partition (at random) to portion size
+    val trainPart = for {
+      (grp, ids) <- partToId
+      sampled = ids.take((portion * ids.length).round.toInt)
+      s <- sampled
+    } yield s -> grp
+
+    // test folds will contain all indices so that evaluation is always the same
+    val teix = ids.zipWithIndex.filter{ case (id, ix) => partitions.contains(id) }
+    val idxToTest = for ((id, idx) <- teix) yield {
       idx -> partitions(id)
     }
-    val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+    val testFolds = idxToTest.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+
+    // train folds will contain only a portion of their originals
+    val trix = ids.zipWithIndex.filter{ case (id, ix) => trainPart.contains(id) }
+    val idxToTrain = for ((id, idx) <- trix) yield {
+      idx -> partitions(id)
+    }
+    val trainIndices = ids.indices.filter(i => trainPart.keys.toSeq.contains(ids(i))).toSet
+    val trainFolds = idxToTrain.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+
+    val numPartitions = partitions.values.max + 1 // 0 indexed
     for (p <- 0 until numPartitions) yield {
-      TrainTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p)).toSeq)
+      TrainTestFold(testFolds(p).toSeq, (trainIndices -- trainFolds(p)).toSeq)
     }
   }
 
@@ -570,7 +590,7 @@ class ClassifierImpl(
     val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
     val test = foldToIndices(lastPartition) // the test partition will be the same in all cases
     for (p <- 0 until lastPartition) yield {
-      TrainDevTestFold(foldToIndices(p).toSeq, (allIndices -- foldToIndices(p) -- test).toSeq, test.toSeq)
+      TrainDevTestFold(test.toSeq, foldToIndices(p).toSeq, (allIndices -- foldToIndices(p) -- test).toSeq)
     }
   }
 
@@ -672,29 +692,34 @@ class ClassifierImpl(
     * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
     * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
     */
-  def overweightCV(
+  def binaryCV(
     accounts: Seq[TwitterAccount],
     labels: Seq[String],
     partitions: Map[Long, Int],
-    portion: Double = 1.0, // This doesn't do anything yet
-    followers: Option[Map[String, Seq[TwitterAccount]]],
-    followees: Option[Map[String, Seq[String]]],
+    portion: Double = 1.0,
+    followers: Option[Map[String, Seq[TwitterAccount]]] = None,
+    followees: Option[Map[String, Seq[String]]] = None,
     classifierFactory: () => LiblinearClassifier[String, String],
+    labelSet: Map[String, String],
     percentTopToConsider: Double = 1.0
   ): (Seq[(String, String)],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
     Seq[(String, Map[String, Seq[(String, Double)]])]) = {
 
+    assert(accounts.length == labels.length, "Number of accounts and labels must be equal")
+
+    // for printing out feature weights (including for specific account classifications)
     val numFeatures = 30
     val numAccts = 20
 
     // Important: this dataset is sorted by id
+    val ids = partitions.keys.toSeq.sorted
     val dataset = constructDataset(accounts, labels, followers, followees)
-    val ids = accounts.map(_.id).sorted
-    val folds = foldsFromIds(ids, partitions)
+    val folds = foldsFromIds(ids, partitions, portion)
 
     val results = for (fold <- folds) yield {
+      logger.debug(s"train:${fold.train.length}; test:${fold.test.length}; overlap:${fold.train.toSet.intersect(fold.test.toSet).size}")
       if(logger.isDebugEnabled) {
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
@@ -739,21 +764,21 @@ class ClassifierImpl(
       p <- results(i)._2
     } yield p -> i).toMap
 
-    val owScale = predictions
+    val posScale = predictions
       .flatten
-      .filter(acct => acct._2 != "Overweight" && acct._3 == "Overweight") // only false positives
-      .sortBy(_._5.getCount("Overweight"))
+      .filter(acct => acct._2 != labelSet("pos") && acct._3 == labelSet("pos")) // only false positives
+      .sortBy(_._5.getCount(labelSet("pos")))
       .reverse
       .take(numAccts)
-    val noScale = predictions
+    val negScale = predictions
       .flatten
-      .filter(acct => acct._2 == "Overweight" && acct._3 != "Overweight") // only false negatives
-      .sortBy(_._5.getCount("Not overweight"))
+      .filter(acct => acct._2 == labelSet("pos") && acct._3 != labelSet("pos")) // only false negatives
+      .sortBy(_._5.getCount(labelSet("neg")))
       .reverse
       .take(numAccts)
 
-    val falsePos = owScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-    val falseNeg = noScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+    val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+    val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
 
     (evalInput, topWeights, falsePos, falseNeg)
   }
@@ -770,6 +795,7 @@ class ClassifierImpl(
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
     classifierFactory: () => LiblinearClassifier[String, String],
+    labelSet: Map[String, String],
     evalMetric: Iterable[(String, String)] => Double
   ): Seq[(String, String)] = {
 
@@ -805,7 +831,7 @@ class ClassifierImpl(
     val scoreBoard = scala.collection.mutable.Map[String, Double]()
     results.foreach{ case (features, preds) =>
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(preds)
-      val f1 = evalMeasures("Overweight").F
+      val f1 = evalMeasures(labelSet("pos")).F
       features.foreach(f => scoreBoard(f) = scoreBoard.getOrElse(f,0.0) + f1)
     }
     scoreBoard.toMap.foreach{ case (feature, f1) => logger.info(f"$feature: $f1%1.3f") }

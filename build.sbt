@@ -33,3 +33,5 @@ libraryDependencies ++= Seq(
 )
 
 dependencyOverrides += "net.sf.trove4j" % "trove4j" % "2.0.2"
+
+updateOptions := updateOptions.value.withGigahorse(false)

@@ -6,15 +6,16 @@ import java.nio.file.{Files, Paths}
 import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.ClassifierImpl
+import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{BootstrapSignificance, Eval, FileUtils, Utils}
 
 /**
-  * A classifier for classifying a TwitterAccount as "Overweight" or "Not overweight".
+  * A classifier for classifying a TwitterAccount as at "risk" of developing diabetes or "not".
   *
   * @author terron
   * @author Dane Bell
   */
-class OverweightClassifier(
+class DiabetesClassifier(
   useUnigrams: Boolean = false,
   useBigrams: Boolean = false,
   useName: Boolean = false,
@@ -53,8 +54,8 @@ class OverweightClassifier(
     useTimeDate=useTimeDate,
     useFoodPerc=useFoodPerc,
     useCaptions=useCaptions,
-    useFollowers=useFollowers,
-    useFollowees=useFollowees,
+    useFollowers=false,
+    useFollowees=false,
     useRT=useRT,
     useGender=useGender,
     useAge=useAge,
@@ -64,11 +65,11 @@ class OverweightClassifier(
     denoise=denoise,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
-    variable = "overweight") {
-  val labels = Set("Overweight", "Not overweight")
+    variable = "diabetes") {
+  val labels = Set("risk", "not")
 }
 
-object OverweightClassifier {
+object DiabetesClassifier {
   import ClassifierImpl._
 
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -98,59 +99,55 @@ object OverweightClassifier {
     )
     val default = allFeatures.forall(!_) // true if all features are off
 
-    val dataset = if (params.useDiabetesData) "ow2" else "overweight"
-
     val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
     val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
 
-    val resultsDir = config.getString(s"classifiers.$dataset.results")
-    if (!Files.exists(Paths.get(resultsDir))) {
-      if (new File(resultsDir).mkdir()) logger.info(s"Created output directory $resultsDir")
-      else logger.info(s"ERROR: failed to create output directory $resultsDir")
-    }
-    val outputDir = resultsDir + "/" + fileExt
+    val outputDir = config.getString("classifier") + "/diabetes/results/" + fileExt
     if (!Files.exists(Paths.get(outputDir))) {
       if (new File(outputDir).mkdir()) logger.info(s"Created output directory $outputDir")
       else logger.info(s"ERROR: failed to create output directory $outputDir")
     }
 
-    val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
+    val modelFile = s"${config.getString("diabetes")}/model/$fileExt.dat"
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to loadTwitterAccounts)
 
     val partitionFile = if (params.usProps)
-      config.getString(s"classifiers.$dataset.usFolds")
+      config.getString("classifiers.diabetes.usFolds")
     else
-      config.getString(s"classifiers.$dataset.folds")
+      config.getString("classifiers.diabetes.folds")
 
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
     }.toMap
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.$dataset.data"))
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.diabetes.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
       .filter{ case (acct, lbl) => partitions.contains(acct.id)}
 
-    val followers = if(params.useFollowers) {
-      logger.info("Loading follower accounts...")
-      Option(ClassifierImpl.loadFollowers(labeledAccts.map(_._1)))
-    } else None
+    val followers: Option[Map[String, Seq[TwitterAccount]]] = None
+    val followees: Option[Map[String, Seq[String]]] = None
 
-    val followees = if(params.useFollowees) {
-      logger.info("Loading followee accounts...")
-      Option(ClassifierImpl.loadFollowees(labeledAccts.map(_._1), dataset))
-    } else None
+//    val followers = if(params.useFollowers) {
+//      logger.info("Loading follower accounts...")
+//      Option(ClassifierImpl.loadFollowers(labeledAccts.map(_._1)))
+//    } else None
+//
+//    val followees = if(params.useFollowees) {
+//      logger.info("Loading followee accounts...")
+//      Option(ClassifierImpl.loadFollowees(labeledAccts.map(_._1), "diabetes"))
+//    } else None
 
     val evals = for {
       portion <- portions
     } yield {
       val (accts, lbls) = labeledAccts.unzip
 
-      val oc = new OverweightClassifier(
+      val dc = new DiabetesClassifier(
         useUnigrams = default || params.useUnigrams,
         useBigrams = params.useBigrams,
         useName = params.useName,
@@ -176,11 +173,11 @@ object OverweightClassifier {
 
       logger.info("Training classifier...")
 
-      val labelSet = Map("pos" -> "Overweight", "neg" -> "Not overweight")
-      val highConfPercent = config.getDouble(s"classifiers.$dataset.highConfPercent")
+      val labelSet = Map("pos" -> "risk", "neg" -> "not")
+      val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
       val (predictions, avgWeights, falsePos, falseNeg) =
-        oc.binaryCV(
+        dc.binaryCV(
           accts,
           lbls,
           partitions,
@@ -195,8 +192,8 @@ object OverweightClassifier {
       // Print results
       val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
 
-      val evalMetric = if (evalMeasures.keySet contains "Overweight") {
-        evalMeasures("Overweight")
+      val evalMetric = if (evalMeasures.keySet contains "risk") {
+        evalMeasures("risk")
       } else {
         logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
         evalMeasures.head._2
@@ -229,9 +226,9 @@ object OverweightClassifier {
       }
 
       val (gold, pred) = predictions.unzip
-      val baseline = Array.fill[String](gold.length)("Overweight")
+      val baseline = Array.fill[String](gold.length)("risk")
 
-      val sig = BootstrapSignificance.bss(gold, baseline, pred, "Overweight")
+      val sig = BootstrapSignificance.bss(gold, baseline, pred, "risk")
 
       (portion, predictions.length, precision, recall, macroAvg, microAvg, sig)
     }

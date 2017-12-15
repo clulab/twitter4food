@@ -42,7 +42,8 @@ object Utils {
     fpnAnalysis: Boolean = false,
     usProps: Boolean = false,
     runOnTest: Boolean = false,
-    learningCurve: Boolean = false
+    learningCurve: Boolean = false,
+    useDiabetesData: Boolean = false
   )
 
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -147,7 +148,9 @@ object Utils {
       opt[Unit]("test") action { (x, c) =>
         c.copy(runOnTest = true)} text "run on test dataset (default: dev dataset)"
       opt[Unit]("learningCurve") action { (x, c) =>
-        c.copy(learningCurve = true)} text "analyze performance "
+        c.copy(learningCurve = true)} text "analyze performance"
+      opt[Unit]('z', "useDiabetes") action { (x, c) =>
+        c.copy(useDiabetesData = true)} text "use Diabetes dataset (for overweight classifier)"
     }
 
     val opts = parser.parse(args, Config())
@@ -288,5 +291,5 @@ object Utils {
 
   def dehashtag(wd: String): String = wd.replaceFirst("#", "")
 
-  def sanitizeHandle(h: String) = h.replaceFirst("@", "")
+  def sanitizeHandle(h: String) = h.replaceFirst("@", "").toLowerCase()
 }

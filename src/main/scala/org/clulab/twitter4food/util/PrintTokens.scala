@@ -11,7 +11,6 @@ object PrintTokens {
 
   val logger = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.load
-  val base = config.getString("classifiers.overweight.rawTokens")
   val sep = FileSystems.getDefault.getSeparator
 
   case class PrintTokensConfig(variable: String = "overweight", domainAdaptation: Boolean = false)
@@ -74,14 +73,12 @@ object PrintTokens {
       val fileName = s"$loc$da$sep${account.id}.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
       if (fe.nonEmpty) {
-        val gender = getGender(account, fe.get)
-        val age = getAge(account, fe.get)
-        val acctLocs = fe.get.locations.get(account.id)
+        val gender = if (fe.get.useGender) getGender(account, fe.get) else "UNK"
+        val age = if (fe.get.useAge) getAge(account, fe.get) else "UNK"
         val lines = account.tweets.map{ tweet =>
-          val (placeType, placeName, lat, lng) = getLoc(tweet, acctLocs)
           val rt = if (tweet.isRetweet) "rt" else "nrt"
           val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
-          s"($gender, $age, $rt, $noise, $placeType, $placeName, $lat, $lng)\t${tweet.text}"
+          s"($gender, $age, $rt, $noise)\t${tweet.text}"
         }
         writer.write(lines.mkString("\n"))
       }
@@ -95,16 +92,21 @@ object PrintTokens {
 
   /**
     * Load all the tweets pertaining to a given variable ("overweight" by default), and print them to
-    * train/test folders for each variable value. Database choices are "overweight", "human", "gender".
+    * train/test folders for each variable value. Database choices are "overweight", "human", "gender", "diabetes".
     */
   def main(args: Array[String]): Unit = {
     val printConfig = parseArgs(args)
+    val base = config.getString(s"classifiers.${printConfig.variable}.rawTokens")
+
+    val baseDir = new File(base)
+    if (!baseDir.exists) baseDir.mkdir()
 
     logger.info("Loading Twitter accounts")
     val labeledAccts = FileUtils.loadTwitterAccounts(config.getString(s"classifiers.${printConfig.variable}.data")).toSeq
 
     logger.info("Writing tokens in LSTM-readable format")
 
+<<<<<<< HEAD
     val fe = if (printConfig.domainAdaptation)
       Option(
         new FeatureExtractor(
@@ -115,15 +117,26 @@ object PrintTokens {
           variable = printConfig.variable
         )
       )
+=======
+    val fe = if (printConfig.domainAdaptation && printConfig.variable == "diabetes")
+      Option(new FeatureExtractor(useRT = true, variable = printConfig.variable))
+    else if (printConfig.domainAdaptation)
+      Option(new FeatureExtractor(useRT = true, useGender = true, useAge = true, variable = printConfig.variable))
+>>>>>>> master
     else
       None
 
     labeledAccts.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
       // folderNames should not contain whitespace
       val folderName = lbl.replaceAll("[^a-zA-Z0-9]+", "")
+      val path = s"$base$sep$folderName"
+
+      val dir = new File(path)
+      if (!dir.exists) dir.mkdir()
+
       val texts = acctsWithLabels.map(_._1)
 
-      writeTokens(texts, s"$base$sep$folderName", fe)
+      writeTokens(texts, path, fe)
     }
   }
 }

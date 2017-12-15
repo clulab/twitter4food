@@ -25,16 +25,14 @@ object AnalyzeTweets extends App {
 
   val divider = "-" * 75
   var verbose = false
-  var full = false
-
-  var users = Map[TwitterAccount,String]()
+  var full = true
 
   logger.info("Loading users")
-  users = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
+  val users = FileUtils.loadTwitterAccounts(config.getString("classifiers.overweight.data"))
 
   println("Loading dictionaries")
 
-  var handleMap = users.map{ case (acct, lbl) => stripAt(acct.handle) -> (acct, lbl) }
+  val handleMap = users.map{ case (acct, lbl) => stripAt(acct.handle) -> (acct, lbl) }
   assert(handleMap.nonEmpty, "Failed to loadTwitterAccounts users!")
 
   val handlesToAnalyze = Array("angiewhoohoo", "MaeghanLucinda", "JulianaYaz", "Kathneko", "YOB_JayDaisy", "queenachan", "checkoutfashion", "Graziella_a", "Banditgangnate", "YunJae8686", "alfritz04", "YungPauline", "yakdon", "ceejaydeleon", "Hannah_Barnett0", "steveendranata", "DrDamodhar", "Emily11949309", "LeumasHon", "sarlynclements", "Jo_RDPT16", "JonathanOneLife", "kat0417", "JessCording", "Lottie_Lamour", "siShingalinG", "sachadetti", "ScouseMattSmith", "jonathanlegate", "kanahina", "ellwoodz", "bl3berry", "jackiehagland", "oh_mandy93", "nohyunji", "Myatzee", "GarnerStyle", "mchefajaychopra", "MissMelanieD", "Beksville", "edibleASH", "Parsnip_Pete", "Gloriahillching", "JenniferBible1", "Spezzie", "GluttonEire")
@@ -77,45 +75,57 @@ object AnalyzeTweets extends App {
   logger.info("Retweets file written")
 */
   
-  val highInfoWords = getAllHighInfoTweetWords(handleMap) // getAllHighInfoTweetWords(handleMapSubset)
-  val highInfoWordsOW = highInfoWords._1
-  val highInfoWordsNO = highInfoWords._2
-  val highInfoWordsFile = new PrintWriter(new File("HighInfoWords.txt"))
-  
-  highInfoWordsFile.write(s"Top OW indicating words")
-  highInfoWordsFile.write(divider)
-  for((w,info,freq,ow_bits,no_bits) <- highInfoWordsOW){
-    highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
-  }
-  highInfoWordsFile.write(divider)
-  
-  highInfoWordsFile.write(s"Top NO indicating words")
-  highInfoWordsFile.write(divider)
-  for((w,info,freq,ow_bits,no_bits) <- highInfoWordsNO){
-    highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
-  }
-  highInfoWordsFile.write(divider)
-  
-  highInfoWordsFile.close()
-  logger.info("HighFreq words written to HighInfoWords.txt")
-  
-  /*var running = true
-  val reader = new ConsoleReader
-  printHelp()
-  reader.setPrompt(">>> ")
+  if (args contains "-i") {
+    var running = true
+    val reader = new ConsoleReader
+    printHelp()
+    reader.setPrompt(">>> ")
 
-  while(running) {
-    reader.readLine match {
-      case "" => ()
-      case ":help" => printHelp()
-      case ":verbose" => verbose = ! verbose
-      case ":full" => full = ! full
-      case ":exit" =>
-        running = false
-      case query =>
-        if (full) search(handleMapSubset, query) else search(handleMap, query)
+    while(running) {
+      reader.readLine match {
+        case "" => ()
+        case ":help" => printHelp()
+        case ":verbose" =>
+          verbose = ! verbose
+          if (verbose)
+            println("Now printing verbose messages.")
+          else
+            println("Now printing succinct messages.")
+        case ":full" =>
+          full = ! full
+          if (full)
+            println("Now analyzing full dataset.")
+          else
+            println("Now analyzing subset of data.")
+        case ":exit" =>
+          running = false
+        case query =>
+          if (full) search(handleMap, query) else search(handleMapSubset, query)
+      }
     }
-  }*/
+  } else {
+    val highInfoWords = getAllHighInfoTweetWords(handleMap) // getAllHighInfoTweetWords(handleMapSubset)
+    val highInfoWordsOW = highInfoWords._1
+    val highInfoWordsNO = highInfoWords._2
+    val highInfoWordsFile = new PrintWriter(new File("HighInfoWords.txt"))
+
+    highInfoWordsFile.write(s"Top OW indicating words")
+    highInfoWordsFile.write(divider)
+    for((w,info,freq,ow_bits,no_bits) <- highInfoWordsOW){
+      highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
+    }
+    highInfoWordsFile.write(divider)
+
+    highInfoWordsFile.write(s"Top NO indicating words")
+    highInfoWordsFile.write(divider)
+    for((w,info,freq,ow_bits,no_bits) <- highInfoWordsNO){
+      highInfoWordsFile.write(s"$w\t$info\t$freq\t$ow_bits\t$no_bits\n")
+    }
+    highInfoWordsFile.write(divider)
+
+    highInfoWordsFile.close()
+    logger.info("HighFreq words written to HighInfoWords.txt")
+  }
 
   def getAllHighInfoTweetWords(handleMap: Map[String, (TwitterAccount, String)]) : (Seq[(String, Double, Int, Double, Double)],Seq[(String, Double, Int, Double, Double)]) = {
     
@@ -212,7 +222,7 @@ object AnalyzeTweets extends App {
     val commandMap = Map(
       ":help" -> "Print this message",
       ":verbose" -> "Toggle printing all relevant tweets (default false)",
-      ":full" -> "Toggle searching full dataset (default false)",
+      ":full" -> "Toggle searching full dataset (default true)",
       ":exit" -> "Exit"
     )
     val len = commandMap.keys.map(_.length).max

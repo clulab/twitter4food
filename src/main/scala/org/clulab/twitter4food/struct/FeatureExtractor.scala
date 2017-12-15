@@ -287,7 +287,10 @@ class FeatureExtractor (
     handleToFollowerAccount = Option(followers)
   }
 
-  val allDicts = if (dictOnly) Option(lexicons.get("Overweight").values.toSeq) else None
+  val allDicts = if (dictOnly) {
+    val label = config.getStringList(s"classifiers.${this.variable}.possibleLabels").asScala.head
+    Option(lexicons.get(label).values.toSeq)
+  } else None
 
   /**
     * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
@@ -443,8 +446,10 @@ class FeatureExtractor (
 
     val denoised = if (denoise) tweets.filterNot(isNoise) else tweets
 
+    val relevantDesc = if (dictOnly) dictFilter(description) else description // only relevant words if 'dictOnly'
+    val filteredDesc = if (n == 1) filterStopWords(relevantDesc) else relevantDesc // remove stopwords
     // special prefix for description tokens since they summarize an account more than tweets
-    setCounts(tokenNGrams(n, description, "desc"), counter)
+    setCounts(tokenNGrams(n, filteredDesc, "desc"), counter) // always set n-gram counts
 
     // n-gram for tweets
     denoised.foreach{ tweet =>
@@ -460,6 +465,7 @@ class FeatureExtractor (
 
   /**
     * Returns a [[Counter]] of character/word n-grams based on user's name and handle
+    *
     * @param account the [[TwitterAccount]] under analysis
     */
   def name(account: TwitterAccount): Counter[String] = {
@@ -556,11 +562,12 @@ class FeatureExtractor (
     val cType = lexicons.get.keys.head match {
       case "M" | "F" => "gender"
       case "Overweight" | "Not overweight" => "overweight"
+      case "risk" | "not" => "diabetes"
       case "human" | "org" => "human"
       case "asian" | "hispanic" | "white" | "black" => "race"
     }
 
-    if((cType equals "human") || (cType equals "gender")) {
+    if((cType == "human") || (cType == "gender")) {
       lexicons.get foreach {
         case (k, v) =>
           v foreach {
@@ -585,15 +592,17 @@ class FeatureExtractor (
           }
       }
     }
-    else if(cType equals "race") {
+    else if(cType == "race") {
 
     }
-    else if(cType equals "overweight") {
+    else if(cType == "overweight" || cType == "diabetes") {
+      val k = if (cType == "overweight") "Overweight" else "risk"
+
       // Load dictionaries
-      val foodWords = lexicons.get("Overweight")("food_words")
-      val activityWords = lexicons.get("Overweight")("activity_words")
-      val restaurants = lexicons.get("Overweight")("restaurant_hashtags")
-      val hashtags = lexicons.get("Overweight")("overweight_hashtags")
+      val foodWords = lexicons.get(k)("food_words")
+      val activityWords = lexicons.get(k)("activity_words")
+      val restaurants = lexicons.get(k)("restaurant_hashtags")
+      val hashtags = lexicons.get(k)("overweight_hashtags")
       // keep track of the average calorie and health grade of the food words mentioned
       val calCount = new ArrayBuffer[Double]()
       val healthCount = new ArrayBuffer[Int]()
@@ -670,7 +679,7 @@ class FeatureExtractor (
   // Loads the embeddings for creating embedding-related features
   private def loadVectors: Option[Map[String, Array[Double]]] = {
     logger.info("Loading word embeddings...")
-    val lines = scala.io.Source.fromFile(config.getString("classifiers.features.vectors")).getLines
+    val lines = scala.io.Source.fromFile(config.getString("classifiers.features.food_vectors")).getLines
     lines.next() // we don't need to know how big the vocabulary or vectors are
     val vectorMap = scala.collection.mutable.Map[String, Array[Double]]()
     while (lines.hasNext) {
@@ -781,6 +790,7 @@ class FeatureExtractor (
 
   /**
     * Returns a [[Counter]] of unigrams based on the locations the user has visited.
+    *
     * @param id the current account's id
     * @return a [[Counter]] with location-based unigram features
     */
