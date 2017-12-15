@@ -67,10 +67,10 @@ object PrintTokens {
     */
   def writeTokens(accounts: Seq[TwitterAccount],
                   loc: String,
-                  fe: Option[FeatureExtractor],
+                  fe: FeatureExtractor,
                   dictOnly: Boolean = false): Unit = {
 
-    val da = if (fe.nonEmpty) "_da" else ""
+    val da = if (fe.useRT) "_da" else ""
     val isDict = if (dictOnly) "_dictOnly" else ""
     val fullLoc = s"$loc$da$isDict"
     val locFile = new File(fullLoc)
@@ -83,14 +83,14 @@ object PrintTokens {
     accounts.foreach{ account =>
       val fileName = s"$fullLoc$sep${account.id}.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
-      if (fe.nonEmpty) {
-        val gender = if (fe.get.useGender) getGender(account, fe.get) else "UNK"
-        val age = if (fe.get.useAge) getAge(account, fe.get) else "UNK"
+      if (fe.useRT) {
+        val gender = if (fe.useGender) getGender(account, fe) else "UNK"
+        val age = if (fe.useAge) getAge(account, fe) else "UNK"
         val lines = account.tweets.flatMap{ tweet =>
           val rt = if (tweet.isRetweet) "rt" else "nrt"
           val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
-          val text = if (fe.get.dictOnly)
-            fe.get.dictFilter(tweet.text.split(" +")).mkString(" ")
+          val text = if (fe.dictOnly)
+            fe.dictFilter(tweet.text.split(" +")).mkString(" ")
           else
             tweet.text
           if (text == "")
@@ -100,7 +100,19 @@ object PrintTokens {
         }
         writer.write(lines.mkString("\n"))
       }
-      else writer.write(account.tweets.map(_.text).mkString("\n"))
+      else {
+        val lines = account.tweets.flatMap { tweet =>
+          val text = if (fe.dictOnly)
+            fe.dictFilter(tweet.text.split(" +")).mkString(" ")
+          else
+            tweet.text
+          if (text == "")
+            None
+          else
+            Option(text)
+        }
+        writer.write(lines.mkString("\n"))
+      }
       writer.close()
       pb.step()
     }
@@ -125,19 +137,17 @@ object PrintTokens {
     logger.info("Writing tokens in LSTM-readable format")
 
     val fe = if (printConfig.domainAdaptation && printConfig.variable == "diabetes")
-      Option(new FeatureExtractor(useRT = true,
+      new FeatureExtractor(useRT = true,
         variable = printConfig.variable,
         dictOnly = printConfig.dictOnly)
-      )
     else if (printConfig.domainAdaptation)
-      Option(new FeatureExtractor(useRT = true,
+      new FeatureExtractor(useRT = true,
         useGender = true,
         useAge = true,
         variable = printConfig.variable,
         dictOnly = printConfig.dictOnly)
-      )
     else
-      None
+      new FeatureExtractor(dictOnly = printConfig.dictOnly, variable = printConfig.variable)
 
     labeledAccts.groupBy(_._2).foreach{ case (lbl, acctsWithLabels) =>
       // folderNames should not contain whitespace
