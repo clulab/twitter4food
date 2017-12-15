@@ -13,7 +13,9 @@ object PrintTokens {
   val config = ConfigFactory.load
   val sep = FileSystems.getDefault.getSeparator
 
-  case class PrintTokensConfig(variable: String = "overweight", domainAdaptation: Boolean = false)
+  case class PrintTokensConfig(variable: String = "overweight",
+                               domainAdaptation: Boolean = false,
+                               dictOnly: Boolean = false)
 
   def parseArgs(args: Array[String]): PrintTokensConfig = {
     val parser = new scopt.OptionParser[PrintTokensConfig]("tokenPrinter") {
@@ -21,6 +23,8 @@ object PrintTokens {
         c.copy(variable = x)} text "Variable to use"
       opt[Unit]('d', "domainAdaptation") action { (x, c) =>
         c.copy(domainAdaptation = true)} text "Use domain adaptation"
+      opt[Unit]('l', "dictOnly") action { (x, c) =>
+        c.copy(dictOnly = true)} text "Only print unigrams that appear in topic dictionaries"
     }
     val opts = parser.parse(args, PrintTokensConfig())
 
@@ -106,23 +110,18 @@ object PrintTokens {
 
     logger.info("Writing tokens in LSTM-readable format")
 
-<<<<<<< HEAD
-    val fe = if (printConfig.domainAdaptation)
-      Option(
-        new FeatureExtractor(
-          useLocation = true,
-          useRT = true,
-          useGender = true,
-          useAge = true,
-          variable = printConfig.variable
-        )
-      )
-=======
     val fe = if (printConfig.domainAdaptation && printConfig.variable == "diabetes")
-      Option(new FeatureExtractor(useRT = true, variable = printConfig.variable))
+      Option(new FeatureExtractor(useRT = true,
+        variable = printConfig.variable,
+        dictOnly = printConfig.dictOnly)
+      )
     else if (printConfig.domainAdaptation)
-      Option(new FeatureExtractor(useRT = true, useGender = true, useAge = true, variable = printConfig.variable))
->>>>>>> master
+      Option(new FeatureExtractor(useRT = true,
+        useGender = true,
+        useAge = true,
+        variable = printConfig.variable,
+        dictOnly = printConfig.dictOnly)
+      )
     else
       None
 
