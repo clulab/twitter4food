@@ -76,17 +76,6 @@ object PrintTokens {
     val locFile = new File(fullLoc)
     if (!locFile.exists) locFile.mkdir()
 
-    val lexicons = if (dictOnly) {
-      val lex = new Lexicon[String]()
-      for {
-        dict <- fe.get.allDicts.get
-        word <- dict.keySet
-      } {
-        lex.add(word)
-      }
-      Option(lex)
-    } else None
-
     val pb = new me.tongfei.progressbar.ProgressBar("printing", 100)
     pb.start()
     pb.maxHint(accounts.size)
@@ -101,7 +90,7 @@ object PrintTokens {
           val rt = if (tweet.isRetweet) "rt" else "nrt"
           val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
           val text = if (fe.get.dictOnly)
-            tweet.text.split(" +").filter(lexicons.get.contains).mkString(" ")
+            fe.get.dictFilter(tweet.text.split(" +")).mkString(" ")
           else
             tweet.text
           if (text == "")
