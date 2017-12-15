@@ -4,6 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.FileSystems
 
 import com.typesafe.config.ConfigFactory
+import org.clulab.struct.Lexicon
 import org.clulab.twitter4food.struct.{FeatureExtractor, Location, Tweet, TwitterAccount}
 import org.slf4j.LoggerFactory
 
@@ -64,25 +65,49 @@ object PrintTokens {
     * Prints each account's tweets (one per line) to its own file.
     * Tweets are pre-tokenized (so no newlines w/i text).
     */
-  def writeTokens(accounts: Seq[TwitterAccount], loc: String, fe: Option[FeatureExtractor]): Unit = {
+  def writeTokens(accounts: Seq[TwitterAccount],
+                  loc: String,
+                  fe: Option[FeatureExtractor],
+                  dictOnly: Boolean = false): Unit = {
+
+    val da = if (fe.nonEmpty) "_da" else ""
+    val isDict = if (dictOnly) "_dictOnly" else ""
+    val fullLoc = s"$loc$da$isDict"
+    val locFile = new File(fullLoc)
+    if (!locFile.exists) locFile.mkdir()
+
+    val lexicons = if (dictOnly) {
+      val lex = new Lexicon[String]()
+      for {
+        dict <- fe.get.allDicts.get
+        word <- dict.keySet
+      } {
+        lex.add(word)
+      }
+      Option(lex)
+    } else None
+
     val pb = new me.tongfei.progressbar.ProgressBar("printing", 100)
     pb.start()
     pb.maxHint(accounts.size)
 
-    val da = if (fe.nonEmpty) "_da" else ""
-    val locFile = new File(s"$loc$da")
-    if (!locFile.exists) locFile.mkdir()
-
     accounts.foreach{ account =>
-      val fileName = s"$loc$da$sep${account.id}.txt"
+      val fileName = s"$fullLoc$sep${account.id}.txt"
       val writer = new BufferedWriter(new FileWriter(fileName))
       if (fe.nonEmpty) {
         val gender = if (fe.get.useGender) getGender(account, fe.get) else "UNK"
         val age = if (fe.get.useAge) getAge(account, fe.get) else "UNK"
-        val lines = account.tweets.map{ tweet =>
+        val lines = account.tweets.flatMap{ tweet =>
           val rt = if (tweet.isRetweet) "rt" else "nrt"
           val noise = if (Utils.isNoise(tweet)) "spam" else "ham"
-          s"($gender, $age, $rt, $noise)\t${tweet.text}"
+          val text = if (fe.get.dictOnly)
+            tweet.text.split(" +").filter(lexicons.get.contains).mkString(" ")
+          else
+            tweet.text
+          if (text == "")
+            None
+          else
+            Option(s"($gender, $age, $rt, $noise)\t$text")
         }
         writer.write(lines.mkString("\n"))
       }
