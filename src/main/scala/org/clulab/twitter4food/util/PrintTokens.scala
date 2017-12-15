@@ -20,7 +20,7 @@ object PrintTokens {
 
   def parseArgs(args: Array[String]): PrintTokensConfig = {
     val parser = new scopt.OptionParser[PrintTokensConfig]("tokenPrinter") {
-      opt[String]('v', "variable") action { (x, c) =>
+      arg[String]("variable") action { (x, c) =>
         c.copy(variable = x)} text "Variable to use"
       opt[Unit]('d', "domainAdaptation") action { (x, c) =>
         c.copy(domainAdaptation = true)} text "Use domain adaptation"
@@ -160,7 +160,7 @@ object PrintTokens {
 
       val texts = acctsWithLabels.map(_._1)
 
-      writeTokens(texts, path, fe)
+      writeTokens(texts, path, fe, printConfig.dictOnly)
     }
   }
 }
