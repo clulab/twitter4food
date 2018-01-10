@@ -65,7 +65,7 @@ object OverweightSuite {
       partitions,
       Option(followers),
       Option(followees),
-      Utils.svmFactory,
+      Utils.svmClassifierFactory,
       labelSet,
       Eval.f1ForLabel("Overweight")
     )

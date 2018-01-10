@@ -303,6 +303,16 @@ class FeatureExtractor (
   }
 
   /**
+    * Returns [[RVFDatum]] containing the features for a single [[TwitterAccount]]
+    *
+    * @param account [[TwitterAccount]] to extract features from
+    * @param label classification label associated with this account
+    */
+  def mkRegDatum(account: TwitterAccount, label: Double): Datum[Double, String] = {
+    new RVFDatum[Double, String](label, mkFeatures(account, isProband = true) + this.customFeatures(account))
+  }
+
+  /**
     * Scales a [[Counter]] if {@link datumScaling} is true
     */
   def scale(counter: Counter[String]): Counter[String] = {

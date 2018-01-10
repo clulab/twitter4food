@@ -2,7 +2,7 @@ name := "twitter4food"
 
 version := "2.1"
 
-scalaVersion := "2.11.8"
+//scalaVersion := "2.11.8"
 
 resolvers ++= Seq(
   "amateras-repo" at "http://amateras.sourceforge.jp/mvn/",
@@ -24,13 +24,13 @@ libraryDependencies ++= Seq(
   "net.sf.trove4j" % "trove4j" % "2.0.2",
   "me.tongfei" % "progressbar" % "0.4.0",
   "com.google.maps" % "google-maps-services" % "0.1.20",
-  "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-  "org.clulab" %% "processors-main" % "6.2.0",
-  "jp.sf.amateras.solr.scala" %% "solr-scala-client" % "0.0.12",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
-  "com.github.scopt" %% "scopt" % "3.4.0"
+  "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
+  "org.clulab" % "processors-main_2.11" % "6.2.0",
+  "jp.sf.amateras.solr.scala" % "solr-scala-client_2.11" % "0.0.12",
+  "com.fasterxml.jackson.module" % "jackson-module-scala_2.11" % "2.6.3",
+  "com.github.scopt" % "scopt_2.10" % "3.7.0"
 )
 
 dependencyOverrides += "net.sf.trove4j" % "trove4j" % "2.0.2"
 
-updateOptions := updateOptions.value.withGigahorse(false)
+//updateOptions := updateOptions.value.withGigahorse(false)

@@ -184,7 +184,7 @@ object DiabetesClassifier {
           portion,
           followers,
           followees,
-          Utils.svmFactory,
+          Utils.svmClassifierFactory,
           labelSet,
           percentTopToConsider=highConfPercent
         )

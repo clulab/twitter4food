@@ -56,7 +56,7 @@ object DiabetesSuite {
       partitions,
       None,
       None,
-      Utils.svmFactory,
+      Utils.svmClassifierFactory,
       labelSet,
       Eval.f1ForLabel("risk")
     )

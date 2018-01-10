@@ -227,7 +227,8 @@ object Utils {
     img.toMap
   }
 
-  def svmFactory(): LiblinearClassifier[String, String] = new L1LinearSVMClassifier[String, String]()
+  def svmClassifierFactory(): LiblinearClassifier[String, String] = new L1LinearSVMClassifier[String, String]()
+  def svmRegressionFactory(): LiblinearRegression[String] = new L1LinearSVMRegression[String]()
 
   // Helper function for mapping a prefix onto all labels in a counter
   def prepend (prefix: String, counter: Counter[String]): Counter[String] = {

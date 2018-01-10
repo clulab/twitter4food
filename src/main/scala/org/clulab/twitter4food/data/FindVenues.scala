@@ -34,7 +34,7 @@ object FindVenues extends App {
   val maxDist = 50 // meters between venues and tweet location
   val toKeep = 5 // only keep 5 closest / most relevant Places
   // A set of relevant Google Places types and FourSquare categories to compare against for relevance
-  val relevantTypes = io.Source.fromFile(config.getString("classifiers.overweight.location_types"))
+  val relevantTypes = scala.io.Source.fromFile(config.getString("classifiers.overweight.location_types"))
     .getLines().map(_.stripLineEnd).toSet
 
   // Place to put annotated Locations
