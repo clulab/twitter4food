@@ -175,7 +175,7 @@ object Utils {
         val weightMap = W(l).toSeq.toMap
         val feats = d.featuresCounter.toSeq
         map + (l -> feats.filter(f => weightMap.contains(f._1))
-          .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
+          .map(f => (f._1, f._2 * weightMap(f._1))).sortBy(-_._2))
       })
 
     (topWeights, dotProduct)
@@ -187,7 +187,7 @@ object Utils {
         val weightMap = w(l).toSeq.toMap
         val feats = d.featuresCounter.toSeq
         map + (l -> feats.filter(f => weightMap.contains(f._1))
-          .map(f => (f._1, f._2 * weightMap(f._1))).sortWith(_._2 > _._2))
+          .map(f => (f._1, f._2 * weightMap(f._1))).sortBy(-_._2))
       })
   }
 

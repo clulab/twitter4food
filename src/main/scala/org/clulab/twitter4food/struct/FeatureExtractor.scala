@@ -2,6 +2,7 @@ package org.clulab.twitter4food.struct
 
 import java.io.{BufferedReader, FileReader}
 import java.nio.file.{Files, Paths}
+import java.time.temporal.ChronoUnit
 
 import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, RVFDatum}
 import org.clulab.struct.{Counter, Counters, Lexicon}
@@ -456,8 +457,10 @@ class FeatureExtractor (
 
     val denoised = if (denoise) tweets.filterNot(isNoise) else tweets
 
+    val relevantDesc = if (dictOnly) dictFilter(description) else description // only relevant words if 'dictOnly'
+    val filteredDesc = if (n == 1) filterStopWords(relevantDesc) else relevantDesc // remove stopwords
     // special prefix for description tokens since they summarize an account more than tweets
-    setCounts(tokenNGrams(n, description, "desc"), counter)
+    setCounts(tokenNGrams(n, filteredDesc, "desc"), counter) // always set n-gram counts
 
     // n-gram for tweets
     denoised.foreach{ tweet =>
@@ -834,9 +837,18 @@ class FeatureExtractor (
     val zid = java.time.ZoneId.of("GMT")
     val dateTimes = tweets.map(w => java.time.LocalDateTime.ofInstant(w.createdAt.toInstant, zid))
 
-    // What hour of the day is the user most likely to tweet (0-23 hr)? This is intentionally an Int division.
+    // Tweet rate: how many tweets per day?
+    val orderedDTs = dateTimes.sortWith((a, b) => a.compareTo(b) > 0) // latest to earliest
+    val numDays = ChronoUnit.DAYS.between(orderedDTs.last, orderedDTs.head)
+    counter.setCount("timeDate:twtPerDay", numTweets.toDouble / numDays.toDouble)
+
+    // What hour of the day is the user most likely to tweet, range [0, 24)?
     val hours = dateTimes.map(_.getHour)
-    counter.setCount("timeDate:avghr", hours.sum / hours.length)
+    counter.setCount("timeDate:meanhr", hours.sum.toDouble / hours.length.toDouble)
+    val median = hours.sorted.apply(hours.length / 2)
+    counter.setCount("timeDate:medhr", median)
+    val mode = hours.groupBy(h => h).map{ case (hr, num) => (hr, num.length) }.maxBy(_._2)._1
+    counter.setCount("timeDate:modehr", mode)
 
     // What proportion of tweets are written in each hour span of the day
     val hrHist = hours.groupBy(identity).mapValues(_.length / numTweets)
