@@ -13,7 +13,7 @@ import scala.collection.mutable
 import scala.util.Random
 
 object Utils {
-  case class Config(
+  class Config(
     useUnigrams: Boolean = false,
     useBigrams: Boolean = false,
     useName: Boolean = false,
