@@ -252,7 +252,7 @@ class FeatureExtractor (
 
   val (ageAnnotation, genderAnnotation) = if (useAge || useGender) {
     val annoFile = config.getString("classifiers.overweight.ageGenderAnnotations")
-    val bufferedSource = io.Source.fromFile(annoFile)
+    val bufferedSource = scala.io.Source.fromFile(annoFile)
     val rows = for (line <- bufferedSource.getLines) yield {
       val cols = line.split(",").map(_.trim).map(trimQuotes)
       assert(cols.length == 3)

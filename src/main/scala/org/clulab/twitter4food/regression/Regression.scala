@@ -11,5 +11,5 @@ import org.clulab.twitter4food.struct.TwitterAccount
 trait Regression {
   def train(accounts: Seq[TwitterAccount], labels:Seq[Double])
 
-  def scoreOf(account: TwitterAccount): Counter[String]
+  def scoreOf(account: TwitterAccount): Double
 }

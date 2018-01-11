@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.regression.RegressionImpl
 import org.clulab.twitter4food.struct.TwitterAccount
-import org.clulab.twitter4food.util.{Eval, FileUtils, Utils}
+import org.clulab.twitter4food.util.{BootstrapSignificance, Eval, FileUtils, Utils}
 
 /**
   * A regression for guessing an [[TwitterAccount]]'s risk of developing diabetes
@@ -110,7 +110,6 @@ object DiabetesRegression {
     }
 
     val modelFile = s"${config.getString("diabetes")}/model/$fileExt.dat"
-    // Instantiate classifier after prompts in case followers are being used (file takes a long time to loadTwitterAccounts)
 
     val partitionFile = config.getString("regressions.diabetes.folds")
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
@@ -155,9 +154,7 @@ object DiabetesRegression {
         datumScaling = params.datumScaling,
         featureScaling = params.featureScaling)
 
-      logger.info("Training classifier...")
-
-      val highConfPercent = config.getDouble("regressions.diabetes.highConfPercent")
+      logger.info("Training regression...")
 
       val (predictions, avgWeights) =
         dc.cv(
@@ -171,7 +168,7 @@ object DiabetesRegression {
         )
 
       // Print results
-      val rsquared = Eval.evaluate(predictions)
+      val (rsquared, rmse) = Eval.evaluate(predictions)
 
       // Write analysis only on full portion
       if (portion == 1.0) {
@@ -183,6 +180,7 @@ object DiabetesRegression {
         // Save results
         val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
         writer.write(s"rsquared: $rsquared\n")
+        writer.write(s"rmse: $rmse\n")
         writer.close()
 
         // Save individual predictions for bootstrap significance
@@ -192,12 +190,16 @@ object DiabetesRegression {
         predWriter.close()
       }
 
-      (portion, predictions.length, rsquared)
+      val (gold, pred) = predictions.unzip
+
+      val sig = BootstrapSignificance.regressionBss(gold, pred)
+
+      (portion, predictions.length, rsquared, rmse, sig)
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tr2")
-    evals.foreach { case (portion, numAccounts, rsquared) =>
-      println(f"$portion\t$numAccounts\t$rsquared%1.5f")
+    println(s"\n$fileExt\n%train\t#accts\trsquared\trmse\tp-value")
+    evals.foreach { case (portion, numAccounts, rsquared, rmse, sig) =>
+      println(f"$portion\t$numAccounts\t$rsquared%1.5f\t$rmse%1.5f\t$sig%1.5f")
     }
   }
 }

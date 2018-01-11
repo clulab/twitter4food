@@ -137,21 +137,24 @@ object Eval {
 
   def sqr(n:Double): Double = n * n
 
-  /**
-    * Returns R^2
-    * @param gp (gold, predicted)
-    * @return R^2 of model
-    */
-  def evaluate(gp: Seq[(Double, Double)], adjust = F): Double = {
+  def r2(gp: Seq[(Double, Double)]): Double = {
+    val n = gp.length
     val (xs, ys) = gp.unzip
-    val xbar = xs.sum / gp.length // mean x
-    val ybar = ys.sum / gp.length // mean y
+    val xbar = xs.sum / n // mean x
+    val ybar = ys.sum / n // mean y
     val xxbar = xs.map(x => sqr(x - xbar)).sum
     val yybar = ys.map(y => sqr(y - ybar)).sum
     val xybar = gp.map{ case(x, y)  => (x - xbar) * (y - ybar) }.sum
 
-    val rsquared = sqr(xybar) / (xxbar * yybar)
-
-    rsquared
+    sqr(xybar) / (xxbar * yybar)
   }
+
+  def rmse(gp: Seq[(Double, Double)]): Double = math.sqrt(gp.map{ case (x, y) => sqr(y - x) }.sum / gp.length)
+
+  /**
+    * Returns R^2 and RMSE (root mean squared error)
+    * @param gp (gold, predicted)
+    * @return R^2 and RMSE of predictions
+    */
+  def evaluate(gp: Seq[(Double, Double)]): (Double, Double) = (r2(gp), rmse(gp))
 }

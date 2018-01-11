@@ -148,9 +148,9 @@ class RegressionImpl(
             labels: Seq[Double],
             followers: Option[Map[String, Seq[TwitterAccount]]],
             followees: Option[Map[String, Seq[String]]]) = {
-    assert(accounts.size == labels.size)
+    assert(accounts.lengthCompare(labels.size) == 0)
 
-    this.setRegression(new L1LinearSVMClassifier[String, String]())
+    this.setRegression(Utils.svmRegressionFactory())
 
     // Clear current dataset if training on new one
     val dataset = constructDataset(accounts, labels, followers, followees)
@@ -170,7 +170,7 @@ class RegressionImpl(
     * @return Counter[String] predicted scores for each label
     *         that classOf calls argmax on.
     */
-  override def scoreOf(account: TwitterAccount): Counter[String] = {
+  override def scoreOf(account: TwitterAccount): Double = {
     if(subRegression.isDefined) {
       val datum = featureExtractor.mkRegDatum(account, Double.MaxValue)
       // val scaled = if (featureScaling && scaleRange.nonEmpty)
@@ -488,63 +488,6 @@ object RegressionImpl {
     }
 
     writer.close()
-  }
-
-  def outputAnalysis(outputFile: String, header: String, accounts: Seq[TwitterAccount], cls: RegressionImpl, labels: Set[String]) {
-    // Set progress bar
-    val numAccountsToPrint = 20
-    val numWeightsToPrint = 30
-    val printedLabel = labels.toSeq.sorted.head
-    val pb = new me.tongfei.progressbar.ProgressBar("outputAnalysis()", 100)
-    pb.start()
-    pb.maxHint(numAccountsToPrint)
-    pb.setExtraMessage(header)
-
-    // Initialize writer
-    val writer = new BufferedWriter(new FileWriter(outputFile, false))
-    var isFirst = true
-    writer.write(header)
-
-    // Iterate over accounts
-    for (account <- accounts) {
-      if (numAccountsToPrint > 0) {
-        // Analyze account
-        val (topWeights, dotProduct) = Utils.analyze(cls.subRegression.get, labels, account, cls.featureExtractor)
-        // Only print the general weights on the features once
-        if (isFirst) {
-          for ((label, sequence) <- topWeights) {
-            writer.write(s"Top weights for $label:\n")
-            var numToPrint = numWeightsToPrint
-            for ((feature, score) <- sequence) {
-              if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"$feature -> $score\n")
-                numToPrint = numToPrint - 1
-              }
-            }
-            writer.write("================================\n")
-          }
-          isFirst = false
-        }
-        // Print hadamard product for every account
-        writer.write(s"Hadamard product for ${account.handle}:\n")
-        for ((label, sequence) <- dotProduct) {
-          if (label == printedLabel) {
-            var numToPrint = numWeightsToPrint
-            for ((feature, score) <- sequence) {
-              if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"$feature -> $score\n")
-                numToPrint = numToPrint - 1
-              }
-            }
-          }
-        }
-        writer.write("================================\n")
-      }
-      pb.step()
-      numAccountsToPrint -= 1
-    }
-    writer.close
-    pb.stop()
   }
 
   def fMeasure(precision: Double, recall: Double, beta: Double): Double =

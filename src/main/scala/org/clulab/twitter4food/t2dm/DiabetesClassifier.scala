@@ -228,7 +228,7 @@ object DiabetesClassifier {
       val (gold, pred) = predictions.unzip
       val baseline = Array.fill[String](gold.length)("risk")
 
-      val sig = BootstrapSignificance.bss(gold, baseline, pred, "risk")
+      val sig = BootstrapSignificance.classificationBss(gold, baseline, pred, "risk")
 
       (portion, predictions.length, precision, recall, macroAvg, microAvg, sig)
     }

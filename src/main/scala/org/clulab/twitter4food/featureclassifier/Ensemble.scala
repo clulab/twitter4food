@@ -4,6 +4,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.clulab.learning.LiblinearClassifier
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct.TwitterAccount
+import org.clulab.twitter4food.struct.TrainTestFold
 import org.slf4j.{Logger, LoggerFactory}
 
 class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
@@ -32,7 +33,7 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
     assert(datasets.forall(ds => ds.size == accounts.length), "Must have complete datasets")
 
     val ids = accounts.map(_.id).sorted
-    val folds = classifiers.head.foldsFromIds(ids, partitions)
+    val folds = TrainTestFold.foldsFromIds(ids, partitions)
 
     val preVote = for (dataset <- datasets) yield {
       val dsPreds = for (fold <- folds) yield {

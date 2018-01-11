@@ -13,11 +13,11 @@ import scala.util.Random
   */
 object BootstrapSignificance {
 
-  def bss(gold: Seq[String],
-          baseline: Seq[String],
-          predicted: Seq[String],
-          label: String,
-          reps: Int = 10000): Double = {
+  def classificationBss(gold: Seq[String],
+                        baseline: Seq[String],
+                        predicted: Seq[String],
+                        label: String,
+                        reps: Int = 10000): Double = {
 
     val betterThanBaseline = Array.fill[Double](reps)(0)
 
@@ -37,6 +37,36 @@ object BootstrapSignificance {
       val predF1 = Eval.f1ForLabel(label)(sampleGold.zip(samplePred))
       val baselineF1 = Eval.f1ForLabel(label)(sampleGold.zip(sampleBase))
       if (predF1 > baselineF1) betterThanBaseline(i) = 1
+      pb.step()
+    }
+    pb.stop()
+
+    1.0 - (betterThanBaseline.sum / reps.toDouble)
+  }
+
+  def regressionBss(gold: Seq[Double],
+                    predicted: Seq[Double],
+                    reps: Int = 10000): Double = {
+
+    val betterThanBaseline = Array.fill[Double](reps)(0)
+
+    val baseline = gold.sum / gold.length
+    val baselineRmse = Eval.evaluate(gold.map(g => (g, baseline)))._2
+
+    val pb = new me.tongfei.progressbar.ProgressBar("bootstrap", 100)
+    pb.start()
+    pb.maxHint(reps)
+    pb.setExtraMessage("sampling...")
+
+    // for each rep, randomly sample indices once, then compare the baseline's F1 to each other model's
+    for {
+      i <- (0 until reps).par
+      sampleIdx = for (j <- gold.indices) yield Random.nextInt(gold.length - 1) // random sample with replacement
+      sampleGold = sampleIdx.map(gold.apply)
+      samplePred = sampleIdx.map(predicted.apply)
+    } {
+      val predRmse = Eval.evaluate(sampleGold.zip(samplePred))._2
+      if (predRmse < baselineRmse) betterThanBaseline(i) = 1
       pb.step()
     }
     pb.stop()
