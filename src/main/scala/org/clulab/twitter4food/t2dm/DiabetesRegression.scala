@@ -10,7 +10,7 @@ import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{BootstrapSignificance, Eval, FileUtils, Utils}
 
 /**
-  * A regression for guessing an [[TwitterAccount]]'s risk of developing diabetes
+  * A regression for guessing a [[TwitterAccount]]'s risk of developing diabetes
   *
   * @author terron
   * @author Dane Bell

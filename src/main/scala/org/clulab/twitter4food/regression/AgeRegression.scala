@@ -10,37 +10,37 @@ import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.util.{BootstrapSignificance, Eval, FileUtils, Utils}
 
 /**
-  * A regression for guessing a [[TwitterAccount]]'s weight status
+  * A regression for guessing a [[TwitterAccount]]'s age
   *
   * @author terron
   * @author Dane Bell
   */
-class OverweightRegression(
-                          useUnigrams: Boolean = false,
-                          useBigrams: Boolean = false,
-                          useName: Boolean = false,
-                          useTopics: Boolean = false,
-                          useDictionaries: Boolean = false,
-                          useEmbeddings: Boolean = false,
-                          //                          useAvgEmbeddings: Boolean = false,
-                          //                          useMinEmbeddings: Boolean = false,
-                          //                          useMaxEmbeddings: Boolean = false,
-                          useCosineSim: Boolean = false,
-                          useLocation: Boolean = false,
-                          useTimeDate: Boolean = false,
-                          //                          useFoodPerc: Boolean = false,
-                          //                          useCaptions: Boolean = false,
-                          useFollowers: Boolean = false,
-                          useFollowees: Boolean = false,
-                          useRT: Boolean = false,
-                          useGender: Boolean = false,
-                          useAge: Boolean = false,
-                          //                          useRace: Boolean = false,
-                          //                          useHuman: Boolean = false,
-                          dictOnly: Boolean = false,
-                          denoise: Boolean = false,
-                          datumScaling: Boolean = false,
-                          featureScaling: Boolean = false)
+class AgeRegression(
+                            useUnigrams: Boolean = false,
+                            useBigrams: Boolean = false,
+                            useName: Boolean = false,
+                            useTopics: Boolean = false,
+                            useDictionaries: Boolean = false,
+                            useEmbeddings: Boolean = false,
+                            //                          useAvgEmbeddings: Boolean = false,
+                            //                          useMinEmbeddings: Boolean = false,
+                            //                          useMaxEmbeddings: Boolean = false,
+                            useCosineSim: Boolean = false,
+                            useLocation: Boolean = false,
+                            useTimeDate: Boolean = false,
+                            //                          useFoodPerc: Boolean = false,
+                            //                          useCaptions: Boolean = false,
+                            useFollowers: Boolean = false,
+                            useFollowees: Boolean = false,
+                            useRT: Boolean = false,
+                            useGender: Boolean = false,
+                            useAge: Boolean = false,
+                            //                          useRace: Boolean = false,
+                            //                          useHuman: Boolean = false,
+                            dictOnly: Boolean = false,
+                            denoise: Boolean = false,
+                            datumScaling: Boolean = false,
+                            featureScaling: Boolean = false)
   extends RegressionImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
@@ -69,7 +69,7 @@ class OverweightRegression(
     featureScaling=featureScaling,
     variable = "diabetes")
 
-object OverweightRegression {
+object AgeRegression {
   import org.clulab.twitter4food.regression.RegressionImpl._
 
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -106,7 +106,7 @@ object OverweightRegression {
     // This model and results are specified by all input args that represent featuresets
     val fileExt = args.filterNot(nonFeatures.contains).sorted.mkString("").replace("-", "")
 
-    val outputDir = config.getString("regression") + "/ow2/results/" + fileExt
+    val outputDir = config.getString("regression") + "/age/results/" + fileExt
     if (!Files.exists(Paths.get(outputDir))) {
       if (new File(outputDir).mkdir()) logger.info(s"Created output directory $outputDir")
       else logger.info(s"ERROR: failed to create output directory $outputDir")
@@ -127,7 +127,7 @@ object OverweightRegression {
       .unzip
 
     val handleToLabel = FileUtils.readFromCsv(config.getString("classifiers.diabetes.regression_data"))
-      .map(line => line.head -> line(4))
+      .map(line => line.head -> line(2))
       .toMap
 
     val searchResults = for {
