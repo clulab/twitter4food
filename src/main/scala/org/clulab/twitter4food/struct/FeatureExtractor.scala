@@ -237,7 +237,7 @@ class FeatureExtractor (
       val trainingData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")) ++
         FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData")) ++
         FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.testData"))
-      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useEmbeddings=true)
 
       // bad to have to loadTwitterAccounts followers possibly multiple times, but this should happen only rarely
       // TODO: different follower files by classifier

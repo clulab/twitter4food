@@ -134,7 +134,7 @@ object DiabetesRegression {
       acct <- accts
       safe = Utils.sanitizeHandle(acct.handle)
       if handleToLabel contains safe
-    } yield acct -> handleToLabel(safe)
+    } yield acct -> handleToLabel(safe).toDouble
 
     val (foundAccts, lbls) = searchResults.unzip
 
