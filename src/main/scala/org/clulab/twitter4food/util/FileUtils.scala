@@ -44,11 +44,6 @@ object FileUtils {
     writer.close()
   }
 
-  def loadRVTwitterAccounts(fileName: String) = {
-    val accounts = loadTwitterAccounts(fileName)
-    accounts.map{ case (acct, lbl) => (acct, lbl.toDouble) }
-  }
-
   def loadTwitterAccounts(fileName: String) = {
     val file = scala.io.Source.fromFile(fileName)
     val lines = file.getLines

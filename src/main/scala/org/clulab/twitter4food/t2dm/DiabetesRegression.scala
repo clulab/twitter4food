@@ -120,7 +120,7 @@ object DiabetesRegression {
     }.toMap
 
     logger.info("Loading Twitter accounts")
-    val (accts, classLbls) = FileUtils.loadRVTwitterAccounts(config.getString("classifiers.diabetes.data"))
+    val (accts, classLbls) = FileUtils.loadTwitterAccounts(config.getString("classifiers.diabetes.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
       .filter{ case (acct, lbl) => partitions.contains(acct.id)}
