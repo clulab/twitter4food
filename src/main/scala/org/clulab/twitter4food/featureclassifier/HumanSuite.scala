@@ -29,9 +29,10 @@ object HumanSuite {
       useName = true,
       useTopics = true,
       useDictionaries = true,
-      useAvgEmbeddings = true,
-      useMinEmbeddings = true,
-      useMaxEmbeddings = true,
+      useEmbeddings = true,
+//      useAvgEmbeddings = true,
+//      useMinEmbeddings = true,
+//      useMaxEmbeddings = true,
       useCosineSim = true,
       useTimeDate = true,
       // useFollowers = true, // we don't currently have their followers

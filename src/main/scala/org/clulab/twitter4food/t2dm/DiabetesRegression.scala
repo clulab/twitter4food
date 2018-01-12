@@ -21,21 +21,22 @@ class DiabetesRegression(
                           useName: Boolean = false,
                           useTopics: Boolean = false,
                           useDictionaries: Boolean = false,
-                          useAvgEmbeddings: Boolean = false,
-                          useMinEmbeddings: Boolean = false,
-                          useMaxEmbeddings: Boolean = false,
+                          useEmbeddings: Boolean = false,
+//                          useAvgEmbeddings: Boolean = false,
+//                          useMinEmbeddings: Boolean = false,
+//                          useMaxEmbeddings: Boolean = false,
                           useCosineSim: Boolean = false,
                           useLocation: Boolean = false,
                           useTimeDate: Boolean = false,
-                          useFoodPerc: Boolean = false,
-                          useCaptions: Boolean = false,
+//                          useFoodPerc: Boolean = false,
+//                          useCaptions: Boolean = false,
                           useFollowers: Boolean = false,
                           useFollowees: Boolean = false,
                           useRT: Boolean = false,
                           useGender: Boolean = false,
                           useAge: Boolean = false,
-                          useRace: Boolean = false,
-                          useHuman: Boolean = false,
+//                          useRace: Boolean = false,
+//                          useHuman: Boolean = false,
                           dictOnly: Boolean = false,
                           denoise: Boolean = false,
                           datumScaling: Boolean = false,
@@ -46,21 +47,22 @@ class DiabetesRegression(
     useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
-    useAvgEmbeddings=useAvgEmbeddings,
-    useMinEmbeddings=useMinEmbeddings,
-    useMaxEmbeddings=useMaxEmbeddings,
+    useEmbeddings=useEmbeddings,
+//    useAvgEmbeddings=useAvgEmbeddings,
+//    useMinEmbeddings=useMinEmbeddings,
+//    useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
     useLocation=useLocation,
     useTimeDate=useTimeDate,
-    useFoodPerc=useFoodPerc,
-    useCaptions=useCaptions,
+//    useFoodPerc=useFoodPerc,
+//    useCaptions=useCaptions,
     useFollowers=false,
     useFollowees=false,
     useRT=useRT,
     useGender=useGender,
     useAge=useAge,
-    useRace=useRace,
-    useHuman=useHuman,
+//    useRace=useRace,
+//    useHuman=useHuman,
     dictOnly=dictOnly,
     denoise=denoise,
     datumScaling=datumScaling,
@@ -85,14 +87,15 @@ object DiabetesRegression {
       params.useName,
       params.useTopics,
       params.useDictionaries,
-      params.useAvgEmbeddings,
-      params.useMinEmbeddings,
-      params.useMaxEmbeddings,
+      params.useEmbeddings,
+//      params.useAvgEmbeddings,
+//      params.useMinEmbeddings,
+//      params.useMaxEmbeddings,
       params.useCosineSim,
       params.useLocation,
       params.useTimeDate,
-      params.useFoodPerc,
-      params.useCaptions,
+//      params.useFoodPerc,
+//      params.useCaptions,
       params.useFollowees
     )
     val default = allFeatures.forall(!_) // true if all features are off
@@ -111,16 +114,31 @@ object DiabetesRegression {
 
     val modelFile = s"${config.getString("diabetes")}/model/$fileExt.dat"
 
-    val partitionFile = config.getString("regressions.diabetes.folds")
+    val partitionFile = config.getString("classifiers.diabetes.folds")
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
     }.toMap
 
     logger.info("Loading Twitter accounts")
-    val labeledAccts = FileUtils.loadRVTwitterAccounts(config.getString("regressions.diabetes.data"))
+    val (accts, classLbls) = FileUtils.loadRVTwitterAccounts(config.getString("classifiers.diabetes.data"))
       .toSeq
       .filter(_._1.tweets.nonEmpty)
       .filter{ case (acct, lbl) => partitions.contains(acct.id)}
+      .unzip
+
+    val handleToLabel = FileUtils.readFromCsv(config.getString("classifiers.diabetes.regression_data"))
+      .map(line => line.head -> line(1))
+      .toMap
+
+    val searchResults = for {
+      acct <- accts
+      safe = Utils.sanitizeHandle(acct.handle)
+      if handleToLabel contains safe
+    } yield acct -> handleToLabel(safe)
+
+    val (foundAccts, lbls) = searchResults.unzip
+
+    logger.info(s"Found regression labels for ${foundAccts.length}/${accts.length} accounts.")
 
     val followers: Option[Map[String, Seq[TwitterAccount]]] = None
     val followees: Option[Map[String, Seq[String]]] = None
@@ -128,7 +146,6 @@ object DiabetesRegression {
     val evals = for {
       portion <- portions
     } yield {
-      val (accts, lbls) = labeledAccts.unzip
 
       val dc = new DiabetesRegression(
         useUnigrams = default || params.useUnigrams,
@@ -136,14 +153,15 @@ object DiabetesRegression {
         useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
-        useAvgEmbeddings = params.useAvgEmbeddings,
-        useMinEmbeddings = params.useMinEmbeddings,
-        useMaxEmbeddings = params.useMaxEmbeddings,
+        useEmbeddings = params.useEmbeddings,
+//        useAvgEmbeddings = params.useAvgEmbeddings,
+//        useMinEmbeddings = params.useMinEmbeddings,
+//        useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useLocation = params.useLocation,
         useTimeDate = params.useTimeDate,
-        useFoodPerc = params.useFoodPerc,
-        useCaptions= params.useCaptions,
+//        useFoodPerc = params.useFoodPerc,
+//        useCaptions= params.useCaptions,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,
@@ -158,7 +176,7 @@ object DiabetesRegression {
 
       val (predictions, avgWeights) =
         dc.cv(
-          accts,
+          foundAccts,
           lbls,
           partitions,
           portion,

@@ -24,9 +24,10 @@ class HumanClassifier(
   useName: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
-  useAvgEmbeddings: Boolean = false,
-  useMinEmbeddings: Boolean = false,
-  useMaxEmbeddings: Boolean = false,
+  useEmbeddings: Boolean = false,
+//  useAvgEmbeddings: Boolean = false,
+//  useMinEmbeddings: Boolean = false,
+//  useMaxEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
   useTimeDate: Boolean = false,
   useFollowers: Boolean = false,
@@ -41,21 +42,22 @@ class HumanClassifier(
     useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
-    useAvgEmbeddings=useAvgEmbeddings,
-    useMinEmbeddings=useMinEmbeddings,
-    useMaxEmbeddings=useMaxEmbeddings,
+    useEmbeddings=useEmbeddings,
+//    useAvgEmbeddings=useAvgEmbeddings,
+//    useMinEmbeddings=useMinEmbeddings,
+//    useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
     useLocation=false,
     useTimeDate=useTimeDate,
-    useFoodPerc=false,
-    useCaptions=false,
+//    useFoodPerc=false,
+//    useCaptions=false,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useRT=useRT,
     useGender=false,
     useAge=false,
-    useRace=false,
-    useHuman=false,
+//    useRace=false,
+//    useHuman=false,
     dictOnly=false,
     denoise=false,
     datumScaling=datumScaling,
@@ -206,13 +208,17 @@ object HumanClassifier {
       else logger.info(s"ERROR: failed to create output directory $outputDir")
     }
 
-    val toTrainOn = if (params.runOnTest) {
-      logger.info("Loading training accounts...")
-      val trainData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")).toSeq
-      logger.info("Loading dev accounts...")
-      val devData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData")).toSeq
-      trainData ++ devData
-    } else {
+//    val toTrainOn = if (params.runOnTest) {
+//      logger.info("Loading training accounts...")
+//      val trainData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")).toSeq
+//      logger.info("Loading dev accounts...")
+//      val devData = FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData")).toSeq
+//      trainData ++ devData
+//    } else {
+//      logger.info("Loading training accounts...")
+//      FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")).toSeq
+//    }
+    val toTrainOn = {
       logger.info("Loading training accounts...")
       FileUtils.loadTwitterAccounts(config.getString("classifiers.human.trainingData")).toSeq
     }
@@ -242,9 +248,10 @@ object HumanClassifier {
         useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
-        useAvgEmbeddings = params.useAvgEmbeddings,
-        useMinEmbeddings = params.useMinEmbeddings,
-        useMaxEmbeddings = params.useMaxEmbeddings,
+        useEmbeddings = params.useEmbeddings,
+//        useAvgEmbeddings = params.useAvgEmbeddings,
+//        useMinEmbeddings = params.useMinEmbeddings,
+//        useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useTimeDate = params.useTimeDate,
         useFollowers = params.useFollowers,
@@ -263,10 +270,14 @@ object HumanClassifier {
 
       (portion, maxIndex, hc)
     }
-    val toTestOn = if (params.runOnTest) {
-      logger.info("Loading test accounts...")
-      FileUtils.loadTwitterAccounts(config.getString("classifiers.human.testData"))
-    } else {
+//    val toTestOn = if (params.runOnTest) {
+//      logger.info("Loading test accounts...")
+//      FileUtils.loadTwitterAccounts(config.getString("classifiers.human.testData"))
+//    } else {
+//      logger.info("Loading dev accounts...")
+//      FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData"))
+//    }
+    val toTestOn = {
       logger.info("Loading dev accounts...")
       FileUtils.loadTwitterAccounts(config.getString("classifiers.human.devData"))
     }

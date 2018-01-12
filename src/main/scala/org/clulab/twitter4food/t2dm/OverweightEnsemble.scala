@@ -27,13 +27,14 @@ object OverweightEnsemble {
       params.useName,
       params.useTopics,
       params.useDictionaries,
-      params.useAvgEmbeddings,
-      params.useMinEmbeddings,
-      params.useMaxEmbeddings,
+      params.useEmbeddings,
+//      params.useAvgEmbeddings,
+//      params.useMinEmbeddings,
+//      params.useMaxEmbeddings,
       params.useCosineSim,
       params.useLocation,
       params.useTimeDate,
-      params.useFoodPerc,
+//      params.useFoodPerc,
       params.useFollowees
     )
     val default = allFeatures.forall(!_) // true if all features are off
@@ -52,10 +53,11 @@ object OverweightEnsemble {
 
     val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
 
-    val partitionFile = if (params.usProps)
-      config.getString("classifiers.overweight.usFolds")
-    else
-      config.getString("classifiers.overweight.folds")
+//    val partitionFile = if (params.usProps)
+//      config.getString("classifiers.overweight.usFolds")
+//    else
+//      config.getString("classifiers.overweight.folds")
+    val partitionFile = config.getString("classifiers.overweight.folds")
 
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
@@ -88,20 +90,21 @@ object OverweightEnsemble {
         useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
-        useAvgEmbeddings = params.useAvgEmbeddings,
-        useMinEmbeddings = params.useMinEmbeddings,
-        useMaxEmbeddings = params.useMaxEmbeddings,
+        useEmbeddings = params.useEmbeddings,
+//        useAvgEmbeddings = params.useAvgEmbeddings,
+//        useMinEmbeddings = params.useMinEmbeddings,
+//        useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useLocation = params.useLocation,
         useTimeDate = params.useTimeDate,
-        useFoodPerc = params.useFoodPerc,
-        useCaptions = params.useCaptions,
+//        useFoodPerc = params.useFoodPerc,
+//        useCaptions = params.useCaptions,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,
         useGender = params.useGender,
         useAge = params.useAge,
-        useRace = params.useRace,
+//        useRace = params.useRace,
         dictOnly = true,
         denoise = false,
         datumScaling = params.datumScaling,
@@ -113,20 +116,21 @@ object OverweightEnsemble {
         useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
-        useAvgEmbeddings = params.useAvgEmbeddings,
-        useMinEmbeddings = params.useMinEmbeddings,
-        useMaxEmbeddings = params.useMaxEmbeddings,
+        useEmbeddings = params.useEmbeddings,
+//        useAvgEmbeddings = params.useAvgEmbeddings,
+//        useMinEmbeddings = params.useMinEmbeddings,
+//        useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useLocation = params.useLocation,
         useTimeDate = params.useTimeDate,
-        useFoodPerc = params.useFoodPerc,
-        useCaptions = params.useCaptions,
+//        useFoodPerc = params.useFoodPerc,
+//        useCaptions = params.useCaptions,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,
         useGender = params.useGender,
         useAge = params.useAge,
-        useRace = params.useRace,
+//        useRace = params.useRace,
         dictOnly = false,
         denoise = true,
         datumScaling = params.datumScaling,

@@ -13,10 +13,11 @@ object OverweightSuite {
 
     // just for finding whether we're using US proportions or all accounts
     val params = Utils.parseArgs(args)
-    val partitionFile = if (params.usProps)
-      config.getString("classifiers.overweight.usFolds")
-    else
-      config.getString("classifiers.overweight.folds")
+//    val partitionFile = if (params.usProps)
+//      config.getString("classifiers.overweight.usFolds")
+//    else
+//      config.getString("classifiers.overweight.folds")
+    val partitionFile = config.getString("classifiers.overweight.folds")
 
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
@@ -40,21 +41,22 @@ object OverweightSuite {
       useName = true,
       useTopics = true,
       useDictionaries = true,
-      useAvgEmbeddings = true,
-      useMinEmbeddings = true,
-      useMaxEmbeddings = true,
+      useEmbeddings = true,
+//      useAvgEmbeddings = true,
+//      useMinEmbeddings = true,
+//      useMaxEmbeddings = true,
       useCosineSim = true,
       useLocation = true,
       useTimeDate = true,
-      useFoodPerc = true,
-      useCaptions = true,
+//      useFoodPerc = true,
+//      useCaptions = true,
       useFollowers = true,
       useFollowees = true,
       useRT = true,
       useGender = true,
       useAge = true,
-      useRace = true,
-      useHuman = true,
+//      useRace = true,
+//      useHuman = true,
       datumScaling = true
     )
 

@@ -34,20 +34,20 @@ import scala.collection.mutable.ArrayBuffer
   * @param useName name- and handle-based char features
   * @param useTopics Latent Dirichlet Analysis topic features
   * @param useDictionaries classifier-specific custom dictionaries
-  * @param useAvgEmbeddings average embeddings of all account words
-  * @param useMinEmbeddings minimum (by dimension) embeddings of all account words
-  * @param useMaxEmbeddings maximum (by dimension) embeddings of all account words
+  * //@param useAvgEmbeddings average embeddings of all account words
+  * //@param useMinEmbeddings minimum (by dimension) embeddings of all account words
+  * //@param useMaxEmbeddings maximum (by dimension) embeddings of all account words
   * @param useCosineSim similarity to a corpus of overweight-related tweets
   * @param useLocation names of venues visited by user
   * @param useTimeDate time- and day-based features
-  * @param useFoodPerc use the percentage of user images containing food
+  * //@param useFoodPerc use the percentage of user images containing food
   * @param useFollowers domain transfer from follower accounts
   * @param useFollowees account followee handles
   * @param useRT treat retweet and non-RT n-grams differently, Daume-style
   * @param useGender domain transfer based on classification of account gender
   * @param useAge domain transfer based on classification of account age
-  * @param useRace domain transfer based on classification of account race
-  * @param useHuman limit follower domain transfer to those judged as human
+  * //@param useRace domain transfer based on classification of account race
+  * //@param useHuman limit follower domain transfer to those judged as human
   * @param datumScaling scale by account
   * @param customFeatures use classifier-specific custom features
   */
@@ -57,21 +57,22 @@ class FeatureExtractor (
   val useName: Boolean = false,
   val useTopics: Boolean = false,
   val useDictionaries: Boolean = false,
-  val useAvgEmbeddings: Boolean = false,
-  val useMinEmbeddings: Boolean = false,
-  val useMaxEmbeddings: Boolean = false,
+  val useEmbeddings: Boolean = false,
+//  val useAvgEmbeddings: Boolean = false,
+//  val useMinEmbeddings: Boolean = false,
+//  val useMaxEmbeddings: Boolean = false,
   val useCosineSim: Boolean = false,
   val useLocation: Boolean = false,
   val useTimeDate: Boolean = false,
-  val useFoodPerc: Boolean = false,
-  val useCaptions: Boolean = false,
+//  val useFoodPerc: Boolean = false,
+//  val useCaptions: Boolean = false,
   val useFollowers: Boolean = false,
   val useFollowees: Boolean = false,
   val useRT: Boolean = false,
   val useGender: Boolean = false,
   val useAge: Boolean = false,
-  val useRace: Boolean = false,
-  val useHuman: Boolean = false,
+//  val useRace: Boolean = false,
+//  val useHuman: Boolean = false,
   val dictOnly: Boolean = false,
   val denoise: Boolean = false,
   val datumScaling: Boolean = false,
@@ -87,21 +88,22 @@ class FeatureExtractor (
     s"useName=$useName, " +
     s"useTopics=$useTopics, " +
     s"useDictionaries=$useDictionaries, " +
-    s"useAvgEmbeddings=$useAvgEmbeddings, " +
-    s"useMinEmbeddings=$useMinEmbeddings, " +
-    s"useMaxEmbeddings=$useMaxEmbeddings, " +
+    s"useEmbeddings=$useEmbeddings, " +
+//    s"useAvgEmbeddings=$useAvgEmbeddings, " +
+//    s"useMinEmbeddings=$useMinEmbeddings, " +
+//    s"useMaxEmbeddings=$useMaxEmbeddings, " +
     s"useCosineSim=$useCosineSim, " +
     s"useLocation=$useLocation, " +
     s"useTimeDate=$useTimeDate, " +
-    s"useFoodPerc=$useFoodPerc, " +
-    s"useCaptions=$useCaptions, " +
+//    s"useFoodPerc=$useFoodPerc, " +
+//    s"useCaptions=$useCaptions, " +
     s"useFollowers=$useFollowers, " +
     s"useFollowees=$useFollowees, " +
     s"useRT=$useRT, " +
     s"useGender=$useGender, " +
     s"useAge=$useAge, " +
-    s"useRace=$useRace, " +
-    s"useHuman=$useHuman, " +
+//    s"useRace=$useRace, " +
+//    s"useHuman=$useHuman, " +
     s"datumScaling=$datumScaling"
   )
 
@@ -145,7 +147,8 @@ class FeatureExtractor (
   } else (None, None)
 
   // Word2vec word embedding vectors
-  val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
+//  val vectors = if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings) loadVectors else None
+  val vectors = if (useEmbeddings) loadVectors else None
   // tdidf vector for overweight corpus
   val (idfTable, overweightVec) = if (useCosineSim) loadTFIDF else (None, None)
 
@@ -156,6 +159,7 @@ class FeatureExtractor (
   } else Map[Long, Seq[Location]]()
 
   // % food images annotations
+  /*
   val (twFoodPerc, igFoodPerc): (Option[Map[Long,Double]], Option[Map[Long,Double]]) = if (useFoodPerc) {
     val twFile = scala.io.Source.fromFile(config.getString("classifiers.overweight.twFoodPerc"))
     val twAnnos = twFile.getLines.toSeq.map{ line =>
@@ -176,10 +180,12 @@ class FeatureExtractor (
 
   // image captions (generic)
   val captions = if (useCaptions) Option(loadCaptions(config.getString("classifiers.overweight.captions"))) else None
+*/
 
   // Followees (to be set by setFollowees)
   var handleToFollowees: Option[Map[String, Seq[String]]] = None
 
+  /*
   // human classifier for follower filtering
   val humanClassifier = if (useHuman && useFollowers) {
     val modelFile = config.getString("classifiers.overweight.humanClassifier")
@@ -213,6 +219,7 @@ class FeatureExtractor (
     }
     Option(model)
   } else None
+*/
 
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
@@ -359,7 +366,8 @@ class FeatureExtractor (
       counter += scale(topics(regularizedTweets))
     if (useDictionaries)
       counter += dictionaries(denoised, description, account, unigrams)
-    if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
+//    if (useAvgEmbeddings || useMinEmbeddings || useMaxEmbeddings){
+    if (useEmbeddings){
       counter += embeddings(regularizedTweets)
     }
     if (useCosineSim)
@@ -368,10 +376,10 @@ class FeatureExtractor (
       counter += location(account.id)
     if (useTimeDate)
       counter += timeDate(denoised)
-    if (useFoodPerc)
-      counter += foodPerc(account.id)
-    if (useCaptions)
-      counter += captionNgrams(account.id)
+//    if (useFoodPerc)
+//      counter += foodPerc(account.id)
+//    if (useCaptions)
+//      counter += captionNgrams(account.id)
     if (useFollowees)
       counter += scale(followees(account))
 
@@ -397,10 +405,10 @@ class FeatureExtractor (
       daCounter += prepend(s"age:${ageApprox}_", counter)
     }
 
-    if (useRace && isProband) {
-      // TODO: predict account owner's race for domain adaptation
-      // counter += prepend(s"race-${raceClassifier.get.predict(account)}_", counter)
-    }
+//    if (useRace && isProband) {
+//      // TODO: predict account owner's race for domain adaptation
+//      // counter += prepend(s"race-${raceClassifier.get.predict(account)}_", counter)
+//    }
 
     if (useFollowers && isProband) {
       val fc = followers(account)
@@ -524,11 +532,12 @@ class FeatureExtractor (
     val followers = handleToFollowerAccount.get.getOrElse(account.handle, Nil)
 
     // filter out followers judged not to be humans
-    val filteredFollowers = if (useHuman) followers.filter(f => humanClassifier.get.predict(f) == "Human") else followers
+//    val filteredFollowers = if (useHuman) followers.filter(f => humanClassifier.get.predict(f) == "Human") else followers
 
     // Aggregate the counter for the followers using the other features being used
     // withFollowers must be false to prevent infinite regress
-    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, isProband = false)
+//    val followerCounters = for (follower <- filteredFollowers.par) yield mkFeatures(follower, isProband = false)
+    val followerCounters = for (follower <- followers.par) yield mkFeatures(follower, isProband = false)
 
     val followerCounter = new Counter[String]
     followerCounters.seq.foreach(fc => followerCounter += fc)
@@ -678,10 +687,13 @@ class FeatureExtractor (
     val counter = new Counter[String]()
     // Take the average of each dimension's values over all tokens in the account
     valuesPerDim.indices.foreach{ i =>
-      if (useAvgEmbeddings) counter.setCount(s"avgembedding:$i", valuesPerDim(i).sum / totalTokens)
+//      if (useAvgEmbeddings) counter.setCount(s"avgembedding:$i", valuesPerDim(i).sum / totalTokens)
+      counter.setCount(s"avgembedding:$i", valuesPerDim(i).sum / totalTokens)
       if (valuesPerDim(i).nonEmpty) {
-        if (useMinEmbeddings) counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
-        if (useMaxEmbeddings) counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
+//        if (useMinEmbeddings) counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
+//        if (useMaxEmbeddings) counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
+        counter.setCount(s"minembedding:$i", valuesPerDim(i).min)
+        counter.setCount(s"maxembedding:$i", valuesPerDim(i).max)
       }
     }
     counter
@@ -869,6 +881,7 @@ class FeatureExtractor (
     counter
   }
 
+  /*
   /**
     * Returns a [[Counter]] with percentages of Twitter and Instagram image files containing food (if any exist)
     */
@@ -899,6 +912,7 @@ class FeatureExtractor (
 
     counter
   }
+  */
 
   /**
     * Returns a map from TwitterAccount id to the captions for their images

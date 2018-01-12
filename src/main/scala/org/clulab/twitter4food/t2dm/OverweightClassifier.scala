@@ -20,21 +20,22 @@ class OverweightClassifier(
   useName: Boolean = false,
   useTopics: Boolean = false,
   useDictionaries: Boolean = false,
-  useAvgEmbeddings: Boolean = false,
-  useMinEmbeddings: Boolean = false,
-  useMaxEmbeddings: Boolean = false,
+  useEmbeddings: Boolean = false,
+//  useAvgEmbeddings: Boolean = false,
+//  useMinEmbeddings: Boolean = false,
+//  useMaxEmbeddings: Boolean = false,
   useCosineSim: Boolean = false,
   useLocation: Boolean = false,
   useTimeDate: Boolean = false,
-  useFoodPerc: Boolean = false,
-  useCaptions: Boolean = false,
+//  useFoodPerc: Boolean = false,
+//  useCaptions: Boolean = false,
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
   useRT: Boolean = false,
   useGender: Boolean = false,
   useAge: Boolean = false,
-  useRace: Boolean = false,
-  useHuman: Boolean = false,
+//  useRace: Boolean = false,
+//  useHuman: Boolean = false,
   dictOnly: Boolean = false,
   denoise: Boolean = false,
   datumScaling: Boolean = false,
@@ -45,21 +46,22 @@ class OverweightClassifier(
     useName=useName,
     useTopics=useTopics,
     useDictionaries=useDictionaries,
-    useAvgEmbeddings=useAvgEmbeddings,
-    useMinEmbeddings=useMinEmbeddings,
-    useMaxEmbeddings=useMaxEmbeddings,
+    useEmbeddings=useEmbeddings,
+//    useAvgEmbeddings=useAvgEmbeddings,
+//    useMinEmbeddings=useMinEmbeddings,
+//    useMaxEmbeddings=useMaxEmbeddings,
     useCosineSim=useCosineSim,
     useLocation=useLocation,
     useTimeDate=useTimeDate,
-    useFoodPerc=useFoodPerc,
-    useCaptions=useCaptions,
+//    useFoodPerc=useFoodPerc,
+//    useCaptions=useCaptions,
     useFollowers=useFollowers,
     useFollowees=useFollowees,
     useRT=useRT,
     useGender=useGender,
     useAge=useAge,
-    useRace=useRace,
-    useHuman=useHuman,
+//    useRace=useRace,
+//    useHuman=useHuman,
     dictOnly=dictOnly,
     denoise=denoise,
     datumScaling=datumScaling,
@@ -86,14 +88,15 @@ object OverweightClassifier {
       params.useName,
       params.useTopics,
       params.useDictionaries,
-      params.useAvgEmbeddings,
-      params.useMinEmbeddings,
-      params.useMaxEmbeddings,
+      params.useEmbeddings,
+//      params.useAvgEmbeddings,
+//      params.useMinEmbeddings,
+//      params.useMaxEmbeddings,
       params.useCosineSim,
       params.useLocation,
       params.useTimeDate,
-      params.useFoodPerc,
-      params.useCaptions,
+//      params.useFoodPerc,
+//      params.useCaptions,
       params.useFollowees
     )
     val default = allFeatures.forall(!_) // true if all features are off
@@ -120,10 +123,11 @@ object OverweightClassifier {
     val modelFile = s"${config.getString("overweight")}/model/$fileExt.dat"
     // Instantiate classifier after prompts in case followers are being used (file takes a long time to loadTwitterAccounts)
 
-    val partitionFile = if (params.usProps)
-      config.getString(s"classifiers.$dataset.usFolds")
-    else
-      config.getString(s"classifiers.$dataset.folds")
+//    val partitionFile = if (params.usProps)
+//      config.getString(s"classifiers.$dataset.usFolds")
+//    else
+//      config.getString(s"classifiers.$dataset.folds")
+    val partitionFile = config.getString(s"classifiers.$dataset.folds")
 
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
@@ -156,14 +160,15 @@ object OverweightClassifier {
         useName = params.useName,
         useTopics = params.useTopics,
         useDictionaries = params.useDictionaries,
-        useAvgEmbeddings = params.useAvgEmbeddings,
-        useMinEmbeddings = params.useMinEmbeddings,
-        useMaxEmbeddings = params.useMaxEmbeddings,
+        useEmbeddings = params.useEmbeddings,
+//        useAvgEmbeddings = params.useAvgEmbeddings,
+//        useMinEmbeddings = params.useMinEmbeddings,
+//        useMaxEmbeddings = params.useMaxEmbeddings,
         useCosineSim = params.useCosineSim,
         useLocation = params.useLocation,
         useTimeDate = params.useTimeDate,
-        useFoodPerc = params.useFoodPerc,
-        useCaptions= params.useCaptions,
+//        useFoodPerc = params.useFoodPerc,
+//        useCaptions= params.useCaptions,
         useFollowers = params.useFollowers,
         useFollowees = params.useFollowees,
         useRT = params.useRT,
