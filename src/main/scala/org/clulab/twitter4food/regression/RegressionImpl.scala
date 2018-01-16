@@ -290,6 +290,8 @@ class RegressionImpl(
 
     assert(accounts.length == labels.length, "Number of accounts and labels must be equal")
 
+    def sqr(x: Double) = x * x
+
     // for printing out feature weights (including for specific account classifications)
     val numFeatures = 30
     val numAccts = 20
@@ -304,8 +306,8 @@ class RegressionImpl(
       val trainValues = fold.train.map(dataset.labels.toIndexedSeq).sorted
       val mn = trainValues.min
       val mx = trainValues.max
+      val avg = trainValues.sum / trainValues.length
       if(logger.isDebugEnabled) {
-        val avg = trainValues.sum / trainValues.length
         logger.debug(f"fold range: [$mn,$mx]; mean: $avg%1.1f; length: ${trainValues.length}")
       }
       val regression = regressionFactory()
@@ -316,15 +318,21 @@ class RegressionImpl(
         val gold = dataset.labels(i)
         val datum = dataset.mkDatum(i)
         val score = regression.scoreOf(datum)
-        val adjScore = score match {
-          case minimum if score < mn => mn.toDouble
-          case maximum if score > mx => mx.toDouble
-          case goldilocks => goldilocks
-        }
-        (id, datum, gold, adjScore)
+        (id, datum, gold, score)
       }
+      val N = trainValues.length.toDouble
+      val targetSd = math.sqrt(trainValues.map(v => sqr(v - avg)).sum / (N - 1))
 
-      (W, predictions)
+      val scores = predictions.map(_._4)
+
+      val scoreAvg = scores.sum / scores.length
+      val scoreN = scores.length.toDouble
+      val scoreSd = math.sqrt(scores.map(s => sqr(s - scoreAvg)).sum / (scoreN - 1))
+
+      val adjustedScores = scores.map(s => avg + (s - scoreAvg) * (targetSd / scoreSd))
+      val adjustedPreds = predictions.zipWithIndex.map{ case (p, i) => (p._1, p._2, p._3, adjustedScores(i))}
+
+      (W, adjustedPreds)
     }
 
     val allFeats = dataset.featureLexicon.keySet
