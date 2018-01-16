@@ -329,7 +329,10 @@ class RegressionImpl(
       val scoreN = scores.length.toDouble
       val scoreSd = math.sqrt(scores.map(s => sqr(s - scoreAvg)).sum / (scoreN - 1))
 
-      val adjustedScores = scores.map(s => avg + (s - scoreAvg) * (targetSd / scoreSd))
+      val adjustedScores = scores.map{ s =>
+        // reapportion to match standard deviation of training and cut off at min and max
+        Seq(Seq(avg + (s - scoreAvg) * (targetSd / scoreSd), mn).max, mx).min
+      }
       val adjustedPreds = predictions.zipWithIndex.map{ case (p, i) => (p._1, p._2, p._3, adjustedScores(i))}
 
       (W, adjustedPreds)
