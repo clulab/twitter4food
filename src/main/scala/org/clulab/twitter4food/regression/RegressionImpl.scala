@@ -301,9 +301,12 @@ class RegressionImpl(
 
     val results = for (fold <- folds) yield {
       logger.debug(s"train:${fold.train.length}; test:${fold.test.length}; overlap:${fold.train.toSet.intersect(fold.test.toSet).size}")
+      val trainValues = fold.train.map(dataset.labels.toIndexedSeq).sorted
+      val mn = trainValues.min
+      val mx = trainValues.max
       if(logger.isDebugEnabled) {
-        val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
-        logger.debug(s"fold: ${balance.mkString(", ")}")
+        val avg = trainValues.sum / trainValues.length
+        logger.debug(f"fold range: [$mn,$mx]; mean: $avg%1.1f; length: ${trainValues.length}")
       }
       val regression = regressionFactory()
       regression.train(dataset, fold.train.toArray)
@@ -313,7 +316,12 @@ class RegressionImpl(
         val gold = dataset.labels(i)
         val datum = dataset.mkDatum(i)
         val score = regression.scoreOf(datum)
-        (id, datum, gold, score)
+        val adjScore = score match {
+          case minimum if score < mn => mn.toDouble
+          case maximum if score > mx => mx.toDouble
+          case goldilocks => goldilocks
+        }
+        (id, datum, gold, adjScore)
       }
 
       (W, predictions)
