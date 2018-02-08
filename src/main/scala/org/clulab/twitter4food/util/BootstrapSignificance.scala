@@ -62,8 +62,8 @@ object BootstrapSignificance {
     for {
       i <- (0 until reps).par
       sampleIdx = for (j <- gold.indices) yield Random.nextInt(gold.length - 1) // random sample with replacement
-      sampleGold = sampleIdx.map(gold.apply)
-      samplePred = sampleIdx.map(predicted.apply)
+      sampleGold = sampleIdx.map(gold)
+      samplePred = sampleIdx.map(predicted)
     } {
       val predRmse = Eval.evaluate(sampleGold.zip(samplePred))._2
       if (predRmse < baselineRmse) betterThanBaseline(i) = 1
