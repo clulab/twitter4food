@@ -1,8 +1,6 @@
 package org.clulab.twitter4food.featureclassifier
 
 import org.clulab.learning._
-import org.clulab.struct.Counter
-import org.clulab.twitter4food.struct._
 import org.clulab.twitter4food.util._
 import java.io._
 import java.nio.file.{Files, Paths}

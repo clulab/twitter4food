@@ -170,7 +170,7 @@ object Tokenize {
 
     val params = parseArgs(args)
     if (params.inFile == "") {
-      throw new RuntimeException("File to be tokenized must be specified using -f")
+      throw new RuntimeException("File to be tokenized must be specified")
     }
 
     if (params.isThreeLine)

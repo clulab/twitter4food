@@ -8,7 +8,7 @@ import scala.util.Random.shuffle
 import scala.collection.JavaConverters._
 
 /**
-  * Split the overweight classifier data into even portions and save the portion assignments in CSV format
+  * Split classifier data into even portions and save the portion assignments in CSV format
   * @author Terron Ishida
   * @author Dane Bell
   */
