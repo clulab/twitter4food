@@ -136,11 +136,7 @@ object PrintTokens {
 
     logger.info("Writing tokens in LSTM-readable format")
 
-    val fe = if (printConfig.domainAdaptation && printConfig.variable == "diabetes")
-      new FeatureExtractor(useRT = true,
-        variable = printConfig.variable,
-        dictOnly = printConfig.dictOnly)
-    else if (printConfig.domainAdaptation)
+    val fe = if (printConfig.domainAdaptation)
       new FeatureExtractor(useRT = true,
         useGender = true,
         useAge = true,
