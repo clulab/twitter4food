@@ -544,9 +544,11 @@ class ClassifierImpl(
   /**
     * Returns a [[Seq]] of [[TrainTestFold]]s given unique ids and a map of what partition they belong in.
     */
-  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int], portion: Double = 1.0): Seq[TrainTestFold] = {
+  def foldsFromIds(ids: Seq[Long], partitions: Map[Long, Int], portion: Double = 1.0, seed: Int = 919): Seq[TrainTestFold] = {
+    val r = new Random(seed)
+
     // make our map from ID to partition into a map from partition to sequence of IDs
-    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> Random.shuffle(ids.unzip._1) }
+    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> r.shuffle(ids.unzip._1) }
 
     // reduce the size of each partition (at random) to portion size
     val trainPart = for {
@@ -578,19 +580,45 @@ class ClassifierImpl(
 
   /**
     * Returns a [[Seq]] of [[TrainDevTestFold]]s given unique ids and a map of what partition they belong in.
-    * The test fold is the same for all [[TrainDevTestFold]]s to maintain the independence of test throughout feature
-    * selection.
+    * The dev & test folds are the same for all [[TrainDevTestFold]]s to maintain the independence of test throughout
+    * feature selection.
     */
-  def devFoldsFromIds(ids: Seq[Long], partitions: Map[Long, Int]): Seq[TrainDevTestFold] = {
-    val lastPartition = partitions.values.max
-    val allIndices = ids.indices.toSet
-    val idxToFold = for ((id, idx) <- ids.zipWithIndex) yield {
+  def devFoldsFromIds(ids: Seq[Long], partitions: Map[Long, Int], portion: Double = 1.0, seed: Int = 991): Seq[TrainDevTestFold] = {
+    val r = new Random(seed)
+
+    // make our map from ID to partition into a map from partition to sequence of shuffled IDs
+    val partToId = partitions.toSeq.groupBy(_._2).map{ case (grp, ids) => grp -> r.shuffle(ids.unzip._1) }
+
+    // reduce the size of each partition (at random) to portion size for training
+    val trainPart = for {
+      (grp, ids) <- partToId
+      sampled = ids.take((portion * ids.length).round.toInt)
+      s <- sampled
+    } yield s -> grp
+
+    // test folds will contain all indices so that evaluation is always the same
+    val teix = ids.zipWithIndex.filter{ case (id, ix) => partitions.contains(id) }
+    val idxToTest = for ((id, idx) <- teix) yield {
       idx -> partitions(id)
     }
-    val foldToIndices = idxToFold.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
-    val test = foldToIndices(lastPartition) // the test partition will be the same in all cases
-    for (p <- 0 until lastPartition) yield {
-      TrainDevTestFold(test.toSeq, foldToIndices(p).toSeq, (allIndices -- foldToIndices(p) -- test).toSeq)
+    val testFolds = idxToTest.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+
+    // train folds will contain only a portion of their originals
+    val trix = ids.zipWithIndex.filter{ case (id, ix) => trainPart.contains(id) }
+    val idxToTrain = for ((id, idx) <- trix) yield {
+      idx -> partitions(id)
+    }
+    val trainIndices = ids.indices.filter(i => trainPart.keys.toSeq.contains(ids(i))).toSet
+    val trainFolds = idxToTrain.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
+
+    val numPartitions = partitions.values.max + 1 // 0 indexed
+    for (p <- 0 until numPartitions) yield {
+      val devIndex = (p - 1 + numPartitions) % numPartitions
+      TrainDevTestFold(
+        testFolds(p).toSeq,
+        testFolds(devIndex).toSeq,
+        (trainIndices -- trainFolds(p) -- trainFolds(devIndex)).toSeq
+      )
     }
   }
 
