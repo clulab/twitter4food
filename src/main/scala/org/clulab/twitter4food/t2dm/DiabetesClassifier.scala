@@ -222,7 +222,7 @@ object DiabetesClassifier {
     val sig = BootstrapSignificance.bss(gold, baseline, pred, "risk")
 
     println(s"\n$fileExt\nportion\tfreq-cutoff\tIG%\tp\tr\tf1\tmacro\tmicro\tp-val")
-    println(f"$portion%1.2f\t$freq\t$ig\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
+    println(f"$portion%1.2f\t$freq%1.5f\t$ig%1.5f\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
       f"$macroAvg%1.5f\t$microAvg%1.5f\t$sig%1.6f")
   }
 }
