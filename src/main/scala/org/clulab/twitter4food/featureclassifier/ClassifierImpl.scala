@@ -795,6 +795,149 @@ class ClassifierImpl(
 
 
   /**
+    * Implements stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
+    * Each fold is as balanced as possible by label L. Returns the weights of each classifier in addition to predictions.
+    */
+  def binaryCVFS(
+                  accounts: Seq[TwitterAccount],
+                  labels: Seq[String],
+                  partitions: Map[Long, Int],
+                  portion: Double = 1.0,
+                  followers: Option[Map[String, Seq[TwitterAccount]]] = None,
+                  followees: Option[Map[String, Seq[String]]] = None,
+                  classifierFactory: () => LiblinearClassifier[String, String],
+                  labelSet: Map[String, String],
+                  percentTopToConsider: Double = 1.0
+  ): (Seq[(String, String)],
+    Seq[Int],
+    Seq[Double],
+    Map[String, Seq[(String, Double)]],
+    Seq[(String, Map[String, Seq[(String, Double)]])],
+    Seq[(String, Map[String, Seq[(String, Double)]])]) = {
+
+    assert(accounts.length == labels.length, "Number of accounts and labels must be equal")
+
+    // for printing out feature weights (including for specific account classifications)
+    val numFeatures = 30
+    val numAccts = 20
+
+    // Important: this dataset is sorted by id
+    val ids = partitions.keys.toSeq.sorted
+    val dataset = constructDataset(accounts, labels, followers, followees)
+    val folds = devFoldsFromIds(ids, partitions, portion)
+
+    val thresholds = 1 to 20
+    val fractions = (0 until 20).map(_ / 20.0)
+
+    val results = for (fold <- folds) yield {
+      logger.debug(s"train/dev/test:${fold.train.length}/${fold.dev.length}/${fold.test.length}")
+
+      val train = new RVFDataset[String, String]()
+      for (datum <- fold.train.toArray.map(dataset.mkDatum)) train += datum
+
+      val devResults = for {
+        threshold <- thresholds
+        fraction <- fractions
+      } yield {
+
+        val filtered = train
+          .removeFeaturesByFrequency(threshold)
+          .removeFeaturesByInformationGain(fraction)
+          .asInstanceOf[RVFDataset[String, String]]
+
+        val classifier = classifierFactory()
+        classifier.train(filtered)
+
+        val predictions = for (i <- fold.dev) yield {
+          val gold = dataset.labelLexicon.get(dataset.labels(i))
+          val datum = dataset.mkDatum(i)
+          val pred = classifier.classOf(datum)
+          (gold, pred)
+        }
+
+        val (evalMeasures, _, _) = Eval.evaluate(predictions)
+
+        (threshold, fraction, evalMeasures(labelSet("pos")).F)
+      }
+
+      val (bestThreshold, bestFraction, bestF1) = devResults.maxBy(_._3)
+
+      val trainDev = new RVFDataset[String, String]()
+      for (datum <- fold.train.toArray.map(dataset.mkDatum)) trainDev += datum
+      for (datum <- fold.dev.toArray.map(dataset.mkDatum)) trainDev += datum
+
+      val filtered = trainDev
+        .removeFeaturesByFrequency(bestThreshold)
+        .removeFeaturesByInformationGain(bestFraction)
+        .asInstanceOf[RVFDataset[String, String]]
+
+      val classifier = classifierFactory()
+      classifier.train(filtered)
+
+      val predictions = for(i <- fold.test) yield {
+        val id = ids(i).toString
+        val gold = dataset.labelLexicon.get(dataset.labels(i))
+        val datum = dataset.mkDatum(i)
+        val pred = classifier.classOf(datum)
+        val score = classifier.scoresOf(datum)
+        // NOTE: for the high confidence classifier, sort this tuple in decreasing order of classifier confidence ('score(pred)')
+        //    and take the top x percent (x is a parameter)
+        (id, gold, pred, datum, score, score.getCount(pred))
+      }
+
+      val W = classifier.getWeights()
+
+      val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * predictions.size).toInt )
+      (W, bestThreshold, bestFraction, highConfPredictions)
+    }
+
+    val allFeats = dataset.featureLexicon.keySet
+    val allWeights = results.map(_._1)
+    val bestThresholds = results.map(_._2)
+    val bestFractions = results.map(_._3)
+    val predictions = results.map(_._4)
+
+    val g = predictions.flatten.map(_._2)
+    val p = predictions.flatten.map(_._3)
+    val evalInput = g.zip(p)
+
+    val avgWeights = (for {
+      l <- dataset.labelLexicon.keySet
+    } yield {
+      val c = new Counter[String]
+      allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
+      c.mapValues(_ / allWeights.length)
+      l -> c
+    }).toMap
+
+    val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
+
+    val pToW = (for {
+      i <- results.indices
+      p <- results(i)._4
+    } yield p -> i).toMap
+
+    val posScale = predictions
+      .flatten
+      .filter(acct => acct._2 != labelSet("pos") && acct._3 == labelSet("pos")) // only false positives
+      .sortBy(_._5.getCount(labelSet("pos")))
+      .reverse
+      .take(numAccts)
+    val negScale = predictions
+      .flatten
+      .filter(acct => acct._2 == labelSet("pos") && acct._3 != labelSet("pos")) // only false negatives
+      .sortBy(_._5.getCount(labelSet("neg")))
+      .reverse
+      .take(numAccts)
+
+    val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+    val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
+
+    (evalInput, bestThresholds, bestFractions, topWeights, falsePos, falseNeg)
+  }
+
+
+  /**
     * Feature selection using stratified cross validation; producing pairs of gold/predicted labels across the training dataset.
     * Each fold is as balanced as possible by label L. Returns selected features with predictions to help estimate F1.
     */
