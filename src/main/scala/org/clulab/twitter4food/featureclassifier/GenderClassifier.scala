@@ -83,7 +83,7 @@ object GenderClassifier {
       else logger.info(s"ERROR: failed to create output directory $outputDir")
     }
 
-    val partitionFile = config.getString("classifiers.diabetes.folds")
+    val partitionFile = config.getString("classifiers.gender.folds")
 
     val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
       user(1).toLong -> user(0).toInt // id -> partition
