@@ -99,8 +99,6 @@ object DiabetesClassifier {
     )
     val default = allFeatures.forall(!_) // true if all features are off
 
-    val igFractions = (1 to 20).map(_.toDouble / 20)
-    val freqThresholds = 1 to 20
     val portion = 1.0
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")

@@ -827,7 +827,7 @@ class ClassifierImpl(
     val folds = devFoldsFromIds(ids, partitions, portion)
 
     val thresholds = 1 to 20
-    val fractions = (0 until 20).map(_ / 20.0)
+    val fractions = (1 to 20).map(_ / 20.0)
 
     val results = for (fold <- folds) yield {
       logger.debug(s"train/dev/test:${fold.train.length}/${fold.dev.length}/${fold.test.length}")
@@ -837,7 +837,7 @@ class ClassifierImpl(
 
       val devResults = for {
         threshold <- thresholds
-        fraction <- fractions
+        fraction <- fractions.par
       } yield {
 
         val filtered = train
@@ -860,7 +860,7 @@ class ClassifierImpl(
         (threshold, fraction, evalMeasures(labelSet("pos")).F)
       }
 
-      val (bestThreshold, bestFraction, bestF1) = devResults.maxBy(_._3)
+      val (bestThreshold, bestFraction, bestF1) = devResults.seq.maxBy(_._3)
 
       val trainDev = new RVFDataset[String, String]()
       for (datum <- fold.train.toArray.map(dataset.mkDatum)) trainDev += datum
