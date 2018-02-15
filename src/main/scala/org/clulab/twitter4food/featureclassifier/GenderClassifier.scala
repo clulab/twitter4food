@@ -71,7 +71,7 @@ object GenderClassifier {
     val config = ConfigFactory.load
     val logger = LoggerFactory.getLogger(this.getClass)
 
-    val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
+    val portion = 1.0
 
     val nonFeatures = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
@@ -83,19 +83,20 @@ object GenderClassifier {
       else logger.info(s"ERROR: failed to create output directory $outputDir")
     }
 
-    val toTrainOn = if (params.runOnTest) {
-      logger.info("Loading training accounts...")
-      val trainData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")).toSeq
-      logger.info("Loading dev accounts...")
-      val devData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData")).toSeq
-      trainData ++ devData
-    } else {
-      logger.info("Loading training accounts...")
-      FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")).toSeq
-    }
+    val partitionFile = config.getString("classifiers.diabetes.folds")
 
-    val followers = if (params.useFollowers) Option(ClassifierImpl.loadFollowers(toTrainOn.map(_._1))) else None
-    val followees = if (params.useFollowees) Option(ClassifierImpl.loadFollowees(toTrainOn.map(_._1), "gender")) else None
+    val partitions = FileUtils.readFromCsv(partitionFile).map { user =>
+      user(1).toLong -> user(0).toInt // id -> partition
+    }.toMap
+
+    logger.info("Loading Twitter accounts")
+    val labeledAccts = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.data"))
+      .toSeq
+      .filter(_._1.tweets.nonEmpty)
+      .filter{ case (acct, lbl) => partitions.contains(acct.id)}
+
+    val followers: Option[Map[String, Seq[TwitterAccount]]] = None
+    val followees: Option[Map[String, Seq[String]]] = None
 
     val modelDir = s"${config.getString("gender")}/model"
     if (!Files.exists(Paths.get(modelDir))) {
@@ -104,11 +105,7 @@ object GenderClassifier {
     }
     val modelFile = s"${config.getString("gender")}/model/$fileExt.dat"
 
-    val classifiers = for {
-      portion <- portions
-      maxIndex = (portion * toTrainOn.length).toInt
-    } yield {
-      val (trainAccounts, trainLabels) = toTrainOn.slice(0, maxIndex).unzip
+    val (accts, lbls) = labeledAccts.unzip
 
       val gc = new GenderClassifier(
         useUnigrams = params.useUnigrams,
@@ -128,85 +125,78 @@ object GenderClassifier {
         featureScaling = params.featureScaling
       )
 
-      logger.info("Training classifier...")
-      gc.setClassifier(new L1LinearSVMClassifier[String, String]())
-      gc.train(trainAccounts, trainLabels, followers, followees)
-      // Only save models using full training
-      if (maxIndex == toTrainOn.length) gc.subClassifier.get.saveTo(modelFile)
+    logger.info("Training classifier...")
 
-      (portion, maxIndex, gc)
-    }
-    val toTestOn = if (params.runOnTest) {
-      logger.info("Loading test accounts...")
-      FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.testData"))
+    val labelSet = Map("pos" -> "F", "neg" -> "M")
+    val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
+
+    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg) =
+      gc.binaryCVFS(
+        accts,
+        lbls,
+        partitions,
+        portion,
+        followers,
+        followees,
+        Utils.svmFactory,
+        labelSet,
+        percentTopToConsider=highConfPercent
+      )
+
+    // Print results
+    val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
+
+    val evalMetric = if (evalMeasures.keySet contains "F") {
+      evalMeasures("F")
     } else {
-      logger.info("Loading dev accounts...")
-      FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData"))
+      logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
+      evalMeasures.head._2
     }
+    val precision = evalMetric.P
+    val recall = evalMetric.R
 
-    val evals = for ((portion, numAccounts, gc) <- classifiers) yield {
-
-      // Set progress bar
-      val pb = new me.tongfei.progressbar.ProgressBar("main()", 100)
-      pb.start()
-      pb.maxHint(toTestOn.size)
-      pb.setExtraMessage("Testing on dev accounts...")
-
-      // Classify accounts
-      val testSetLabels = toTestOn.values.toSeq
-      val predictedLabels = toTestOn.keys.toSeq.map { u =>
-        pb.step()
-        gc.classify(u)
+    // Write analysis only on full portion
+    if (portion == 1.0) {
+      if (params.fpnAnalysis) {
+        // Perform analysis on false negatives and false positives
+        outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
       }
 
-      pb.stop()
+      // Save results
+      val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
+      writer.write(s"Precision: $precision\n")
+      writer.write(s"Recall: $recall\n")
+      writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
+      writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
+      writer.write(s"Macro average: $macroAvg\n")
+      writer.write(s"Micro average: $microAvg\n")
+      writer.close()
 
-      // Print results
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(testSetLabels, predictedLabels, toTestOn.keys.toSeq)
-
-      val evalMetric = evalMeasures(gc.labels.toSeq.sorted.head)
-      val precision = evalMetric.P
-      val recall = evalMetric.R
-
-      if (portion == 1.0) {
-        if (params.fpnAnalysis & gc.subClassifier.nonEmpty &
-          (evalMetric.FNAccounts.nonEmpty || evalMetric.FPAccounts.nonEmpty)) {
-          // Perform analysis on false negatives and false positives
-          println("False negatives:")
-          evalMetric.FNAccounts.foreach(account => print(account.handle + "\t"))
-          println("\n====")
-          outputAnalysis(outputDir + "/analysisFN.txt", "*** False negatives ***\n\n", evalMetric.FNAccounts, gc, gc.labels)
-
-          println("False positives:")
-          evalMetric.FPAccounts.foreach(account => print(account.handle + "\t"))
-          println("\n====")
-          outputAnalysis(outputDir + "/analysisFP.txt", "*** False positives ***\n\n", evalMetric.FPAccounts, gc, gc.labels)
-        }
-
-        // Save results
-        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-        writer.write(s"Precision: $precision\n")
-        writer.write(s"Recall: $recall\n")
-        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
-        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-        writer.write(s"Macro average: $macroAvg\n")
-        writer.write(s"Micro average: $microAvg\n")
-        writer.close()
-
-        // Save individual predictions for bootstrap significance
-        val predicted = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-        predicted.write(s"gold\tpred\n")
-        testSetLabels.zip(predictedLabels).foreach(acct => predicted.write(s"${acct._1}\t${acct._2}\n"))
-        predicted.close()
-      }
-
-      (portion, numAccounts, precision, recall, macroAvg, microAvg)
+      // Save individual predictions for bootstrap significance
+      val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+      predWriter.write(s"gold\tpred\n")
+      predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
+      predWriter.close()
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg) =>
-      println(s"$portion\t$numAccounts\t$precision\t$recall\t${fMeasure(precision, recall, 1)}\t${fMeasure(precision, recall, .2)}" +
-        s"\t$macroAvg\t$microAvg")
-    }
+    val freq = bestFreq.sum.toDouble / bestFreq.length
+    val ig = bestPerc.sum / bestPerc.length
+
+    val (gold, pred) = predictions.unzip
+    val baseline = Array.fill[String](gold.length)("F")
+    val f1 = fMeasure(precision, recall, 1)
+
+    val (baselineEval, baselineMicroAvg, baselineMacroAvg) = Eval.evaluate(predictions.unzip._1.zip(baseline))
+    val baselineP = baselineEval("F").P
+    val baselineR = baselineEval("F").R
+    val baselineF1 = fMeasure(baselineP, baselineR, 1)
+
+    val sig = BootstrapSignificance.bss(gold, baseline, pred, "F", measure = "macro")
+
+    println(s"\n$fileExt\nportion\tfreq_cutoff\tIG%\tp\tr\tf1\tmacro\tmicro\tmacro_p-val")
+    println(f"baseline\tNA\tNA\t$baselineP%1.5f\t$baselineR%1.5f\t$baselineF1%1.5f\t$baselineMacroAvg%1.5f\t" +
+      f"$baselineMicroAvg%1.5f\tNA")
+    println(f"$portion%1.2f\t$freq%1.5f\t$ig%1.5f\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
+      f"$macroAvg%1.5f\t$microAvg%1.5f\t$sig%1.6f")
   }
 }
