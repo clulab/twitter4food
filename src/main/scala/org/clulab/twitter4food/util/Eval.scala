@@ -45,11 +45,6 @@ object Eval {
     evalMeasures(label).F
   }
 
-  def f1ForLabel(label: String)(gold: Seq[String], pred: Seq[String]): Double = {
-    val (evalMeasures, _, _) = evaluate(gold, pred)
-    evalMeasures(label).F
-  }
-
   def macroOnly(labels: Iterable[(String, String)]): Double = {
     evaluate(labels.toSeq)._2
   }

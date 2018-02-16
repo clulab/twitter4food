@@ -25,7 +25,7 @@ object BootstrapSignificance {
       m match {
         case "macro" => Eval.macroOnly(gold, preds)
         case "micro" => Eval.microOnly(gold, preds)
-        case other => Eval.f1ForLabel(lbl)(gold, preds)
+        case other => Eval.f1ForLabel(lbl)(gold zip preds)
       }
     }
 
