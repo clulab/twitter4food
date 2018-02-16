@@ -895,9 +895,25 @@ class ClassifierImpl(
         (threshold, fraction, metric(measure, labelSet("pos"), predictions))
       }
 
-      val bt = devResults.seq.
+      // best frequency threshold irrespective of information gain setting (to avoid overfitting)
+      val bestThreshold = devResults
+        .seq
+        .groupBy(_._1)
+        .map{ case (thresh, grp) =>
+          val scores = grp.map(_._3)
+          thresh -> scores.sum / scores.length
+        }
+        .maxBy(_._2)._1
 
-      val (bestThreshold, bestFraction, bestScore) = devResults.seq.maxBy(_._3)
+      // best information gain percentage irrespective of frequency threshold (to avoid overfitting)
+      val bestFraction = devResults
+        .seq
+        .groupBy(_._2)
+        .map{ case (frac, grp) =>
+          val scores = grp.map(_._3)
+          frac -> scores.sum / scores.length
+        }
+        .maxBy(_._2)._1
 
       val trainDev = new RVFDataset[String, String]()
       for (datum <- fold.train.toArray.map(dataset.mkDatum)) trainDev += datum
