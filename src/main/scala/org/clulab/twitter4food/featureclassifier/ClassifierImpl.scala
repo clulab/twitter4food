@@ -835,7 +835,8 @@ class ClassifierImpl(
                   followees: Option[Map[String, Seq[String]]] = None,
                   classifierFactory: () => LiblinearClassifier[String, String],
                   labelSet: Map[String, String],
-                  percentTopToConsider: Double = 1.0
+                  percentTopToConsider: Double = 1.0,
+                  measure: String = "f1"
   ): (Seq[(String, String)],
     Seq[Int],
     Seq[Double],
@@ -844,6 +845,14 @@ class ClassifierImpl(
     Seq[(String, Map[String, Seq[(String, Double)]])]) = {
 
     assert(accounts.length == labels.length, "Number of accounts and labels must be equal")
+
+    def metric(m: String, lbl: String, preds: Iterable[(String, String)]): Double = {
+      m match {
+        case "macro" => Eval.macroOnly(preds)
+        case "micro" => Eval.microOnly(preds)
+        case other => Eval.f1ForLabel(lbl)(preds)
+      }
+    }
 
     // for printing out feature weights (including for specific account classifications)
     val numFeatures = 30
@@ -883,12 +892,12 @@ class ClassifierImpl(
           (gold, pred)
         }
 
-        val (evalMeasures, _, _) = Eval.evaluate(predictions)
-
-        (threshold, fraction, evalMeasures(labelSet("pos")).F)
+        (threshold, fraction, metric(measure, labelSet("pos"), predictions))
       }
 
-      val (bestThreshold, bestFraction, bestF1) = devResults.seq.maxBy(_._3)
+      val bt = devResults.seq.
+
+      val (bestThreshold, bestFraction, bestScore) = devResults.seq.maxBy(_._3)
 
       val trainDev = new RVFDataset[String, String]()
       for (datum <- fold.train.toArray.map(dataset.mkDatum)) trainDev += datum
