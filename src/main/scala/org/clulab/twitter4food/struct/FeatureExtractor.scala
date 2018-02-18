@@ -216,7 +216,7 @@ class FeatureExtractor (
 
   // gender classifier for domain adaptation
   val genderClassifier = if(useGender) {
-    val modelFile = config.getString("classifiers.overweight.genderClassifier")
+    val modelFile = config.getString(s"classifiers.${variable}.genderClassifier")
     val model = if (Files.exists(Paths.get(modelFile))) {
       logger.info(s"$modelFile found; loading...")
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
