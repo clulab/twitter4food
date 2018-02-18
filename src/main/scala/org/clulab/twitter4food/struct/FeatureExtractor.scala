@@ -1,10 +1,10 @@
 package org.clulab.twitter4food.struct
 
-import java.io.{BufferedReader, FileReader}
+import java.io.{BufferedReader, File, FileReader}
 import java.nio.file.{Files, Paths}
 import java.time.temporal.ChronoUnit
 
-import org.clulab.learning.{Datum, L1LinearSVMClassifier, LiblinearClassifier, RVFDatum}
+import org.clulab.learning._
 import org.clulab.struct.{Counter, Counters, Lexicon}
 import org.clulab.twitter4food.struct.Normalization._
 import org.clulab.twitter4food.util.Utils._
@@ -12,7 +12,7 @@ import cmu.arktweetnlp.Tagger._
 import com.typesafe.config.ConfigFactory
 import org.clulab.twitter4food.featureclassifier.{ClassifierImpl, GenderClassifier, HumanClassifier}
 import org.clulab.twitter4food.lda.LDA
-import org.clulab.twitter4food.util.FileUtils
+import org.clulab.twitter4food.util.{FileUtils, Utils}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
@@ -220,30 +220,44 @@ class FeatureExtractor (
     val model = if (Files.exists(Paths.get(modelFile))) {
       logger.info(s"$modelFile found; loading...")
       val sub = LiblinearClassifier.loadFrom[String, String](modelFile)
-      val g = new GenderClassifier(useUnigrams=true, useDictionaries=true, useTopics=true, useTimeDate=true)
+      val g = new GenderClassifier(useUnigrams=true)
       g.subClassifier = Option(sub)
       g
     } else {
       // train a fresh classifier
       logger.info(s"$modelFile not found; attempting to train...")
 
-      val trainingData = FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.trainingData")) ++
-        FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.devData")) ++
-        FileUtils.loadTwitterAccounts(config.getString("classifiers.gender.testData"))
-      val tmp = new GenderClassifier(useUnigrams=true, useDictionaries=true, useMaxEmbeddings=true)
+      val labeledAccts = FileUtils
+        .loadTwitterAccounts(config.getString("classifiers.gender.data"))
+        .toSeq
+        .filter(_._1.tweets.nonEmpty)
+      val followers: Option[Map[String, Seq[TwitterAccount]]] = None
+      val followees: Option[Map[String, Seq[String]]] = None
 
-      // bad to have to loadTwitterAccounts followers possibly multiple times, but this should happen only rarely
-      // TODO: different follower files by classifier
-      val followers = if (tmp.useFollowers) {
-        Option(ClassifierImpl.loadFollowers(trainingData.keys.toSeq))
-      } else None
-      val followees = if (tmp.useFollowees) {
-        Option(ClassifierImpl.loadFollowees(trainingData.keys.toSeq, "gender"))
-      } else None
-      tmp.setClassifier(new L1LinearSVMClassifier[String, String]())
-      tmp.train(trainingData.keys.toSeq, trainingData.values.toSeq, followers, followees)
-      tmp.subClassifier.get.saveTo(modelFile)
-      tmp
+      val modelDir = s"${config.getString("gender")}/models"
+      if (!Files.exists(Paths.get(modelDir))) {
+        new File(modelDir).mkdir()
+      }
+
+      val (accounts, labels) = labeledAccts.unzip
+
+      val gc = new GenderClassifier(useUnigrams = true)
+
+      val threshold = 2
+      val fraction = 0.72
+
+      val train = gc
+        .constructDataset(accounts, labels, followers, followees)
+        .removeFeaturesByFrequency(threshold)
+        .removeFeaturesByInformationGain(fraction)
+        .asInstanceOf[RVFDataset[String, String]]
+
+      val classifier = Utils.svmFactory
+
+      classifier.train(train)
+      classifier.saveTo(modelFile)
+
+      Option(classifier)
     }
     Option(model)
   } else None
