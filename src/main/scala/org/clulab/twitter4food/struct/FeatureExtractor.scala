@@ -241,12 +241,12 @@ class FeatureExtractor (
 
       val (accounts, labels) = labeledAccts.unzip
 
-      val gc = new GenderClassifier(useUnigrams = true)
+      val g = new GenderClassifier(useUnigrams = true)
 
       val threshold = 2
       val fraction = 0.72
 
-      val train = gc
+      val train = g
         .constructDataset(accounts, labels, followers, followees)
         .removeFeaturesByFrequency(threshold)
         .removeFeaturesByInformationGain(fraction)
@@ -257,7 +257,9 @@ class FeatureExtractor (
       classifier.train(train)
       classifier.saveTo(modelFile)
 
-      Option(classifier)
+      g.subClassifier = Option(classifier)
+
+      g
     }
     Option(model)
   } else None
