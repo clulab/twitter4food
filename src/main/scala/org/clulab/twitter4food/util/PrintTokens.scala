@@ -39,7 +39,7 @@ object PrintTokens {
 
   def getAge(account: TwitterAccount, fe: FeatureExtractor): String = {
     val ageExact = fe.ageAnnotation.get.get(account.id.toString)
-    if (ageExact.nonEmpty) {
+    if (ageExact.nonEmpty && ageExact.get != "NA") {
       val ae = ageExact.get.toDouble
       f"$ae%1.1f"
     } else "UNK"
