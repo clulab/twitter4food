@@ -595,6 +595,7 @@ class ClassifierImpl(
       sampled = ids.take((portion * ids.length).round.toInt)
       s <- sampled
     } yield s -> grp
+    val extras = ids.filterNot(partitions.contains)
 
     // test folds will contain all indices so that evaluation is always the same
     val teix = ids.zipWithIndex.filter{ case (id, ix) => partitions.contains(id) }
@@ -604,7 +605,7 @@ class ClassifierImpl(
     val testFolds = idxToTest.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
 
     // train folds will contain only a portion of their originals
-    val trix = ids.zipWithIndex.filter{ case (id, ix) => trainPart.contains(id) }
+    val trix = ids.zipWithIndex.filter{ case (id, ix) => trainPart.contains(id) || extras.contains(id) }
     val idxToTrain = for ((id, idx) <- trix) yield {
       idx -> partitions(id)
     }
@@ -836,7 +837,9 @@ class ClassifierImpl(
                   classifierFactory: () => LiblinearClassifier[String, String],
                   labelSet: Map[String, String],
                   percentTopToConsider: Double = 1.0,
-                  measure: String = "f1"
+                  measure: String = "f1",
+                  trainingAccts: Seq[TwitterAccount] = Nil,
+                  trainingLbls: Seq[String] = Nil
   ): (Seq[(String, String)],
     Seq[Int],
     Seq[Double],
@@ -859,8 +862,8 @@ class ClassifierImpl(
     val numAccts = 20
 
     // Important: this dataset is sorted by id
-    val ids = partitions.keys.toSeq.sorted
-    val dataset = constructDataset(accounts, labels, followers, followees)
+    val ids = (partitions.keys ++ trainingAccts.map(_.id)).toSeq.sorted
+    val dataset = constructDataset(accounts ++ trainingAccts, labels ++ trainingLbls, followers, followees)
     val folds = devFoldsFromIds(ids, partitions, portion)
 
     val thresholds = 1 to 20
