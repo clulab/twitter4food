@@ -89,7 +89,7 @@ object Gender4Diabetes {
 
     logger.info("Training classifier...")
 
-    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg) =
+    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg, idToPred) =
       gc.binaryCVFS(
         dbAccts,
         dbLbls,
@@ -104,6 +104,8 @@ object Gender4Diabetes {
         trainingAccts=trainingAccts,
         trainingLbls=trainingLbls
       )
+
+    FileUtils.writeToCsv(config.getString("server_path") + "/diabetes/newPredAgeGenderAnnotations.csv", idToPred)
 
     // Print results
     val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)

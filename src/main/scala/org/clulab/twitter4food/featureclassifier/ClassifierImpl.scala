@@ -845,7 +845,8 @@ class ClassifierImpl(
     Seq[Double],
     Map[String, Seq[(String, Double)]],
     Seq[(String, Map[String, Seq[(String, Double)]])],
-    Seq[(String, Map[String, Seq[(String, Double)]])]) = {
+    Seq[(String, Map[String, Seq[(String, Double)]])],
+    Seq[Seq[String]]) = {
 
     assert(accounts.length == labels.length, "Number of accounts and labels must be equal")
 
@@ -986,10 +987,12 @@ class ClassifierImpl(
       .reverse
       .take(numAccts)
 
+    val idToPred = predictions.flatten.map(acct => Seq(acct._1, "NA", acct._3))
+
     val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
     val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
 
-    (evalInput, bestThresholds, bestFractions, topWeights, falsePos, falseNeg)
+    (evalInput, bestThresholds, bestFractions, topWeights, falsePos, falseNeg, idToPred)
   }
 
 
