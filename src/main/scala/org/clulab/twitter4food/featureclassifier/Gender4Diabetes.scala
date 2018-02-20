@@ -18,6 +18,9 @@ object Gender4Diabetes {
     val logger = LoggerFactory.getLogger(this.getClass)
 
     val portion = 1.0
+    val labelSet = Map("pos" -> "F", "neg" -> "M")
+    val legalLabels = labelSet.values.toSeq
+    val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
     val nonFeatures = Seq("--analysis", "--test", "--noTraining", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
@@ -63,6 +66,7 @@ object Gender4Diabetes {
       .readFromCsv(config.getString("classifiers.diabetes.goldAgeGenderAnnotations"))
       .map(row => row.head.toLong -> row.last) // id -> gender
       .toMap
+      .filter(record => legalLabels.contains(record._2)) // ignore "O" for this
 
     val dbAccts = diabetesAccts.unzip._1.filter(acct => goldLbls.contains(acct.id))
     val dbLbls = dbAccts.map(acct => goldLbls(acct.id))
@@ -84,9 +88,6 @@ object Gender4Diabetes {
     )
 
     logger.info("Training classifier...")
-
-    val labelSet = Map("pos" -> "F", "neg" -> "M")
-    val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
     val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg) =
       gc.binaryCVFS(
