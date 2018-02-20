@@ -163,7 +163,7 @@ object DiabetesClassifier {
     val labelSet = Map("pos" -> "risk", "neg" -> "not")
     val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
-    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg) =
+    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg, _) =
       dc.binaryCVFS(
         accts,
         lbls,

@@ -130,7 +130,7 @@ object GenderClassifier {
     val labelSet = Map("pos" -> "F", "neg" -> "M")
     val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
-    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg) =
+    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg, _) =
       gc.binaryCVFS(
         accts,
         lbls,
