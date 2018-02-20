@@ -64,7 +64,7 @@ object Gender4Diabetes {
       .map(row => row.head.toLong -> row.last) // id -> gender
       .toMap
 
-    val dbAccts = diabetesAccts.unzip._1
+    val dbAccts = diabetesAccts.unzip._1.filter(acct => goldLbls.contains(acct.id))
     val dbLbls = dbAccts.map(acct => goldLbls(acct.id))
 
     val gc = new GenderClassifier(

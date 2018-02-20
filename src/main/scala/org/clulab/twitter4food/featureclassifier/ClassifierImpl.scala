@@ -605,11 +605,11 @@ class ClassifierImpl(
     val testFolds = idxToTest.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
 
     // train folds will contain only a portion of their originals
-    val trix = ids.zipWithIndex.filter{ case (id, ix) => trainPart.contains(id) || extras.contains(id) }
+    val trix = ids.zipWithIndex.filter{ case (id, ix) => trainPart.contains(id)}
     val idxToTrain = for ((id, idx) <- trix) yield {
       idx -> partitions(id)
     }
-    val trainIndices = ids.indices.filter(i => trainPart.keys.toSeq.contains(ids(i))).toSet
+    val trainIndices = ids.indices.filter(i => trainPart.keys.toSeq.contains(ids(i)) || extras.contains(ids(i))).toSet
     val trainFolds = idxToTrain.groupBy(_._2).map{ case (p, is) => p -> is.map(_._1).toSet }
 
     val numPartitions = partitions.values.max + 1 // 0 indexed
