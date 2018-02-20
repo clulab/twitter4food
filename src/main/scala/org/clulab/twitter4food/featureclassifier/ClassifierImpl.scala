@@ -862,7 +862,7 @@ class ClassifierImpl(
     val numAccts = 20
 
     // Important: this dataset is sorted by id
-    val ids = (partitions.keys ++ trainingAccts.map(_.id)).toSeq.sorted
+    val ids = (accounts.map(_.id) ++ trainingAccts.map(_.id)).sorted
     val dataset = constructDataset(accounts ++ trainingAccts, labels ++ trainingLbls, followers, followees)
     val folds = devFoldsFromIds(ids, partitions, portion)
 
