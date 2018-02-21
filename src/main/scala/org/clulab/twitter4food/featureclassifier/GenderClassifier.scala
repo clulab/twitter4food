@@ -30,6 +30,7 @@ class GenderClassifier(
   useFollowers: Boolean = false,
   useFollowees: Boolean = false,
   useRT: Boolean = false,
+  dictOnly: Boolean = false,
   datumScaling: Boolean = false,
   featureScaling: Boolean = false)
   extends ClassifierImpl(
@@ -53,7 +54,7 @@ class GenderClassifier(
     useAge=false,
     useRace=false,
     useHuman=false,
-    dictOnly=false,
+    dictOnly=dictOnly,
     denoise=false,
     datumScaling=datumScaling,
     featureScaling=featureScaling,
