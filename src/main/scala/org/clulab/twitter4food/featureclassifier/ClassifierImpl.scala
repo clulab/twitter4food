@@ -1127,7 +1127,7 @@ object ClassifierImpl {
     weights.foreach { case (label, feats) =>
       writer.write(s"$label weights\n$barrier\n")
       writer.write(feats.take(numWeights).map(feat => s"${feat._1}\t${feat._2}").mkString("\n"))
-      writer.write("\n")
+      writer.write("\n$barrier\n\n")
     }
     writer.close()
 
