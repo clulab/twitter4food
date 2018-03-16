@@ -19,7 +19,8 @@ import scala.util.Try
 case class DataExtractionConfig(variable: String = "diabetes",
                                 getImages: Boolean = false,
                                 twitterImages: Boolean = true,
-                                extImages: Boolean = true)
+                                extImages: Boolean = true,
+                                maxDownloads: Int = 1000)
 
 /**
   * Author: Dane Bell
@@ -41,9 +42,10 @@ object DataExtraction {
     val parser = new scopt.OptionParser[DataExtractionConfig]("dataExtraction") {
       head("Choose a variable from the set {overweight, ow2, diabetes, human, gender}")
       arg[String]("variable") action { (x, c) => c.copy(variable = x) } text "variable to use"
-      opt[String]('p', "photos") action { (x, c) => c.copy(getImages = true) } text "download photos if true"
-      opt[String]('t', "twitter") action { (x, c) => c.copy(twitterImages = true) } text "twitter images if true"
-      opt[String]('i', "instagram") action { (x, c) => c.copy(extImages = true) } text "instagram images if true"
+      opt[Unit]('p', "photos") action { (x, c) => c.copy(getImages = true) } text "download photos if true"
+      opt[Unit]('t', "twitter") action { (x, c) => c.copy(twitterImages = true) } text "twitter images if true"
+      opt[Unit]('i', "instagram") action { (x, c) => c.copy(extImages = true) } text "instagram images if true"
+      opt[Int]('m', "maxDownloads") action { (x, c) => c.copy(maxDownloads = x) } text "maximum images to download per acct"
     }
 
     val opts = parser.parse(args, DataExtractionConfig())
@@ -295,9 +297,11 @@ object DataExtraction {
       // download tweet images (on Twitter or externally (on Instagram) according to options
       if(opts.twitterImages || opts.extImages) logger.info("Getting tweet pics...")
       if(opts.twitterImages)
-        getImages(nonEmptyAccounts, s"classifiers.${opts.variable}.twitterImages", getTwitter = true)
+        getImages(nonEmptyAccounts, s"classifiers.${opts.variable}.twitterImages",
+          getTwitter = true, maxDownloads = opts.maxDownloads)
       if(opts.extImages)
-        getImages(nonEmptyAccounts, s"classifiers.${opts.variable}.extImages", getExt = true)
+        getImages(nonEmptyAccounts, s"classifiers.${opts.variable}.extImages",
+          getExt = true, maxDownloads = opts.maxDownloads)
     }
   }
 }
