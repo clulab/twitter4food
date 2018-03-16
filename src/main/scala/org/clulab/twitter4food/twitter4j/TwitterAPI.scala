@@ -1,5 +1,7 @@
 package org.clulab.twitter4food.twitter4j
 
+import java.net.{HttpURLConnection, URL}
+
 import org.clulab.twitter4food.struct.{Location, Tweet, TwitterAccount}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
@@ -8,6 +10,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
+
+import scala.annotation.tailrec
 
 /**
   * Wrapper for Twitter4J
@@ -36,12 +40,12 @@ class TwitterAPI(keyset: Int) {
   private val cb2 = new ConfigurationBuilder()
   private val keysFilePath = config.getString("twitter4j.api_keys")
   private val keys = scala.io.Source.fromFile(keysFilePath)
-                            .getLines.toList.slice(4*keyset, 4*(keyset+1))
-                            .map(x => x.split("\t")(1))
+    .getLines.toList.slice(4*keyset, 4*(keyset+1))
+    .map(x => x.split("\t")(1))
 
   private val RateLimitChart = scala.collection.Map("showUser" -> Array(180, 180), "getUserTimeline" -> Array(180, 300),
     "getFollowersIDs" -> Array(15, 15), "getFriendsIDs" -> Array(15, 15), "showFriendship" -> Array(180, 15),
-    "search" -> Array(180, 450), "lookupUsers" -> Array(180, 60))
+    "search" -> Array(180, 450), "lookupUsers" -> Array(180, 60), "generic" -> Array(1000, 1000))
 
   System.setProperty("twitter4j.loggerFactory", "twitter4j.NullLoggerFactory")
   /* User-only OAuth */
@@ -76,6 +80,18 @@ class TwitterAPI(keyset: Int) {
     Thread.sleep(sleepTime)
   }
 
+  // Follow URL shortener to real URL but not past depth 3 in case of circular reference somehow
+  def unshorten(url: String): String = {
+    def unshortenInner(u: String, depth: Int): String = {
+      if (depth > 3) return u
+      val connection = new URL(u).openConnection().asInstanceOf[HttpURLConnection]
+      connection.setInstanceFollowRedirects(false)
+      val next = connection.getHeaderField("Location")
+      if (next == null) u else unshortenInner(next, depth + 1)
+    }
+    unshortenInner(url, 0)
+  }
+
   private val option = (something: String) => if(something != null) something else ""
   private val minId = (tweets: Seq[Status]) => tweets.foldLeft(Long.MaxValue)(
     (min, t) => if(t.getId < min) t.getId else min)
@@ -92,9 +108,8 @@ class TwitterAPI(keyset: Int) {
         user = twitter.showUser(_handle.toLong)
       else
         user = twitter.showUser(_handle)
-    } catch {
-        case te: TwitterException =>
-          logger.error(s"${_handle} ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
+    } catch { case te: TwitterException =>
+      logger.error(s"${_handle} ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
     }
 
     sleep("showUser", isAppOnly)
@@ -122,6 +137,7 @@ class TwitterAPI(keyset: Int) {
               val urls: Seq[String] = Option(tweet.getURLEntities)
                 .getOrElse(Array())
                 .flatMap(url => Option(url.getExpandedURL))
+                .map(unshorten)
               val images: Seq[String] = tweet.getMediaEntities.map(_.getMediaURLHttps)
               val instaImage = urls.filter(isInsta)
               new Tweet(option(tweet.getText), tweet.getId, option(tweet.getLang), tweet.getCreatedAt,
@@ -132,7 +148,7 @@ class TwitterAPI(keyset: Int) {
             page.setMaxId(min-1)
             tweets = twitter.getUserTimeline(handle, page).asScala.toList
             sleep("getUserTimeline", isAppOnly)
-            } 
+          }
         } catch {
           case te: TwitterException =>
             logger.error(s"$handle ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
@@ -147,7 +163,7 @@ class TwitterAPI(keyset: Int) {
           .sortWith(_._2.length > _._2.length).map(_._1)
 
         val addActiveFollowers = (_count: Int, users: Seq[String],
-          isID: Boolean) => {
+                                  isID: Boolean) => {
 
           // Iterate over activeUsers and followers.
           var i = 0
@@ -160,8 +176,8 @@ class TwitterAPI(keyset: Int) {
             try {
               condition = if(isID) userOnlyTwitter.showFriendship(id, tgt.toLong)
                 .isTargetFollowedBySource
-                else userOnlyTwitter.showFriendship(handle, tgt)
-                  .isTargetFollowedBySource
+              else userOnlyTwitter.showFriendship(handle, tgt)
+                .isTargetFollowedBySource
 
               sleep("showFriendship", isAppOnly=false)
 
@@ -172,8 +188,8 @@ class TwitterAPI(keyset: Int) {
 
             val follower = if(condition) fetchAccount(tgt,
               fetchTweets=true, fetchNetwork=false, isID)
-              else null
-            
+            else null
+
             if(follower != null) {
               followers = follower :: followers
               count -= 1
@@ -191,16 +207,16 @@ class TwitterAPI(keyset: Int) {
           // 5000 is maximum on cursor and count
           try {
             val _followerIDs = addActiveFollowers(numToRetrieve - followers.size,
-            twitter.getFollowersIDs(id, -1, 5000).getIDs.map(_.toString), true)
-            } catch {
-              case te: TwitterException =>
-                logger.error(s"$handle ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
-            }
+              twitter.getFollowersIDs(id, -1, 5000).getIDs.map(_.toString), true)
+          } catch {
+            case te: TwitterException =>
+              logger.error(s"$handle ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
+          }
           sleep("getFollowersIDs", isAppOnly) //one minute per getFollowers
         }
       }
 
-      val account = new TwitterAccount(handle, id, name, language, url, 
+      val account = new TwitterAccount(handle, id, name, language, url,
         location, description, tweetBuffer, followers)
 
       account
@@ -220,7 +236,7 @@ class TwitterAPI(keyset: Int) {
         query.setLang("en")
         try {
           var tweets = twitter.search(query).getTweets().asScala.toList
-          
+
           sleep("search", isAppOnly)
 
           while(tweets.nonEmpty) {
@@ -229,12 +245,12 @@ class TwitterAPI(keyset: Int) {
               if(!seenHandles.contains(handle)) {
                 seenHandles += handle
                 results += handle -> new ArrayBuffer[Tweet]()
-                results(handle) += new Tweet(option(q.getText), q.getId, 
+                results(handle) += new Tweet(option(q.getText), q.getId,
                   option(q.getLang), q.getCreatedAt, handle)
-                }
+              }
               else results(handle) += new Tweet(option(q.getText), q.getId,
                 option(q.getLang), q.getCreatedAt, handle)
-              })
+            })
             val min = minId(tweets)
             query.setMaxId(min-1)
 
@@ -257,7 +273,7 @@ class TwitterAPI(keyset: Int) {
       appOnlyTwitter.getFriendsIDs(handle, -1).getIDs.toSeq // first 5000 only
     } catch {
       case e: Exception => logger.error(s"Account $handle not found!")
-      Nil
+        Nil
     }
     sleep("getFriendsIDs", isAppOnly = true)
     val screenNames = ArrayBuffer[String]()

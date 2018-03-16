@@ -31,13 +31,15 @@ class Tweet (val text: String,
     new Tweet(text, id, lang, createdAt, handle, urls, images, extImages)
   }
 
+  def isShortened(url: String): Boolean = url contains "//t.co/"
+
   /**
     * Returns a new [[Tweet]] with the images of both copies of the tweet. The argument tweet's other info is discarded.
     */
   def merge(that: Tweet): Tweet = {
     assert(this.id == that.id, "Merged tweets must have the same ID!")
     val allUrls = (this.urls ++ that.urls).distinct
-    val allImgs = (this.images ++ that.images).distinct
+    val allImgs = (this.images ++ that.images).filterNot(isShortened).distinct
     val allExtImgs = (this.extImages ++ that.extImages).distinct
     this.copy(urls = allUrls, images = allImgs, extImages = allExtImgs)
   }
