@@ -13,6 +13,10 @@ import scala.util.Try
 object FileUtils {
   def normalizeText(text: String): String = text.replaceAll("[\0\b\t\n\f\r]", " ").replaceAll(" +", " ")
 
+  def encapsulate(texts: Seq[String]): String = if (texts.isEmpty) "" else texts.mkString("|||")
+
+  def expose(text: String): Seq[String] = if (text == "") Nil else text.split("\\|\\|\\|")
+
   def saveToFile(users: Seq[TwitterAccount], labels: Seq[String],
     fileName: String, append: Boolean = false) = {
     val writer = new BufferedWriter(new FileWriter(fileName, append))
@@ -32,10 +36,11 @@ object FileUtils {
           writer.write(s"${user.lang}\t${normalizeText(user.url)}\t")
           writer.write(s"${normalizeText(user.location)}\n")
           writer.write(s"${normalizeText(user.description)}\n")
-          user.tweets.foreach(tweet => {
-            writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.lang}\t${tweet.urls.mkString("|||")}\n")
+          user.tweets.foreach { tweet =>
+            writer.write(s"${tweet.id}\t${tweet.createdAt}\t${tweet.lang}\t")
+            writer.write(s"${encapsulate(tweet.urls)}\t${encapsulate(tweet.images)}\t${encapsulate(tweet.extImages)}\n")
             writer.write(s"${normalizeText(tweet.text)}\n")
-          })
+          }
         }
       } catch {
         case e: IOException => e.printStackTrace()
@@ -91,6 +96,8 @@ object FileUtils {
             var tweetId, tweetLang = ""
             var date: Date = null
             var urls: Seq[String] = Nil
+            var images: Seq[String] = Nil
+            var extImages: Seq[String] = Nil
             while (tweetLines.hasNext) {
               val tweetLine = tweetLines.next
               val tweetSplit = tweetLine.split("\t")
@@ -100,8 +107,10 @@ object FileUtils {
                   date = df.parse(tweetSplit(1))
                   tweetLang = tweetSplit(2)
                   urls = if (tweetSplit.length < 4) Nil else tweetSplit(3).split("\\|\\|\\|")
+                  images = if (tweetSplit.length < 5) Nil else tweetSplit(4).split("\\|\\|\\|")
+                  extImages = if (tweetSplit.length < 6) Nil else tweetSplit(5).split("\\|\\|\\|")
                 case 1 => tweets += new Tweet(tweetLine, tweetId.toLong,
-                  tweetLang, date, handle, urls)
+                  tweetLang, date, handle, urls, images, extImages)
               }
               jCount += 1
               jCount %= 2

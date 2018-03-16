@@ -28,7 +28,7 @@ object ProfileImagesFromHandles {
     opts.get
   }
 
-  def retrievePics(names: Seq[String]): Map[String, String] = {
+  def retrieveProfilePics(names: Seq[Long]): Map[Long, String] = {
     val numProcesses = 16
     val chunkSize = names.length / numProcesses
 
@@ -65,11 +65,11 @@ object ProfileImagesFromHandles {
       .map{ case (acct, _) => acct.handle -> acct.id }
       .toMap
 
-    val found = retrievePics(handles.keys.toSeq)
+    val found = retrieveProfilePics(handles.values.toSeq)
 
     val writer = new BufferedWriter(new FileWriter(outf, true))
 
-    found.foreach{case (handle, url) => writer.write(s"${handles.getOrElse(handle, handle)}\t$url\n")}
+    found.foreach{case (id, url) => writer.write(s"$id\t$url\n")}
 
     writer.close()
 
@@ -82,25 +82,22 @@ object ProfileImagesFromHandles {
 
     // Go through each user's files and try to download numToTake
     // This is intentionally not parallel to avoid spamming the server and getting blacklisted
-    found.foreach { case (handle, u) =>
-      val id = handles.get(handle)
-      if (id.nonEmpty) {
-        val userDirName = s"$outDir/${id.get}"
-        val userDir = new File(userDirName)
-        if (!userDir.exists()) userDir.mkdir
+    found.foreach { case (id, u) =>
+      val userDirName = s"$outDir/$id"
+      val userDir = new File(userDirName)
+      if (!userDir.exists()) userDir.mkdir
 
-        val url = new URL(u)
-        val ext = FilenameUtils.getExtension(url.getPath)
-        val photoLoc = s"$userDir/profile.$ext"
+      val url = new URL(u)
+      val ext = FilenameUtils.getExtension(url.getPath)
+      val photoLoc = s"$userDir/profile.$ext"
 
-        val didItWork = Try(url.#>(new File(photoLoc)).!!) // the system command to download
+      val didItWork = Try(url.#>(new File(photoLoc)).!!) // the system command to download
+      Thread.sleep(twitterDelay)
+
+      // if at first we don't succeed, try try again just once in case the server was just overloaded
+      if (didItWork.isFailure) {
+        Try(url.#>(new File(photoLoc)).!!)
         Thread.sleep(twitterDelay)
-
-        // if at first we don't succeed, try try again just once in case the server was just overloaded
-        if (didItWork.isFailure) {
-          Try(url.#>(new File(photoLoc)).!!)
-          Thread.sleep(twitterDelay)
-        }
       }
       pb.step()
     }

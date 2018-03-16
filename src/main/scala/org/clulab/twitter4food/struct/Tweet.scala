@@ -10,7 +10,9 @@ class Tweet (val text: String,
              val lang: String,
              val createdAt: java.util.Date,
              val handle: String,
-             val urls: Seq[String] = Nil) { // TODO: Add image locations
+             val urls: Seq[String] = Nil,
+             val images: Seq[String] = Nil,
+             val extImages: Seq[String] = Nil) {
 
   override def toString = s"$handle: $text [$createdAt]"
 
@@ -23,8 +25,10 @@ class Tweet (val text: String,
     lang: String = this.lang,
     createdAt: java.util.Date = this.createdAt,
     handle: String = this.handle,
-    urls: Seq[String] = this.urls): Tweet = {
-    new Tweet(text, id, lang, createdAt, handle)
+    urls: Seq[String] = this.urls,
+    images: Seq[String] = this.images,
+    extImages: Seq[String] = this.extImages): Tweet = {
+    new Tweet(text, id, lang, createdAt, handle, urls, images, extImages)
   }
 
   /**
@@ -33,9 +37,9 @@ class Tweet (val text: String,
   def merge(that: Tweet): Tweet = {
     assert(this.id == that.id, "Merged tweets must have the same ID!")
     val allUrls = (this.urls ++ that.urls).distinct
-    // val allImages = (this.images ++ that.images).distinct
-    // this.copy(urls = allUrls, images = allImages)
-    this.copy(urls = allUrls)
+    val allImgs = (this.images ++ that.images).distinct
+    val allExtImgs = (this.extImages ++ that.extImages).distinct
+    this.copy(urls = allUrls, images = allImgs, extImages = allExtImgs)
   }
 
   /**

@@ -122,8 +122,10 @@ class TwitterAPI(keyset: Int) {
               val urls: Seq[String] = Option(tweet.getURLEntities)
                 .getOrElse(Array())
                 .flatMap(url => Option(url.getExpandedURL))
+              val images: Seq[String] = tweet.getMediaEntities.map(_.getMediaURLHttps)
+              val instaImage = urls.filter(isInsta)
               new Tweet(option(tweet.getText), tweet.getId, option(tweet.getLang), tweet.getCreatedAt,
-                sanitizeHandle(user.getScreenName), urls)
+                sanitizeHandle(user.getScreenName), urls, images, instaImage)
             }
             val min = minId(tweets)
 
@@ -269,13 +271,12 @@ class TwitterAPI(keyset: Int) {
     screenNames
   }
 
-  def fetchProfilePic(h: String): Option[String] ={
-    val handle = sanitizeHandle(h)
+  def fetchProfilePic(id: Long): Option[String] ={
     val user = try {
-      Option(appOnlyTwitter.showUser(handle))
+      Option(appOnlyTwitter.showUser(id))
     } catch {
       case te: TwitterException =>
-        logger.error(s"$h: ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
+        logger.error(s"$id: ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
         None
     }
     sleep("showUser", isAppOnly = true)
@@ -284,6 +285,23 @@ class TwitterAPI(keyset: Int) {
       if (user.get.isDefaultProfileImage) Option("default") else Option(user.get.getOriginalProfileImageURL)
     } else None
   }
+
+  def fetchProfilePic(handle: String): Option[String] ={
+    val user = try {
+      Option(appOnlyTwitter.showUser(handle))
+    } catch {
+      case te: TwitterException =>
+        logger.error(s"$handle: ErrorCode = ${te.getErrorCode}; ErrorMsg = ${te.getErrorMessage}")
+        None
+    }
+    sleep("showUser", isAppOnly = true)
+
+    if (user.nonEmpty) {
+      if (user.get.isDefaultProfileImage) Option("default") else Option(user.get.getOriginalProfileImageURL)
+    } else None
+  }
+
+  def isInsta(link: String): Boolean = link.contains("://instagram.com/p/") || link.contains("://instagr.am/p/")
 
   def fetchImages(id: Long): (Seq[String], Seq[String]) = {
     val mediaBuffer = ArrayBuffer[String]()
@@ -304,10 +322,7 @@ class TwitterAPI(keyset: Int) {
         urlBuffer ++= tweets.flatMap(t =>
           t.getURLEntities
             .map(ent => ent.getExpandedURL)
-            .filter(
-              link => link.contains("://instagram.com/p/") ||
-              link.contains("://instagr.am/p/")
-            )
+            .filter(isInsta)
         )
 
         page.setMaxId(minId(tweets) - 1)

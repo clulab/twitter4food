@@ -7,13 +7,27 @@ import org.clulab.twitter4food.twitter4j.TwitterAPI
 import org.clulab.twitter4food.util.FileUtils
 import org.slf4j.LoggerFactory
 
+case class TIUConfig(variable: String = "diabetes")
+
 /**
   * Retrieve both Twitter-internal media URLs and Instagram-domain external URLs for each account in existing corpus
   */
 object TwitterImageURLs {
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  //
+  def parseArgs(args: Array[String]): TIUConfig = {
+    val parser = new scopt.OptionParser[TIUConfig]("TIUExtraction") {
+      head("Choose a variable from the set {overweight, ow2, diabetes, human, gender}")
+      arg[String]("variable") action { (x, c) => c.copy(variable = x) } text "variable to use"
+    }
+
+    val opts = parser.parse(args, TIUConfig())
+
+    if(opts.isEmpty) throw new IllegalArgumentException(s"args ${args.mkString(" ")} are not supported!")
+
+    opts.get
+  }
+
   def retrieveURLs(ids: Seq[Long]): Map[Long, (Seq[String], Seq[String])] = {
     val numProcesses = 18
     val chunkSize = ids.length / numProcesses
@@ -32,14 +46,15 @@ object TwitterImageURLs {
 
   def main(args:Array[String]): Unit = {
     val config = ConfigFactory.load
+    val opts = parseArgs(args)
 
     // make directory for twitter picture URLs to go into, if necessary
-    val twid = config.getString("classifiers.overweight.twitterImageURLs")
+    val twid = config.getString(s"classifiers.${opts.variable}.twitterImageURLs")
     val twf = new File(twid)
     if(! twf.exists) twf.mkdir()
 
     // make directory for external picture URLs to go into, if necessary
-    val exid = config.getString("classifiers.overweight.externalImageURLs")
+    val exid = config.getString(s"classifiers.${opts.variable}.externalImageURLs")
     val exf = new File(exid)
     if(! exf.exists) exf.mkdir()
 
