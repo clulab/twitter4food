@@ -18,8 +18,8 @@ import scala.util.Try
 
 case class DataExtractionConfig(variable: String = "diabetes",
                                 getImages: Boolean = false,
-                                twitterImages: Boolean = true,
-                                extImages: Boolean = true,
+                                twitterImages: Boolean = false,
+                                extImages: Boolean = false,
                                 maxDownloads: Int = 1000)
 
 /**
