@@ -88,9 +88,11 @@ class TwitterAPI(keyset: Int) {
       val connection = Try(new URL(u).openConnection().asInstanceOf[HttpURLConnection])
       if (connection.isFailure) u
       else {
+        connection.get.setConnectTimeout(5000)
         connection.get.setInstanceFollowRedirects(false)
-        val next = connection.get.getHeaderField("Location")
-        if (next == null) u else unshortenInner(next, depth + 1)
+        val next = Try(connection.get.getHeaderField("Location"))
+        sleep("generic")
+        if (next.isFailure || next.get == null) u else unshortenInner(next.get, depth + 1)
       }
     }
     unshortenInner(url, 0)
