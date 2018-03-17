@@ -12,6 +12,7 @@ import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
+import scala.util.Try
 
 /**
   * Wrapper for Twitter4J
@@ -84,10 +85,13 @@ class TwitterAPI(keyset: Int) {
   def unshorten(url: String): String = {
     def unshortenInner(u: String, depth: Int): String = {
       if (depth > 3) return u
-      val connection = new URL(u).openConnection().asInstanceOf[HttpURLConnection]
-      connection.setInstanceFollowRedirects(false)
-      val next = connection.getHeaderField("Location")
-      if (next == null) u else unshortenInner(next, depth + 1)
+      val connection = Try(new URL(u).openConnection().asInstanceOf[HttpURLConnection])
+      if (connection.isFailure) u
+      else {
+        connection.get.setInstanceFollowRedirects(false)
+        val next = connection.get.getHeaderField("Location")
+        if (next == null) u else unshortenInner(next, depth + 1)
+      }
     }
     unshortenInner(url, 0)
   }
