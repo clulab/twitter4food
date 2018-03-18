@@ -11,7 +11,6 @@ import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
-import scala.annotation.tailrec
 import scala.util.Try
 
 /**
@@ -93,7 +92,13 @@ class TwitterAPI(keyset: Int) {
         connection.get.setInstanceFollowRedirects(false)
         val next = Try(connection.get.getHeaderField("Location"))
         sleep("generic")
-        if (next.isFailure || next.get == null) u else unshortenInner(next.get, depth + 1)
+        val ret = if (next.isFailure || next.get == null) {
+          u
+        } else {
+          unshortenInner(next.get, depth + 1)
+        }
+        connection.get.disconnect()
+        ret
       }
     }
     unshortenInner(url, 0)
