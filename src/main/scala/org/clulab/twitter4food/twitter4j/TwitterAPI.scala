@@ -84,6 +84,7 @@ class TwitterAPI(keyset: Int) {
   // Follow URL shortener to real URL but not past depth 3 in case of circular reference somehow
   def unshorten(url: String): String = {
     def unshortenInner(u: String, depth: Int): String = {
+      println(s"$depth: $u")
       if (depth > 3) return u
       val connection = Try(new URL(u).openConnection().asInstanceOf[HttpURLConnection])
       if (connection.isFailure) u
