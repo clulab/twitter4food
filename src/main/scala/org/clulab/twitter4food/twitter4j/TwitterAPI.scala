@@ -114,7 +114,7 @@ class TwitterAPI(keyset: Int) {
       case pattern(printable) => printable
       case _ => ""
     }
-    println(s"${url.take(20)}\t->\t${ret.take(20)}")
+    println(s"${shortPrintable.take(20)}\t->\t${longPrintable.take(20)}")
     ret
   }
 
