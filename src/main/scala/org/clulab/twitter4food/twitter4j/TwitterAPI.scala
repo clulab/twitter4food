@@ -105,9 +105,9 @@ class TwitterAPI(keyset: Int) {
 
     if (url.contains("://twitter.com/")) return url
     val ret = unshortenInner(url, 0)
-    val pattern = "https?://(.*)".r
+    val pattern = "https?://(www\\.)?(.*)".r
     val shortPrintable = url match {
-      case pattern(printable) => printable
+      case pattern(_, printable) => printable
       case _ => ""
     }
     val longPrintable = ret match {
