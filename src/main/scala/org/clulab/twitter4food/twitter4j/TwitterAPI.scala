@@ -90,17 +90,32 @@ class TwitterAPI(keyset: Int) {
         connection.get.setConnectTimeout(5000)
         connection.get.setInstanceFollowRedirects(false)
         val next = Try(connection.get.getHeaderField("Location"))
+        connection.get.disconnect()
         sleep("generic")
-        val ret = if (next.isFailure || next.get == null) {
+        if (next.isFailure ||
+          next.get == null ||
+          next.get.startsWith("/")
+        ) {
           u
         } else {
           unshortenInner(next.get, depth + 1)
         }
-        connection.get.disconnect()
-        ret
       }
     }
-    unshortenInner(url, 0)
+
+    if (url.contains("://twitter.com/")) return url
+    val ret = unshortenInner(url, 0)
+    val pattern = "https?://(.*)".r
+    val shortPrintable = url match {
+      case pattern(printable) => printable
+      case _ => ""
+    }
+    val longPrintable = ret match {
+      case pattern(printable) => printable
+      case _ => ""
+    }
+    println(s"${url.take(20)}\t->\t${ret.take(20)}")
+    ret
   }
 
   private val option = (something: String) => if(something != null) something else ""
