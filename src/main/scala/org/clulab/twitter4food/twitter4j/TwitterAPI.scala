@@ -11,6 +11,7 @@ import scala.collection.JavaConverters._
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
+import scala.annotation.tailrec
 import scala.util.Try
 
 /**
@@ -45,7 +46,7 @@ class TwitterAPI(keyset: Int) {
 
   private val RateLimitChart = scala.collection.Map("showUser" -> Array(180, 180), "getUserTimeline" -> Array(180, 300),
     "getFollowersIDs" -> Array(15, 15), "getFriendsIDs" -> Array(15, 15), "showFriendship" -> Array(180, 15),
-    "search" -> Array(180, 450), "lookupUsers" -> Array(180, 60), "generic" -> Array(1000, 1000))
+    "search" -> Array(180, 450), "lookupUsers" -> Array(180, 60), "generic" -> Array(2000, 2000))
 
   System.setProperty("twitter4j.loggerFactory", "twitter4j.NullLoggerFactory")
   /* User-only OAuth */
@@ -80,30 +81,33 @@ class TwitterAPI(keyset: Int) {
     Thread.sleep(sleepTime)
   }
 
-  // Follow URL shortener to real URL but not past depth 3 in case of circular reference somehow
-  def unshorten(url: String): String = {
-    def unshortenInner(u: String, depth: Int): String = {
-      if (depth > 3) return u
-      val connection = Try(new URL(u).openConnection().asInstanceOf[HttpURLConnection])
-      if (connection.isFailure) u
-      else {
-        connection.get.setConnectTimeout(5000)
-        connection.get.setInstanceFollowRedirects(false)
-        val next = Try(connection.get.getHeaderField("Location"))
-        connection.get.disconnect()
-        sleep("generic")
-        if (next.isFailure ||
-          next.get == null ||
-          next.get.startsWith("/")
-        ) {
-          u
-        } else {
-          unshortenInner(next.get, depth + 1)
-        }
+  @tailrec
+  private def unshortenInner(u: String, depth: Int): String = {
+    if (depth > 3) return u
+    val connection = Try(new URL(u).openConnection().asInstanceOf[HttpURLConnection])
+    if (connection.isFailure) u
+    else {
+      connection.get.setConnectTimeout(5000)
+      connection.get.setInstanceFollowRedirects(false)
+      val next = Try(connection.get.getHeaderField("Location"))
+      connection.get.disconnect()
+      sleep("generic")
+      if (next.isFailure ||
+        next.get == null ||
+        next.get.startsWith("/")
+      ) {
+        u
+      } else {
+        unshortenInner(next.get, depth + 1)
       }
     }
+  }
 
-    if (url.contains("://twitter.com/")) return url
+  private val commonSites = "://(www\\.)?(twitter|facebook|theonion|instagram|tumblr|reddit|ebay|4sq).com/".r
+
+  // Follow URL shortener to real URL but not past depth 3 in case of circular reference somehow
+  def unshorten(url: String): String = {
+    if (commonSites.findAllIn(url).nonEmpty) return url
     val ret = unshortenInner(url, 0)
     val pattern = "https?://(www\\.)?(.*)".r
     val shortPrintable = url match {
