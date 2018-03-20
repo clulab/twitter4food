@@ -103,7 +103,9 @@ class TwitterAPI(keyset: Int) {
     }
   }
 
-  private val commonSites = "://(www\\.)?(twitter|facebook|theonion|instagram|tumblr|reddit|ebay|4sq).com/".r
+  private val commonSites = ("://(www\\.)?(twitter|facebook|theonion|instagram|tumblr|reddit|ebay|4sq|youtube|buzzfeed"+
+    "|media\\.giphy|motherboard\\.vice|huffingtonpost|nypost|linkedin|theatlantic|washingtonpost).com/")
+    .r
 
   // Follow URL shortener to real URL but not past depth 3 in case of circular reference somehow
   def unshorten(url: String): String = {
@@ -115,7 +117,7 @@ class TwitterAPI(keyset: Int) {
       case _ => ""
     }
     val longPrintable = ret match {
-      case pattern(printable) => printable
+      case pattern(_, printable) => printable
       case _ => ""
     }
     println(s"${shortPrintable.take(20)}\t->\t${longPrintable.take(20)}")
