@@ -102,7 +102,7 @@ class ClassifierImpl(
     customFeatures=customFeatures)
 
   /** subClassifier that does the actual training over {@link dataset} */
-  var subClassifier: Option[LiblinearClassifier[String, String]] = None
+  var subClassifier: Option[Classifier[String, String]] = None
 
   /** config file that fetches filepaths */
   val config: Config = ConfigFactory.load()
@@ -925,36 +925,22 @@ class ClassifierImpl(
         (id, gold, pred, datum, score, score.getCount(pred))
       }
 
-      val W = classifier.getWeights()
-
       val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * predictions.size).toInt )
-      (W, bestThreshold, bestFraction, highConfPredictions)
+      (bestThreshold, bestFraction, highConfPredictions)
     }
 
     val allFeats = dataset.featureLexicon.keySet
-    val allWeights = results.map(_._1)
-    val bestThresholds = results.map(_._2)
-    val bestFractions = results.map(_._3)
-    val predictions = results.map(_._4)
+    val bestThresholds = results.map(_._1)
+    val bestFractions = results.map(_._2)
+    val predictions = results.map(_._3)
 
-    val g = predictions.flatten.map(_._2)
+    val g = predictions.flatten.map(_._1)
     val p = predictions.flatten.map(_._3)
     val evalInput = g.zip(p)
 
-    val avgWeights = (for {
-      l <- dataset.labelLexicon.keySet
-    } yield {
-      val c = new Counter[String]
-      allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
-      c.mapValues(_ / allWeights.length)
-      l -> c
-    }).toMap
-
-    val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
-
     val pToW = (for {
       i <- results.indices
-      p <- results(i)._4
+      p <- results(i)._3
     } yield p -> i).toMap
 
     val posScale = predictions
@@ -970,10 +956,7 @@ class ClassifierImpl(
       .reverse
       .take(numAccts)
 
-    val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-    val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-
-    (evalInput, bestThresholds, bestFractions, topWeights, falsePos, falseNeg)
+    (evalInput, bestThresholds, bestFractions, Map[String, Seq[(String, Double)]](), Nil, Nil)
   }
 
 
@@ -1143,60 +1126,60 @@ object ClassifierImpl {
   }
 
   def outputAnalysis(outputFile: String, header: String, accounts: Seq[TwitterAccount], cls: ClassifierImpl, labels: Set[String]) {
-    // Set progress bar
-    var numAccountsToPrint = 20
-    val numWeightsToPrint = 30
-    val printedLabel = labels.toSeq.sorted.head
-    val pb = new me.tongfei.progressbar.ProgressBar("outputAnalysis()", 100)
-    pb.start()
-    pb.maxHint(numAccountsToPrint)
-    pb.setExtraMessage(header)
-
-    // Initialize writer
-    val writer = new BufferedWriter(new FileWriter(outputFile, false))
-    var isFirst = true
-    writer.write(header)
-
-    // Iterate over accounts
-    for (account <- accounts) {
-      if (numAccountsToPrint > 0) {
-        // Analyze account
-        val (topWeights, dotProduct) = Utils.analyze(cls.subClassifier.get, labels, account, cls.featureExtractor)
-        // Only print the general weights on the features once
-        if (isFirst) {
-          for ((label, sequence) <- topWeights) {
-            writer.write(s"Top weights for $label:\n")
-            var numToPrint = numWeightsToPrint
-            for ((feature, score) <- sequence) {
-              if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"$feature -> $score\n")
-                numToPrint = numToPrint - 1
-              }
-            }
-            writer.write("================================\n")
-          }
-          isFirst = false
-        }
-        // Print hadamard product for every account
-        writer.write(s"Hadamard product for ${account.handle}:\n")
-        for ((label, sequence) <- dotProduct) {
-          if (label == printedLabel) {
-            var numToPrint = numWeightsToPrint
-            for ((feature, score) <- sequence) {
-              if ((numToPrint > 0) && (score > 0.0)) {
-                writer.write(s"$feature -> $score\n")
-                numToPrint = numToPrint - 1
-              }
-            }
-          }
-        }
-        writer.write("================================\n")
-      }
-      pb.step()
-      numAccountsToPrint -= 1
-    }
-    writer.close
-    pb.stop()
+//    // Set progress bar
+//    var numAccountsToPrint = 20
+//    val numWeightsToPrint = 30
+//    val printedLabel = labels.toSeq.sorted.head
+//    val pb = new me.tongfei.progressbar.ProgressBar("outputAnalysis()", 100)
+//    pb.start()
+//    pb.maxHint(numAccountsToPrint)
+//    pb.setExtraMessage(header)
+//
+//    // Initialize writer
+//    val writer = new BufferedWriter(new FileWriter(outputFile, false))
+//    var isFirst = true
+//    writer.write(header)
+//
+//    // Iterate over accounts
+//    for (account <- accounts) {
+//      if (numAccountsToPrint > 0) {
+//        // Analyze account
+//        val (topWeights, dotProduct) = Utils.analyze(cls.subClassifier.get, labels, account, cls.featureExtractor)
+//        // Only print the general weights on the features once
+//        if (isFirst) {
+//          for ((label, sequence) <- topWeights) {
+//            writer.write(s"Top weights for $label:\n")
+//            var numToPrint = numWeightsToPrint
+//            for ((feature, score) <- sequence) {
+//              if ((numToPrint > 0) && (score > 0.0)) {
+//                writer.write(s"$feature -> $score\n")
+//                numToPrint = numToPrint - 1
+//              }
+//            }
+//            writer.write("================================\n")
+//          }
+//          isFirst = false
+//        }
+//        // Print hadamard product for every account
+//        writer.write(s"Hadamard product for ${account.handle}:\n")
+//        for ((label, sequence) <- dotProduct) {
+//          if (label == printedLabel) {
+//            var numToPrint = numWeightsToPrint
+//            for ((feature, score) <- sequence) {
+//              if ((numToPrint > 0) && (score > 0.0)) {
+//                writer.write(s"$feature -> $score\n")
+//                numToPrint = numToPrint - 1
+//              }
+//            }
+//          }
+//        }
+//        writer.write("================================\n")
+//      }
+//      pb.step()
+//      numAccountsToPrint -= 1
+//    }
+//    writer.close
+//    pb.stop()
   }
 
   def fMeasure(precision: Double, recall: Double, beta: Double): Double =
