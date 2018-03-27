@@ -103,15 +103,21 @@ class TwitterAPI(keyset: Int) {
     }
   }
 
-  private val commonSites = ("://(www\\.)?(twitter|facebook|theonion|instagram|tumblr|reddit|ebay|4sq|youtube|buzzfeed"+
-    "|media\\.giphy|motherboard\\.vice|huffingtonpost|nypost|linkedin|theatlantic|washingtonpost).com/")
+  private val commonSites = ("(?i)://(www\\.|m(obile)?\\.)?(twitter|facebook|theonion|instagram|([^\\.]+\\.)?tumblr" +
+    "|4sq|youtube|buzzfeed|giphy|vice|huffingtonpost|nypost|linkedin|theatlantic|washingtonpost|medium|reddit|ebay" +
+    "|(open\\.)?spotify|guardian|bloomberg|(docs\\.)?google|github|cnn|yahoo|xkcd|wsj|vanityfair|imgur|apple|thehill" +
+    "|chicagotribune|livestream|latimes|variety|fivethirtyeight|newyorker|dailykos|salon|foxsports|usatoday|amazon" +
+    "|cbsnews|cracked|yelp|slate|msnbc|economist|mashable|pinterest|yfrog|newsweek|wired|ted|foxnews|forbes|politico" +
+    "|bostonglobe|thenib|businessinsider|clickhole|soundcloud|politifact|gofundme|denverpost|miamiherald|motherjones" +
+    "|flickr|espn|goodreads|time|vimeo|nature).com/")
     .r
 
   // Follow URL shortener to real URL but not past depth 3 in case of circular reference somehow
   def unshorten(url: String): String = {
+    val chars = 20
     if (commonSites.findAllIn(url).nonEmpty) return url
     val ret = unshortenInner(url, 0)
-    val pattern = "https?://(www\\.)?(.*)".r
+    val pattern = "https?://([^/]+\\.)*(.*)".r
     val shortPrintable = url match {
       case pattern(_, printable) => printable
       case _ => ""
@@ -120,7 +126,7 @@ class TwitterAPI(keyset: Int) {
       case pattern(_, printable) => printable
       case _ => ""
     }
-    println(s"${shortPrintable.take(20)}\t->\t${longPrintable.take(20)}")
+    println(s"${shortPrintable.take(chars).padTo(chars, ' ')}\t->\t${longPrintable.take(chars).padTo(chars, ' ')}")
     ret
   }
 

@@ -4,6 +4,9 @@ import java.io.{BufferedWriter, File, FileWriter}
 import java.net.URL
 import java.nio.file.{Files, Paths}
 
+import scala.util.Try
+
+import collection.JavaConverters._
 import sys.process._
 import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FilenameUtils
@@ -13,8 +16,6 @@ import org.clulab.twitter4food.util.FileUtils
 import org.clulab.twitter4food.util.Utils.sanitizeHandle
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.clulab.twitter4food.twitter4j.TwitterAPI
-
-import scala.util.Try
 
 case class DataExtractionConfig(variable: String = "diabetes",
                                 getImages: Boolean = false,
@@ -107,10 +108,7 @@ object DataExtraction {
       val userDir = new File(userDirName)
       if (!userDir.exists()) userDir.mkdir
 
-      val previouslyScraped = userDir
-        .list
-        .map(FilenameUtils.getBaseName)
-        .map(_.split("-").head)
+      val previouslyScraped = userDir.list.map(FilenameUtils.getBaseName).map(_.split("-").head)
 
       // keep track of how many downloaded so we don't exceed max allowed
       var totalDownloaded = previouslyScraped.length
