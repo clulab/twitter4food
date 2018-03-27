@@ -520,14 +520,16 @@ class ClassifierImpl(
 
   def featureSelectionIncrementalCV(
     dataset:Dataset[String, String],
-    evalMetric: Iterable[(String, String)] => Double): (Dataset[String, String], Set[String]) = {
+    evalMetric: Iterable[(String, String)] => Double,
+    classifierFactory: () => Classifier[String, String] = Utils.mkClassifier("RandomForest")
+                                   ): (Dataset[String, String], Set[String]) = {
     val featureGroups = Utils.findFeatureGroups(":", dataset.featureLexicon)
     logger.debug(s"Found ${featureGroups.size} feature groups:")
     for(f <- featureGroups.keySet) {
       logger.debug(s"Group $f containing ${featureGroups(f).size} features.")
     }
     val chosenGroups = Datasets.incrementalFeatureSelection[String, String](
-      dataset, Utils.svmFactory, evalMetric, featureGroups)
+      dataset, classifierFactory, evalMetric, featureGroups)
 
     logger.info(s"Selected ${chosenGroups.size} feature groups: " + chosenGroups)
 
@@ -699,7 +701,7 @@ class ClassifierImpl(
     portion: Double = 1.0,
     followers: Option[Map[String, Seq[TwitterAccount]]] = None,
     followees: Option[Map[String, Seq[String]]] = None,
-    classifierFactory: () => LiblinearClassifier[String, String],
+    classifierFactory: () => Classifier[String, String],
     labelSet: Map[String, String],
     percentTopToConsider: Double = 1.0
   ): (Seq[(String, String)],
@@ -726,7 +728,7 @@ class ClassifierImpl(
       }
       val classifier = classifierFactory()
       classifier.train(dataset, fold.train.toArray)
-      val W = classifier.getWeights()
+      //val W = classifier.getWeights()
       val predictions = for(i <- fold.test) yield {
         val id = ids(i).toString
         val gold = dataset.labelLexicon.get(dataset.labels(i))
@@ -739,48 +741,33 @@ class ClassifierImpl(
       }
 
       val highConfPredictions = predictions.sortBy(- _._6).take( (percentTopToConsider * predictions.size).toInt )
-      (W, highConfPredictions)
+      highConfPredictions
     }
 
     val allFeats = dataset.featureLexicon.keySet
-    val (allWeights, predictions) = results.unzip
-    val g = predictions.flatten.map(_._2)
-    val p = predictions.flatten.map(_._3)
+    val g = results.flatten.map(_._2)
+    val p = results.flatten.map(_._3)
     val evalInput = g.zip(p)
-
-    val avgWeights = (for {
-      l <- dataset.labelLexicon.keySet
-    } yield {
-      val c = new Counter[String]
-      allFeats.foreach(k => c.setCount(k, allWeights.map(W => W(l).getCount(k)).sum))
-      c.mapValues(_ / allWeights.length)
-      l -> c
-    }).toMap
-
-    val topWeights = avgWeights.mapValues(feats => feats.sorted.take(numFeatures))
 
     val pToW = (for {
       i <- results.indices
-      p <- results(i)._2
+      p <- results(i)
     } yield p -> i).toMap
 
-    val posScale = predictions
+    val posScale = results
       .flatten
       .filter(acct => acct._2 != labelSet("pos") && acct._3 == labelSet("pos")) // only false positives
       .sortBy(_._5.getCount(labelSet("pos")))
       .reverse
       .take(numAccts)
-    val negScale = predictions
+    val negScale = results
       .flatten
       .filter(acct => acct._2 == labelSet("pos") && acct._3 != labelSet("pos")) // only false negatives
       .sortBy(_._5.getCount(labelSet("neg")))
       .reverse
       .take(numAccts)
 
-    val falsePos = posScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-    val falseNeg = negScale.map(acct => acct._1 -> Utils.analyze(allWeights(pToW(acct)), acct._4))
-
-    (evalInput, topWeights, falsePos, falseNeg)
+    (evalInput, Map[String, Seq[(String, Double)]](), Nil, Nil)
   }
 
 
@@ -794,7 +781,7 @@ class ClassifierImpl(
     partitions: Map[Long, Int],
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
-    classifierFactory: () => LiblinearClassifier[String, String],
+    classifierFactory: () => Classifier[String, String],
     labelSet: Map[String, String],
     evalMetric: Iterable[(String, String)] => Double
   ): Seq[(String, String)] = {
@@ -811,7 +798,10 @@ class ClassifierImpl(
         val balance = fold.test.map(dataset.labels(_)).groupBy(identity).mapValues(_.size)
         logger.debug(s"fold: ${balance.mkString(", ")}")
       }
-      val (tunedDataset, selectedFeatures) = featureSelectionIncrementalCV(Utils.keepRows(dataset, fold.train.toArray), evalMetric)
+      val (tunedDataset, selectedFeatures) = featureSelectionIncrementalCV(
+        Utils.keepRows(dataset, fold.train.toArray),
+        evalMetric,
+        classifierFactory)
       val classifier = classifierFactory()
       classifier.train(tunedDataset)
       val predictions = for(i <- fold.dev) yield {

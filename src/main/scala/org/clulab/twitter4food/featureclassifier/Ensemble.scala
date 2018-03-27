@@ -1,7 +1,7 @@
 package org.clulab.twitter4food.featureclassifier
 
 import com.typesafe.config.{Config, ConfigFactory}
-import org.clulab.learning.LiblinearClassifier
+import org.clulab.learning.{Classifier, LiblinearClassifier}
 import org.clulab.struct.Counter
 import org.clulab.twitter4food.struct.TwitterAccount
 import org.slf4j.{Logger, LoggerFactory}
@@ -24,7 +24,7 @@ class Ensemble[F <: ClassifierImpl](classifiers: Seq[F]) {
     portion: Double = 1.0, // This doesn't do anything yet
     followers: Option[Map[String, Seq[TwitterAccount]]],
     followees: Option[Map[String, Seq[String]]],
-    classifierFactory: () => LiblinearClassifier[String, String]
+    classifierFactory: () => Classifier[String, String]
   ): Seq[(String, String)] = {
 
     // Important: this dataset is sorted by account id

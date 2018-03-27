@@ -184,7 +184,7 @@ object DiabetesClassifier {
           portion,
           followers,
           followees,
-          Utils.svmFactory,
+          Utils.mkClassifier("RandomForest"),
           labelSet,
           percentTopToConsider=highConfPercent
         )
@@ -203,11 +203,6 @@ object DiabetesClassifier {
 
       // Write analysis only on full portion
       if (portion == 1.0) {
-        if (params.fpnAnalysis) {
-          // Perform analysis on false negatives and false positives
-          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
-        }
-
         // Save results
         val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
         writer.write(s"Precision: $precision\n")

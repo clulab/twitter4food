@@ -3,10 +3,12 @@ package org.clulab.twitter4food.util
 import org.clulab.twitter4food.twitter4j._
 import org.clulab.twitter4food.struct._
 import com.typesafe.config.ConfigFactory
+import de.bwaldvogel.liblinear.SolverType
+import edu.arizona.sista.twitter4food.{Tweet => _, _}
 import org.slf4j.LoggerFactory
 
 import scala.reflect.ClassTag
-import org.clulab.learning._
+import org.clulab.learning.{Classifier, _}
 import org.clulab.struct.{Counter, Lexicon}
 
 import scala.collection.mutable
@@ -227,7 +229,18 @@ object Utils {
     img.toMap
   }
 
-  def svmFactory(): LiblinearClassifier[String, String] = new L1LinearSVMClassifier[String, String]()
+  def svmFactory(): Classifier[String, String] = new L1LinearSVMClassifier[String, String]()
+  def mkClassifier(cType: String)(): Classifier[String, String] = cType match {
+    case "SVM_L1" => new LiblinearClassifier(SolverType.L1R_L2LOSS_SVC, C=1.0, eps=0.01,
+      bias=true)
+    case "SVM_L2" => new LiblinearClassifier(SolverType.L2R_L2LOSS_SVC, C=1.0, eps=0.01,
+      bias=true)
+    case "RBF_SVM" => new LibSVMClassifier[String, String](RBFKernel, C=1.0)
+    case "Linear_SVM" => new LibSVMClassifier[String, String](LinearKernel)
+    case "RandomForest" => new RFClassifier[String, String]()
+    case "Perceptron" => new PerceptronClassifier[String, String]()
+  }
+
 
   // Helper function for mapping a prefix onto all labels in a counter
   def prepend (prefix: String, counter: Counter[String]): Counter[String] = {
