@@ -100,7 +100,9 @@ object OverweightClassifier {
 
     val dataset = if (params.useDiabetesData) "ow2" else "overweight"
 
-    val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
+    val igFractions = (1 to 20).map(_.toDouble / 20)
+    val freqThresholds = 1 to 20
+    val portion = 1.0
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
@@ -146,7 +148,8 @@ object OverweightClassifier {
     } else None
 
     val evals = for {
-      portion <- portions
+      fraction <- igFractions.par
+      threshold <- freqThresholds.par
     } yield {
       val (accts, lbls) = labeledAccts.unzip
 
@@ -184,6 +187,8 @@ object OverweightClassifier {
           accts,
           lbls,
           partitions,
+          fraction,
+          threshold,
           portion,
           followers,
           followees,
@@ -233,14 +238,14 @@ object OverweightClassifier {
 
       val sig = BootstrapSignificance.bss(gold, baseline, pred, "Overweight")
 
-      (portion, predictions.length, precision, recall, macroAvg, microAvg, sig)
+      (fraction, threshold, precision, recall, macroAvg, microAvg, sig)
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro\tp-val")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg, sig) =>
+    println(s"\n$fileExt\nfraction\tthreshold\tp\tr\tf1\tf1(r*5)\tmacro\tmicro\tp-val")
+    evals.foreach { case (fraction, threshold, precision, recall, macroAvg, microAvg, sig) =>
       val f1 = fMeasure(precision, recall, 1)
       val f1r5 = fMeasure(precision, recall, .2)
-      println(f"$portion\t$numAccounts\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
+      println(f"$fraction\t$threshold\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
         f"$f1r5%1.5f\t$macroAvg%1.5f\t$microAvg%1.5f\t$sig%1.6f")
     }
   }
