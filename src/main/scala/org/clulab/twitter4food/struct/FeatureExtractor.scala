@@ -463,10 +463,10 @@ class FeatureExtractor (
 
     val denoised = if (denoise) tweets.filterNot(isNoise) else tweets
 
-    //val relevantDesc = if (dictOnly) dictFilter(description) else description // only relevant words if 'dictOnly'
-    //val filteredDesc = if (n == 1) filterStopWords(relevantDesc) else relevantDesc // remove stopwords
+    val relevantDesc = if (dictOnly) dictFilter(description) else description // only relevant words if 'dictOnly'
+    val filteredDesc = if (n == 1) filterStopWords(relevantDesc) else relevantDesc // remove stopwords
     // special prefix for description tokens since they summarize an account more than tweets
-    //setCounts(tokenNGrams(n, filteredDesc, "desc"), counter) // always set n-gram counts
+    setCounts(tokenNGrams(n, filteredDesc, "desc"), counter) // always set n-gram counts
 
     // n-gram for tweets
     denoised.foreach{ tweet =>
@@ -945,7 +945,7 @@ class FeatureExtractor (
   def dictFilter(text: Array[String]): Array[String] = {
     assert(! (dictOnly && allDicts.isEmpty))
     if(allDicts.nonEmpty) {
-      text.filter(w => allDicts.get.exists(lex => lex.contains(w)))
+      text.filter(w => w.startsWith("#") || allDicts.get.exists(lex => lex.contains(w)))
     } else text
   }
 }
