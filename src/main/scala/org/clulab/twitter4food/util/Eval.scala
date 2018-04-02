@@ -9,9 +9,9 @@ class EvalMetric {
   var FP = 0
   var FN = 0
   var TN = 0
-  def P = TP.toFloat/(TP+FP)
-  def R = TP.toFloat/(TP+FN)
-  def A = (TP+TN).toFloat/(TP+FP+TN+FN)
+  def P = if ((TP + FP) == 0) 0.0 else TP.toDouble/(TP + FP)
+  def R = if ((TP + FN) == 0) 0.0 else TP.toDouble/(TP + FN)
+  def A = if ((TP + FP + TN + FN) == 0) 0.0 else (TP + TN).toDouble/(TP + FP + TN + FN)
   val TPAccounts = ArrayBuffer[TwitterAccount]()
   val FPAccounts = ArrayBuffer[TwitterAccount]()
   val TNAccounts = ArrayBuffer[TwitterAccount]()
@@ -20,21 +20,22 @@ class EvalMetric {
   var F = Eval.fMeasure(P, R, beta)
   val df = new java.text.DecimalFormat("#.###")
 
-  override def toString = {
-    s"(P: ${df.format(P)}\tR: ${df.format(R)}\tF-1: ${df.format(F)}\t" +
-      s"A: ${df.format(A)})"
-  }
+  override def toString = f"P: $P%1.5f\tR: $R%1.5f\tF1: $F%1.5f\tA: $A%1.5f"
 }
 
 object Eval {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def fMeasure(precision: Double, recall: Double, beta: Double): Double =
-    (1 + Math.pow(beta, 2)) * ((precision * recall) /
-      (Math.pow(beta, 2) * precision + recall))
+  def fMeasure(precision: Double, recall: Double, beta: Double): Double = {
+    if ((Math.pow(beta, 2) * precision + recall) == 0.0)
+      0.0
+    else
+      (1 + Math.pow(beta, 2)) * ((precision * recall) /
+        (Math.pow(beta, 2) * precision + recall))
+  }
 
-  def genEvalMeasure(labels: Set[String]) = {
+  def genEvalMeasure(labels: Set[String]): Map[String, EvalMetric] = {
     labels.foldLeft(Map[String, EvalMetric]())(
       (m, l) => m + (l -> new EvalMetric()))
   }
@@ -48,8 +49,16 @@ object Eval {
     evaluate(labels.toSeq)._2
   }
 
+  def macroOnly(gold: Seq[String], pred: Seq[String]): Double = {
+    evaluate(gold, pred)._2
+  }
+
   def microOnly(labels: Iterable[(String, String)]): Double = {
     evaluate(labels.toSeq)._3
+  }
+
+  def microOnly(gold: Seq[String], pred: Seq[String]): Double = {
+    evaluate(gold, pred)._3
   }
 
   def evaluate(labels: Seq[(String, String)]): (Map[String, EvalMetric], Double, Double) = {
@@ -89,7 +98,7 @@ object Eval {
   }
 
   def evaluate(srcLabels: Seq[String], predictedLabels: Seq[String],
-    accounts: Seq[TwitterAccount]): (Map[String, EvalMetric], Double, Double) = {
+               accounts: Seq[TwitterAccount]): (Map[String, EvalMetric], Double, Double) = {
     val labels = srcLabels.toSet
     val evalMeasures = genEvalMeasure(labels)
     assert(srcLabels.size == predictedLabels.size
@@ -129,7 +138,13 @@ object Eval {
     // Microaverage
     val e = new EvalMetric()
     val sumE = evalMeasures.values.foldLeft(e)(
-      (s, e) => { s.TP += e.TP; s.FP += e.FP; s.FN += e.FN; s})
+      (s, e) => {
+        s.TP += e.TP
+        s.FP += e.FP
+        s.FN += e.FN
+        s
+      }
+    )
     val microAvg = Eval.fMeasure(sumE.P, sumE.R, 1.0)
 
     (evalMeasures, macroAvg, microAvg)

@@ -17,7 +17,17 @@ object BootstrapSignificance {
           baseline: Seq[String],
           predicted: Seq[String],
           label: String,
-          reps: Int = 10000): Double = {
+          reps: Int = 10000,
+          measure: String = "f1"
+         ): Double = {
+
+    def metric(m: String, lbl: String, gold: Seq[String], preds: Seq[String]): Double = {
+      m match {
+        case "macro" => Eval.macroOnly(gold, preds)
+        case "micro" => Eval.microOnly(gold, preds)
+        case other => Eval.f1ForLabel(lbl)(gold zip preds)
+      }
+    }
 
     val betterThanBaseline = Array.fill[Double](reps)(0)
 
@@ -34,9 +44,9 @@ object BootstrapSignificance {
       samplePred = sampleIdx.map(predicted.apply)
       sampleBase = sampleIdx.map(baseline.apply)
     } {
-      val predF1 = Eval.f1ForLabel(label)(sampleGold.zip(samplePred))
-      val baselineF1 = Eval.f1ForLabel(label)(sampleGold.zip(sampleBase))
-      if (predF1 > baselineF1) betterThanBaseline(i) = 1
+      val predScore = metric(measure, label, sampleGold, samplePred)
+      val baselineScore = metric(measure, label, sampleGold, sampleBase)
+      if (predScore > baselineScore) betterThanBaseline(i) = 1
       pb.step()
     }
     pb.stop()

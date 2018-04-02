@@ -16,30 +16,30 @@ import org.clulab.twitter4food.util.{BootstrapSignificance, Eval, FileUtils, Uti
   * @author Dane Bell
   */
 class DiabetesClassifier(
-  useUnigrams: Boolean = false,
-  useBigrams: Boolean = false,
-  useName: Boolean = false,
-  useTopics: Boolean = false,
-  useDictionaries: Boolean = false,
-  useAvgEmbeddings: Boolean = false,
-  useMinEmbeddings: Boolean = false,
-  useMaxEmbeddings: Boolean = false,
-  useCosineSim: Boolean = false,
-  useLocation: Boolean = false,
-  useTimeDate: Boolean = false,
-  useFoodPerc: Boolean = false,
-  useCaptions: Boolean = false,
-  useFollowers: Boolean = false,
-  useFollowees: Boolean = false,
-  useRT: Boolean = false,
-  useGender: Boolean = false,
-  useAge: Boolean = false,
-  useRace: Boolean = false,
-  useHuman: Boolean = false,
-  dictOnly: Boolean = false,
-  denoise: Boolean = false,
-  datumScaling: Boolean = false,
-  featureScaling: Boolean = false)
+                          useUnigrams: Boolean = false,
+                          useBigrams: Boolean = false,
+                          useName: Boolean = false,
+                          useTopics: Boolean = false,
+                          useDictionaries: Boolean = false,
+                          useAvgEmbeddings: Boolean = false,
+                          useMinEmbeddings: Boolean = false,
+                          useMaxEmbeddings: Boolean = false,
+                          useCosineSim: Boolean = false,
+                          useLocation: Boolean = false,
+                          useTimeDate: Boolean = false,
+                          useFoodPerc: Boolean = false,
+                          useCaptions: Boolean = false,
+                          useFollowers: Boolean = false,
+                          useFollowees: Boolean = false,
+                          useRT: Boolean = false,
+                          useGender: Boolean = false,
+                          useAge: Boolean = false,
+                          useRace: Boolean = false,
+                          useHuman: Boolean = false,
+                          dictOnly: Boolean = false,
+                          denoise: Boolean = false,
+                          datumScaling: Boolean = false,
+                          featureScaling: Boolean = false)
   extends ClassifierImpl(
     useUnigrams=useUnigrams,
     useBigrams=useBigrams,
@@ -99,7 +99,7 @@ object DiabetesClassifier {
     )
     val default = allFeatures.forall(!_) // true if all features are off
 
-    val portions = if (params.learningCurve) (1 to 20).map(_.toDouble / 20) else Seq(1.0)
+    val portion = 1.0
 
     val nonFeatures = Seq("--analysis", "--test", "--learningCurve")
     // This model and results are specified by all input args that represent featuresets
@@ -132,113 +132,104 @@ object DiabetesClassifier {
     val followers: Option[Map[String, Seq[TwitterAccount]]] = None
     val followees: Option[Map[String, Seq[String]]] = None
 
-//    val followers = if(params.useFollowers) {
-//      logger.info("Loading follower accounts...")
-//      Option(ClassifierImpl.loadFollowers(labeledAccts.map(_._1)))
-//    } else None
-//
-//    val followees = if(params.useFollowees) {
-//      logger.info("Loading followee accounts...")
-//      Option(ClassifierImpl.loadFollowees(labeledAccts.map(_._1), "diabetes"))
-//    } else None
+    val (accts, lbls) = labeledAccts.unzip
 
-    val evals = for {
-      portion <- portions
-    } yield {
-      val (accts, lbls) = labeledAccts.unzip
+    val dc = new DiabetesClassifier(
+      useUnigrams = default || params.useUnigrams,
+      useBigrams = params.useBigrams,
+      useName = params.useName,
+      useTopics = params.useTopics,
+      useDictionaries = params.useDictionaries,
+      useAvgEmbeddings = params.useAvgEmbeddings,
+      useMinEmbeddings = params.useMinEmbeddings,
+      useMaxEmbeddings = params.useMaxEmbeddings,
+      useCosineSim = params.useCosineSim,
+      useLocation = params.useLocation,
+      useTimeDate = params.useTimeDate,
+      useFoodPerc = params.useFoodPerc,
+      useCaptions= params.useCaptions,
+      useFollowers = params.useFollowers,
+      useFollowees = params.useFollowees,
+      useRT = params.useRT,
+      useGender = params.useGender,
+      // useRace = params.useRace,
+      dictOnly = params.dictOnly,
+      denoise = params.denoise,
+      datumScaling = params.datumScaling,
+      featureScaling = params.featureScaling)
 
-      val dc = new DiabetesClassifier(
-        useUnigrams = default || params.useUnigrams,
-        useBigrams = params.useBigrams,
-        useName = params.useName,
-        useTopics = params.useTopics,
-        useDictionaries = params.useDictionaries,
-        useAvgEmbeddings = params.useAvgEmbeddings,
-        useMinEmbeddings = params.useMinEmbeddings,
-        useMaxEmbeddings = params.useMaxEmbeddings,
-        useCosineSim = params.useCosineSim,
-        useLocation = params.useLocation,
-        useTimeDate = params.useTimeDate,
-        useFoodPerc = params.useFoodPerc,
-        useCaptions= params.useCaptions,
-        useFollowers = params.useFollowers,
-        useFollowees = params.useFollowees,
-        useRT = params.useRT,
-        useGender = params.useGender,
-        // useRace = params.useRace,
-        dictOnly = params.dictOnly,
-        denoise = params.denoise,
-        datumScaling = params.datumScaling,
-        featureScaling = params.featureScaling)
+    logger.info("Training classifier...")
 
-      logger.info("Training classifier...")
+    val labelSet = Map("pos" -> "risk", "neg" -> "not")
+    val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
 
-      val labelSet = Map("pos" -> "risk", "neg" -> "not")
-      val highConfPercent = config.getDouble("classifiers.diabetes.highConfPercent")
+    val (predictions, bestFreq, bestPerc, avgWeights, falsePos, falseNeg) =
+      dc.binaryCVFS(
+        accts,
+        lbls,
+        partitions,
+        portion,
+        followers,
+        followees,
+        Utils.svmFactory,
+        labelSet,
+        percentTopToConsider=highConfPercent
+      )
 
-      val (predictions, avgWeights, falsePos, falseNeg) =
-        dc.binaryCV(
-          accts,
-          lbls,
-          partitions,
-          portion,
-          followers,
-          followees,
-          Utils.svmFactory,
-          labelSet,
-          percentTopToConsider=highConfPercent
-        )
+    // Print results
+    val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
 
-      // Print results
-      val (evalMeasures, microAvg, macroAvg) = Eval.evaluate(predictions)
+    val evalMetric = if (evalMeasures.keySet contains "risk") {
+      evalMeasures("risk")
+    } else {
+      logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
+      evalMeasures.head._2
+    }
+    val precision = evalMetric.P
+    val recall = evalMetric.R
 
-      val evalMetric = if (evalMeasures.keySet contains "risk") {
-        evalMeasures("risk")
-      } else {
-        logger.debug(s"Labels are {${evalMeasures.keys.mkString(", ")}}. Evaluating on ${evalMeasures.head._1}")
-        evalMeasures.head._2
-      }
-      val precision = evalMetric.P
-      val recall = evalMetric.R
-
-      // Write analysis only on full portion
-      if (portion == 1.0) {
-        if (params.fpnAnalysis) {
-          // Perform analysis on false negatives and false positives
-          outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
-        }
-
-        // Save results
-        val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
-        writer.write(s"Precision: $precision\n")
-        writer.write(s"Recall: $recall\n")
-        writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
-        writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
-        writer.write(s"Macro average: $macroAvg\n")
-        writer.write(s"Micro average: $microAvg\n")
-        writer.close()
-
-        // Save individual predictions for bootstrap significance
-        val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
-        predWriter.write(s"gold\tpred\n")
-        predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
-        predWriter.close()
+    // Write analysis only on full portion
+    if (portion == 1.0) {
+      if (params.fpnAnalysis) {
+        // Perform analysis on false negatives and false positives
+        outputAnalysis(outputDir, avgWeights, falsePos, falseNeg)
       }
 
-      val (gold, pred) = predictions.unzip
-      val baseline = Array.fill[String](gold.length)("risk")
+      // Save results
+      val writer = new BufferedWriter(new FileWriter(outputDir + "/analysisMetrics.txt", false))
+      writer.write(s"Precision: $precision\n")
+      writer.write(s"Recall: $recall\n")
+      writer.write(s"F-measure (harmonic mean): ${fMeasure(precision, recall, 1)}\n")
+      writer.write(s"F-measure (recall 5x): ${fMeasure(precision, recall, .2)}\n")
+      writer.write(s"Macro average: $macroAvg\n")
+      writer.write(s"Micro average: $microAvg\n")
+      writer.close()
 
-      val sig = BootstrapSignificance.bss(gold, baseline, pred, "risk")
-
-      (portion, predictions.length, precision, recall, macroAvg, microAvg, sig)
+      // Save individual predictions for bootstrap significance
+      val predWriter = new BufferedWriter(new FileWriter(outputDir + "/predicted.txt", false))
+      predWriter.write(s"gold\tpred\n")
+      predictions.foreach(acct => predWriter.write(s"${acct._1}\t${acct._2}\n"))
+      predWriter.close()
     }
 
-    println(s"\n$fileExt\n%train\t#accts\tp\tr\tf1\tf1(r*5)\tmacro\tmicro\tp-val")
-    evals.foreach { case (portion, numAccounts, precision, recall, macroAvg, microAvg, sig) =>
-      val f1 = fMeasure(precision, recall, 1)
-      val f1r5 = fMeasure(precision, recall, .2)
-      println(f"$portion\t$numAccounts\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
-        f"$f1r5%1.5f\t$macroAvg%1.5f\t$microAvg%1.5f\t$sig%1.6f")
-    }
+    val freq = bestFreq.sum.toDouble / bestFreq.length
+    val ig = bestPerc.sum / bestPerc.length
+
+    val (gold, pred) = predictions.unzip
+    val baseline = Array.fill[String](gold.length)("risk")
+    val f1 = fMeasure(precision, recall, 1)
+
+    val (baselineEval, baselineMicroAvg, baselineMacroAvg) = Eval.evaluate(predictions.unzip._1.zip(baseline))
+    val baselineP = baselineEval("risk").P
+    val baselineR = baselineEval("risk").R
+    val baselineF1 = fMeasure(baselineP, baselineR, 1)
+
+    val sig = BootstrapSignificance.bss(gold, baseline, pred, "risk")
+
+    println(s"\n$fileExt\nportion\tfreq-cutoff\tIG%kept\tp\tr\tf1\tmacro\tmicro\trisk_p-val")
+    println(f"baseline\tNA\tNA\t$baselineP%1.5f\t$baselineR%1.5f\t$baselineF1%1.5f\t$baselineMacroAvg%1.5f\t" +
+      f"$baselineMicroAvg%1.5f\tNA")
+    println(f"$portion%1.2f\t$freq%1.5f\t$ig%1.5f\t$precision%1.5f\t$recall%1.5f\t$f1%1.5f\t" +
+      f"$macroAvg%1.5f\t$microAvg%1.5f\t$sig%1.6f")
   }
 }
