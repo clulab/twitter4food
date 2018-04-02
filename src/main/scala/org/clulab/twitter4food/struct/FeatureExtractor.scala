@@ -52,31 +52,31 @@ import scala.collection.mutable.ArrayBuffer
   * @param customFeatures use classifier-specific custom features
   */
 class FeatureExtractor (
-  val useUnigrams: Boolean = false,
-  val useBigrams: Boolean = false,
-  val useName: Boolean = false,
-  val useTopics: Boolean = false,
-  val useDictionaries: Boolean = false,
-  val useAvgEmbeddings: Boolean = false,
-  val useMinEmbeddings: Boolean = false,
-  val useMaxEmbeddings: Boolean = false,
-  val useCosineSim: Boolean = false,
-  val useLocation: Boolean = false,
-  val useTimeDate: Boolean = false,
-  val useFoodPerc: Boolean = false,
-  val useCaptions: Boolean = false,
-  val useFollowers: Boolean = false,
-  val useFollowees: Boolean = false,
-  val useRT: Boolean = false,
-  val useGender: Boolean = false,
-  val useAge: Boolean = false,
-  val useRace: Boolean = false,
-  val useHuman: Boolean = false,
-  val dictOnly: Boolean = false,
-  val denoise: Boolean = false,
-  val datumScaling: Boolean = false,
-  val variable: String,
-  val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
+                         val useUnigrams: Boolean = false,
+                         val useBigrams: Boolean = false,
+                         val useName: Boolean = false,
+                         val useTopics: Boolean = false,
+                         val useDictionaries: Boolean = false,
+                         val useAvgEmbeddings: Boolean = false,
+                         val useMinEmbeddings: Boolean = false,
+                         val useMaxEmbeddings: Boolean = false,
+                         val useCosineSim: Boolean = false,
+                         val useLocation: Boolean = false,
+                         val useTimeDate: Boolean = false,
+                         val useFoodPerc: Boolean = false,
+                         val useCaptions: Boolean = false,
+                         val useFollowers: Boolean = false,
+                         val useFollowees: Boolean = false,
+                         val useRT: Boolean = false,
+                         val useGender: Boolean = false,
+                         val useAge: Boolean = false,
+                         val useRace: Boolean = false,
+                         val useHuman: Boolean = false,
+                         val dictOnly: Boolean = false,
+                         val denoise: Boolean = false,
+                         val datumScaling: Boolean = false,
+                         val variable: String,
+                         val customFeatures: (TwitterAccount) => Counter[String] = account => new Counter[String]()) {
 
   import FeatureExtractor._
 
@@ -455,8 +455,8 @@ class FeatureExtractor (
     // n-gram for tweets
     denoised.foreach{ tweet =>
       val split = retokenize(tweet.text) // split on whitespace
-    val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
-    val filtered = if (n == 1) filterStopWords(relevant) else relevant // remove stopwords
+      val relevant = if (dictOnly) dictFilter(split) else split // only relevant words if 'dictOnly'
+      val filtered = if (n == 1) relevant.filter(_.startsWith("#")) else relevant // remove stopwords
       setCounts(tokenNGrams(n, filtered), counter) // always set n-gram counts
       if (useRT) setCounts(tokenNGrams(n, filtered, if (tweet.isRetweet) "RT_" else "NRT_"), counter) // prepend if marking RT
     }
@@ -552,9 +552,9 @@ class FeatureExtractor (
     * @param account the whole [[TwitterAccount]] under analysis
     */
   def dictionaries(tweets: Seq[Tweet],
-    description: Array[String],
-    account: TwitterAccount,
-    ngramCounter: Option[Counter[String]]): Counter[String] = {
+                   description: Array[String],
+                   account: TwitterAccount,
+                   ngramCounter: Option[Counter[String]]): Counter[String] = {
 
     val counter = new Counter[String]()
     if(lexicons.isEmpty) return counter
@@ -774,7 +774,7 @@ class FeatureExtractor (
     * @return a [[Counter]] with a single cosine similarity feature
     */
   def cosineSim(ngramCounter: Option[Counter[String]], tweets: Seq[Tweet],
-    description: Array[String]): Counter[String] = {
+                description: Array[String]): Counter[String] = {
 
     val accountVec = if (ngramCounter.nonEmpty) copyCounter(ngramCounter.get) else ngrams(1, tweets, description)
 
