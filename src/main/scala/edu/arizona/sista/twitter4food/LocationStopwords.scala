@@ -19,9 +19,11 @@ object LocationStopwords {
 
   private val others = Set("nyc", "vegas", "dc", "sanfran", "carlolina", "hampshire", "dakota", "los", "las", "san",
     "jersey", "philly", "york", "phx", "atl", "indy", "santafe", "stl", "kc", "princeton", "atx", "okc", "westport",
-    "miamibeach", "southflorida", "brickell", "oshkosh", "rva", "oxford", "charlottefood", "dtla", "sf", "santamonica", "sxsw", "washingtondc", "harlem", "manhattan",
-    "toronto", "dtphx", "wynwood", "waikiki", "hawaiian", "belfastmaine", "montclair", "caldwellnj", "hoboken", "bronx", "brooklyn",  "jacksonhole",
-    "columbusohio", "easton", "columbusga", "uptowndallas", "ilovejax", "jax", "phillyfood", "littleitalysd", "diego", "lajolla", "francisco", "mission", "sfo", "sj")
+    "miamibeach", "southflorida", "brickell", "oshkosh", "rva", "oxford", "charlottefood", "dtla", "sf", "santamonica",
+    "sxsw", "washingtondc", "harlem", "manhattan", "toronto", "dtphx", "wynwood", "waikiki", "hawaiian",
+    "belfastmaine", "montclair", "caldwellnj", "hoboken", "bronx", "brooklyn",  "jacksonhole", "columbusohio",
+    "easton", "columbusga", "uptowndallas", "ilovejax", "jax", "phillyfood", "littleitalysd", "diego", "lajolla",
+    "francisco", "mission", "sfo", "sj")
 
   private lazy val withoutHashtags = cities ++ states ++ others
 

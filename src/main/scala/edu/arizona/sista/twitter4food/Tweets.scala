@@ -1,16 +1,20 @@
 package edu.arizona.sista.twitter4food
 
-import java.util.{Calendar, Date, ArrayList, TimeZone}
+import java.util.{ArrayList, Calendar, Date, TimeZone}
 import java.text.SimpleDateFormat
+
 import collection.JavaConversions._
 import org.clulab.processors.corenlp._
 import Mixins._
+
 import scala.util.matching.Regex
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import duration.Duration
 import scala.io.Source
 import Mixins._
+
+import scala.util.Try
 
 /**
  * Created by dfried on 1/1/14.
@@ -116,7 +120,11 @@ class TweetParser(val sentimentClassifier: Option[SentimentClassifier] = None,
     blockOfLines map parseTweetLines
 
   def parseBlockOfTweets(blockOfLines: Iterator[Seq[String]]): Iterator[Tweet] =
-    blockOfLines map parseTweetLines
+    blockOfLines.toSeq.par.flatMap { lines =>
+      val result = Try{parseTweetLines(lines)}
+      if(result.isFailure) println("Error on line:\n" + lines.mkString("\n"))
+      result.toOption
+    }.toIterator
 
   def parseTweetsStreaming(source: Source): Stream[Tweet] = {
     source.getLines().grouped(3).toStream.map(parseTweetLines)
