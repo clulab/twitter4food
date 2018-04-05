@@ -14,7 +14,7 @@ import duration.Duration
 import scala.io.Source
 import Mixins._
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
  * Created by dfried on 1/1/14.
@@ -121,8 +121,13 @@ class TweetParser(val sentimentClassifier: Option[SentimentClassifier] = None,
 
   def parseBlockOfTweets(blockOfLines: Iterator[Seq[String]]): Iterator[Tweet] =
     blockOfLines.toSeq.par.flatMap { lines =>
-      val result = Try{parseTweetLines(lines)}
-      if(result.isFailure) println("Error on line:\n" + lines.mkString("\n"))
+      val result = Try(parseTweetLines(lines))
+      result match {
+        case Failure(r) =>
+          println("Error on line:\n" + lines.mkString("\n") + "\n-------------")
+          r.printStackTrace()
+        case Success(r) => () // yay@
+      }
       result.toOption
     }.toIterator
 
