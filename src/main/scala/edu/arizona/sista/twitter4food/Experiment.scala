@@ -513,12 +513,12 @@ object Experiment {
         // only keep ngrams occurring this many times or more
         ngramThreshold = Some(2)
         // split feature values into this number of quantiles
-        numFeatureBins = Some(3)
+        numFeatureBins = None //Some(3)
         // use a bias in the SVM?
         useBias = false
         // use regions as features?
         regionType = NoRegions
-        classifierType = RandomForest
+        classifierType = SVM_L2
 
         // Some(k) to use k classifiers bagged, or None to not do bagging
         baggingNClassifiers <- List(None)

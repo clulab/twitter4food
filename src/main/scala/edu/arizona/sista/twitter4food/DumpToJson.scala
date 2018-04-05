@@ -34,18 +34,18 @@ object DumpToJson {
   def postFileToSolr(tweetFileName: String) = {
 
     val ldaModels: Map[TokenType, LDA] = Map(
-      AllTokens -> LDA.load("/home/daniel/twitter4food/lda_models/AllTokens.model"),
-      FoodTokens -> LDA.load("/home/daniel/twitter4food/lda_models/FoodTokens.model"),
-      HashtagTokens -> LDA.load("/home/daniel/twitter4food/lda_models/HashtagTokens.model"),
-      FoodHashtagTokens -> LDA.load("/home/daniel/twitter4food/lda_models/FoodHashtagTokens.model")
+      AllTokens -> LDA.load("/work/dfried/twitter4food/lda_models/AllTokens.model"),
+      FoodTokens -> LDA.load("/work/dfried/twitter4food/lda_models/FoodTokens.model"),
+      HashtagTokens -> LDA.load("/work/dfried/twitter4food/lda_models/HashtagTokens.model"),
+      FoodHashtagTokens -> LDA.load("/work/dfried/twitter4food/lda_models/FoodHashtagTokens.model")
     )
 
     val source = Utils.loadFile(tweetFileName)
 
     val sentimentClassifier: Some[SentimentClassifier] = Some(SentimentClassifier.train(
-      Some("/home/daniel/twitter4food/sentiment/happy.tweets"),
-      Some("/home/daniel/twitter4food/sentiment/random.tweets"),
-      Some("/home/daniel/twitter4food/sentiment/sad.tweets")))
+      Some("/work/dfried/twitter4food/sentiment/happy.tweets"),
+      Some("/work/dfried/twitter4food/sentiment/random.tweets"),
+      Some("/work/dfried/twitter4food/sentiment/sad.tweets")))
 
     val tweetparser = new TweetParser(sentimentClassifier, ldaModels)
     val groupedLines = source.getLines.grouped(3)
