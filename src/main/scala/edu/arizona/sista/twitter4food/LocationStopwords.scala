@@ -23,7 +23,10 @@ object LocationStopwords {
     "sxsw", "washingtondc", "harlem", "manhattan", "toronto", "dtphx", "wynwood", "waikiki", "hawaiian",
     "belfastmaine", "montclair", "caldwellnj", "hoboken", "bronx", "brooklyn",  "jacksonhole", "columbusohio",
     "easton", "columbusga", "uptowndallas", "ilovejax", "jax", "phillyfood", "littleitalysd", "diego", "lajolla",
-    "francisco", "mission", "sfo", "sj")
+    "francisco", "mission", "sfo", "sj", "paoli", "maui", "traversecity", "farmington", "franklincountymaine", "pdx",
+    "pdxeats", "perduecrew", "downtownstl", "mpls", "mke", "ono", "netde", "downcity", "hirostl", "buckhead", "nola",
+    "morgantown", "historicstcharles", "tomsriver", "milwicked"
+  )
 
   private lazy val withoutHashtags = cities ++ states ++ others
 
