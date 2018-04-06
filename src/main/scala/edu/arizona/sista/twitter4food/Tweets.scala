@@ -120,7 +120,7 @@ class TweetParser(val sentimentClassifier: Option[SentimentClassifier] = None,
     blockOfLines map parseTweetLines
 
   def parseBlockOfTweets(blockOfLines: Iterator[Seq[String]]): Iterator[Tweet] =
-    blockOfLines.toSeq.par.flatMap { lines =>
+    blockOfLines.flatMap { lines =>
       val result = Try(parseTweetLines(lines))
       result match {
         case Failure(r) =>
@@ -129,7 +129,7 @@ class TweetParser(val sentimentClassifier: Option[SentimentClassifier] = None,
         case Success(r) => () // yay@
       }
       result.toOption
-    }.toIterator
+    }
 
   def parseTweetsStreaming(source: Source): Stream[Tweet] = {
     source.getLines().grouped(3).toStream.map(parseTweetLines)
