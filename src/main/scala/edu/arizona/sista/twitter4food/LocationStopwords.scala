@@ -25,7 +25,7 @@ object LocationStopwords {
     "easton", "columbusga", "uptowndallas", "ilovejax", "jax", "phillyfood", "littleitalysd", "diego", "lajolla",
     "francisco", "mission", "sfo", "sj", "paoli", "maui", "traversecity", "farmington", "franklincountymaine", "pdx",
     "pdxeats", "perduecrew", "downtownstl", "mpls", "mke", "ono", "netde", "downcity", "hirostl", "buckhead", "nola",
-    "morgantown", "historicstcharles", "tomsriver", "milwicked"
+    "morgantown", "historicstcharles", "tomsriver", "milwicked", "wickedhop", "stlfood", "btv"
   )
 
   private lazy val withoutHashtags = cities ++ states ++ others
