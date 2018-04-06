@@ -566,7 +566,9 @@ object Experiment {
           intraPredicted ++= states map(predicted)
           intraActual ++= states map(actual)
           intraBaseline ++= states map(baseline)
-          val pvalue = EvaluationStatistics.classificationAccuracySignificance(states map(predicted), states map(baseline), states map(actual))
+          val pvalue = EvaluationStatistics
+            .classificationAccuracySignificance(states map(predicted), states map(baseline), states map(actual),
+              N_samples = 100000)
           pw.println(f"\t\t$datasetName%s")
           pw.println(f"\t\t$accuracy%2.2f (p = $pvalue%2.2f)")
         }
