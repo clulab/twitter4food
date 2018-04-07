@@ -6,7 +6,7 @@ import scala.io.Source
  */
 object FoodWords {
   lazy val words: Set[String] = {
-    def source = Source.fromURL(getClass.getResource("food_words_less_exp500.txt"))
+    def source = Source.fromURL(getClass.getResource("food_words.txt"))
     source.getLines.map(_.trim.toLowerCase).toSet
   }
 }
