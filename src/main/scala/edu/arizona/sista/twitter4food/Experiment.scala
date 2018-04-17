@@ -477,7 +477,7 @@ object Experiment {
 
           val sortedWeights = weights.sorted
           p.println("+\t-")
-          p.println(rep(sortedWeights.take(20)).zip(rep(sortedWeights.reverse.take(20))).map({ case (s1, s2) => "%s\t%s".format(s1, s2) }).mkString("\n"))
+          p.println(rep(sortedWeights.take(40)).zip(rep(sortedWeights.reverse.take(20))).map({ case (s1, s2) => "%s\t%s".format(s1, s2) }).mkString("\n"))
           p.println
         }
         p.println
@@ -500,7 +500,7 @@ object Experiment {
     //           <- means the parameter will take on all of the values in the list in turn
     val predictionsAndWeights = (for {
         // which base tokens to use? e.g. food words, hashtags, all words
-        tokenTypes: TokenType <- List(AllTokens, HashtagTokens, FoodTokens, FoodHashtagTokens).par
+        tokenTypes: TokenType <- List(AllTokens)//, HashtagTokens, FoodTokens, FoodHashtagTokens).par
         // which annotators to use in addition to tokens?
         annotators <- List(
           //List(LDAAnnotator(tokenTypes), SentimentAnnotator),
