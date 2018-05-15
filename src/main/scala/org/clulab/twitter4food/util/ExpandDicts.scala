@@ -72,7 +72,7 @@ object ExpandDicts extends App {
   val stopWords = FileUtils.readFromCsv(config.getString("classifiers.features.stopWords")).flatten
   logger.info(s"${stopWords.length} stop words: ${stopWords.take(5).mkString(", ")}...")
   def isPossibleTerm(term: String): Boolean = {
-    val punct = "[[…\\p{Punct}&&[^#'-]]".r // keep # for hashtags
+    val punct = "[…\\p{Punct}&&[^#'-]]".r // keep # for hashtags
     (! stopWords.contains(term)) & punct.findFirstIn(term).isEmpty
   }
 
