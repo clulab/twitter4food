@@ -7,7 +7,6 @@ import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 import org.clulab.struct.Lexicon
 
-
 case class ExpandDictsConfig(
                               dictName: String = "",
                               expandBy: Int = 0,
@@ -60,18 +59,24 @@ object ExpandDicts extends App {
   val arguments = parseArgs(args)
 
   logger.info(s"finding ${arguments.expandBy} new words for ${arguments.dictName}")
-  logger.info(s"min freq rank: ${arguments.highestFreq}; max freq rank: ${arguments.lowestFreq}; total: ${arguments.lowestFreq - arguments.highestFreq}")
+  logger.info(s"min freq rank: ${arguments.highestFreq}; max freq rank: ${arguments.lowestFreq}; " +
+    s"total: ${arguments.lowestFreq - arguments.highestFreq}")
 
   val lastDictLoc = config.getString(s"lexicons.${arguments.dictName}")
   val expandedDictLoc = config.getString(s"expanded_lexicons.${arguments.dictName}")
 
   val dictionary = Lexicon.loadFrom[String](lastDictLoc)
-
   logger.info(s"${arguments.dictName} contains ${dictionary.size} words")
+
+  val stopWords = FileUtils.readFromCsv(config.getString("classifiers.features.stopWords")).flatten
+  def isPossibleTerm(term: String): Boolean = {
+    val punct = "[\\p{Punct}&&[^#]]".r // keep # for hashtags
+    (! stopWords.contains(term)) && punct.findFirstIn(term).isEmpty
+  }
 
   val vectorLoc = arguments.dictName match {
     case food if food.startsWith("food") => config.getString("classifiers.features.food_vectors")
-    case other => config.getString("classifiers.features.generic_vectors")
+    case _ => config.getString("classifiers.features.generic_vectors")
   }
 
   val goldilocksFrequency = if(arguments.lowestFreq == 0) {
@@ -86,19 +91,23 @@ object ExpandDicts extends App {
       .slice(arguments.highestFreq + 1, arguments.lowestFreq + 1)
   }
 
-  val vectorMap = (for (line <- goldilocksFrequency) yield {
+  val vectorMap = goldilocksFrequency.flatMap{ line =>
     val splits = line.split(" ")
-    splits.head -> splits.tail.map(_.toDouble)
-  }).toMap
+    // Filter stop words out here
+    if (! stopWords.contains(splits.head))
+      Option(splits.head -> splits.tail.map(_.toDouble))
+    else
+      None
+  }
 
-  val (starting, candidates) = vectorMap.partition{ case (k, v) => dictionary.contains(k) }
+  val (starting, candidates) = vectorMap.partition{ case (k, _) => dictionary.contains(k) }
 
   val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
   pb.maxHint(starting.size)
 
   val distances = for {
-    (startWord, startVec) <- starting.par
+    (startWord, startVec) <- starting.toSeq.par
   } yield {
     val allDistances = for ((candWord, candVec) <- candidates) yield (candWord, startWord, cosSim(candVec, startVec))
     pb.step()
@@ -108,7 +117,6 @@ object ExpandDicts extends App {
 
   val softmaxes = distances
     .flatten
-    .toSeq
     .seq
     .groupBy(_._1)
     .par
