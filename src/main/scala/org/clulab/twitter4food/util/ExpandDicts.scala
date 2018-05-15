@@ -17,7 +17,7 @@ case class ExpandDictsConfig(
 
 /**
   * Expand an existing dictionary by finding the _n_ nearest neighbors according to word2vec vectors.
-  * e.g., org.clulab.twitter4food.util.ExpandDicts food_words_less.txt
+  * e.g., runMain org.clulab.twitter4food.util.ExpandDicts food_words_less 500 -h 100 -l 15000 -n 5
   */
 object ExpandDicts extends App {
 
@@ -70,9 +70,10 @@ object ExpandDicts extends App {
   logger.info(s"${arguments.dictName} contains ${dictionary.size} words")
 
   val stopWords = FileUtils.readFromCsv(config.getString("classifiers.features.stopWords")).flatten
+  logger.info(s"${stopWords.length} stop words: ${stopWords.take(5).mkString(", ")}...")
   def isPossibleTerm(term: String): Boolean = {
     val punct = "[\\p{Punct}&&[^#]]".r // keep # for hashtags
-    (! stopWords.contains(term)) && punct.findFirstIn(term).isEmpty
+    (! stopWords.contains(term)) & punct.findFirstIn(term).isEmpty
   }
 
   val vectorLoc = arguments.dictName match {
@@ -95,24 +96,25 @@ object ExpandDicts extends App {
   val vectorMap = goldilocksFrequency.flatMap{ line =>
     val splits = line.split(" ")
     // Filter stop words out here
-    if (! stopWords.contains(splits.head))
+    if (isPossibleTerm(splits.head))
       Option(splits.head -> splits.tail.map(_.toDouble))
     else
       None
   }
 
-  val (starting, candidates) = vectorMap.partition{ case (k, _) => dictionary.contains(k) }
+  val (starting, candidates) = vectorMap.toSeq.partition{ case (k, _) => dictionary.contains(k) }
+  logger.info(s"${candidates.length} candidates: ${candidates.take(5).mkString(", ")...}")
 
   val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
-  pb.maxHint(starting.size)
+  pb.maxHint(starting.length)
 
   val distances = for {
-    (startWord, startVec) <- starting.toSeq.par
+    (startWord, startVec) <- starting.par
   } yield {
     val allDistances = for ((candWord, candVec) <- candidates) yield (candWord, startWord, cosSim(candVec, startVec))
     pb.step()
-    allDistances.toSeq.sortBy(_._3).takeRight(arguments.limitPerWord)
+    allDistances.sortBy(_._3).takeRight(arguments.limitPerWord)
   }
   pb.stop()
 
