@@ -17,6 +17,7 @@ case class ExpandDictsConfig(
 
 /**
   * Expand an existing dictionary by finding the _n_ nearest neighbors according to word2vec vectors.
+  * e.g., org.clulab.twitter4food.util.ExpandDicts food_words_less.txt
   */
 object ExpandDicts extends App {
 
