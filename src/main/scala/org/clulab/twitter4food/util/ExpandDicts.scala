@@ -72,7 +72,7 @@ object ExpandDicts extends App {
   val stopWords = FileUtils.readFromCsv(config.getString("classifiers.features.stopWords")).flatten
   logger.info(s"${stopWords.length} stop words: ${stopWords.take(5).mkString(", ")}...")
   def isPossibleTerm(term: String): Boolean = {
-    val punct = "[\\p{Punct}&&[^#'-]]".r // keep # for hashtags
+    val punct = "[\\p{Punct}&&[^#'-]||[…]]".r // keep # for hashtags
     (! stopWords.contains(term)) & punct.findFirstIn(term).isEmpty
   }
 
@@ -103,7 +103,7 @@ object ExpandDicts extends App {
   }
 
   val (starting, candidates) = vectorMap.toSeq.partition{ case (k, _) => dictionary.contains(k) }
-  logger.info(s"${candidates.length} candidates: ${candidates.take(5).mkString(", ")}...")
+  logger.info(s"${candidates.length} candidates: ${candidates.take(5).map(_._1).mkString(", ")}...")
 
   val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
