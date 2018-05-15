@@ -103,7 +103,7 @@ object ExpandDicts extends App {
   }
 
   val (starting, candidates) = vectorMap.toSeq.partition{ case (k, _) => dictionary.contains(k) }
-  logger.info(s"${candidates.length} candidates: ${candidates.take(5).mkString(", ")...}")
+  logger.info(s"${candidates.length} candidates: ${candidates.take(5).mkString(", ")}...")
 
   val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
