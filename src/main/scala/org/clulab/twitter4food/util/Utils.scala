@@ -43,7 +43,8 @@ object Utils {
     usProps: Boolean = false,
     runOnTest: Boolean = false,
     learningCurve: Boolean = false,
-    useDiabetesData: Boolean = false
+    useDiabetesData: Boolean = false,
+    useCeiling: Boolean = false
   )
 
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -151,6 +152,8 @@ object Utils {
         c.copy(learningCurve = true)} text "analyze performance"
       opt[Unit]('z', "useDiabetes") action { (x, c) =>
         c.copy(useDiabetesData = true)} text "use Diabetes dataset (for overweight classifier)"
+      opt[Unit]('C', "useCeiling") action { (x, c) =>
+        c.copy(useCeiling = true)} text "use ceiling Stats"
     }
 
     val opts = parser.parse(args, Config())

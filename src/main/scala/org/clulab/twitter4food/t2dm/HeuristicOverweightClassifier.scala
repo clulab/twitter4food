@@ -39,6 +39,7 @@ class HeuristicOverweightClassifier
     useAge=false,
     useRace=false,
     useHuman=false,
+    useCeiling=false,
     dictOnly=false,
     denoise=false,
     datumScaling=false,

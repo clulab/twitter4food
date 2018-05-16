@@ -60,6 +60,7 @@ class OverweightClassifier(
     useAge=useAge,
     useRace=useRace,
     useHuman=useHuman,
+    useCeiling=false,
     dictOnly=dictOnly,
     denoise=denoise,
     datumScaling=datumScaling,

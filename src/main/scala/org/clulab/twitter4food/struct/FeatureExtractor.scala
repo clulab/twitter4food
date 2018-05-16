@@ -48,6 +48,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useAge domain transfer based on classification of account age
   * @param useRace domain transfer based on classification of account race
   * @param useHuman limit follower domain transfer to those judged as human
+  * @param useCeiling use ceiling stats
   * @param datumScaling scale by account
   * @param customFeatures use classifier-specific custom features
   */
@@ -72,6 +73,7 @@ class FeatureExtractor (
   val useAge: Boolean = false,
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
+  val useCeiling: Boolean = false,
   val dictOnly: Boolean = false,
   val denoise: Boolean = false,
   val datumScaling: Boolean = false,
@@ -102,6 +104,7 @@ class FeatureExtractor (
     s"useAge=$useAge, " +
     s"useRace=$useRace, " +
     s"useHuman=$useHuman, " +
+    s"useCeiling=$useCeiling, " +
     s"datumScaling=$datumScaling"
   )
 
@@ -154,6 +157,27 @@ class FeatureExtractor (
     val unsorted = FileUtils.loadLocations(config.getString("classifiers.overweight.tweetLocs"))
     unsorted.groupBy(l => l.user)
   } else Map[Long, Seq[Location]]()
+
+  // ceiling ageScores, genderScores, bmiScores
+  val (ageScores, genderScores, bmiScores): (Option[Map[Long,Int]], Option[Map[Long,Int]], Option[Map[Long,Int]]) = if (useCeiling) {
+    val ceilingFile = scala.io.Source.fromFile(config.getString("classifiers.diabetes.ceilingStats"))
+
+    val aMap = scala.collection.mutable.Map[Long, Int]()
+    val gMap = scala.collection.mutable.Map[Long, Int]()
+    val bMap = scala.collection.mutable.Map[Long, Int]()
+    for {
+      line <- ceilingFile.getLines.drop(1)
+      splits = line.replace("\"","").split(",")
+    } {
+      val id = splits(0).toLong
+      if (splits(8) != "NULL") aMap(id) = splits(8).toInt
+      if (splits(9) != "NULL") gMap(id) = splits(9).toInt
+      if (splits(14) != "NULL") bMap(id) = splits(14).toInt
+    }
+    ceilingFile.close()
+    (Option(aMap.toMap), Option(gMap.toMap), Option(bMap.toMap))
+  } else (None, None, None)
+  
 
   // % food images annotations
   val (twFoodPerc, igFoodPerc): (Option[Map[Long,Double]], Option[Map[Long,Double]]) = if (useFoodPerc) {
@@ -364,6 +388,8 @@ class FeatureExtractor (
       counter += captionNgrams(account.id)
     if (useFollowees)
       counter += scale(followees(account))
+    if (useCeiling)
+      counter += ceilingStats(account.id)
 
     // Domain adaptation from here on -- no DA of DA
     // Each set of domain adaptation features (gender, race, followers) captured independently and then added once
@@ -874,6 +900,27 @@ class FeatureExtractor (
 
     counter
   }
+
+
+  /**
+    * Returns a [[Counter]] with age, gender and bmi scores from ceiling stats
+    */
+  def ceilingStats(id: Long): Counter[String] = {
+    val counter = new Counter[String]
+
+    if (ageScores.nonEmpty && ageScores.get.contains(id)) {
+      counter.setCount("ceilingStats:ageScores", ageScores.get(id))
+    }
+    if (genderScores.nonEmpty && genderScores.get.contains(id)) {
+      counter.setCount("ceilingStats:genderScores", genderScores.get(id))
+    }
+    if (bmiScores.nonEmpty && bmiScores.get.contains(id)) {
+      counter.setCount("ceilingStats:bmiScores", bmiScores.get(id))
+    }
+
+    counter
+  }
+
 
   def captionNgrams(id: Long, n: Int = 1): Counter[String] = {
     val counter = new Counter[String]
