@@ -100,6 +100,7 @@ object ExpandDicts extends App {
   logger.info(s"finding ${arguments.expandBy} new words for ${arguments.dictName}")
   logger.info(s"min freq rank: ${arguments.highestFreq}; max freq rank: ${arguments.lowestFreq}; " +
     s"total: ${arguments.lowestFreq - arguments.highestFreq}")
+  logger.info(s"min log IDF: ${arguments.minIdf}; max log IDF: ${arguments.maxIdf}"
 
   val lastDictLoc = config.getString(s"lexicons.${arguments.dictName}")
   val expandedDictLoc = config.getString(s"expanded_lexicons.${arguments.dictName}")
@@ -111,7 +112,7 @@ object ExpandDicts extends App {
   logger.info(s"${stopWords.length} stop words: ${stopWords.take(5).mkString(", ")}...")
 
   val corpus = FileUtils.loadTwitterAccounts(config.getString("classifiers.diabetes.data")).keys.toSeq
-  val wds = corpus.flatMap(_.tweets.map(_.text.toLowerCase.split("\\s+").toSeq))
+  val wds = corpus.flatMap(_.tweets.map(_.text.split("\\s+").toSeq))
   val idfs = logidf(wds)
 
   val vectorLoc = arguments.dictName match {
