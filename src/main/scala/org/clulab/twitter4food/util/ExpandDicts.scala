@@ -33,9 +33,9 @@ object ExpandDicts extends App {
         c.copy(highestFreq = x)} text "ignore the top h most frequent words"
       opt[Int]('l', "lowestFreq") action { (x, c) =>
         c.copy(lowestFreq = x)} text "ignore words less frequent than word l"
-      opt[Int]('i', "minimumIdf") action { (x, c) =>
+      opt[Double]('i', "minimumIdf") action { (x, c) =>
         c.copy(minIdf = x)} text "ignore words with log idf less than this"
-      opt[Int]('a', "maximumIdf") action { (x, c) =>
+      opt[Double]('a', "maximumIdf") action { (x, c) =>
         c.copy(maxIdf = x)} text "ignore words with log idf greater than this"
       opt[Int]('n', "neighbors") action { (x, c) =>
         c.copy(limitPerWord = x)} text "an existing word can only expand to the n closest"
