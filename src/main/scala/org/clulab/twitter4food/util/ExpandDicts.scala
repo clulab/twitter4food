@@ -69,7 +69,7 @@ object ExpandDicts extends App {
       wd <- tweet.distinct
     } appearances.incrementCount(wd)
 
-    appearances.mapValues(count => math.log(numDocs / count))
+    appearances.mapValues(count => math.log10(numDocs / count))
   }
 
   def isPossibleTerm(term: String): Boolean = {
