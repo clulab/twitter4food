@@ -73,16 +73,19 @@ object ExpandDicts extends App {
   }
 
   def isPossibleTerm(term: String): Boolean = {
+    val punct = "[…\\p{Punct}&&[^#'-]]".r // keep # for hashtags
+    (! stopWords.contains(term)) & punct.findFirstIn(term).isEmpty
+  }
+
+  def rightIdf(term: String): Boolean = {
     if (! idfs.contains(term)) return false
     val termIdf = idfs.getCount(term)
-    val frequentEnough = (arguments.minIdf, arguments.maxIdf) match {
+    (arguments.minIdf, arguments.maxIdf) match {
       case (n, x) if n > 0 & x > 0 => termIdf >= n & termIdf <= x
       case (_, x) if x > 0 => termIdf <= x
       case (n, _) if n > 0 => termIdf >= n
       case noRestriction => true
     }
-    val punct = "[…\\p{Punct}&&[^#'-]]".r // keep # for hashtags
-    frequentEnough & (! stopWords.contains(term)) & punct.findFirstIn(term).isEmpty
   }
 
   // deal with difficult characters by removing them
@@ -139,6 +142,8 @@ object ExpandDicts extends App {
 
   val (starting, candidates) = vectorMap.toSeq.partition{ case (k, _) => dictionary.contains(k) }
   logger.info(s"${candidates.length} candidates: ${candidates.take(5).map(_._1).mkString(", ")}...")
+  val goldilocksIdf = candidates.filter{ case (term, _) => rightIdf(term) }
+  logger.info(s"${goldilocksIdf.length} have correct frequency: ${goldilocksIdf.take(5).map(_._1).mkString(", ")}...")
 
   val pb = new me.tongfei.progressbar.ProgressBar("winnowing", 100)
   pb.start()
@@ -147,7 +152,7 @@ object ExpandDicts extends App {
   val distances = for {
     (startWord, startVec) <- starting.par
   } yield {
-    val allDistances = for ((candWord, candVec) <- candidates) yield (candWord, startWord, cosSim(candVec, startVec))
+    val allDistances = for ((candWord, candVec) <- goldilocksIdf) yield (candWord, startWord, cosSim(candVec, startVec))
     pb.step()
     allDistances.sortBy(_._3).takeRight(arguments.limitPerWord)
   }
