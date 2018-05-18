@@ -100,7 +100,7 @@ object ExpandDicts extends App {
   logger.info(s"finding ${arguments.expandBy} new words for ${arguments.dictName}")
   logger.info(s"min freq rank: ${arguments.highestFreq}; max freq rank: ${arguments.lowestFreq}; " +
     s"total: ${arguments.lowestFreq - arguments.highestFreq}")
-  logger.info(s"min log IDF: ${arguments.minIdf}; max log IDF: ${arguments.maxIdf}"
+  logger.info(s"min log IDF: ${arguments.minIdf}; max log IDF: ${arguments.maxIdf}")
 
   val lastDictLoc = config.getString(s"lexicons.${arguments.dictName}")
   val expandedDictLoc = config.getString(s"expanded_lexicons.${arguments.dictName}")
