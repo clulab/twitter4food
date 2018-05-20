@@ -957,10 +957,9 @@ class FeatureExtractor (
 	       case "Yes" => {
 		    counter.setCount("ceilingStats:relative", 1)
 	       }
-	       case "No" => {
+	       case _ => {
 		  counter.setCount("ceilingStats:relative", 0)
 	       }
-	       case _ => 
 	   }
 	}
 	if (highBPs.nonEmpty && highBPs.get.contains(id)) {
@@ -968,10 +967,9 @@ class FeatureExtractor (
 	       case "Yes" => {
 	       	  counter.setCount("ceilingStats:highBP", 1)
 	       }
-	       case "No" => {
+	       case _ => {
 		  counter.setCount("ceilingStats:highBP", 0)
 	       }
-	       case _ => 
 	   }
 	}
 	if (actives.nonEmpty && actives.get.contains(id)) {
@@ -979,10 +977,9 @@ class FeatureExtractor (
 	       case "Yes" => {
 		  counter.setCount("ceilingStats:active", 1)
 	       }
-	       case "No" => {
+	       case _ => {
 		  counter.setCount("ceilingStats:active", 0)
 	       }
-	       case _ => 
 	   }	
 	}
 	if (gestationals.nonEmpty && gestationals.get.contains(id)) {
@@ -990,31 +987,28 @@ class FeatureExtractor (
 	       case "Yes" => {
 		  counter.setCount("ceilingStats:gestational", 1)
 	       }
-	       case "No" => {
+	       case _ => {
 		  counter.setCount("ceilingStats:gestational", 0)
 	       }
-	       case _ => 
 	   }	
 	}
     }
 
     if (ages.nonEmpty && ages.get.contains(id)) {
-        counter.setCount("ceilingStats:age", ages.get(id))	      
+        counter.setCount("ceilingStats:age", (ages.get(id) - ages.get.min._2) / (ages.get.max._2 - ages.get.min._2))
     }
     if (genders.nonEmpty && genders.get.contains(id)) {
        	genders.get(id) match {
-	    case "Woman" => {
-		 counter.setCount("ceilingStats:gender", 0)
-	    }
-	    case "Man" => {
-		 counter.setCount("ceilingStats:gender", 1)
-	    }
-	    case _ => 
-	}
-
+    	    case "Man" => {
+    		 counter.setCount("ceilingStats:gender", 1)
+    	    }
+    	    case _ => {
+    		 counter.setCount("ceilingStats:gender", 0)
+    	    }
+    	}
     }
     if (bmis.nonEmpty && bmis.get.contains(id)) {
-      counter.setCount("ceilingStats:bmi", bmis.get(id))
+      counter.setCount("ceilingStats:bmi", (bmis.get(id) - bmis.get.min._2) / (bmis.get.max._2 - bmis.get.min._2))
     }
 
     counter
