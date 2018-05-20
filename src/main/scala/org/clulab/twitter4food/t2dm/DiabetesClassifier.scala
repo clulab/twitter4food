@@ -37,6 +37,7 @@ class DiabetesClassifier(
   useRace: Boolean = false,
   useHuman: Boolean = false,
   useCeiling: Boolean = false,
+  useRealCeiling: Boolean = false,
   dictOnly: Boolean = false,
   denoise: Boolean = false,
   datumScaling: Boolean = false,
@@ -62,6 +63,7 @@ class DiabetesClassifier(
     useAge=useAge,
     useRace=useRace,
     useCeiling=useCeiling,
+    useRealCeiling=useRealCeiling,
     useHuman=useHuman,
     dictOnly=dictOnly,
     denoise=denoise,
@@ -98,7 +100,8 @@ object DiabetesClassifier {
       params.useFoodPerc,
       params.useCaptions,
       params.useFollowees,
-      params.useCeiling
+      params.useCeiling,
+      params.useRealCeiling
     )
     val default = allFeatures.forall(!_) // true if all features are off
 
@@ -170,6 +173,7 @@ object DiabetesClassifier {
         useGender = params.useGender,
         // useRace = params.useRace,
 	useCeiling = params.useCeiling,
+	useRealCeiling = params.useRealCeiling,
         dictOnly = params.dictOnly,
         denoise = params.denoise,
         datumScaling = params.datumScaling,

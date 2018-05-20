@@ -49,6 +49,7 @@ import scala.collection.mutable.ArrayBuffer
   * @param useRace domain transfer based on classification of account race
   * @param useHuman limit follower domain transfer to those judged as human
   * @param useCeiling use ceiling stats
+  * @param useRealCeiling use predictable ceiling stats
   * @param datumScaling scale by account
   * @param customFeatures use classifier-specific custom features
   */
@@ -74,6 +75,7 @@ class FeatureExtractor (
   val useRace: Boolean = false,
   val useHuman: Boolean = false,
   val useCeiling: Boolean = false,
+  val useRealCeiling: Boolean = false,
   val dictOnly: Boolean = false,
   val denoise: Boolean = false,
   val datumScaling: Boolean = false,
@@ -105,6 +107,7 @@ class FeatureExtractor (
     s"useRace=$useRace, " +
     s"useHuman=$useHuman, " +
     s"useCeiling=$useCeiling, " +
+    s"useRealCeiling=$useRealCeiling, " +
     s"datumScaling=$datumScaling"
   )
 
@@ -158,25 +161,57 @@ class FeatureExtractor (
     unsorted.groupBy(l => l.user)
   } else Map[Long, Seq[Location]]()
 
-  // ceiling ageScores, genderScores, bmiScores
-  val (ageScores, genderScores, bmiScores): (Option[Map[Long,Int]], Option[Map[Long,Int]], Option[Map[Long,Int]]) = if (useCeiling) {
+
+  // ceiling Stats
+  val (ages, genders, relatives, highBPs, actives, gestationals, bmis,
+      ageScores, genderScores, gestScores, relScores, bpScores, actScores, bmiScores): (Option[Map[Long,Int]], Option[Map[Long,String]], Option[Map[Long,String]],
+											Option[Map[Long,String]], Option[Map[Long,String]], Option[Map[Long,String]],
+											Option[Map[Long,Double]], Option[Map[Long,Int]], Option[Map[Long,Int]],
+											Option[Map[Long,Int]], Option[Map[Long,Int]], Option[Map[Long,Int]],
+											Option[Map[Long,Int]], Option[Map[Long,Int]]) = if (useCeiling || useRealCeiling){
     val ceilingFile = scala.io.Source.fromFile(config.getString("classifiers.diabetes.ceilingStats"))
 
     val aMap = scala.collection.mutable.Map[Long, Int]()
-    val gMap = scala.collection.mutable.Map[Long, Int]()
-    val bMap = scala.collection.mutable.Map[Long, Int]()
+    val gMap = scala.collection.mutable.Map[Long, String]()
+    val rMap = scala.collection.mutable.Map[Long, String]()
+    val hMap = scala.collection.mutable.Map[Long, String]()
+    val actMap = scala.collection.mutable.Map[Long, String]()
+    val gesMap = scala.collection.mutable.Map[Long, String]()
+    val bMap = scala.collection.mutable.Map[Long, Double]()
+
+    val aSMap = scala.collection.mutable.Map[Long, Int]()
+    val gSMap = scala.collection.mutable.Map[Long, Int]()
+    val gesSMap = scala.collection.mutable.Map[Long, Int]()
+    val rSMap = scala.collection.mutable.Map[Long, Int]()
+    val hSMap = scala.collection.mutable.Map[Long, Int]()
+    val actSMap = scala.collection.mutable.Map[Long, Int]()
+    val bSMap = scala.collection.mutable.Map[Long, Int]()
+
     for {
       line <- ceilingFile.getLines.drop(1)
       splits = line.replace("\"","").split(",")
     } {
       val id = splits(0).toLong
-      if (splits(8) != "NULL") aMap(id) = splits(8).toInt
-      if (splits(9) != "NULL") gMap(id) = splits(9).toInt
-      if (splits(14) != "NULL") bMap(id) = splits(14).toInt
+      if (splits(1) != "NULL") aMap(id) = splits(1).toInt
+      if (splits(2) != "NULL") gMap(id) = splits(2)
+      if (splits(3) != "NULL") rMap(id) = splits(3)
+      if (splits(4) != "NULL") hMap(id) = splits(4)
+      if (splits(5) != "NULL") actMap(id) = splits(5)
+      if (splits(6) != "NULL") gesMap(id) = splits(6)
+      if (splits(7) != "NULL") bMap(id) = splits(7).toDouble
+      if (splits(8) != "NULL") aSMap(id) = splits(8).toInt
+      if (splits(9) != "NULL") gSMap(id) = splits(9).toInt
+      if (splits(10) != "NULL") gesSMap(id) = splits(10).toInt
+      if (splits(11) != "NULL") rSMap(id) = splits(11).toInt
+      if (splits(12) != "NULL") hSMap(id) = splits(12).toInt
+      if (splits(13) != "NULL") actSMap(id) = splits(13).toInt
+      if (splits(14) != "NULL") bSMap(id) = splits(14).toInt
+      
     }
     ceilingFile.close()
-    (Option(aMap.toMap), Option(gMap.toMap), Option(bMap.toMap))
-  } else (None, None, None)
+    (Option(aMap.toMap), Option(gMap.toMap), Option(rMap.toMap), Option(hMap.toMap), Option(actMap.toMap), Option(gesMap.toMap), Option(bMap.toMap),
+    Option(aSMap.toMap), Option(gSMap.toMap), Option(gesSMap.toMap), Option(rSMap.toMap), Option(hSMap.toMap), Option(actSMap.toMap), Option(bSMap.toMap))
+  } else (None, None, None, None, None, None, None, None, None, None, None, None, None, None)
   
 
   // % food images annotations
@@ -388,7 +423,7 @@ class FeatureExtractor (
       counter += captionNgrams(account.id)
     if (useFollowees)
       counter += scale(followees(account))
-    if (useCeiling)
+    if (useCeiling || useRealCeiling) 
       counter += ceilingStats(account.id)
 
     // Domain adaptation from here on -- no DA of DA
@@ -433,6 +468,7 @@ class FeatureExtractor (
 
     counter += daCounter
 
+    println(counter)
     // remove zero values for sparse rep
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
   }
@@ -706,6 +742,14 @@ class FeatureExtractor (
   // Loads the embeddings for creating embedding-related features
   private def loadVectors: Option[Map[String, Array[Double]]] = {
     logger.info("Loading word embeddings...")
+
+    import java.nio.charset.CodingErrorAction
+    import scala.io.Codec
+    
+    implicit val codec = Codec("UTF-8")
+    codec.onMalformedInput(CodingErrorAction.REPLACE)
+    codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+
     val lines = scala.io.Source.fromFile(config.getString("classifiers.features.food_vectors")).getLines
     lines.next() // we don't need to know how big the vocabulary or vectors are
     val vectorMap = scala.collection.mutable.Map[String, Array[Double]]()
@@ -908,14 +952,94 @@ class FeatureExtractor (
   def ceilingStats(id: Long): Counter[String] = {
     val counter = new Counter[String]
 
-    if (ageScores.nonEmpty && ageScores.get.contains(id)) {
-      counter.setCount("ceilingStats:ageScores", ageScores.get(id))
+    if (useCeiling) {
+	if (relatives.nonEmpty && relatives.get.contains(id)) {
+	  relatives.get(id) match {
+	       case "Yes" => {
+			  counter.setCount("ceilingStats:relativeYes", 1)
+			  counter.setCount("ceilingStats:relativeNo", 0)
+	       }
+	       case "No" => {
+		  counter.setCount("ceilingStats:relativeYes", 0)
+		  counter.setCount("ceilingStats:relativeNo", 1)
+	       }
+	       case _ => {
+		  counter.setCount("ceilingStats:relativeYes", 0)
+		  counter.setCount("ceilingStats:relativeNo", 0)
+	       }
+	   }
+	}
+	if (highBPs.nonEmpty && highBPs.get.contains(id)) {
+	  highBPs.get(id) match {
+	       case "Yes" => {
+			  counter.setCount("ceilingStats:highBPYes", 1)
+			  counter.setCount("ceilingStats:highBPNo", 0)
+	       }
+	       case "No" => {
+		  counter.setCount("ceilingStats:highBPYes", 0)
+		  counter.setCount("ceilingStats:highBPNo", 1)
+	       }
+	       case _ => {
+		  counter.setCount("ceilingStats:highBPYes", 0)
+		  counter.setCount("ceilingStats:highBPNo", 0)
+	       }
+	   }
+	}
+	if (actives.nonEmpty && actives.get.contains(id)) {
+	  actives.get(id) match {
+	       case "Yes" => {
+		  counter.setCount("ceilingStats:activeYes", 1)
+		  counter.setCount("ceilingStats:activeNo", 0)
+	       }
+	       case "No" => {
+		  counter.setCount("ceilingStats:activeYes", 0)
+		  counter.setCount("ceilingStats:activeNo", 1)
+	       }
+	       case _ => {
+		  counter.setCount("ceilingStats:activeYes", 0)
+		  counter.setCount("ceilingStats:activeNo", 0)
+	       }
+	   }	
+	}
+	if (gestationals.nonEmpty && gestationals.get.contains(id)) {
+	  gestationals.get(id) match {
+	       case "Yes" => {
+		  counter.setCount("ceilingStats:gestationalYes", 1)
+		  counter.setCount("ceilingStats:gestationalNo", 0)
+	       }
+	       case "No" => {
+		  counter.setCount("ceilingStats:gestationalYes", 0)
+		  counter.setCount("ceilingStats:gestationalNo", 1)
+	       }
+	       case _ => {
+		  counter.setCount("ceilingStats:gestationalYes", 0)
+		  counter.setCount("ceilingStats:gestationalNo", 0)
+	       }
+	   }	
+	}
     }
-    if (genderScores.nonEmpty && genderScores.get.contains(id)) {
-      counter.setCount("ceilingStats:genderScores", genderScores.get(id))
+
+    if (ages.nonEmpty && ages.get.contains(id)) {
+        counter.setCount("ceilingStats:age", ages.get(id))	      
     }
-    if (bmiScores.nonEmpty && bmiScores.get.contains(id)) {
-      counter.setCount("ceilingStats:bmiScores", bmiScores.get(id))
+    if (genders.nonEmpty && genders.get.contains(id)) {
+       genders.get(id) match {
+	    case "Woman" => {
+		 counter.setCount("ceilingStats:genderWoman", 1)
+		 counter.setCount("ceilingStats:genderMan", 0)
+	    }
+	    case "Man" => {
+		 counter.setCount("ceilingStats:genderWoman", 0)
+		 counter.setCount("ceilingStats:genderMan", 1)
+	    }
+	    case _ => {
+		 counter.setCount("ceilingStats:genderWoman", 0)
+		 counter.setCount("ceilingStats:genderMan", 0)
+	    }
+	}
+    }
+    if (bmis.nonEmpty && bmis.get.contains(id)) {
+      counter.setCount("ceilingStats:bmi", bmis.get(id))
     }
 
     counter

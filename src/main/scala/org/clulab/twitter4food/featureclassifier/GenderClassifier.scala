@@ -54,6 +54,7 @@ class GenderClassifier(
     useRace=false,
     useHuman=false,
     useCeiling=false,
+    useRealCeiling=false,
     dictOnly=false,
     denoise=false,
     datumScaling=datumScaling,
