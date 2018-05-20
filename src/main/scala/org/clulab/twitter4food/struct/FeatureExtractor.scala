@@ -955,65 +955,45 @@ class FeatureExtractor (
 	if (relatives.nonEmpty && relatives.get.contains(id)) {
 	  relatives.get(id) match {
 	       case "Yes" => {
-			  counter.setCount("ceilingStats:relativeYes", 1)
-			  counter.setCount("ceilingStats:relativeNo", 0)
+		    counter.setCount("ceilingStats:relative", 1)
 	       }
 	       case "No" => {
-		  counter.setCount("ceilingStats:relativeYes", 0)
-		  counter.setCount("ceilingStats:relativeNo", 1)
+		  counter.setCount("ceilingStats:relative", 0)
 	       }
-	       case _ => {
-		  counter.setCount("ceilingStats:relativeYes", 0)
-		  counter.setCount("ceilingStats:relativeNo", 0)
-	       }
+	       case _ => 
 	   }
 	}
 	if (highBPs.nonEmpty && highBPs.get.contains(id)) {
 	  highBPs.get(id) match {
 	       case "Yes" => {
-			  counter.setCount("ceilingStats:highBPYes", 1)
-			  counter.setCount("ceilingStats:highBPNo", 0)
+	       	  counter.setCount("ceilingStats:highBP", 1)
 	       }
 	       case "No" => {
-		  counter.setCount("ceilingStats:highBPYes", 0)
-		  counter.setCount("ceilingStats:highBPNo", 1)
+		  counter.setCount("ceilingStats:highBP", 0)
 	       }
-	       case _ => {
-		  counter.setCount("ceilingStats:highBPYes", 0)
-		  counter.setCount("ceilingStats:highBPNo", 0)
-	       }
+	       case _ => 
 	   }
 	}
 	if (actives.nonEmpty && actives.get.contains(id)) {
 	  actives.get(id) match {
 	       case "Yes" => {
-		  counter.setCount("ceilingStats:activeYes", 1)
-		  counter.setCount("ceilingStats:activeNo", 0)
+		  counter.setCount("ceilingStats:active", 1)
 	       }
 	       case "No" => {
-		  counter.setCount("ceilingStats:activeYes", 0)
-		  counter.setCount("ceilingStats:activeNo", 1)
+		  counter.setCount("ceilingStats:active", 0)
 	       }
-	       case _ => {
-		  counter.setCount("ceilingStats:activeYes", 0)
-		  counter.setCount("ceilingStats:activeNo", 0)
-	       }
+	       case _ => 
 	   }	
 	}
 	if (gestationals.nonEmpty && gestationals.get.contains(id)) {
 	  gestationals.get(id) match {
 	       case "Yes" => {
-		  counter.setCount("ceilingStats:gestationalYes", 1)
-		  counter.setCount("ceilingStats:gestationalNo", 0)
+		  counter.setCount("ceilingStats:gestational", 1)
 	       }
 	       case "No" => {
-		  counter.setCount("ceilingStats:gestationalYes", 0)
-		  counter.setCount("ceilingStats:gestationalNo", 1)
+		  counter.setCount("ceilingStats:gestational", 0)
 	       }
-	       case _ => {
-		  counter.setCount("ceilingStats:gestationalYes", 0)
-		  counter.setCount("ceilingStats:gestationalNo", 0)
-	       }
+	       case _ => 
 	   }	
 	}
     }
@@ -1022,20 +1002,16 @@ class FeatureExtractor (
         counter.setCount("ceilingStats:age", ages.get(id))	      
     }
     if (genders.nonEmpty && genders.get.contains(id)) {
-       genders.get(id) match {
+       	genders.get(id) match {
 	    case "Woman" => {
-		 counter.setCount("ceilingStats:genderWoman", 1)
-		 counter.setCount("ceilingStats:genderMan", 0)
+		 counter.setCount("ceilingStats:gender", 0)
 	    }
 	    case "Man" => {
-		 counter.setCount("ceilingStats:genderWoman", 0)
-		 counter.setCount("ceilingStats:genderMan", 1)
+		 counter.setCount("ceilingStats:gender", 1)
 	    }
-	    case _ => {
-		 counter.setCount("ceilingStats:genderWoman", 0)
-		 counter.setCount("ceilingStats:genderMan", 0)
-	    }
+	    case _ => 
 	}
+
     }
     if (bmis.nonEmpty && bmis.get.contains(id)) {
       counter.setCount("ceilingStats:bmi", bmis.get(id))
