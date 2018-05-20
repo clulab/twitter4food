@@ -468,7 +468,6 @@ class FeatureExtractor (
 
     counter += daCounter
 
-    println(counter)
     // remove zero values for sparse rep
     counter.filter{ case (k, v) => k != "" & v != 0.0 }
   }
